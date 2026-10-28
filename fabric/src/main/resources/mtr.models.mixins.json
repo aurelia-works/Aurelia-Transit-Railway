@@ -6,7 +6,9 @@
 	"refmap": "mtr.refmap.json",
 	"mixins": [],
 	"client": [
+		"ObjModelAccessor",
 		"ObjModelLoaderMixin",
+		"OptimizedModelAccessor",
 		"OptimizedRendererMixin"
 	],
 	"server": [],

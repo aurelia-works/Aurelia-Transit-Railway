@@ -47,6 +47,10 @@
 			"type": "integer",
 			"default": 8
 		},
+		"mergeTrainParts": {
+			"type": "boolean",
+			"default": true
+		},
 		"trainLod": {
 			"type": "boolean",
 			"default": true

@@ -71,6 +71,10 @@ public final class Client extends ClientSchema {
 		return (int) railFarChunks;
 	}
 
+	public boolean getMergeTrainParts() {
+		return mergeTrainParts;
+	}
+
 	public boolean getTrainLod() {
 		return trainLod;
 	}
@@ -153,6 +157,10 @@ public final class Client extends ClientSchema {
 
 	public void setRailFarChunks(int railFarChunks) {
 		this.railFarChunks = Utilities.clamp(railFarChunks, 0, RAIL_FAR_CHUNKS_MAX);
+	}
+
+	public void toggleMergeTrainParts() {
+		mergeTrainParts = !mergeTrainParts;
 	}
 
 	public void toggleTrainLod() {

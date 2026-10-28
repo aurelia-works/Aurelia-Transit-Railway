@@ -7,8 +7,12 @@ import org.mtr.mapping.mapper.ModelPartExtension;
 import org.mtr.mapping.mapper.OptimizedModel;
 import org.mtr.mapping.mapper.OptimizedRenderer;
 import org.mtr.mod.Init;
+import org.mtr.mod.config.Config;
+import org.mtr.mod.mixin.ObjModelAccessor;
+import org.mtr.mod.mixin.OptimizedModelAccessor;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -25,12 +29,14 @@ public final class OptimizedModelWrapper {
 	 */
 	private float height = Float.NaN;
 
+	private static boolean mergeFailed;
+
 	public static OptimizedModelWrapper fromMaterialGroups(@Nullable ObjectArrayList<MaterialGroupWrapper> materialGroupList) {
 		return new OptimizedModelWrapper(OptimizedRenderer.hasOptimizedRendering() && materialGroupList != null ? OptimizedModel.fromMaterialGroups(materialGroupList.stream().map(materialGroup -> materialGroup.materialGroup).filter(Objects::nonNull).collect(Collectors.toList())) : null);
 	}
 
 	public static OptimizedModelWrapper fromObjModels(@Nullable ObjectArrayList<ObjModelWrapper> objModels) {
-		final OptimizedModelWrapper wrapper = new OptimizedModelWrapper(OptimizedRenderer.hasOptimizedRendering() && objModels != null ? OptimizedModel.fromObjModels(objModels.stream().map(objModel -> objModel.objModel).filter(Objects::nonNull).collect(Collectors.toList())) : null);
+		final OptimizedModelWrapper wrapper = new OptimizedModelWrapper(OptimizedRenderer.hasOptimizedRendering() && objModels != null ? upload(objModels.stream().map(objModel -> objModel.objModel).filter(Objects::nonNull).collect(Collectors.toList())) : null);
 		if (objModels != null) {
 			float min = Float.POSITIVE_INFINITY;
 			float max = Float.NEGATIVE_INFINITY;
@@ -43,6 +49,19 @@ public final class OptimizedModelWrapper {
 			wrapper.height = max >= min ? max - min : Float.NaN;
 		}
 		return wrapper;
+	}
+
+	/** One buffer per material per car ({@link MergedObjUpload}) when on; MTR's own upload when off or after a failure. */
+	private static OptimizedModel upload(List<OptimizedModel.ObjModel> objModels) {
+		if (!mergeFailed && Config.getClient().getMergeTrainParts()) {
+			try {
+				return new OptimizedModel(MergedObjUpload.upload(objModels, objModel -> ((ObjModelAccessor) (Object) objModel).getRawModel(), OptimizedModelAccessor.getDefaultMapping()));
+			} catch (RuntimeException e) {
+				mergeFailed = true;
+				Init.LOGGER.error("Merging train parts failed; using MTR's own model upload for the rest of this session", e);
+			}
+		}
+		return OptimizedModel.fromObjModels(objModels);
 	}
 
 	public float getHeight() {

@@ -33,6 +33,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 	private final ButtonWidgetExtension buttonRailLod;
 	private final WidgetShorterSlider sliderRailSimpleChunks;
 	private final WidgetShorterSlider sliderRailFarChunks;
+	private final ButtonWidgetExtension buttonMergeTrainParts;
 	private final ButtonWidgetExtension buttonTrainLod;
 	private final WidgetShorterSlider sliderTrainInteriorChunks;
 	private final WidgetShorterSlider sliderTrainBoxChunks;
@@ -101,6 +102,10 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		});
 		sliderRailSimpleChunks = new WidgetShorterSlider(0, 0, Client.RAIL_SIMPLE_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
 		sliderRailFarChunks = new WidgetShorterSlider(0, 0, Client.RAIL_FAR_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
+		buttonMergeTrainParts = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleMergeTrainParts();
+			setButtonText(button, client.getMergeTrainParts());
+		});
 		buttonTrainLod = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
 			client.toggleTrainLod();
 			setButtonText(button, client.getTrainLod());
@@ -141,6 +146,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		sliderRailSimpleChunks.setValue(client.getRailSimpleChunks());
 		sliderRailFarChunks.setHeight(BUTTON_HEIGHT);
 		sliderRailFarChunks.setValue(client.getRailFarChunks());
+		setButtonText(new ButtonWidget(buttonMergeTrainParts), client.getMergeTrainParts());
 		setButtonText(new ButtonWidget(buttonTrainLod), client.getTrainLod());
 		sliderTrainInteriorChunks.setHeight(BUTTON_HEIGHT);
 		sliderTrainInteriorChunks.setValue(client.getTrainInteriorChunks());
@@ -172,6 +178,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		addChild(new ClickableWidget(buttonRailLod));
 		addChild(new ClickableWidget(sliderRailSimpleChunks));
 		addChild(new ClickableWidget(sliderRailFarChunks));
+		addChild(new ClickableWidget(buttonMergeTrainParts));
 		addChild(new ClickableWidget(buttonTrainLod));
 		addChild(new ClickableWidget(sliderTrainInteriorChunks));
 		addChild(new ClickableWidget(sliderTrainBoxChunks));
@@ -208,6 +215,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_RAIL_LOD.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_RAIL_SIMPLE_CHUNKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_RAIL_FAR_CHUNKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
+			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_MERGE_TRAIN_PARTS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_TRAIN_LOD.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_TRAIN_INTERIOR_CHUNKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_TRAIN_BOX_CHUNKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
@@ -289,6 +297,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		IDrawing.setPositionAndWidth(buttonRailLod, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(sliderRailSimpleChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
 		IDrawing.setPositionAndWidth(sliderRailFarChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
+		IDrawing.setPositionAndWidth(buttonMergeTrainParts, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(buttonTrainLod, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(sliderTrainInteriorChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
 		IDrawing.setPositionAndWidth(sliderTrainBoxChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));

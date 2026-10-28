@@ -538,6 +538,7 @@
 	"options.mtr.rail_lod": "Simplify distant 3D rails",
 	"options.mtr.rail_simple_chunks": "Flat rails beyond (chunks, 0 = off)",
 	"options.mtr.rail_far_chunks": "Sparse rails beyond (chunks, 0 = off)",
+	"options.mtr.merge_train_parts": "Merge train parts (fewer draw calls)",
 	"options.mtr.train_lod": "Simplify distant trains",
 	"options.mtr.train_interior_chunks": "Hide train interiors beyond (chunks, 0 = off)",
 	"options.mtr.train_box_chunks": "Draw trains as boxes beyond (chunks, 0 = off)",
