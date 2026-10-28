@@ -7,6 +7,7 @@ import org.mtr.libraries.it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.*;
 import org.mtr.mapping.holder.Box;
 import org.mtr.mapping.holder.MutableText;
+import org.mtr.mapping.mapper.GraphicsHolder;
 import org.mtr.mapping.mapper.TextHelper;
 import org.mtr.mod.Init;
 import org.mtr.mod.client.CustomResourceLoader;
@@ -219,20 +220,17 @@ public final class VehicleResource extends VehicleResourceSchema {
 		return null;
 	}
 
-	public void queue(StoredMatrixTransformations storedMatrixTransformations, VehicleExtension vehicle, int carNumber, int totalCars, int light, boolean noOpenDoorways) {
-		queue(storedMatrixTransformations, vehicle, carNumber, totalCars, light, noOpenDoorways, false);
-	}
-
 	/**
-	 * @param withoutInterior train LOD: leave out the interior parts (seats, lights inside)
+	 * Train LOD passes {@link StoredMatrixTransformations#copyWithoutInterior()} to leave out the interior parts.
+	 * The signature is MTR 4.0.5's: JCM and Tianjin hook this method and the private one below.
 	 */
-	public void queue(StoredMatrixTransformations storedMatrixTransformations, VehicleExtension vehicle, int carNumber, int totalCars, int light, boolean noOpenDoorways, boolean withoutInterior) {
+	public void queue(StoredMatrixTransformations storedMatrixTransformations, VehicleExtension vehicle, int carNumber, int totalCars, int light, boolean noOpenDoorways) {
 		final VehicleResourceCache vehicleResourceCache = getCachedVehicleResource(carNumber, totalCars, false);
 		if (vehicleResourceCache != null) {
 			if (noOpenDoorways) {
-				queue(vehicleResourceCache.optimizedModelsDoorsClosed, storedMatrixTransformations, vehicle, light, true, withoutInterior);
+				queue(vehicleResourceCache.optimizedModelsDoorsClosed, storedMatrixTransformations, vehicle, light, true);
 			} else {
-				queue(vehicleResourceCache.optimizedModels, storedMatrixTransformations, vehicle, light, false, withoutInterior);
+				queue(vehicleResourceCache.optimizedModels, storedMatrixTransformations, vehicle, light, false);
 			}
 		}
 	}
@@ -240,7 +238,7 @@ public final class VehicleResource extends VehicleResourceSchema {
 	public void queueBogie(int bogieIndex, StoredMatrixTransformations storedMatrixTransformations, VehicleExtension vehicle, int light) {
 		final VehicleResourceCache vehicleResourceCache = getCachedVehicleResource(0, 1, false);
 		if (vehicleResourceCache != null && Utilities.isBetween(bogieIndex, 0, 1)) {
-			queue(bogieIndex == 0 ? vehicleResourceCache.optimizedModelsBogie1 : vehicleResourceCache.optimizedModelsBogie2, storedMatrixTransformations, vehicle, light, true, false);
+			queue(bogieIndex == 0 ? vehicleResourceCache.optimizedModelsBogie1 : vehicleResourceCache.optimizedModelsBogie2, storedMatrixTransformations, vehicle, light, true);
 		}
 	}
 
@@ -425,10 +423,7 @@ public final class VehicleResource extends VehicleResourceSchema {
 			modelsToInitialize.addAll(bogie2Models);
 
 			return new CachedResource<>(() -> {
-				if (!force) {
-					// The car's model files are built one per tick: start reading all of them in the background at once.
-					modelsToInitialize.forEach(VehicleModel::requestBackgroundLoad);
-				}
+				requestBackgroundLoads(modelsToInitialize, force);
 				for (final VehicleModel vehicleModel : modelsToInitialize) {
 					final DynamicVehicleModel dynamicVehicleModel = vehicleModel.cachedModel.getData(force);
 					if (dynamicVehicleModel == null) {
@@ -528,12 +523,12 @@ public final class VehicleResource extends VehicleResourceSchema {
 		return CHRISTMAS_LIGHT_STAGES[(int) ((System.currentTimeMillis() / 500) % CHRISTMAS_LIGHT_STAGES.length)][index];
 	}
 
-	private static void queue(Object2ObjectOpenHashMap<PartCondition, OptimizedModelWrapper> optimizedModels, StoredMatrixTransformations storedMatrixTransformations, VehicleExtension vehicle, int light, boolean noOpenDoorways, boolean withoutInterior) {
+	private static void queue(Object2ObjectOpenHashMap<PartCondition, OptimizedModelWrapper> optimizedModels, StoredMatrixTransformations storedMatrixTransformations, VehicleExtension vehicle, int light, boolean noOpenDoorways) {
 		optimizedModels.forEach((partCondition, optimizedModel) -> {
 			if (matchesCondition(vehicle, partCondition, noOpenDoorways)) {
 				MainRenderer.scheduleRender(QueuedRenderLayer.TEXT, (graphicsHolder, offset) -> {
 					storedMatrixTransformations.transform(graphicsHolder, offset);
-					TrainLod.queue(withoutInterior, () -> CustomResourceLoader.OPTIMIZED_RENDERER_WRAPPER.queue(optimizedModel, graphicsHolder, light));
+					queueOptimizedModel(storedMatrixTransformations, optimizedModel, graphicsHolder, light);
 					graphicsHolder.pop();
 				});
 			}
@@ -607,5 +602,20 @@ public final class VehicleResource extends VehicleResourceSchema {
 	@FunctionalInterface
 	public interface LegacyVehicleSupplier<T> {
 		T apply(int carNumber, int totalCars);
+	}
+
+	// Last in the class: add-ons hook MTR 4.0.5's numbered lambdas, so new lambdas must come after them
+	private static void queueOptimizedModel(StoredMatrixTransformations storedMatrixTransformations, OptimizedModelWrapper optimizedModel, GraphicsHolder graphicsHolder, int light) {
+		TrainLod.queue(storedMatrixTransformations.isWithoutInterior(), () -> CustomResourceLoader.OPTIMIZED_RENDERER_WRAPPER.queue(optimizedModel, graphicsHolder, light));
+	}
+
+	/**
+	 * The car's model files are built one per tick: start reading all of them in the background at once.
+	 * A method of its own so MTR's lambda that calls it captures its variables in the 4.0.5 order.
+	 */
+	private static void requestBackgroundLoads(ObjectArrayList<VehicleModel> modelsToInitialize, boolean force) {
+		if (!force) {
+			modelsToInitialize.forEach(VehicleModel::requestBackgroundLoad);
+		}
 	}
 }

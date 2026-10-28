@@ -17,6 +17,7 @@ import org.mtr.mapping.mapper.OptimizedRenderer;
 import org.mtr.mod.Init;
 import org.mtr.mod.client.*;
 import org.mtr.mod.config.Config;
+import org.mtr.mod.data.VehicleExtension;
 import org.mtr.mod.data.IGui;
 import org.mtr.mod.item.ItemDriverKey;
 import org.mtr.mod.resource.Interpolation;
@@ -34,10 +35,6 @@ public class RenderVehicles implements IGui {
 	public static final ObjectArrayList<RidingPlayerInterpolation> RIDING_PLAYER_INTERPOLATIONS = new ObjectArrayList<>();
 
 	public static void render(long millisElapsed, Vector3d cameraShakeOffset) {
-		final boolean cheapShadows = Config.getClient().getCheapShadows();
-		final boolean trainLod = Config.getClient().getTrainLod();
-		final int trainInteriorChunks = Config.getClient().getTrainInteriorChunks();
-		final int trainBoxChunks = Config.getClient().getTrainBoxChunks();
 		final MinecraftClient minecraftClient = MinecraftClient.getInstance();
 		final ClientWorld clientWorld = minecraftClient.getWorldMapped();
 		final ClientPlayerEntity clientPlayerEntity = minecraftClient.getPlayerMapped();
@@ -110,21 +107,10 @@ public class RenderVehicles implements IGui {
 
 				if (vehicle.persistentVehicleData.rayTracing[carNumber] || VehicleRidingMovement.isRiding(vehicle.getId())) {
 					// Train LOD: far cars skip their interior, farther ones are a plain box and their model is never requested
-					final TrainLod.Tier trainLodTier;
-					if (trainLod) {
-						final PositionAndRotation carPosition = vehicleCarDetails.right().right();
-						final double dx = carPosition.position.x - camera.x;
-						final double dy = carPosition.position.y - camera.y;
-						final double dz = carPosition.position.z - camera.z;
-						trainLodTier = TrainLod.tier(Math.sqrt(dx * dx + dy * dy + dz * dz), VehicleRidingMovement.isRiding(vehicle.getId()), trainInteriorChunks, trainBoxChunks);
-					} else {
-						trainLodTier = TrainLod.Tier.FULL;
-					}
-					if (trainLodTier == TrainLod.Tier.BOX) {
-						CustomResourceLoader.getVehicleById(vehicle.getTransportMode(), vehicleCarDetails.left().getVehicleId(), vehicleResourceDetails -> TrainProxy.queue(vehicleCarDetails.left(), vehicleCarDetails.right().right(), vehicleResourceDetails.left().getColor()));
+					if (trainLodTier(vehicle, vehicleCarDetails.right().right()) == TrainLod.Tier.BOX) {
+						queueTrainBox(vehicle, vehicleCarDetails.left(), vehicleCarDetails.right().right());
 						return;
 					}
-					final boolean withoutInterior = trainLodTier == TrainLod.Tier.NO_INTERIOR || trainLod && cheapShadows && MainRenderer.renderingShadows();
 					CustomResourceLoader.getVehicleById(vehicle.getTransportMode(), vehicleCarDetails.left().getVehicleId(), vehicleResourceDetails -> {
 						final VehicleResource vehicleResource = vehicleResourceDetails.left();
 						final boolean fromResourcePackCreator = vehicleResourceDetails.rightBoolean() && !vehicle.getIsOnRoute();
@@ -236,13 +222,12 @@ public class RenderVehicles implements IGui {
 						// Each car can have more than one model defined
 						final StoredMatrixTransformations storedMatrixTransformations = getStoredMatrixTransformations(offsetVector == null, vehicleCarRenderingPositionAndRotation, oscillationAmount);
 						if (OptimizedRenderer.hasOptimizedRendering()) {
-							vehicleResource.queue(storedMatrixTransformations, vehicle, carNumber, vehicle.vehicleExtraData.immutableVehicleCars.size(), absoluteVehicleCarPositionAndRotation.light, openDoorways.isEmpty(), withoutInterior);
+							vehicleResource.queue(withoutInterior(vehicle, absoluteVehicleCarPositionAndRotation) ? storedMatrixTransformations.copyWithoutInterior() : storedMatrixTransformations, vehicle, carNumber, vehicle.vehicleExtraData.immutableVehicleCars.size(), absoluteVehicleCarPositionAndRotation.light, openDoorways.isEmpty());
 						}
 
-						// Cheap shadows: the batched models above already cast the shadow, so the per-frame models (displays, text, lights) are skipped in a shader pack's shadow pass
-						final boolean skipModelsInShadows = cheapShadows && OptimizedRenderer.hasOptimizedRendering() && MainRenderer.renderingShadows();
 						vehicleResource.iterateModels(carNumber, vehicle.vehicleExtraData.immutableVehicleCars.size(), (modelIndex, model) -> {
-							if (!skipModelsInShadows) {
+							// Cheap shadows: the batched models above already cast the shadow, so the per-frame models (displays, text, lights) are skipped in a shader pack's shadow pass
+							if (!skipModelsInShadows()) {
 								model.render(storedMatrixTransformations, vehicle, carNumber, scrollingDisplayIndexTracker, absoluteVehicleCarPositionAndRotation.light, openDoorways, fromResourcePackCreator);
 							}
 
@@ -617,6 +602,32 @@ public class RenderVehicles implements IGui {
 
 	private static double getPositionFromPercentage(double percentage, double min, double max) {
 		return min + Math.max(0, max - min) * percentage;
+	}
+
+	// The helpers below come after every MTR 4.0.5 method: add-ons hook its numbered lambdas (lambda$render$5 and so on),
+	// so new lambdas go here and existing lambdas capture nothing new (DropInSignaturesTest)
+
+	private static TrainLod.Tier trainLodTier(VehicleExtension vehicle, PositionAndRotation carPosition) {
+		if (!Config.getClient().getTrainLod()) {
+			return TrainLod.Tier.FULL;
+		}
+		final Vector3d camera = MinecraftClient.getInstance().getGameRendererMapped().getCamera().getPos();
+		final double dx = carPosition.position.x - camera.getXMapped();
+		final double dy = carPosition.position.y - camera.getYMapped();
+		final double dz = carPosition.position.z - camera.getZMapped();
+		return TrainLod.tier(Math.sqrt(dx * dx + dy * dy + dz * dz), VehicleRidingMovement.isRiding(vehicle.getId()), Config.getClient().getTrainInteriorChunks(), Config.getClient().getTrainBoxChunks());
+	}
+
+	private static boolean withoutInterior(VehicleExtension vehicle, PositionAndRotation carPosition) {
+		return trainLodTier(vehicle, carPosition) == TrainLod.Tier.NO_INTERIOR || Config.getClient().getTrainLod() && Config.getClient().getCheapShadows() && MainRenderer.renderingShadows();
+	}
+
+	private static boolean skipModelsInShadows() {
+		return Config.getClient().getCheapShadows() && OptimizedRenderer.hasOptimizedRendering() && MainRenderer.renderingShadows();
+	}
+
+	private static void queueTrainBox(VehicleExtension vehicle, VehicleCar vehicleCar, PositionAndRotation carPosition) {
+		CustomResourceLoader.getVehicleById(vehicle.getTransportMode(), vehicleCar.getVehicleId(), vehicleResourceDetails -> TrainProxy.queue(vehicleCar, carPosition, vehicleResourceDetails.left().getColor()));
 	}
 
 	public static class RidingPlayerInterpolation {

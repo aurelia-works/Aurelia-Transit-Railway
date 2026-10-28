@@ -21,27 +21,27 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 	private final ButtonWidgetExtension buttonShowAnnouncementMessages;
 	private final ButtonWidgetExtension buttonUseTTSAnnouncements;
 	private final ButtonWidgetExtension buttonHideTranslucentParts;
-	private final ButtonWidgetExtension buttonHideRainInsideVehicles;
+	private ButtonWidgetExtension buttonHideRainInsideVehicles;
 	private final ButtonWidgetExtension buttonLanguageOptions;
 	private final WidgetShorterSlider sliderDynamicTextureResolution;
 	private final WidgetShorterSlider sliderTrainOscillationMultiplier;
 	private final ButtonWidgetExtension buttonDefaultRail3D;
 	private final ButtonWidgetExtension buttonUseMTRFont;
 	private final ButtonWidgetExtension buttonDisableShadowsForShaders;
-	private final ButtonWidgetExtension buttonFasterDoorChecks;
-	private final ButtonWidgetExtension buttonCheapShadows;
-	private final ButtonWidgetExtension buttonRailLod;
-	private final WidgetShorterSlider sliderRailSimpleChunks;
-	private final WidgetShorterSlider sliderRailFarChunks;
-	private final ButtonWidgetExtension buttonShaderPackFastPath;
-	private final ButtonWidgetExtension buttonPerfOnF3;
-	private final ButtonWidgetExtension buttonMergeTrainParts;
-	private final ButtonWidgetExtension buttonTrainLod;
-	private final WidgetShorterSlider sliderTrainInteriorChunks;
-	private final WidgetShorterSlider sliderTrainBoxChunks;
-	private final ButtonWidgetExtension buttonFasterModelLoading;
-	private final ButtonWidgetExtension buttonBackgroundModelLoading;
-	private final ButtonWidgetExtension buttonFreeUnusedModels;
+	private ButtonWidgetExtension buttonFasterDoorChecks;
+	private ButtonWidgetExtension buttonCheapShadows;
+	private ButtonWidgetExtension buttonRailLod;
+	private WidgetShorterSlider sliderRailSimpleChunks;
+	private WidgetShorterSlider sliderRailFarChunks;
+	private ButtonWidgetExtension buttonShaderPackFastPath;
+	private ButtonWidgetExtension buttonPerfOnF3;
+	private ButtonWidgetExtension buttonMergeTrainParts;
+	private ButtonWidgetExtension buttonTrainLod;
+	private WidgetShorterSlider sliderTrainInteriorChunks;
+	private WidgetShorterSlider sliderTrainBoxChunks;
+	private ButtonWidgetExtension buttonFasterModelLoading;
+	private ButtonWidgetExtension buttonBackgroundModelLoading;
+	private ButtonWidgetExtension buttonFreeUnusedModels;
 	private final ButtonWidgetExtension buttonSupportPatreon;
 
 	private static final Identifier HEADER_LOGO = new Identifier("mtr:textures/gui/atr_logo.png");
@@ -68,10 +68,6 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 			client.toggleHideTranslucentParts();
 			setButtonText(button, client.getHideTranslucentParts());
 		});
-		buttonHideRainInsideVehicles = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.toggleHideRainInsideVehicles();
-			setButtonText(button, client.getHideRainInsideVehicles());
-		});
 		buttonLanguageOptions = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
 			client.cycleLanguageDisplay();
 			button.setMessage(client.getLanguageDisplay().translationKey.getText());
@@ -90,51 +86,8 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 			client.toggleDisableShadowsForShaders();
 			setButtonText(button, client.getDisableShadowsForShaders());
 		});
-		buttonFasterDoorChecks = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.toggleFasterDoorChecks();
-			setButtonText(button, client.getFasterDoorChecks());
-		});
-		buttonCheapShadows = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.toggleCheapShadows();
-			setButtonText(button, client.getCheapShadows());
-		});
-		buttonRailLod = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.toggleRailLod();
-			setButtonText(button, client.getRailLod());
-		});
-		sliderRailSimpleChunks = new WidgetShorterSlider(0, 0, Client.RAIL_SIMPLE_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
-		sliderRailFarChunks = new WidgetShorterSlider(0, 0, Client.RAIL_FAR_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
-		buttonShaderPackFastPath = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.toggleShaderPackFastPath();
-			setButtonText(button, client.getShaderPackFastPath());
-		});
-		buttonPerfOnF3 = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.togglePerfOnF3();
-			setButtonText(button, client.getPerfOnF3());
-		});
-		buttonMergeTrainParts = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.toggleMergeTrainParts();
-			setButtonText(button, client.getMergeTrainParts());
-		});
-		buttonTrainLod = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.toggleTrainLod();
-			setButtonText(button, client.getTrainLod());
-		});
-		sliderTrainInteriorChunks = new WidgetShorterSlider(0, 0, Client.TRAIN_INTERIOR_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
-		sliderTrainBoxChunks = new WidgetShorterSlider(0, 0, Client.TRAIN_BOX_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
-		buttonFasterModelLoading = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.toggleFasterModelLoading();
-			setButtonText(button, client.getFasterModelLoading());
-		});
-		buttonBackgroundModelLoading = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.toggleBackgroundModelLoading();
-			setButtonText(button, client.getBackgroundModelLoading());
-		});
-		buttonFreeUnusedModels = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
-			client.toggleFreeUnusedModels();
-			setButtonText(button, client.getFreeUnusedModels());
-		});
 		buttonSupportPatreon = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> Util.getOperatingSystem().open("https://www.patreon.com/minecraft_transit_railway"));
+		createAtrWidgets();
 	}
 
 	@Override
@@ -359,5 +312,57 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 
 	private static void setButtonText(ButtonWidget button, boolean state) {
 		button.setMessage((state ? TranslationProvider.OPTIONS_MTR_ON : TranslationProvider.OPTIONS_MTR_OFF).getText());
+	}
+
+	// Last in the class: add-ons hook MTR 4.0.5's numbered lambdas (lambda$new$4 and so on), so ATR's rows are made here
+	private void createAtrWidgets() {
+		buttonHideRainInsideVehicles = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleHideRainInsideVehicles();
+			setButtonText(button, client.getHideRainInsideVehicles());
+		});
+		buttonFasterDoorChecks = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleFasterDoorChecks();
+			setButtonText(button, client.getFasterDoorChecks());
+		});
+		buttonCheapShadows = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleCheapShadows();
+			setButtonText(button, client.getCheapShadows());
+		});
+		buttonRailLod = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleRailLod();
+			setButtonText(button, client.getRailLod());
+		});
+		sliderRailSimpleChunks = new WidgetShorterSlider(0, 0, Client.RAIL_SIMPLE_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
+		sliderRailFarChunks = new WidgetShorterSlider(0, 0, Client.RAIL_FAR_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
+		buttonShaderPackFastPath = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleShaderPackFastPath();
+			setButtonText(button, client.getShaderPackFastPath());
+		});
+		buttonPerfOnF3 = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.togglePerfOnF3();
+			setButtonText(button, client.getPerfOnF3());
+		});
+		buttonMergeTrainParts = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleMergeTrainParts();
+			setButtonText(button, client.getMergeTrainParts());
+		});
+		buttonTrainLod = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleTrainLod();
+			setButtonText(button, client.getTrainLod());
+		});
+		sliderTrainInteriorChunks = new WidgetShorterSlider(0, 0, Client.TRAIN_INTERIOR_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
+		sliderTrainBoxChunks = new WidgetShorterSlider(0, 0, Client.TRAIN_BOX_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
+		buttonFasterModelLoading = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleFasterModelLoading();
+			setButtonText(button, client.getFasterModelLoading());
+		});
+		buttonBackgroundModelLoading = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleBackgroundModelLoading();
+			setButtonText(button, client.getBackgroundModelLoading());
+		});
+		buttonFreeUnusedModels = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleFreeUnusedModels();
+			setButtonText(button, client.getFreeUnusedModels());
+		});
 	}
 }
