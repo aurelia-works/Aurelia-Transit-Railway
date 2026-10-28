@@ -27,6 +27,14 @@ public final class Client extends ClientSchema {
 		return hideTranslucentParts;
 	}
 
+	public boolean getFasterDoorChecks() {
+		return fasterDoorChecks;
+	}
+
+	public boolean getCheapShadows() {
+		return cheapShadows;
+	}
+
 	public LanguageDisplay getLanguageDisplay() {
 		return languageDisplay;
 	}
@@ -93,6 +101,14 @@ public final class Client extends ClientSchema {
 
 	public void toggleDisableShadowsForShaders() {
 		disableShadowsForShaders = !disableShadowsForShaders;
+	}
+
+	public void toggleFasterDoorChecks() {
+		fasterDoorChecks = !fasterDoorChecks;
+	}
+
+	public void toggleCheapShadows() {
+		cheapShadows = !cheapShadows;
 	}
 
 	public void hideBetaWarningScreen() {

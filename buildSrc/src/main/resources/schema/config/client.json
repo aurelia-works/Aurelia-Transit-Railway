@@ -37,6 +37,14 @@
 		"disableShadowsForShaders": {
 			"type": "boolean"
 		},
+		"fasterDoorChecks": {
+			"type": "boolean",
+			"default": true
+		},
+		"cheapShadows": {
+			"type": "boolean",
+			"default": true
+		},
 		"preloadResourcePattern": {
 			"type": "string"
 		},

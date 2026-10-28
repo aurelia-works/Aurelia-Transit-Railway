@@ -27,6 +27,8 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 	private final ButtonWidgetExtension buttonDefaultRail3D;
 	private final ButtonWidgetExtension buttonUseMTRFont;
 	private final ButtonWidgetExtension buttonDisableShadowsForShaders;
+	private final ButtonWidgetExtension buttonFasterDoorChecks;
+	private final ButtonWidgetExtension buttonCheapShadows;
 	private final ButtonWidgetExtension buttonSupportPatreon;
 
 	private static final Identifier HEADER_LOGO = new Identifier("mtr:textures/gui/atr_logo.png");
@@ -67,6 +69,14 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 			client.toggleDisableShadowsForShaders();
 			setButtonText(button, client.getDisableShadowsForShaders());
 		});
+		buttonFasterDoorChecks = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleFasterDoorChecks();
+			setButtonText(button, client.getFasterDoorChecks());
+		});
+		buttonCheapShadows = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleCheapShadows();
+			setButtonText(button, client.getCheapShadows());
+		});
 		buttonSupportPatreon = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> Util.getOperatingSystem().open("https://www.patreon.com/minecraft_transit_railway"));
 	}
 
@@ -85,6 +95,8 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		IDrawing.setPositionAndWidth(buttonDefaultRail3D, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(buttonUseMTRFont, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(buttonDisableShadowsForShaders, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonFasterDoorChecks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonCheapShadows, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(buttonSupportPatreon, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * i + SQUARE_SIZE, BUTTON_WIDTH);
 		setButtonText(new ButtonWidget(buttonShowAnnouncementMessages), client.getChatAnnouncements());
 		setButtonText(new ButtonWidget(buttonUseTTSAnnouncements), client.getTextToSpeechAnnouncements());
@@ -92,6 +104,8 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		setButtonText(new ButtonWidget(buttonDefaultRail3D), client.getDefaultRail3D());
 		setButtonText(new ButtonWidget(buttonUseMTRFont), client.getUseMTRFont());
 		setButtonText(new ButtonWidget(buttonDisableShadowsForShaders), client.getDisableShadowsForShaders());
+		setButtonText(new ButtonWidget(buttonFasterDoorChecks), client.getFasterDoorChecks());
+		setButtonText(new ButtonWidget(buttonCheapShadows), client.getCheapShadows());
 		buttonLanguageOptions.setMessage2(client.getLanguageDisplay().translationKey.getText());
 		sliderDynamicTextureResolution.setHeight(BUTTON_HEIGHT);
 		sliderDynamicTextureResolution.setValue(client.getDynamicTextureResolution());
@@ -109,6 +123,8 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		addChild(new ClickableWidget(buttonDefaultRail3D));
 		addChild(new ClickableWidget(buttonUseMTRFont));
 		addChild(new ClickableWidget(buttonDisableShadowsForShaders));
+		addChild(new ClickableWidget(buttonFasterDoorChecks));
+		addChild(new ClickableWidget(buttonCheapShadows));
 		addChild(new ClickableWidget(buttonSupportPatreon));
 	}
 
@@ -130,6 +146,8 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_DEFAULT_RAIL_3D.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_USE_MTR_FONT.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_DISABLE_SHADOWS_FOR_SHADERS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
+			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_FASTER_DOOR_CHECKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
+			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_CHEAP_SHADOWS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_SUPPORT_PATREON.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, 0xFFFFFF66, false, GraphicsHolder.getDefaultLight());
 
 			final int yStart2 = BUTTON_HEIGHT * (i + 1) + yStart1;

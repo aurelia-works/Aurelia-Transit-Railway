@@ -34,6 +34,7 @@ public class RenderVehicles implements IGui {
 	public static final ObjectArrayList<RidingPlayerInterpolation> RIDING_PLAYER_INTERPOLATIONS = new ObjectArrayList<>();
 
 	public static void render(long millisElapsed, Vector3d cameraShakeOffset) {
+		final boolean cheapShadows = Config.getClient().getCheapShadows();
 		final MinecraftClient minecraftClient = MinecraftClient.getInstance();
 		final ClientWorld clientWorld = minecraftClient.getWorldMapped();
 		final ClientPlayerEntity clientPlayerEntity = minecraftClient.getPlayerMapped();
@@ -204,7 +205,7 @@ public class RenderVehicles implements IGui {
 						}
 
 						// Play vehicle sounds
-						if (!OptimizedRenderer.renderingShadows()) {
+						if (!MainRenderer.renderingShadows()) {
 							vehicle.playMotorSound(vehicleResource, carNumber, absoluteVehicleCarPositionAndRotation.position);
 
 							// Play door sounds
@@ -219,8 +220,12 @@ public class RenderVehicles implements IGui {
 							vehicleResource.queue(storedMatrixTransformations, vehicle, carNumber, vehicle.vehicleExtraData.immutableVehicleCars.size(), absoluteVehicleCarPositionAndRotation.light, openDoorways.isEmpty());
 						}
 
+						// Cheap shadows: the batched models above already cast the shadow, so the per-frame models (displays, text, lights) are skipped in a shader pack's shadow pass
+						final boolean skipModelsInShadows = cheapShadows && OptimizedRenderer.hasOptimizedRendering() && MainRenderer.renderingShadows();
 						vehicleResource.iterateModels(carNumber, vehicle.vehicleExtraData.immutableVehicleCars.size(), (modelIndex, model) -> {
-							model.render(storedMatrixTransformations, vehicle, carNumber, scrollingDisplayIndexTracker, absoluteVehicleCarPositionAndRotation.light, openDoorways, fromResourcePackCreator);
+							if (!skipModelsInShadows) {
+								model.render(storedMatrixTransformations, vehicle, carNumber, scrollingDisplayIndexTracker, absoluteVehicleCarPositionAndRotation.light, openDoorways, fromResourcePackCreator);
+							}
 
 							while (modelIndex >= previousGangwayPositionsList.size()) {
 								previousGangwayPositionsList.add(new PreviousConnectionPositions());
@@ -345,7 +350,7 @@ public class RenderVehicles implements IGui {
 			});
 		});
 
-		if (!OptimizedRenderer.renderingShadows()) {
+		if (!MainRenderer.renderingShadows()) {
 			MainRenderer.WORKER_THREAD.scheduleVehicles(occlusionCullingInstance -> {
 				final ObjectArrayList<Runnable> tasks = new ObjectArrayList<>();
 				cullingTasks.forEach(occlusionCullingInstanceRunnableFunction -> tasks.add(occlusionCullingInstanceRunnableFunction.apply(occlusionCullingInstance)));
