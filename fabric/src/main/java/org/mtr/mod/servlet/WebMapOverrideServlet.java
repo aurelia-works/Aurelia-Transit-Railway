@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 /**
  * Serves a built copy of the system map website (the Angular {@code dist/website/browser} folder) in place of the one inside Transport Simulation Core.
  * Only active when the {@code ATR_WEBMAP_DIR} environment variable names that folder, so a normal install is unchanged.
+ * Files are sent as UTF-8 text like Core does, which is enough for the HTML, JS, CSS and JSON the site builds to.
  */
 public final class WebMapOverrideServlet extends HttpServlet {
 
@@ -73,7 +74,7 @@ public final class WebMapOverrideServlet extends HttpServlet {
 			final Path path = root.resolve(resource).normalize();
 			return path.startsWith(root) && Files.isRegularFile(path) ? new String(Files.readAllBytes(path), StandardCharsets.UTF_8) : null;
 		} catch (Exception e) {
-			LOGGER.error("", e);
+			LOGGER.error("Could not read {} from the system map folder", resource, e);
 			return null;
 		}
 	}
