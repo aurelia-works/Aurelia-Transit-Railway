@@ -27,6 +27,9 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 	private final ButtonWidgetExtension buttonDefaultRail3D;
 	private final ButtonWidgetExtension buttonUseMTRFont;
 	private final ButtonWidgetExtension buttonDisableShadowsForShaders;
+	private final ButtonWidgetExtension buttonRailLod;
+	private final WidgetShorterSlider sliderRailSimpleChunks;
+	private final WidgetShorterSlider sliderRailFarChunks;
 	private final ButtonWidgetExtension buttonSupportPatreon;
 
 	private static final Identifier HEADER_LOGO = new Identifier("mtr:textures/gui/atr_logo.png");
@@ -67,6 +70,12 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 			client.toggleDisableShadowsForShaders();
 			setButtonText(button, client.getDisableShadowsForShaders());
 		});
+		buttonRailLod = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleRailLod();
+			setButtonText(button, client.getRailLod());
+		});
+		sliderRailSimpleChunks = new WidgetShorterSlider(0, 0, Client.RAIL_SIMPLE_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
+		sliderRailFarChunks = new WidgetShorterSlider(0, 0, Client.RAIL_FAR_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
 		buttonSupportPatreon = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> Util.getOperatingSystem().open("https://www.patreon.com/minecraft_transit_railway"));
 	}
 
@@ -85,6 +94,9 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		IDrawing.setPositionAndWidth(buttonDefaultRail3D, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(buttonUseMTRFont, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(buttonDisableShadowsForShaders, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonRailLod, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(sliderRailSimpleChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
+		IDrawing.setPositionAndWidth(sliderRailFarChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
 		IDrawing.setPositionAndWidth(buttonSupportPatreon, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * i + SQUARE_SIZE, BUTTON_WIDTH);
 		setButtonText(new ButtonWidget(buttonShowAnnouncementMessages), client.getChatAnnouncements());
 		setButtonText(new ButtonWidget(buttonUseTTSAnnouncements), client.getTextToSpeechAnnouncements());
@@ -92,6 +104,11 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		setButtonText(new ButtonWidget(buttonDefaultRail3D), client.getDefaultRail3D());
 		setButtonText(new ButtonWidget(buttonUseMTRFont), client.getUseMTRFont());
 		setButtonText(new ButtonWidget(buttonDisableShadowsForShaders), client.getDisableShadowsForShaders());
+		setButtonText(new ButtonWidget(buttonRailLod), client.getRailLod());
+		sliderRailSimpleChunks.setHeight(BUTTON_HEIGHT);
+		sliderRailSimpleChunks.setValue(client.getRailSimpleChunks());
+		sliderRailFarChunks.setHeight(BUTTON_HEIGHT);
+		sliderRailFarChunks.setValue(client.getRailFarChunks());
 		buttonLanguageOptions.setMessage2(client.getLanguageDisplay().translationKey.getText());
 		sliderDynamicTextureResolution.setHeight(BUTTON_HEIGHT);
 		sliderDynamicTextureResolution.setValue(client.getDynamicTextureResolution());
@@ -109,6 +126,9 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		addChild(new ClickableWidget(buttonDefaultRail3D));
 		addChild(new ClickableWidget(buttonUseMTRFont));
 		addChild(new ClickableWidget(buttonDisableShadowsForShaders));
+		addChild(new ClickableWidget(buttonRailLod));
+		addChild(new ClickableWidget(sliderRailSimpleChunks));
+		addChild(new ClickableWidget(sliderRailFarChunks));
 		addChild(new ClickableWidget(buttonSupportPatreon));
 	}
 
@@ -130,6 +150,9 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_DEFAULT_RAIL_3D.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_USE_MTR_FONT.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_DISABLE_SHADOWS_FOR_SHADERS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
+			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_RAIL_LOD.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
+			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_RAIL_SIMPLE_CHUNKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
+			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_RAIL_FAR_CHUNKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_SUPPORT_PATREON.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, 0xFFFFFF66, false, GraphicsHolder.getDefaultLight());
 
 			final int yStart2 = BUTTON_HEIGHT * (i + 1) + yStart1;
@@ -168,6 +191,8 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		super.onClose2();
 		client.setDynamicTextureResolution(sliderDynamicTextureResolution.getIntValue());
 		client.setVehicleOscillationMultiplier(sliderTrainOscillationMultiplier.getIntValue() / 10.0);
+		client.setRailSimpleChunks(sliderRailSimpleChunks.getIntValue());
+		client.setRailFarChunks(sliderRailFarChunks.getIntValue());
 		DynamicTextureCache.instance.refresh();
 		Config.save();
 	}
