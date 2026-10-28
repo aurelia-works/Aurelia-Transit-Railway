@@ -22,6 +22,10 @@ loom {
 	accessWidenerPath = file("src/main/resources/mtr.accesswidener")
 	runConfigs.configureEach { ideConfigGenerated = true }
 	mixin { setDefaultRefmapName("mtr.refmap.json") }
+	mods {
+		mtr { sourceSet sourceSets.main }
+		atr_perfbench { sourceSet sourceSets.perfbench }
+	}
 	runs {
 		perfbench {
 			client()
