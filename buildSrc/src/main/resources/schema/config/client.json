@@ -42,6 +42,18 @@
 		},
 		"betaWarningVersion": {
 			"type": "string"
+		},
+		"fasterModelLoading": {
+			"type": "boolean",
+			"default": true
+		},
+		"backgroundModelLoading": {
+			"type": "boolean",
+			"default": true
+		},
+		"freeUnusedModels": {
+			"type": "boolean",
+			"default": true
 		}
 	}
 }

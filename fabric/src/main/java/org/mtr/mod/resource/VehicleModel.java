@@ -12,12 +12,16 @@ import org.mtr.mod.client.CustomResourceLoader;
 import org.mtr.mod.generated.resource.VehicleModelSchema;
 import org.mtr.mod.render.DynamicVehicleModel;
 
+import javax.annotation.Nullable;
+
 public final class VehicleModel extends VehicleModelSchema {
 
 	boolean shouldPreload = false;
 	final CachedResource<DynamicVehicleModel> cachedModel;
 	private final JsonReader modelPropertiesJsonReader;
 	private final JsonReader positionDefinitionsJsonReader;
+	@Nullable
+	private AsyncModels.Job backgroundJob;
 
 	public static final int MODEL_LIFESPAN = 60000;
 
@@ -111,7 +115,61 @@ public final class VehicleModel extends VehicleModelSchema {
 		return modelProperties.toVehicleModelWrapper(modelResource, textureResource, modelPropertiesResource, positionDefinitionsResource, flipTextureV, parts);
 	}
 
+	/**
+	 * Starts reading this model's OBJ file in the background unless it is built already (the car's model list asks
+	 * for all of its models at once instead of one per tick).
+	 */
+	void requestBackgroundLoad() {
+		if (backgroundJob == null && !cachedModel.hasData() && AsyncModels.mayDefer(isLoadingOverlayShown())) {
+			startBackgroundLoad();
+		}
+	}
+
+	/** Starts the background read if this model may wait for it; false when it should be built right now. */
+	private boolean startBackgroundLoad() {
+		// Callers have checked AsyncModels.mayDefer.
+		if (backgroundJob != null) {
+			return true;
+		}
+		if (!modelResource.endsWith(".obj")) {
+			return false;
+		}
+		// Read on the render thread, through the same provider (and cache) the build uses next.
+		backgroundJob = AsyncModels.submit(resourceProvider.get(CustomResourceTools.formatIdentifierWithDefault(modelResource, "obj")));
+		return backgroundJob != null;
+	}
+
+	private static boolean isLoadingOverlayShown() {
+		return net.minecraft.client.MinecraftClient.getInstance().getOverlay() != null;
+	}
+
+	/**
+	 * Returns null ("not ready", which the model caches handle) until a worker has read the OBJ file, then builds the
+	 * model with the parsed meshes. Other model kinds, forced builds and the switches being off build as MTR did.
+	 */
 	private DynamicVehicleModel createModel(ModelProperties modelProperties, PositionDefinitions positionDefinitions, String id) {
+		if (backgroundJob != null && backgroundJob.isDone()) {
+			final AsyncModels.Job job = backgroundJob;
+			backgroundJob = null;
+			final FastObjLoader.Prepared prepared = AsyncModels.claim(job);
+			if (prepared != null) {
+				AsyncModels.offer(prepared);
+			} else if (job.isDropped() && AsyncModels.mayDefer(isLoadingOverlayShown()) && startBackgroundLoad()) {
+				AsyncModels.deferred();
+				return null;
+			}
+		} else if (AsyncModels.mayDefer(isLoadingOverlayShown()) && startBackgroundLoad()) {
+			AsyncModels.deferred();
+			return null;
+		}
+		try {
+			return buildModel(modelProperties, positionDefinitions, id);
+		} finally {
+			AsyncModels.clearOffer();
+		}
+	}
+
+	private DynamicVehicleModel buildModel(ModelProperties modelProperties, PositionDefinitions positionDefinitions, String id) {
 		final Identifier textureId = CustomResourceTools.formatIdentifierWithDefault(textureResource, "png");
 		CustomResourceLoader.OPTIMIZED_RENDERER_WRAPPER.beginReload();
 		try {

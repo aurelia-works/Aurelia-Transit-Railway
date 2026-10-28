@@ -417,6 +417,10 @@ public final class VehicleResource extends VehicleResourceSchema {
 			modelsToInitialize.addAll(bogie2Models);
 
 			return new CachedResource<>(() -> {
+				if (!force) {
+					// The car's model files are built one per tick: start reading all of them in the background at once.
+					modelsToInitialize.forEach(VehicleModel::requestBackgroundLoad);
+				}
 				for (final VehicleModel vehicleModel : modelsToInitialize) {
 					final DynamicVehicleModel dynamicVehicleModel = vehicleModel.cachedModel.getData(force);
 					if (dynamicVehicleModel == null) {

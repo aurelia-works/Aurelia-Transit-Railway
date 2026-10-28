@@ -51,6 +51,18 @@ public final class Client extends ClientSchema {
 		return disableShadowsForShaders;
 	}
 
+	public boolean getFasterModelLoading() {
+		return fasterModelLoading;
+	}
+
+	public boolean getBackgroundModelLoading() {
+		return backgroundModelLoading;
+	}
+
+	public boolean getFreeUnusedModels() {
+		return freeUnusedModels;
+	}
+
 	public boolean matchesPreloadResourcePattern(String id) {
 		return id.replaceFirst(preloadResourcePattern, "").isEmpty();
 	}
@@ -93,6 +105,18 @@ public final class Client extends ClientSchema {
 
 	public void toggleDisableShadowsForShaders() {
 		disableShadowsForShaders = !disableShadowsForShaders;
+	}
+
+	public void toggleFasterModelLoading() {
+		fasterModelLoading = !fasterModelLoading;
+	}
+
+	public void toggleBackgroundModelLoading() {
+		backgroundModelLoading = !backgroundModelLoading;
+	}
+
+	public void toggleFreeUnusedModels() {
+		freeUnusedModels = !freeUnusedModels;
 	}
 
 	public void hideBetaWarningScreen() {
