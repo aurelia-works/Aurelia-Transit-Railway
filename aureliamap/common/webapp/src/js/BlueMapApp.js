@@ -37,6 +37,7 @@ import {RevalidatingFileLoader} from "./util/RevalidatingFileLoader";
 import {i18n, setLanguage} from "../i18n";
 import {PlayerMarkerManager} from "./markers/PlayerMarkerManager";
 import {NormalMarkerManager} from "./markers/NormalMarkerManager";
+import {AtrLayer} from "./atr/AtrLayer";
 import {reactive} from "vue";
 
 export class BlueMapApp {
@@ -108,13 +109,16 @@ export class BlueMapApp {
             screenshot: {
                 clipboard: true
             },
-            debug: false
+            debug: false,
+            atr: {}
         });
 
         // close SSE connection when the page is closed
         window.addEventListener("beforeunload", () => {
             if (this.mapEventSource) this.mapEventSource.close();
         });
+
+        this.atrLayer = new AtrLayer(this);
 
         // init
         this.updateControlsSettings();
@@ -275,6 +279,7 @@ export class BlueMapApp {
             this.initPlayerMarkerManager(),
             this.initMarkerFileManager(),
             this.initEventSource(),
+            this.atrLayer.setMap(this.mapViewer.map),
         ]);
     }
 

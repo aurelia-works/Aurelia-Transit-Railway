@@ -39,3 +39,12 @@ What still does not render:
 - Block entities: PIDS, station name signs, route signs, railway signs, lift doors, Create contraptions. BlueMap only draws block models.
 - OBJ/Blockbench vehicles and anything drawn only by a mod renderer.
 - 3 models whose JSON has bad face names (`mishanguc:block/wall_light_hash_decoration_connection2` `#UP`, `mtr:block/route_sign_light` `EASST`, `createdeco:block/catwalk_bottom` `EAST:`). Vanilla 1.20.1 rejects these too ("Unknown facing"), so they are broken in game as well; the map matches.
+
+## ATR layer (M3/M4, 2026-10-28)
+The viewer draws an ATR layer from the ATR server's webserver (the MTR port, 8888 by default):
+- `/atr/api/map/network?dimension=<i>`: stations (centre, bounds, routes), routes (colour, platforms, `shape` along the rails, `straight` ranges where no rails connect two platforms). Cached 60 s; platform-to-platform searches are cached until a rail changes.
+- `/atr/api/map/vehicles?dimension=<i>`: vehicles with route, destination, next station, head position. Cached 1 s.
+- `/mtr/api/map/arrivals` (MTR's own) for the station panel.
+Both ATR endpoints are built on the simulation thread; the game's server thread does no map work.
+
+Viewer: `common/webapp/src/js/atr/` (layer, arrivals panel, pure helpers with `npm test`), styles in `src/scss/atr.scss`, switches in Settings > ATR layer (on/off per part, line width and opacity, label distance and colour, train size and colour, name language, server URL). Settings are kept per browser. The server is the page's host on port 8888 unless set in the menu or with `?atr=<url>`.
