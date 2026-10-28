@@ -6,7 +6,8 @@
 	"refmap": "mtr.refmap.json",
 	"mixins": [],
 	"client": [
-		"ObjModelLoaderMixin"
+		"ObjModelLoaderMixin",
+		"OptimizedRendererMixin"
 	],
 	"server": [],
 	"injectors": {
