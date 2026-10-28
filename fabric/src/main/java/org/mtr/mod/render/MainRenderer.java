@@ -80,10 +80,12 @@ public class MainRenderer extends EntityRenderer<EntityRendering> implements IGu
 		if (cheapShadows) {
 			SHADOW_PASS.begin();
 		}
+		final long start = System.nanoTime();
 		try {
 			renderPass(graphicsHolder, offset);
 		} finally {
 			SHADOW_PASS.end();
+			MtrFrameStats.INSTANCE.mtrRender(System.nanoTime() - start);
 		}
 	}
 

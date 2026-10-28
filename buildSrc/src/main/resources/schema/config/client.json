@@ -47,6 +47,14 @@
 			"type": "integer",
 			"default": 8
 		},
+		"perfOnF3": {
+			"type": "boolean",
+			"default": true
+		},
+		"shaderPackFastPath": {
+			"type": "boolean",
+			"default": true
+		},
 		"mergeTrainParts": {
 			"type": "boolean",
 			"default": true

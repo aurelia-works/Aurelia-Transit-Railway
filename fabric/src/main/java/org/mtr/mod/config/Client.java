@@ -71,6 +71,14 @@ public final class Client extends ClientSchema {
 		return (int) railFarChunks;
 	}
 
+	public boolean getPerfOnF3() {
+		return perfOnF3;
+	}
+
+	public boolean getShaderPackFastPath() {
+		return shaderPackFastPath;
+	}
+
 	public boolean getMergeTrainParts() {
 		return mergeTrainParts;
 	}
@@ -157,6 +165,14 @@ public final class Client extends ClientSchema {
 
 	public void setRailFarChunks(int railFarChunks) {
 		this.railFarChunks = Utilities.clamp(railFarChunks, 0, RAIL_FAR_CHUNKS_MAX);
+	}
+
+	public void togglePerfOnF3() {
+		perfOnF3 = !perfOnF3;
+	}
+
+	public void toggleShaderPackFastPath() {
+		shaderPackFastPath = !shaderPackFastPath;
 	}
 
 	public void toggleMergeTrainParts() {

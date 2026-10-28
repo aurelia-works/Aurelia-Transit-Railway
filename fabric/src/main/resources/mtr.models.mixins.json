@@ -9,7 +9,10 @@
 		"ObjModelAccessor",
 		"ObjModelLoaderMixin",
 		"OptimizedModelAccessor",
-		"OptimizedRendererMixin"
+		"OptimizedRendererMixin",
+		"ShaderManagerMixin",
+		"VertexArrayMixin",
+		"VertexAttributeStateMixin"
 	],
 	"server": [],
 	"injectors": {

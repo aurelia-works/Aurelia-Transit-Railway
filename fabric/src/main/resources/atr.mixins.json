@@ -6,6 +6,7 @@
 	"refmap": "mtr.refmap.json",
 	"mixins": [],
 	"client": [
+		"DebugHudMixin",
 		"WeatherInsideVehicleMixin"
 	],
 	"server": [],
