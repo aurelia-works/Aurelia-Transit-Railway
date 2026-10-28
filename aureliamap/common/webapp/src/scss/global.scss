@@ -46,6 +46,10 @@
   .theme-contrast {
     @include contrast-theme;
   }
+
+  .theme-black {
+    @include black-theme;
+  }
 }
 
 @media (prefers-color-scheme: light) {

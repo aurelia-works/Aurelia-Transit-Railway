@@ -96,6 +96,7 @@ const themes = [
   {get name(){ return i18n.t("theme.dark")}, value: 'dark'},
   {get name(){ return i18n.t("theme.light")}, value: 'light'},
   {get name(){ return i18n.t("theme.contrast")}, value: 'contrast'},
+  {get name(){ return i18n.t("theme.black")}, value: 'black'},
 ];
 
 const atrNameModes = [

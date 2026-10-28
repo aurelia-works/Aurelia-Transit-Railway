@@ -34,8 +34,9 @@ export class AtrArrivalsPanel {
 
     open(stationId) {
         this.close();
-        // attached on first use: Vue replaces #app's content when it mounts, after this panel is made
-        const host = document.getElementById("app") || document.body;
+        // attached on first use: Vue replaces #app's content when it mounts, after this panel is made.
+        // App.vue's own root is a second #app inside the mount point and carries the theme class, so the panel goes there.
+        const host = document.querySelector("#app #app") || document.getElementById("app") || document.body;
         if (this.element.parentNode !== host) host.appendChild(this.element);
         this.stationId = stationId;
         this.response = null;

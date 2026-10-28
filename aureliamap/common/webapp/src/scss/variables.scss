@@ -89,3 +89,25 @@ $mobile-break: 575.98px;
   --theme-stars-night: #444;
   --theme-moon-night: #000;
 }
+
+// AureliaMap: true black for OLED screens, with dim greys so lit pixels stay few
+@mixin black-theme {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+
+  --theme-bg: #000;
+  --theme-bg-hover: #111;
+  --theme-bg-light: #262626;
+  --theme-fg: #ddd;
+  --theme-fg-light: #888;
+
+  //SwitchButton
+  --theme-switch-button-on: #00489d;
+
+  //DayNightSwitch
+  --theme-stars-day: #ddd;
+  --theme-moon-day: #ff0;
+  --theme-stars-night: #262626;
+  --theme-moon-night: #000;
+}

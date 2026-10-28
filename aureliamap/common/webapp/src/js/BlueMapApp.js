@@ -642,26 +642,8 @@ export class BlueMapApp {
     setTheme(theme) {
         this.appState.theme = theme;
 
-        if (theme === "light") {
-            this.mapViewer.rootElement.classList.remove("theme-dark");
-            this.mapViewer.rootElement.classList.remove("theme-contrast");
-            this.mapViewer.rootElement.classList.add("theme-light");
-        }
-        else if (theme === "dark") {
-            this.mapViewer.rootElement.classList.remove("theme-light");
-            this.mapViewer.rootElement.classList.remove("theme-contrast");
-            this.mapViewer.rootElement.classList.add("theme-dark");
-        }
-        else if (theme === "contrast") {
-            this.mapViewer.rootElement.classList.remove("theme-light");
-            this.mapViewer.rootElement.classList.remove("theme-dark");
-            this.mapViewer.rootElement.classList.add("theme-contrast");
-        }
-        else {
-            this.mapViewer.rootElement.classList.remove("theme-light");
-            this.mapViewer.rootElement.classList.remove("theme-dark");
-            this.mapViewer.rootElement.classList.remove("theme-contrast");
-        }
+        ["light", "dark", "contrast", "black"].forEach(name =>
+            this.mapViewer.rootElement.classList.toggle("theme-" + name, theme === name));
     }
 
     setScreenshotClipboard(clipboard) {
