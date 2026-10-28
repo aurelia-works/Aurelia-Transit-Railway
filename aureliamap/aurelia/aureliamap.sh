@@ -2,6 +2,7 @@
 # AureliaMap runner: renders a world into static tiles at the lowest priority, or serves them.
 #   aureliamap.sh render <world-dir>   render (incremental; AURELIAMAP_FORCE=1 re-renders everything)
 #   aureliamap.sh serve                serve run/web on http://127.0.0.1:$AURELIAMAP_PORT
+# Env: AURELIAMAP_RUN (output dir), AURELIAMAP_MODS (mod jars dir), AURELIAMAP_BOX (minX,minZ,maxX,maxZ)
 # The world is only read. Needs a Java 25 runtime (JAVA_HOME or java on PATH).
 set -euo pipefail
 
@@ -22,6 +23,13 @@ prepare_config() { # $1 = world dir or empty
   cp "$here"/config-template/storages/*.conf "$run/config/storages/"
   sed "s|@PORT@|$port|" "$here/config-template/webserver.conf" > "$run/config/webserver.conf"
   if [ -n "$1" ]; then sed "s|@WORLD@|$1|" "$here/config-template/maps/overworld.conf" > "$run/config/maps/overworld.conf"; fi
+  # AURELIAMAP_BOX="minX,minZ,maxX,maxZ" renders only that box (and starts the viewer at its centre)
+  if [ -n "$1" ] && [ -n "${AURELIAMAP_BOX:-}" ]; then
+    IFS=, read -r x1 z1 x2 z2 <<< "$AURELIAMAP_BOX"
+    sed -i.bak -e "s|^render-mask: .*|render-mask: [ { min-x: $x1, min-z: $z1, max-x: $x2, max-z: $z2 } ]|" \
+      -e "s|^start-pos: .*|start-pos: { x: $(( (x1 + x2) / 2 )), z: $(( (z1 + z2) / 2 )) }|" "$run/config/maps/overworld.conf"
+    rm -f "$run/config/maps/overworld.conf.bak"
+  fi
 }
 
 case "$mode" in
