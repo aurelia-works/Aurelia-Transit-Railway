@@ -29,7 +29,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 	private final ButtonWidgetExtension buttonDisableShadowsForShaders;
 	private final ButtonWidgetExtension buttonSupportPatreon;
 
-	private static final Identifier HEADER_LOGO = new Identifier("mtr:textures/block/sign/logo.png");
+	private static final Identifier HEADER_LOGO = new Identifier("mtr:textures/gui/atr_logo.png");
 	private static final int HEADER_LOGO_SIZE = 40;
 	private static final int BUTTON_WIDTH = 60;
 	private static final int BUTTON_HEIGHT = TEXT_HEIGHT * 2;
