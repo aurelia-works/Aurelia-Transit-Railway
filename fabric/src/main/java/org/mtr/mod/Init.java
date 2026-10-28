@@ -31,6 +31,7 @@ import org.mtr.mod.data.ArrivalsCacheServer;
 import org.mtr.mod.data.RailActionModule;
 import org.mtr.mod.generated.lang.TranslationProvider;
 import org.mtr.mod.packet.*;
+import org.mtr.mod.servlet.MapLayerServlet;
 import org.mtr.mod.servlet.MinecraftOperationProcessor;
 import org.mtr.mod.servlet.RequestHelper;
 import org.mtr.mod.servlet.WebMapOverrideServlet;
@@ -184,6 +185,7 @@ public final class Init implements Utilities {
 			serverPort = defaultPort <= 0 ? -1 : findFreePort(defaultPort);
 			main = new Main(minecraftServer.getSavePath(WorldSavePath.getRootMapped()).resolve("mtr"), serverPort, Config.getServer().getUseThreadedSimulation(), Config.getServer().getUseThreadedFileLoading(), webserver -> {
 				WebMapOverrideServlet.setup(webserver);
+				MapLayerServlet.setup(webserver, () -> main);
 				if (webserverSetup != null) {
 					webserverSetup.accept(webserver);
 				}

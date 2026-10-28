@@ -1,0 +1,274 @@
+/*
+ * This file is part of BlueMap, licensed under the MIT License (MIT).
+ *
+ * Copyright (c) Blue (Lukas Rieger) <https://bluecolored.de>
+ * Copyright (c) contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package de.bluecolored.bluemap.core.map;
+
+import com.flowpowered.math.vector.Vector2i;
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import de.bluecolored.bluemap.api.gson.MarkerGson;
+import de.bluecolored.bluemap.api.markers.MarkerSet;
+import de.bluecolored.bluemap.core.BlueMap;
+import de.bluecolored.bluemap.core.logger.Logger;
+import de.bluecolored.bluemap.core.map.hires.HiresModelManager;
+import de.bluecolored.bluemap.core.map.lowres.LowresTileManager;
+import de.bluecolored.bluemap.core.map.renderstate.MapChunkState;
+import de.bluecolored.bluemap.core.map.renderstate.MapRegionState;
+import de.bluecolored.bluemap.core.map.renderstate.MapTileState;
+import de.bluecolored.bluemap.core.resources.adapter.ResourcesGson;
+import de.bluecolored.bluemap.core.resources.pack.resourcepack.ResourcePack;
+import de.bluecolored.bluemap.core.storage.MapStorage;
+import de.bluecolored.bluemap.core.storage.compression.CompressedInputStream;
+import de.bluecolored.bluemap.core.util.Grid;
+import de.bluecolored.bluemap.core.world.World;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+import org.jetbrains.annotations.Nullable;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+
+@Getter
+public class BmMap {
+
+    private static final long SAVE_DEBOUNCE_MILLIS = 15_000;
+
+    private static final Gson GSON = ResourcesGson.addAdapter(new GsonBuilder())
+            .setFieldNamingPolicy(FieldNamingPolicy.IDENTITY)
+            .registerTypeAdapter(BmMap.class, new MapSettingsSerializer())
+            .create();
+
+    private final String id;
+    private final String name;
+    private final World world;
+    private final MapStorage storage;
+    private final MapSettings mapSettings;
+
+    private final ResourcePack resourcePack;
+    private final TextureGallery textureGallery;
+
+    private final MapTileState mapTileState;
+    private final MapChunkState mapChunkState;
+    private final MapRegionState mapRegionState;
+
+    private final HiresModelManager hiresModelManager;
+    private final LowresTileManager lowresTileManager;
+
+    private final ConcurrentHashMap<String, MarkerSet> markerSets;
+
+    @Setter private Predicate<Vector2i> tileFilter;
+
+    @Getter(AccessLevel.NONE) private long renderTimeSumNanos;
+    @Getter(AccessLevel.NONE) private long tilesRendered;
+    @Getter(AccessLevel.NONE) private @Nullable ScheduledFuture<?> scheduledSave;
+
+    public BmMap(String id, String name, World world, MapStorage storage, ResourcePack resourcePack, MapSettings settings) throws IOException, InterruptedException {
+        this.id = Objects.requireNonNull(id);
+        this.name = Objects.requireNonNull(name);
+        this.world = Objects.requireNonNull(world);
+        this.storage = Objects.requireNonNull(storage);
+        this.resourcePack = Objects.requireNonNull(resourcePack);
+        this.mapSettings = Objects.requireNonNull(settings);
+
+        Logger.global.logDebug("Loading render-state for map '" + id + "'");
+        this.mapTileState = new MapTileState(storage.tileState());
+        this.mapChunkState = new MapChunkState(storage.chunkState());
+        this.mapRegionState = new MapRegionState(storage.regionState());
+
+        if (Thread.interrupted()) throw new InterruptedException();
+
+        Logger.global.logDebug("Loading textures for map '" + id + "'");
+        this.textureGallery = loadTextureGallery();
+        this.textureGallery.put(resourcePack.getTextures());
+        saveTextureGallery();
+
+        this.hiresModelManager = new HiresModelManager(
+                world,
+                storage.hiresTiles(),
+                this.resourcePack,
+                this.textureGallery,
+                settings,
+                new Grid(settings.getHiresTileSize(), 2)
+        );
+
+        this.lowresTileManager = new LowresTileManager(
+                storage,
+                new Grid(settings.getLowresTileSize()),
+                settings.getLodCount(),
+                settings.getLodFactor()
+        );
+
+        this.tileFilter = t -> true;
+
+        this.markerSets = new ConcurrentHashMap<>();
+
+        this.renderTimeSumNanos = 0;
+        this.tilesRendered = 0;
+        this.scheduledSave = null;
+
+        saveMapSettings();
+        savePlayerState();
+    }
+
+    public void renderTile(Vector2i tile) {
+        if (!tileFilter.test(tile)) return;
+
+        long start = System.nanoTime();
+
+        hiresModelManager.render(tile, lowresTileManager, mapSettings.isSaveHiresLayer());
+
+        long end = System.nanoTime();
+        long delta = end - start;
+
+        renderTimeSumNanos += delta;
+        tilesRendered ++;
+    }
+
+    public void unrenderTile(Vector2i tile) {
+        hiresModelManager.unrender(tile, lowresTileManager);
+    }
+
+    public synchronized void saveDebounced() {
+        if (scheduledSave != null) return;
+        scheduledSave = BlueMap.SCHEDULER.schedule(() -> {
+            try {
+                synchronized (this) {
+                    scheduledSave = null;
+                    if (storage.isClosed()) return;
+                    save();
+                }
+            } catch (Exception ex) {
+                Logger.global.logError("Failed to save map '" + getId() + "'!", ex);
+            }
+        }, SAVE_DEBOUNCE_MILLIS, TimeUnit.MILLISECONDS);
+    }
+
+    public synchronized void save() {
+        // this save makes a pending debounced save obsolete
+        if (scheduledSave != null) {
+            scheduledSave.cancel(false);
+            scheduledSave = null;
+        }
+
+        lowresTileManager.save();
+        mapTileState.save();
+        mapChunkState.save();
+        mapRegionState.save();
+        saveMarkerState();
+        saveMapSettings();
+
+        // only save texture gallery if not present in storage
+        try {
+            if (!storage.textures().exists()) saveTextureGallery();
+        } catch (Exception e) {
+            Logger.global.logError("Failed to read texture gallery for map '" + getId() + "'!", e);
+        }
+    }
+
+    private TextureGallery loadTextureGallery() throws IOException {
+        try (CompressedInputStream compressedIn = storage.textures().read()){
+            if (compressedIn != null) {
+                try (InputStream in = compressedIn.decompress()) {
+                    return TextureGallery.readTexturesFile(in);
+                }
+            }
+        } catch (Exception ex) {
+            Logger.global.logError("Failed to load textures for map '" + getId() + "'!", ex);
+        }
+
+        return new TextureGallery();
+    }
+
+    private void saveTextureGallery() {
+        try {
+            storage.textures().write(this.textureGallery::writeTexturesFile);
+        } catch (Exception ex) {
+            Logger.global.logError("Failed to save textures for map '" + getId() + "'!", ex);
+        }
+    }
+
+    public synchronized void resetTextureGallery() {
+        this.textureGallery.clear();
+        this.textureGallery.put(this.resourcePack.getTextures());
+    }
+
+    private void saveMapSettings() {
+        try {
+            storage.settings().write((Writer writer) -> GSON.toJson(this, writer));
+        } catch (Exception ex) {
+            Logger.global.logError("Failed to save settings for map '" + getId() + "'!", ex);
+        }
+    }
+
+    public synchronized void saveMarkerState() {
+        try {
+            storage.markers().write((Writer writer) -> MarkerGson.INSTANCE.toJson(this.markerSets, writer));
+        } catch (Exception ex) {
+            Logger.global.logError("Failed to save markers for map '" + getId() + "'!", ex);
+        }
+    }
+
+    public synchronized void savePlayerState() {
+        try {
+            storage.players().write((Writer writer) -> writer.write("{}"));
+        } catch (Exception ex) {
+            Logger.global.logError("Failed to save player state for map '" + getId() + "'!", ex);
+        }
+    }
+
+    public long getAverageNanosPerTile() {
+        return renderTimeSumNanos / tilesRendered;
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof BmMap that)
+            return this.id.equals(that.id);
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return "BmMap{" +
+               "id='" + id + '\'' +
+               ", name='" + name + '\'' +
+               ", world=" + world +
+               ", storage=" + storage +
+               '}';
+    }
+
+}
