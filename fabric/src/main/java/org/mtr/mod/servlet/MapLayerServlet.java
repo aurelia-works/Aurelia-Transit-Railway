@@ -64,10 +64,10 @@ public final class MapLayerServlet extends HttpServlet {
 			final Simulator simulator = simulators.get(dimension);
 			switch (path) {
 				case "network":
-					simulator.run(() -> send(httpServletResponse, asyncContext, HttpResponseStatus.OK, networkCache.computeIfAbsent(simulator.dimension, key -> new Cached(NETWORK_CACHE_MILLIS)).get(() -> MapLayerJson.network(simulator, shapeCaches.computeIfAbsent(simulator.dimension, key -> new MapLayerJson.ShapeCache())))));
+					sendFromSimulator(simulator, httpServletResponse, asyncContext, () -> networkCache.computeIfAbsent(simulator.dimension, key -> new Cached(NETWORK_CACHE_MILLIS)).get(() -> MapLayerJson.network(simulator, shapeCaches.computeIfAbsent(simulator.dimension, key -> new MapLayerJson.ShapeCache()))));
 					break;
 				case "vehicles":
-					simulator.run(() -> send(httpServletResponse, asyncContext, HttpResponseStatus.OK, vehiclesCache.computeIfAbsent(simulator.dimension, key -> new Cached(VEHICLES_CACHE_MILLIS)).get(() -> MapLayerJson.vehicles(simulator))));
+					sendFromSimulator(simulator, httpServletResponse, asyncContext, () -> vehiclesCache.computeIfAbsent(simulator.dimension, key -> new Cached(VEHICLES_CACHE_MILLIS)).get(() -> MapLayerJson.vehicles(simulator)));
 					break;
 				default:
 					send(httpServletResponse, asyncContext, HttpResponseStatus.NOT_FOUND, null);
@@ -94,6 +94,23 @@ public final class MapLayerServlet extends HttpServlet {
 			}
 		}
 		return simulators;
+	}
+
+	/**
+	 * Builds the data on the simulation thread and sends it. A failure still answers, because the request has no timeout and would otherwise hang.
+	 */
+	private static void sendFromSimulator(Simulator simulator, HttpServletResponse httpServletResponse, AsyncContext asyncContext, Supplier<JsonObject> builder) {
+		simulator.run(() -> {
+			final JsonObject data;
+			try {
+				data = builder.get();
+			} catch (Exception e) {
+				LOGGER.error("Map layer failed to build a response", e);
+				send(httpServletResponse, asyncContext, HttpResponseStatus.INTERNAL_SERVER_ERROR, null);
+				return;
+			}
+			send(httpServletResponse, asyncContext, HttpResponseStatus.OK, data);
+		});
 	}
 
 	private static void send(HttpServletResponse httpServletResponse, AsyncContext asyncContext, HttpResponseStatus httpResponseStatus, @Nullable JsonObject data) {

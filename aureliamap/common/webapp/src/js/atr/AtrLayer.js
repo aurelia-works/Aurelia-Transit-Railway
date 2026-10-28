@@ -52,6 +52,7 @@ export class AtrLayer {
         this.dimension = 0;
         this.trainMotion = new Map();
         this.timers = [];
+        this.run = 0;
         this.panel = new AtrArrivalsPanel(this);
 
         this.onClick = event => {
@@ -77,6 +78,8 @@ export class AtrLayer {
      */
     async setMap(map) {
         this.stop();
+        // a later setMap or stop while this one waits on the server cancels it, so only one set of timers runs
+        const run = this.run;
         const markers = this.app.mapViewer.markers;
         ATR_MARKER_SETS.forEach(id => markers.markerSets.has(id) || markers.add(this.setById(id)));
         this.lineSet.updateMarkersFromData({});
@@ -98,13 +101,16 @@ export class AtrLayer {
             return;
         }
 
+        if (run !== this.run) return;
         await this.updateNetwork();
         await this.updateVehicles();
+        if (run !== this.run) return;
         this.timers.push(setInterval(() => this.updateNetwork(), NETWORK_INTERVAL));
         this.timers.push(setInterval(() => this.updateVehicles(), VEHICLES_INTERVAL));
     }
 
     stop() {
+        this.run++;
         this.timers.forEach(timer => clearInterval(timer));
         this.timers = [];
     }

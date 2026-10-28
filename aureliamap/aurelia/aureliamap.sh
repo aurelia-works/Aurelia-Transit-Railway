@@ -25,6 +25,7 @@ prepare_config() { # $1 = world dir or empty
   if [ -n "$1" ]; then sed "s|@WORLD@|$1|" "$here/config-template/maps/overworld.conf" > "$run/config/maps/overworld.conf"; fi
   # AURELIAMAP_BOX="minX,minZ,maxX,maxZ" renders only that box (and starts the viewer at its centre)
   if [ -n "$1" ] && [ -n "${AURELIAMAP_BOX:-}" ]; then
+    [[ "$AURELIAMAP_BOX" =~ ^-?[0-9]+,-?[0-9]+,-?[0-9]+,-?[0-9]+$ ]] || { echo "AURELIAMAP_BOX must be minX,minZ,maxX,maxZ in whole blocks, got: $AURELIAMAP_BOX" >&2; exit 1; }
     IFS=, read -r x1 z1 x2 z2 <<< "$AURELIAMAP_BOX"
     sed -i.bak -e "s|^render-mask: .*|render-mask: [ { min-x: $x1, min-z: $z1, max-x: $x2, max-z: $z2 } ]|" \
       -e "s|^start-pos: .*|start-pos: { x: $(( (x1 + x2) / 2 )), z: $(( (z1 + z2) / 2 )) }|" "$run/config/maps/overworld.conf"
