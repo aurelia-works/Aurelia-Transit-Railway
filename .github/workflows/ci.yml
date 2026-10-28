@@ -16,12 +16,20 @@ jobs:
         with:
           distribution: zulu
           java-version: 21
+      # Loom's Minecraft download and remap takes ~18 min cold; cache it on every run
       - uses: gradle/actions/setup-gradle@v4
-      - name: Generate sources and resources
-        run: ./gradlew setupFiles
-      - name: Build and unit tests (Fabric 1.20.1)
-        run: ./gradlew build
+        with:
+          cache-read-only: false
+      # Pull requests: compile and unit tests only (Fabric 1.20.1)
+      - name: Compile and unit tests
+        if: github.event_name == 'pull_request'
+        run: ./gradlew setupFiles :fabric:test
+      # master: the full jar build
+      - name: Build the jar
+        if: github.event_name == 'push'
+        run: ./gradlew setupFiles build
       - name: Keep the jar
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: ATR-fabric-1.20.1
