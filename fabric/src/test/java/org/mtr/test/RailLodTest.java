@@ -23,6 +23,13 @@ public final class RailLodTest {
 	}
 
 	@Test
+	public void cheapShadowPassIsAlwaysFar() {
+		assertEquals(RailLod.Tier.FAR, RailLod.tier(1, 3, 8, true));
+		assertEquals(RailLod.Tier.FAR, RailLod.tier(1, 0, 0, true));
+		assertEquals(RailLod.Tier.FULL, RailLod.tier(1, 3, 8, false));
+	}
+
+	@Test
 	public void tallModels() {
 		assertFalse(RailLod.isTall(0.2));
 		assertFalse(RailLod.isTall(0.5));

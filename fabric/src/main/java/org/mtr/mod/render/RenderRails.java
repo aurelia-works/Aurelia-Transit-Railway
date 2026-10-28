@@ -256,7 +256,8 @@ public class RenderRails implements IGui {
 				renderType[0] = true;
 			} else {
 				final boolean flip = newStyle.endsWith("_2");
-				final boolean railLod = Config.getClient().getRailLod();
+				// Cheap shadows simplify rails in the shadow pass even with rail LOD off
+				final boolean railLod = Config.getClient().getRailLod() || Config.getClient().getCheapShadows() && MainRenderer.renderingShadows();
 				final Vector railLodStart = railLod ? rail.railMath.getPosition(0, false) : null;
 				CustomResourceLoader.getRailById(RailResource.getIdWithoutDirection(newStyle), railResource -> renderWithinRenderDistance(rail, (blockPos, x1, z1, x2, z2, x3, z3, x4, z4, y1, y2) -> {
 					if (railLod && renderRailLodPiece(clientWorld, railResource, flip, renderType, blockPos, railLodStart, x1, z1, x3, z3, y1, y2)) {
@@ -299,13 +300,14 @@ public class RenderRails implements IGui {
 	 * Rail LOD (ported from Aurelia Transit Utilities 1.4.0). Returns true when the piece was drawn simplified or skipped on purpose and the full 3D piece must not be drawn.
 	 */
 	private static boolean renderRailLodPiece(ClientWorld clientWorld, RailResource railResource, boolean flip, boolean[] renderType, BlockPos blockPos, Vector railStart, double x1, double z1, double x3, double z3, double y1, double y2) {
-		final int simpleChunks = Config.getClient().getRailSimpleChunks();
-		final int farChunks = Config.getClient().getRailFarChunks();
-		if (simpleChunks <= 0 && farChunks <= 0) {
+		final boolean cheapShadowPass = Config.getClient().getCheapShadows() && MainRenderer.renderingShadows();
+		final int simpleChunks = Config.getClient().getRailLod() ? Config.getClient().getRailSimpleChunks() : 0;
+		final int farChunks = Config.getClient().getRailLod() ? Config.getClient().getRailFarChunks() : 0;
+		if (simpleChunks <= 0 && farChunks <= 0 && !cheapShadowPass) {
 			return false;
 		}
 		final Vector3d cameraPosition = MinecraftClient.getInstance().getGameRendererMapped().getCamera().getPos();
-		final RailLod.Tier tier = RailLod.tier(Math.hypot(x1 - cameraPosition.getXMapped(), z1 - cameraPosition.getZMapped()), simpleChunks, farChunks);
+		final RailLod.Tier tier = RailLod.tier(Math.hypot(x1 - cameraPosition.getXMapped(), z1 - cameraPosition.getZMapped()), simpleChunks, farChunks, cheapShadowPass);
 		if (tier == RailLod.Tier.FULL) {
 			return false;
 		}

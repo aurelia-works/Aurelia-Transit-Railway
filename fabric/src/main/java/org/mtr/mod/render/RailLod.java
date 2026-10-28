@@ -16,6 +16,17 @@ public final class RailLod {
 	}
 
 	public static Tier tier(double distanceBlocks, int simpleChunks, int farChunks) {
+		return tier(distanceBlocks, simpleChunks, farChunks, false);
+	}
+
+	/**
+	 * @param cheapShadowPass a shader pack's shadow pass with cheap shadows on: rails are drawn in the far tier at any
+	 *                        distance (a shadow needs no rail detail)
+	 */
+	public static Tier tier(double distanceBlocks, int simpleChunks, int farChunks, boolean cheapShadowPass) {
+		if (cheapShadowPass) {
+			return Tier.FAR;
+		}
 		if (farChunks > 0 && distanceBlocks > farChunks * 16.0) {
 			return Tier.FAR;
 		}
