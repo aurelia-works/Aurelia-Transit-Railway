@@ -1,6 +1,6 @@
 # AureliaMap (BlueMap fork)
 
-Forked 2026-10-28 from BlueMap `master` @ `afeddb83c4116d3800884745cdb10b9fb29bda0d` plus the BlueMapAPI submodule @ `61847b8` (now a plain `api/` folder). BlueMap and BlueMapAPI are MIT (Blue and contributors): `LICENSE` and `api/LICENSE` stay as they are, and every source file keeps its licence header. Third-party dependency notices are still to be audited (PLAN M6).
+Forked 2026-10-28 from BlueMap `master` @ `afeddb83c4116d3800884745cdb10b9fb29bda0d` plus the BlueMapAPI submodule @ `61847b8` (now a plain `api/` folder). BlueMap and BlueMapAPI are MIT (Blue and contributors): `LICENSE` and `api/LICENSE` stay as they are, and every source file keeps its licence header. Third-party notices: `THIRD_PARTY_NOTICES.md`.
 
 ## What was cut
 - Platform modules `implementations/{fabric,forge,neoforge,paper,spigot,sponge}`, `.github`, the Curseforge/Modrinth/Hangar/Ore publishing plugins and the git-derived version (fixed `0.0-aureliamap`).
@@ -48,3 +48,21 @@ The viewer draws an ATR layer from the ATR server's webserver (the MTR port, 888
 Both ATR endpoints are built on the simulation thread; the game's server thread does no map work.
 
 Viewer: `common/webapp/src/js/atr/` (layer, arrivals panel, pure helpers with `npm test`), styles in `src/scss/atr.scss`, switches in Settings > ATR layer (on/off per part, line width and opacity, label distance and colour, train size and colour, name language, server URL). Settings are kept per browser. The server is the page's host on port 8888 unless set in the menu or with `?atr=<url>`.
+
+## Numbers (M6, 2026-10-28)
+Measured on Jah's Mac (Apple silicon) with a copy of the Aurelia Metropolis v1 world: 24 stations, 13 routes.
+
+| What | Result |
+|---|---|
+| Render, 800 x 800 box, vanilla resources | 104 s, 574 MB peak RSS, 27 MB of tiles |
+| Render, same box, 58 mod jars | 134 s, 1.09 GB peak RSS, 67 MB of tiles |
+| `network` endpoint, cold (all platform-to-platform searches) | 0.13 s |
+| `network` endpoint, 5 viewers | median 94 ms, max 102 ms |
+| `vehicles` endpoint, 5 viewers polling every second (310 requests) | median 46 ms, max 55 ms |
+| Server tick (spark, 1 min), no viewers | min/median/95th/max 0.1 / 0.3 / 0.4 / 36.6 ms, process CPU 0 % |
+| Server tick (spark, 1 min), 5 viewers | 0.1 / 0.3 / 0.3 / 3.5 ms, process CPU 1 % |
+
+The map work runs on the simulation thread, so the server tick does not change. Most of an endpoint's time is the wait for the simulation thread to pick the job up. Not measured: a server with players online and loaded chunks, and more than 5 viewers.
+
+## CI
+`.github/workflows/aureliamap.yml` runs on changes under `aureliamap/`: `./gradlew :core:test :cli:shadowJar` on Java 25 (this also builds the webapp), then `npm test` for the ATR layer. The ATR endpoints' Java tests run in the main CI (`:fabric:test`).

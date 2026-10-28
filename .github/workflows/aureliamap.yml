@@ -1,0 +1,34 @@
+name: AureliaMap
+on:
+  push:
+    branches: [master]
+    paths: [aureliamap/**, .github/workflows/aureliamap.yml]
+  pull_request:
+    paths: [aureliamap/**, .github/workflows/aureliamap.yml]
+concurrency:
+  group: aureliamap-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: aureliamap
+    steps:
+      - uses: actions/checkout@v4
+      # the BlueMap fork builds with a Java 25 toolchain
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: gradle/actions/setup-gradle@v4
+      # the CLI jar includes the webapp, so this also builds the ATR layer
+      - name: Build the renderer and the webapp, run the core tests
+        run: ./gradlew :core:test :cli:shadowJar
+      - name: ATR layer tests
+        working-directory: aureliamap/common/webapp
+        run: npm test

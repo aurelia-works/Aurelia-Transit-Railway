@@ -1,3 +1,15 @@
+# AureliaMap
+
+The ATR fork of BlueMap: a 3D and flat web map of an ATR world with a live layer of lines, stations and trains. See `AURELIAMAP.md` for what changed, the numbers and the licences.
+
+```
+JAVA_HOME=<jdk25> ./gradlew :cli:shadowJar                          # build (also builds the webapp)
+JAVA_HOME=<jdk25> AURELIAMAP_MODS=<mods dir> aurelia/aureliamap.sh render <world-dir>
+JAVA_HOME=<jdk25> aurelia/aureliamap.sh serve                        # http://127.0.0.1:8100, ATR layer from <host>:8888
+```
+
+The rest of this file is BlueMap's own README.
+
 [![title-banner](https://bluecolored.de/paste/BluemapBanner.png)](https://bluemap.bluecolored.de/)
 
 <div align="center">
