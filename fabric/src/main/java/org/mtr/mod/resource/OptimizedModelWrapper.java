@@ -40,7 +40,9 @@ public final class OptimizedModelWrapper {
 	}
 
 	public static OptimizedModelWrapper fromObjModels(@Nullable ObjectArrayList<ObjModelWrapper> objModels) {
-		final OptimizedModelWrapper wrapper = new OptimizedModelWrapper(OptimizedRenderer.hasOptimizedRendering() && objModels != null ? upload(objModels.stream().filter(objModel -> objModel.objModel != null).collect(Collectors.toList())) : null);
+		// MTR's own upload stays first here: add-ons hook its lambda (lambda$fromObjModels$1)
+		final OptimizedModel mergedModel = OptimizedRenderer.hasOptimizedRendering() && objModels != null ? upload(objModels) : null;
+		final OptimizedModelWrapper wrapper = new OptimizedModelWrapper(mergedModel != null ? mergedModel : OptimizedRenderer.hasOptimizedRendering() && objModels != null ? OptimizedModel.fromObjModels(objModels.stream().map(objModel -> objModel.objModel).filter(Objects::nonNull).collect(Collectors.toList())) : null);
 		if (objModels != null) {
 			float min = Float.POSITIVE_INFINITY;
 			float max = Float.NEGATIVE_INFINITY;
@@ -57,10 +59,12 @@ public final class OptimizedModelWrapper {
 
 	/**
 	 * One buffer per material per car ({@link MergedObjUpload}) when on, with the parts both door states use uploaded
-	 * once ({@link DoorShare}); MTR's own upload when off or after a failure.
+	 * once ({@link DoorShare}); null (MTR's own upload) when off or after a failure.
 	 */
-	private static OptimizedModel upload(List<ObjModelWrapper> objModels) {
+	@Nullable
+	private static OptimizedModel upload(List<ObjModelWrapper> allObjModels) {
 		if (!mergeFailed && Config.getClient().getMergeTrainParts()) {
+			final List<ObjModelWrapper> objModels = allObjModels.stream().filter(objModel -> objModel.objModel != null).collect(Collectors.toList());
 			try {
 				final DoorShare.Split<ObjModelWrapper> split = DoorShare.split(objModels, objModel -> objModel.doorShare);
 				if (split.share == null) {
@@ -81,7 +85,7 @@ public final class OptimizedModelWrapper {
 				Init.LOGGER.error("Merging train parts failed; using MTR's own model upload for the rest of this session", e);
 			}
 		}
-		return OptimizedModel.fromObjModels(objModels.stream().map(objModel -> objModel.objModel).collect(Collectors.toList()));
+		return null;
 	}
 
 	private static List<VertexArray> uploadMerged(List<ObjModelWrapper> objModels) {

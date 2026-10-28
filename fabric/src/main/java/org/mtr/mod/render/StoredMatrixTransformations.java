@@ -13,6 +13,8 @@ public class StoredMatrixTransformations {
 	private final double initialTranslateX;
 	private final double initialTranslateY;
 	private final double initialTranslateZ;
+	/** Train LOD: the batched model is queued without its interior parts. */
+	private boolean withoutInterior;
 
 	public StoredMatrixTransformations() {
 		useDefaultOffset = false;
@@ -54,6 +56,17 @@ public class StoredMatrixTransformations {
 	public StoredMatrixTransformations copy() {
 		final StoredMatrixTransformations storedMatrixTransformations = new StoredMatrixTransformations(useDefaultOffset, initialTranslateX, initialTranslateY, initialTranslateZ);
 		storedMatrixTransformations.transformations.addAll(transformations);
+		storedMatrixTransformations.withoutInterior = withoutInterior;
 		return storedMatrixTransformations;
+	}
+
+	public StoredMatrixTransformations copyWithoutInterior() {
+		final StoredMatrixTransformations storedMatrixTransformations = copy();
+		storedMatrixTransformations.withoutInterior = true;
+		return storedMatrixTransformations;
+	}
+
+	public boolean isWithoutInterior() {
+		return withoutInterior;
 	}
 }

@@ -27,8 +27,6 @@ import java.util.function.Consumer;
 
 public class MainRenderer extends EntityRenderer<EntityRendering> implements IGui {
 
-	private static final ShadowPassDetector SHADOW_PASS = new ShadowPassDetector(classPresent("net.irisshaders.iris.api.v0.IrisApi") || classPresent("net.optifine.shaders.Shaders"), () -> StackWalker.getInstance().walk(frames -> frames.anyMatch(frame -> ShadowPassDetector.isShaderClass(frame.getClassName()))));
-
 	private static long timerMillis;
 	private static long lastRenderedMillis;
 
@@ -61,7 +59,16 @@ public class MainRenderer extends EntityRenderer<EntityRendering> implements IGu
 
 	@Override
 	public void render(EntityRendering entityRendering, float yaw, float tickDelta, GraphicsHolder graphicsHolder, int i) {
-		render(graphicsHolder, entityRendering.getCameraPosVec2(tickDelta));
+		if (Config.getClient().getCheapShadows()) {
+			SHADOW_PASS.begin();
+		}
+		final long start = System.nanoTime();
+		try {
+			render(graphicsHolder, entityRendering.getCameraPosVec2(tickDelta));
+		} finally {
+			SHADOW_PASS.end();
+			MtrFrameStats.INSTANCE.mtrRender(System.nanoTime() - start);
+		}
 	}
 
 	@Override
@@ -76,28 +83,6 @@ public class MainRenderer extends EntityRenderer<EntityRendering> implements IGu
 	}
 
 	public static void render(GraphicsHolder graphicsHolder, Vector3d offset) {
-		final boolean cheapShadows = Config.getClient().getCheapShadows();
-		if (cheapShadows) {
-			SHADOW_PASS.begin();
-		}
-		final long start = System.nanoTime();
-		try {
-			renderPass(graphicsHolder, offset);
-		} finally {
-			SHADOW_PASS.end();
-			MtrFrameStats.INSTANCE.mtrRender(System.nanoTime() - start);
-		}
-	}
-
-	/**
-	 * Replaces the stock {@code OptimizedRenderer.renderingShadows()}, which walks the thread stack on every call.
-	 * Identical answers; the stock check is used when the cheapShadows setting is off.
-	 */
-	public static boolean renderingShadows() {
-		return Config.getClient().getCheapShadows() ? SHADOW_PASS.renderingShadows(OptimizedRenderer::renderingShadows) : OptimizedRenderer.renderingShadows();
-	}
-
-	private static void renderPass(GraphicsHolder graphicsHolder, Vector3d offset) {
 		final MinecraftClient minecraftClient = MinecraftClient.getInstance();
 		final ClientWorld clientWorld = minecraftClient.getWorldMapped();
 		final ClientPlayerEntity clientPlayerEntity = minecraftClient.getPlayerMapped();
@@ -241,6 +226,17 @@ public class MainRenderer extends EntityRenderer<EntityRendering> implements IGu
 		final long gameMillisElapsed = (long) (MinecraftClient.getInstance().getLastFrameDuration() * 50);
 		return Math.abs(gameMillisElapsed - millisElapsed) < 50 ? gameMillisElapsed : millisElapsed;
 	}
+
+	/**
+	 * Replaces the stock {@code OptimizedRenderer.renderingShadows()}, which walks the thread stack on every call.
+	 * Identical answers; the stock check is used when the cheapShadows setting is off.
+	 */
+	public static boolean renderingShadows() {
+		return Config.getClient().getCheapShadows() ? SHADOW_PASS.renderingShadows(OptimizedRenderer::renderingShadows) : OptimizedRenderer.renderingShadows();
+	}
+
+	// Last in the class: add-ons hook MTR 4.0.5's numbered lambdas (lambda$render$0 and so on), so new lambdas must come after them
+	private static final ShadowPassDetector SHADOW_PASS = new ShadowPassDetector(classPresent("net.irisshaders.iris.api.v0.IrisApi") || classPresent("net.optifine.shaders.Shaders"), () -> StackWalker.getInstance().walk(frames -> frames.anyMatch(frame -> ShadowPassDetector.isShaderClass(frame.getClassName()))));
 
 	private static boolean classPresent(String className) {
 		try {

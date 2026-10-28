@@ -38,7 +38,13 @@ loom {
 	}
 }
 
+configurations {
+	// Upstream MTR 4.0.5, never on a classpath: only read by DropInSignaturesTest
+	mtrBaseline { transitive = false }
+}
+
 dependencies {
+	mtrBaseline "maven.modrinth:minecraft-transit-railway:FABRIC-4.0.5+1.20.1"
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
 	mappings "net.fabricmc:yarn:${buildTools.getYarnVersion()}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${buildTools.getFabricVersion()}"
@@ -160,4 +166,7 @@ remapJar {
 test {
 	useJUnitPlatform()
 	testLogging { showStandardStreams = true }
+	// DropInSignaturesTest compares ATR's classes with the real MTR 4.0.5 jar that add-ons were built against
+	inputs.files(configurations.mtrBaseline)
+	doFirst { systemProperty "atr.mtrBaselineJar", configurations.mtrBaseline.singleFile.absolutePath }
 }

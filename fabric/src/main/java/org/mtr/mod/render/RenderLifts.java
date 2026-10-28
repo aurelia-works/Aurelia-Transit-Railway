@@ -39,7 +39,6 @@ public class RenderLifts implements IGui {
 	private static final float LIFT_FLOOR_PADDING = 0.25F;
 
 	public static void render(long millisElapsed, Vector3d cameraShakeOffset) {
-		final boolean cheapShadows = Config.getClient().getCheapShadows();
 		final MinecraftClient minecraftClient = MinecraftClient.getInstance();
 		final ClientWorld clientWorld = minecraftClient.getWorldMapped();
 		final ClientPlayerEntity clientPlayerEntity = minecraftClient.getPlayerMapped();
@@ -173,7 +172,7 @@ public class RenderLifts implements IGui {
 				);
 
 				// Render the display inside the lift (cheap shadows: text casts no shadow, skipped in a shader pack's shadow pass)
-				for (int i = 0; i < (cheapShadows && MainRenderer.renderingShadows() ? 0 : lift.getIsDoubleSided() ? 2 : 1); i++) {
+				for (int i = 0; i < (Config.getClient().getCheapShadows() && MainRenderer.renderingShadows() ? 0 : lift.getIsDoubleSided() ? 2 : 1); i++) {
 					final boolean shouldRotate = i == 0;
 					final StoredMatrixTransformations storedMatrixTransformationsNew = storedMatrixTransformations.copy();
 					storedMatrixTransformationsNew.add(graphicsHolder -> {

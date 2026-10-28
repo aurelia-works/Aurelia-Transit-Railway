@@ -36,8 +36,7 @@ public class RenderVehicleHelper {
 			return canOpenDoorsStock(clientWorld, doorway, positionAndRotation, doorValue);
 		}
 
-		final DoorScanKey key = new DoorScanKey(doorway, positionAndRotation);
-		final DoorScan scan = DOOR_SCANS.get(key, clientWorld.data, () -> scanDoorway(clientWorld, doorway, positionAndRotation));
+		final DoorScan scan = getDoorScan(clientWorld, doorway, positionAndRotation);
 		boolean canOpenDoors = scan.platform;
 		// The door blocks are read on every call (unlocked state and block entity), in the stock order, so door values are handed out as before
 		for (final BlockPos checkPos : scan.doors) {
@@ -226,6 +225,11 @@ public class RenderVehicleHelper {
 				box.getMinZMapped(),
 				box.getMaxZMapped()
 		);
+	}
+
+	// Last in the class: add-ons hook MTR 4.0.5's numbered lambdas, so new lambdas must come after them
+	private static DoorScan getDoorScan(ClientWorld clientWorld, Box doorway, PositionAndRotation positionAndRotation) {
+		return DOOR_SCANS.get(new DoorScanKey(doorway, positionAndRotation), clientWorld.data, () -> scanDoorway(clientWorld, doorway, positionAndRotation));
 	}
 
 	private static void drawLine(GraphicsHolder graphicsHolder, Vector3d corner1, Vector3d corner2, Vector3d offset, int color) {

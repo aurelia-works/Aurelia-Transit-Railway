@@ -183,13 +183,7 @@ public final class Init implements Utilities {
 			Config.init(minecraftServer.getRunDirectory());
 			final int defaultPort = Config.getServer().getWebserverPort();
 			serverPort = defaultPort <= 0 ? -1 : findFreePort(defaultPort);
-			main = new Main(minecraftServer.getSavePath(WorldSavePath.getRootMapped()).resolve("mtr"), serverPort, Config.getServer().getUseThreadedSimulation(), Config.getServer().getUseThreadedFileLoading(), webserver -> {
-				WebMapOverrideServlet.setup(webserver);
-				MapLayerServlet.setup(webserver, () -> main);
-				if (webserverSetup != null) {
-					webserverSetup.accept(webserver);
-				}
-			}, WORLD_ID_LIST.toArray(new String[0]));
+			main = new Main(minecraftServer.getSavePath(WorldSavePath.getRootMapped()).resolve("mtr"), serverPort, Config.getServer().getUseThreadedSimulation(), Config.getServer().getUseThreadedFileLoading(), Init::setupWebserver, WORLD_ID_LIST.toArray(new String[0]));
 
 			serverTick = 0;
 			lastSavedMillis = System.currentTimeMillis();
@@ -413,6 +407,15 @@ public final class Init implements Utilities {
 		serverPlayerEntity.setNoGravity(isRiding);
 		serverPlayerEntity.setNoClipMapped(isRiding);
 		((PlayerTeleportationStateAccessor) serverPlayerEntity.data).setInTeleportationState(isRiding);
+	}
+
+	// Last in the class: add-ons hook MTR 4.0.5's numbered lambdas, so new lambdas must come after them
+	private static void setupWebserver(Webserver webserver) {
+		WebMapOverrideServlet.setup(webserver);
+		MapLayerServlet.setup(webserver, () -> main);
+		if (webserverSetup != null) {
+			webserverSetup.accept(webserver);
+		}
 	}
 
 	private enum DepotOperation {
