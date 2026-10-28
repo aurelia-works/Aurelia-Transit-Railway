@@ -1,0 +1,29 @@
+name: CI
+on:
+  push:
+    branches: [master]
+  pull_request:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Generate sources and resources
+        run: ./gradlew setupFiles
+      - name: Build and unit tests (Fabric 1.20.1)
+        run: ./gradlew build
+      - name: Keep the jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATR-fabric-1.20.1
+          path: build/release/*.jar
+          retention-days: 7
