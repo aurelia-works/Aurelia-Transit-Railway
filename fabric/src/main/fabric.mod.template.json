@@ -5,11 +5,9 @@
 	"name": "Aurelia Transit Railway",
 	"description": "Aurelia Transit Railway: a maintained Minecraft 1.20.1 fork of Minecraft Transit Railway. Drop-in replacement, mod id mtr.",
 	"authors": [
-		"Aurelia Works"
+		"Aurelia Works",
+		"Jonathan Ho (jonafanho), author of Minecraft Transit Railway"
 	],
-	"contributors": {
-		"Jonathan Ho (jonafanho)": "Author of Minecraft Transit Railway, which this mod is based on"
-	},
 	"contact": {
 		"homepage": "https://github.com/aurelia-works/Minecraft-Transit-Railway",
 		"sources": "https://github.com/aurelia-works/Minecraft-Transit-Railway",
