@@ -77,6 +77,11 @@ public final class PerfBench implements ClientModInitializer {
 				steps.add(new Step(true, MERGE_FAST, 40));
 			}
 		}
+		final String only = System.getProperty("atr.perfbench.only");
+		if (only != null) {
+			// e.g. -Datr.perfbench.only=on_all_fixes_40
+			steps.removeIf(step -> !only.equals(((step.shaders() ? "on " : "off ") + step.fixes().label() + " " + step.distance()).replaceAll("[^a-z0-9]+", "_")));
+		}
 		WorldRenderEvents.END.register(context -> {
 			if (sampling) {
 				frames++;
