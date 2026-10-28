@@ -3,10 +3,12 @@ package org.mtr.mod.render;
 import org.mtr.core.tool.Utilities;
 import org.mtr.mapping.holder.*;
 import org.mtr.mapping.mapper.GraphicsHolder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.mod.Init;
 import org.mtr.mod.Items;
 import org.mtr.mod.block.BlockPSDAPGDoorBase;
 import org.mtr.mod.block.PlatformHelper;
+import org.mtr.mod.config.Config;
 
 public class RenderVehicleHelper {
 
@@ -14,6 +16,13 @@ public class RenderVehicleHelper {
 	private static final int CHECK_DOOR_RADIUS_XZ = 1;
 	private static final int CHECK_DOOR_RADIUS_Y = 2;
 	private static final double RIDE_STEP_THRESHOLD = 0.75;
+	/** A remembered search box is looked through again after this long, so a platform block placed or a chunk loaded is noticed. */
+	private static final long DOOR_SCAN_MAX_AGE_NANOS = 500_000_000L;
+	private static final int DOOR_SCAN_MAX_ENTRIES = 4096;
+	private static final int DOOR_CHECK_COMPARE_EVERY = 256;
+	private static final ExpiringCache<DoorScanKey, DoorScan> DOOR_SCANS = new ExpiringCache<>(DOOR_SCAN_MAX_AGE_NANOS, DOOR_SCAN_MAX_ENTRIES, System::nanoTime);
+	private static int doorCheckCalls;
+	private static boolean doorChecksFailed;
 
 	/**
 	 * @return whether the doorway is close to platform blocks, unlocked platform screen doors, or unlocked automatic platform gates
@@ -23,7 +32,38 @@ public class RenderVehicleHelper {
 		if (clientWorld == null) {
 			return false;
 		}
+		if (doorChecksFailed || !Config.getClient().getFasterDoorChecks()) {
+			return canOpenDoorsStock(clientWorld, doorway, positionAndRotation, doorValue);
+		}
 
+		final DoorScanKey key = new DoorScanKey(doorway, positionAndRotation);
+		final DoorScan scan = DOOR_SCANS.get(key, clientWorld.data, () -> scanDoorway(clientWorld, doorway, positionAndRotation));
+		boolean canOpenDoors = scan.platform;
+		// The door blocks are read on every call (unlocked state and block entity), in the stock order, so door values are handed out as before
+		for (final BlockPos checkPos : scan.doors) {
+			final BlockState blockState = clientWorld.getBlockState(checkPos);
+			if (blockState.getBlock().data instanceof BlockPSDAPGDoorBase && blockState.get(new Property<>(BlockPSDAPGDoorBase.UNLOCKED.data))) {
+				canOpenDoors = true;
+				final BlockEntity blockEntity = clientWorld.getBlockEntity(checkPos);
+				if (blockEntity != null && blockEntity.data instanceof BlockPSDAPGDoorBase.BlockEntityBase) {
+					((BlockPSDAPGDoorBase.BlockEntityBase) blockEntity.data).setDoorValue(doorValue);
+				}
+			}
+		}
+
+		// Every so often run the stock search too: the answers must agree, otherwise the stock search is used from now on
+		if (++doorCheckCalls % DOOR_CHECK_COMPARE_EVERY == 0) {
+			final boolean stock = canOpenDoorsStock(clientWorld, doorway, positionAndRotation, doorValue);
+			if (stock != canOpenDoors) {
+				doorChecksFailed = true;
+				Init.LOGGER.warn("A remembered door check differed from the stock one; the stock check is used for the rest of this session");
+				return stock;
+			}
+		}
+		return canOpenDoors;
+	}
+
+	private static boolean canOpenDoorsStock(ClientWorld clientWorld, Box doorway, PositionAndRotation positionAndRotation, double doorValue) {
 		final Vector3d doorwayPosition1 = positionAndRotation.transformForwards(new Vector3d(doorway.getMinXMapped(), doorway.getMaxYMapped(), doorway.getMinZMapped()), Vector3d::rotateX, Vector3d::rotateY, Vector3d::add);
 		final Vector3d doorwayPosition2 = positionAndRotation.transformForwards(new Vector3d(doorway.getMaxXMapped(), doorway.getMaxYMapped(), doorway.getMinZMapped()), Vector3d::rotateX, Vector3d::rotateY, Vector3d::add);
 		final Vector3d doorwayPosition3 = positionAndRotation.transformForwards(new Vector3d(doorway.getMaxXMapped(), doorway.getMaxYMapped(), doorway.getMaxZMapped()), Vector3d::rotateX, Vector3d::rotateY, Vector3d::add);
@@ -56,6 +96,75 @@ public class RenderVehicleHelper {
 		}
 
 		return canOpenDoors;
+	}
+
+	/** The stock box and search, recording what is in it instead of deciding. */
+	private static DoorScan scanDoorway(ClientWorld clientWorld, Box doorway, PositionAndRotation positionAndRotation) {
+		final Vector3d doorwayPosition1 = positionAndRotation.transformForwards(new Vector3d(doorway.getMinXMapped(), doorway.getMaxYMapped(), doorway.getMinZMapped()), Vector3d::rotateX, Vector3d::rotateY, Vector3d::add);
+		final Vector3d doorwayPosition2 = positionAndRotation.transformForwards(new Vector3d(doorway.getMaxXMapped(), doorway.getMaxYMapped(), doorway.getMinZMapped()), Vector3d::rotateX, Vector3d::rotateY, Vector3d::add);
+		final Vector3d doorwayPosition3 = positionAndRotation.transformForwards(new Vector3d(doorway.getMaxXMapped(), doorway.getMaxYMapped(), doorway.getMaxZMapped()), Vector3d::rotateX, Vector3d::rotateY, Vector3d::add);
+		final Vector3d doorwayPosition4 = positionAndRotation.transformForwards(new Vector3d(doorway.getMinXMapped(), doorway.getMaxYMapped(), doorway.getMaxZMapped()), Vector3d::rotateX, Vector3d::rotateY, Vector3d::add);
+		final double minX = Math.min(Math.min(doorwayPosition1.getXMapped(), doorwayPosition2.getXMapped()), Math.min(doorwayPosition3.getXMapped(), doorwayPosition4.getXMapped()));
+		final double maxX = Math.max(Math.max(doorwayPosition1.getXMapped(), doorwayPosition2.getXMapped()), Math.max(doorwayPosition3.getXMapped(), doorwayPosition4.getXMapped()));
+		final double minY = Math.min(Math.min(doorwayPosition1.getYMapped(), doorwayPosition2.getYMapped()), Math.min(doorwayPosition3.getYMapped(), doorwayPosition4.getYMapped()));
+		final double maxY = Math.max(Math.max(doorwayPosition1.getYMapped(), doorwayPosition2.getYMapped()), Math.max(doorwayPosition3.getYMapped(), doorwayPosition4.getYMapped()));
+		final double minZ = Math.min(Math.min(doorwayPosition1.getZMapped(), doorwayPosition2.getZMapped()), Math.min(doorwayPosition3.getZMapped(), doorwayPosition4.getZMapped()));
+		final double maxZ = Math.max(Math.max(doorwayPosition1.getZMapped(), doorwayPosition2.getZMapped()), Math.max(doorwayPosition3.getZMapped(), doorwayPosition4.getZMapped()));
+		boolean platform = false;
+		final ObjectArrayList<BlockPos> doors = new ObjectArrayList<>();
+
+		for (double checkX = minX - CHECK_DOOR_RADIUS_XZ; checkX <= maxX + CHECK_DOOR_RADIUS_XZ; checkX++) {
+			for (double checkY = minY - CHECK_DOOR_RADIUS_Y; checkY <= maxY + CHECK_DOOR_RADIUS_Y; checkY++) {
+				for (double checkZ = minZ - CHECK_DOOR_RADIUS_XZ; checkZ <= maxZ + CHECK_DOOR_RADIUS_XZ; checkZ++) {
+					final BlockPos checkPos = Init.newBlockPos(checkX, checkY, checkZ);
+					final Object block = clientWorld.getBlockState(checkPos).getBlock().data;
+					if (block instanceof PlatformHelper) {
+						platform = true;
+					} else if (block instanceof BlockPSDAPGDoorBase) {
+						doors.add(checkPos);
+					}
+				}
+			}
+		}
+
+		return new DoorScan(platform, doors);
+	}
+
+	/** What a doorway's search box holds: a platform block anywhere, and the door blocks in the stock search order. */
+	private static final class DoorScan {
+
+		private final boolean platform;
+		private final ObjectArrayList<BlockPos> doors;
+
+		private DoorScan(boolean platform, ObjectArrayList<BlockPos> doors) {
+			this.platform = platform;
+			this.doors = doors;
+		}
+	}
+
+	/** One doorway at one position: the search box follows from these. */
+	private static final class DoorScanKey {
+
+		private final double[] values;
+		private final int hash;
+
+		private DoorScanKey(Box doorway, PositionAndRotation positionAndRotation) {
+			values = new double[]{
+					doorway.getMinXMapped(), doorway.getMaxYMapped(), doorway.getMinZMapped(), doorway.getMaxXMapped(), doorway.getMaxZMapped(),
+					positionAndRotation.position.x, positionAndRotation.position.y, positionAndRotation.position.z, positionAndRotation.yaw, positionAndRotation.pitch
+			};
+			hash = java.util.Arrays.hashCode(values);
+		}
+
+		@Override
+		public boolean equals(Object object) {
+			return object instanceof DoorScanKey && java.util.Arrays.equals(values, ((DoorScanKey) object).values);
+		}
+
+		@Override
+		public int hashCode() {
+			return hash;
+		}
 	}
 
 	public static double getDoorBlockedAmount(Box doorway, double playerX, double playerY, double playerZ) {

@@ -27,6 +27,8 @@ import java.util.function.Consumer;
 
 public class MainRenderer extends EntityRenderer<EntityRendering> implements IGui {
 
+	private static final ShadowPassDetector SHADOW_PASS = new ShadowPassDetector(classPresent("net.irisshaders.iris.api.v0.IrisApi") || classPresent("net.optifine.shaders.Shaders"), () -> StackWalker.getInstance().walk(frames -> frames.anyMatch(frame -> ShadowPassDetector.isShaderClass(frame.getClassName()))));
+
 	private static long timerMillis;
 	private static long lastRenderedMillis;
 
@@ -74,6 +76,26 @@ public class MainRenderer extends EntityRenderer<EntityRendering> implements IGu
 	}
 
 	public static void render(GraphicsHolder graphicsHolder, Vector3d offset) {
+		final boolean cheapShadows = Config.getClient().getCheapShadows();
+		if (cheapShadows) {
+			SHADOW_PASS.begin();
+		}
+		try {
+			renderPass(graphicsHolder, offset);
+		} finally {
+			SHADOW_PASS.end();
+		}
+	}
+
+	/**
+	 * Replaces the stock {@code OptimizedRenderer.renderingShadows()}, which walks the thread stack on every call.
+	 * Identical answers; the stock check is used when the cheapShadows setting is off.
+	 */
+	public static boolean renderingShadows() {
+		return Config.getClient().getCheapShadows() ? SHADOW_PASS.renderingShadows(OptimizedRenderer::renderingShadows) : OptimizedRenderer.renderingShadows();
+	}
+
+	private static void renderPass(GraphicsHolder graphicsHolder, Vector3d offset) {
 		final MinecraftClient minecraftClient = MinecraftClient.getInstance();
 		final ClientWorld clientWorld = minecraftClient.getWorldMapped();
 		final ClientPlayerEntity clientPlayerEntity = minecraftClient.getPlayerMapped();
@@ -83,7 +105,7 @@ public class MainRenderer extends EntityRenderer<EntityRendering> implements IGu
 		}
 
 		final long millisElapsed;
-		if (OptimizedRenderer.renderingShadows()) {
+		if (renderingShadows()) {
 			if (Config.getClient().getDisableShadowsForShaders()) {
 				return;
 			}
@@ -163,7 +185,8 @@ public class MainRenderer extends EntityRenderer<EntityRendering> implements IGu
 			}
 		}
 
-		CustomResourceLoader.OPTIMIZED_RENDERER_WRAPPER.render(!Config.getClient().getHideTranslucentParts());
+		// Cheap shadows: translucent parts (windows, lights) cast no shadow in a shader pack's shadow pass
+		CustomResourceLoader.OPTIMIZED_RENDERER_WRAPPER.render(!Config.getClient().getHideTranslucentParts() && !(Config.getClient().getCheapShadows() && renderingShadows()));
 	}
 
 	public static void scheduleRender(@Nullable Identifier identifier, boolean priority, QueuedRenderLayer queuedRenderLayer, BiConsumer<GraphicsHolder, Vector3d> callback) {
@@ -215,5 +238,14 @@ public class MainRenderer extends EntityRenderer<EntityRendering> implements IGu
 		final long millisElapsed = InitClient.getGameMillis() - lastRenderedMillis;
 		final long gameMillisElapsed = (long) (MinecraftClient.getInstance().getLastFrameDuration() * 50);
 		return Math.abs(gameMillisElapsed - millisElapsed) < 50 ? gameMillisElapsed : millisElapsed;
+	}
+
+	private static boolean classPresent(String className) {
+		try {
+			Class.forName(className, false, MainRenderer.class.getClassLoader());
+			return true;
+		} catch (ClassNotFoundException | LinkageError e) {
+			return false;
+		}
 	}
 }

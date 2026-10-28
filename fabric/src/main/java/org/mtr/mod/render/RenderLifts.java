@@ -14,6 +14,7 @@ import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair
 import org.mtr.mapping.holder.*;
 import org.mtr.mapping.mapper.GraphicsHolder;
 import org.mtr.mapping.mapper.OptimizedRenderer;
+import org.mtr.mod.config.Config;
 import org.mtr.mod.Init;
 import org.mtr.mod.Items;
 import org.mtr.mod.block.BlockLiftTrackFloor;
@@ -38,6 +39,7 @@ public class RenderLifts implements IGui {
 	private static final float LIFT_FLOOR_PADDING = 0.25F;
 
 	public static void render(long millisElapsed, Vector3d cameraShakeOffset) {
+		final boolean cheapShadows = Config.getClient().getCheapShadows();
 		final MinecraftClient minecraftClient = MinecraftClient.getInstance();
 		final ClientWorld clientWorld = minecraftClient.getWorldMapped();
 		final ClientPlayerEntity clientPlayerEntity = minecraftClient.getPlayerMapped();
@@ -170,8 +172,8 @@ public class RenderLifts implements IGui {
 						0, 1, true, true, false, true, false
 				);
 
-				// Render the display inside the lift
-				for (int i = 0; i < (lift.getIsDoubleSided() ? 2 : 1); i++) {
+				// Render the display inside the lift (cheap shadows: text casts no shadow, skipped in a shader pack's shadow pass)
+				for (int i = 0; i < (cheapShadows && MainRenderer.renderingShadows() ? 0 : lift.getIsDoubleSided() ? 2 : 1); i++) {
 					final boolean shouldRotate = i == 0;
 					final StoredMatrixTransformations storedMatrixTransformationsNew = storedMatrixTransformations.copy();
 					storedMatrixTransformationsNew.add(graphicsHolder -> {
@@ -195,7 +197,7 @@ public class RenderLifts implements IGui {
 			}
 		});
 
-		if (!OptimizedRenderer.renderingShadows()) {
+		if (!MainRenderer.renderingShadows()) {
 			MainRenderer.WORKER_THREAD.scheduleLifts(occlusionCullingInstance -> {
 				final ObjectArrayList<Runnable> tasks = new ObjectArrayList<>();
 				cullingTasks.forEach(occlusionCullingInstanceRunnableFunction -> tasks.add(occlusionCullingInstanceRunnableFunction.apply(occlusionCullingInstance)));

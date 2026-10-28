@@ -19,6 +19,7 @@ import org.mtr.mod.InitClient;
 import org.mtr.mod.block.*;
 import org.mtr.mod.client.MinecraftClientData;
 import org.mtr.mod.data.ArrivalsCacheClient;
+import org.mtr.mod.config.Config;
 import org.mtr.mod.data.IGui;
 import org.mtr.mod.generated.lang.TranslationProvider;
 
@@ -49,6 +50,11 @@ public class RenderPIDS<T extends BlockPIDSBase.BlockEntityBase> extends BlockEn
 
 	@Override
 	public final void render(T entity, float tickDelta, GraphicsHolder graphicsHolder, int light, int overlay) {
+		// Cheap shadows: a display's text and screen cast no useful shadow, so it is skipped in a shader pack's shadow pass
+		if (Config.getClient().getCheapShadows() && MainRenderer.renderingShadows()) {
+			return;
+		}
+
 		final World world = entity.getWorld2();
 		if (world == null) {
 			return;
