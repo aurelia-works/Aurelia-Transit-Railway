@@ -2,16 +2,25 @@
 	"schemaVersion": 1,
 	"id": "mtr",
 	"version": "@version@",
-	"name": "Minecraft Transit Railway",
-	"description": "A Minecraft mod that adds automated train systems into the game.",
+	"name": "Aurelia Transit Railway",
+	"description": "Aurelia Transit Railway: a maintained Minecraft 1.20.1 fork of Minecraft Transit Railway. Drop-in replacement, mod id mtr.",
 	"authors": [
-		"Jonathan Ho"
+		"Aurelia Works",
+		"Jonathan Ho (jonafanho), author of Minecraft Transit Railway"
 	],
 	"contact": {
-		"homepage": "https://www.curseforge.com/minecraft/mc-mods/minecraft-transit-railway",
-		"sources": "https://github.com/jonafanho/Minecraft-Transit-Railway"
+		"homepage": "https://github.com/aurelia-works/Minecraft-Transit-Railway",
+		"sources": "https://github.com/aurelia-works/Minecraft-Transit-Railway",
+		"issues": "https://github.com/aurelia-works/Minecraft-Transit-Railway/issues"
 	},
 	"license": "MIT",
+	"custom": {
+		"modmenu": {
+			"links": {
+				"Based on MTR by jonafanho": "https://github.com/Minecraft-Transit-Railway/Minecraft-Transit-Railway"
+			}
+		}
+	},
 	"icon": "icon.png",
 	"accessWidener": "mtr.accesswidener",
 	"environment": "*",
