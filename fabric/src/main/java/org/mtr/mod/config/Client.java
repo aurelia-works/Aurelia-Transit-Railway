@@ -9,6 +9,8 @@ public final class Client extends ClientSchema {
 
 	public static final int DYNAMIC_RESOLUTION_COUNT = 8;
 	public static final int TRAIN_OSCILLATION_COUNT = 15;
+	public static final int RAIL_SIMPLE_CHUNKS_MAX = 16;
+	public static final int RAIL_FAR_CHUNKS_MAX = 32;
 
 	public Client(ReaderBase readerBase) {
 		super(readerBase);
@@ -53,6 +55,18 @@ public final class Client extends ClientSchema {
 
 	public boolean getDefaultRail3D() {
 		return defaultRail3D;
+	}
+
+	public boolean getRailLod() {
+		return railLod;
+	}
+
+	public int getRailSimpleChunks() {
+		return (int) railSimpleChunks;
+	}
+
+	public int getRailFarChunks() {
+		return (int) railFarChunks;
 	}
 
 	public boolean getUseMTRFont() {
@@ -101,6 +115,18 @@ public final class Client extends ClientSchema {
 
 	public void toggleDefaultRail3D() {
 		defaultRail3D = !defaultRail3D;
+	}
+
+	public void toggleRailLod() {
+		railLod = !railLod;
+	}
+
+	public void setRailSimpleChunks(int railSimpleChunks) {
+		this.railSimpleChunks = Utilities.clamp(railSimpleChunks, 0, RAIL_SIMPLE_CHUNKS_MAX);
+	}
+
+	public void setRailFarChunks(int railFarChunks) {
+		this.railFarChunks = Utilities.clamp(railFarChunks, 0, RAIL_FAR_CHUNKS_MAX);
 	}
 
 	public void toggleUseMTRFont() {

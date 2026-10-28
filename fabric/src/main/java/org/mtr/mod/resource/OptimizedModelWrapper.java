@@ -20,13 +20,33 @@ public final class OptimizedModelWrapper {
 
 	@Nullable
 	final OptimizedModel optimizedModel;
+	/**
+	 * Vertical extent of the OBJ model in blocks, NaN when unknown (used by rail LOD)
+	 */
+	private float height = Float.NaN;
 
 	public static OptimizedModelWrapper fromMaterialGroups(@Nullable ObjectArrayList<MaterialGroupWrapper> materialGroupList) {
 		return new OptimizedModelWrapper(OptimizedRenderer.hasOptimizedRendering() && materialGroupList != null ? OptimizedModel.fromMaterialGroups(materialGroupList.stream().map(materialGroup -> materialGroup.materialGroup).filter(Objects::nonNull).collect(Collectors.toList())) : null);
 	}
 
 	public static OptimizedModelWrapper fromObjModels(@Nullable ObjectArrayList<ObjModelWrapper> objModels) {
-		return new OptimizedModelWrapper(OptimizedRenderer.hasOptimizedRendering() && objModels != null ? OptimizedModel.fromObjModels(objModels.stream().map(objModel -> objModel.objModel).filter(Objects::nonNull).collect(Collectors.toList())) : null);
+		final OptimizedModelWrapper wrapper = new OptimizedModelWrapper(OptimizedRenderer.hasOptimizedRendering() && objModels != null ? OptimizedModel.fromObjModels(objModels.stream().map(objModel -> objModel.objModel).filter(Objects::nonNull).collect(Collectors.toList())) : null);
+		if (objModels != null) {
+			float min = Float.POSITIVE_INFINITY;
+			float max = Float.NEGATIVE_INFINITY;
+			for (final ObjModelWrapper objModel : objModels) {
+				if (objModel.objModel != null) {
+					min = Math.min(min, objModel.objModel.getMinY());
+					max = Math.max(max, objModel.objModel.getMaxY());
+				}
+			}
+			wrapper.height = max >= min ? max - min : Float.NaN;
+		}
+		return wrapper;
+	}
+
+	public float getHeight() {
+		return height;
 	}
 
 	private OptimizedModelWrapper(@Nullable OptimizedModel optimizedModel) {
