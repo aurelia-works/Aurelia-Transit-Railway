@@ -6,9 +6,17 @@ import org.mtr.mapping.holder.Identifier;
 import org.mtr.mapping.mapper.ModelPartExtension;
 import org.mtr.mapping.mapper.OptimizedModel;
 import org.mtr.mapping.mapper.OptimizedRenderer;
+import org.mtr.mapping.render.object.VertexArray;
 import org.mtr.mod.Init;
+import org.mtr.mod.config.Config;
+import org.mtr.mod.mixin.ObjModelAccessor;
+import org.mtr.mod.mixin.OptimizedModelAccessor;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -20,13 +28,80 @@ public final class OptimizedModelWrapper {
 
 	@Nullable
 	final OptimizedModel optimizedModel;
+	/**
+	 * Vertical extent of the OBJ model in blocks, NaN when unknown (used by rail LOD)
+	 */
+	private float height = Float.NaN;
+
+	private static boolean mergeFailed;
 
 	public static OptimizedModelWrapper fromMaterialGroups(@Nullable ObjectArrayList<MaterialGroupWrapper> materialGroupList) {
 		return new OptimizedModelWrapper(OptimizedRenderer.hasOptimizedRendering() && materialGroupList != null ? OptimizedModel.fromMaterialGroups(materialGroupList.stream().map(materialGroup -> materialGroup.materialGroup).filter(Objects::nonNull).collect(Collectors.toList())) : null);
 	}
 
 	public static OptimizedModelWrapper fromObjModels(@Nullable ObjectArrayList<ObjModelWrapper> objModels) {
-		return new OptimizedModelWrapper(OptimizedRenderer.hasOptimizedRendering() && objModels != null ? OptimizedModel.fromObjModels(objModels.stream().map(objModel -> objModel.objModel).filter(Objects::nonNull).collect(Collectors.toList())) : null);
+		final OptimizedModelWrapper wrapper = new OptimizedModelWrapper(OptimizedRenderer.hasOptimizedRendering() && objModels != null ? upload(objModels.stream().filter(objModel -> objModel.objModel != null).collect(Collectors.toList())) : null);
+		if (objModels != null) {
+			float min = Float.POSITIVE_INFINITY;
+			float max = Float.NEGATIVE_INFINITY;
+			for (final ObjModelWrapper objModel : objModels) {
+				if (objModel.objModel != null) {
+					min = Math.min(min, objModel.objModel.getMinY());
+					max = Math.max(max, objModel.objModel.getMaxY());
+				}
+			}
+			wrapper.height = max >= min ? max - min : Float.NaN;
+		}
+		return wrapper;
+	}
+
+	/**
+	 * One buffer per material per car ({@link MergedObjUpload}) when on, with the parts both door states use uploaded
+	 * once ({@link DoorShare}); MTR's own upload when off or after a failure.
+	 */
+	private static OptimizedModel upload(List<ObjModelWrapper> objModels) {
+		if (!mergeFailed && Config.getClient().getMergeTrainParts()) {
+			try {
+				final DoorShare.Split<ObjModelWrapper> split = DoorShare.split(objModels, objModel -> objModel.doorShare);
+				if (split.share == null) {
+					return new OptimizedModel(uploadMerged(split.unique));
+				}
+				List<VertexArray> commonArrays = split.share.uploaded();
+				if (commonArrays == null) {
+					commonArrays = uploadMerged(split.common);
+					split.share.store(commonArrays);
+				}
+				final List<VertexArray> vertexArrays = new ArrayList<>(commonArrays);
+				if (!split.rest.isEmpty()) {
+					vertexArrays.addAll(uploadMerged(split.rest));
+				}
+				return new OptimizedModel(vertexArrays);
+			} catch (RuntimeException e) {
+				mergeFailed = true;
+				Init.LOGGER.error("Merging train parts failed; using MTR's own model upload for the rest of this session", e);
+			}
+		}
+		return OptimizedModel.fromObjModels(objModels.stream().map(objModel -> objModel.objModel).collect(Collectors.toList()));
+	}
+
+	private static List<VertexArray> uploadMerged(List<ObjModelWrapper> objModels) {
+		return MergedObjUpload.upload(objModels, objModel -> ((ObjModelAccessor) (Object) objModel.objModel).getRawModel(), OptimizedModelAccessor.getDefaultMapping());
+	}
+
+	/** Links the parts both door states use ({@link DoorShare}), when merging is on. Call once per car build. */
+	public static void linkDoorStates(Map<?, ? extends Collection<ObjModelWrapper>> objModelsDoorsOpen, Map<?, ? extends Collection<ObjModelWrapper>> objModelsDoorsClosed) {
+		if (mergeFailed || !Config.getClient().getMergeTrainParts()) {
+			return;
+		}
+		try {
+			DoorShare.link(objModelsDoorsOpen, objModelsDoorsClosed).forEach((objModel, share) -> objModel.doorShare = share);
+		} catch (RuntimeException e) {
+			Init.LOGGER.warn("Could not link a train's door states; its parts are uploaded for each", e);
+		}
+	}
+
+	public float getHeight() {
+		return height;
 	}
 
 	private OptimizedModelWrapper(@Nullable OptimizedModel optimizedModel) {
@@ -72,6 +147,9 @@ public final class OptimizedModelWrapper {
 	public static final class ObjModelWrapper {
 
 		public final OptimizedModel.ObjModel objModel;
+		/** Set when this part is one both door states of a car use ({@link DoorShare}). */
+		@Nullable
+		private DoorShare<ObjModelWrapper> doorShare;
 
 		public ObjModelWrapper(OptimizedModel.ObjModel objModel) {
 			this.objModel = objModel;

@@ -1,0 +1,21 @@
+{
+	"required": false,
+	"minVersion": "0.8",
+	"package": "org.mtr.mod.mixin",
+	"compatibilityLevel": "JAVA_8",
+	"refmap": "mtr.refmap.json",
+	"mixins": [],
+	"client": [
+		"ObjModelAccessor",
+		"ObjModelLoaderMixin",
+		"OptimizedModelAccessor",
+		"OptimizedRendererMixin",
+		"ShaderManagerMixin",
+		"VertexArrayMixin",
+		"VertexAttributeStateMixin"
+	],
+	"server": [],
+	"injectors": {
+		"defaultRequire": 0
+	}
+}

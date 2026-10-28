@@ -9,6 +9,10 @@ public final class Client extends ClientSchema {
 
 	public static final int DYNAMIC_RESOLUTION_COUNT = 8;
 	public static final int TRAIN_OSCILLATION_COUNT = 15;
+	public static final int RAIL_SIMPLE_CHUNKS_MAX = 16;
+	public static final int RAIL_FAR_CHUNKS_MAX = 32;
+	public static final int TRAIN_INTERIOR_CHUNKS_MAX = 16;
+	public static final int TRAIN_BOX_CHUNKS_MAX = 32;
 
 	public Client(ReaderBase readerBase) {
 		super(readerBase);
@@ -31,6 +35,14 @@ public final class Client extends ClientSchema {
 		return hideRainInsideVehicles;
 	}
 
+	public boolean getFasterDoorChecks() {
+		return fasterDoorChecks;
+	}
+
+	public boolean getCheapShadows() {
+		return cheapShadows;
+	}
+
 	public LanguageDisplay getLanguageDisplay() {
 		return languageDisplay;
 	}
@@ -47,12 +59,60 @@ public final class Client extends ClientSchema {
 		return defaultRail3D;
 	}
 
+	public boolean getRailLod() {
+		return railLod;
+	}
+
+	public int getRailSimpleChunks() {
+		return (int) railSimpleChunks;
+	}
+
+	public int getRailFarChunks() {
+		return (int) railFarChunks;
+	}
+
+	public boolean getPerfOnF3() {
+		return perfOnF3;
+	}
+
+	public boolean getShaderPackFastPath() {
+		return shaderPackFastPath;
+	}
+
+	public boolean getMergeTrainParts() {
+		return mergeTrainParts;
+	}
+
+	public boolean getTrainLod() {
+		return trainLod;
+	}
+
+	public int getTrainInteriorChunks() {
+		return (int) trainInteriorChunks;
+	}
+
+	public int getTrainBoxChunks() {
+		return (int) trainBoxChunks;
+	}
+
 	public boolean getUseMTRFont() {
 		return useMTRFont;
 	}
 
 	public boolean getDisableShadowsForShaders() {
 		return disableShadowsForShaders;
+	}
+
+	public boolean getFasterModelLoading() {
+		return fasterModelLoading;
+	}
+
+	public boolean getBackgroundModelLoading() {
+		return backgroundModelLoading;
+	}
+
+	public boolean getFreeUnusedModels() {
+		return freeUnusedModels;
 	}
 
 	public boolean matchesPreloadResourcePattern(String id) {
@@ -95,12 +155,68 @@ public final class Client extends ClientSchema {
 		defaultRail3D = !defaultRail3D;
 	}
 
+	public void toggleRailLod() {
+		railLod = !railLod;
+	}
+
+	public void setRailSimpleChunks(int railSimpleChunks) {
+		this.railSimpleChunks = Utilities.clamp(railSimpleChunks, 0, RAIL_SIMPLE_CHUNKS_MAX);
+	}
+
+	public void setRailFarChunks(int railFarChunks) {
+		this.railFarChunks = Utilities.clamp(railFarChunks, 0, RAIL_FAR_CHUNKS_MAX);
+	}
+
+	public void togglePerfOnF3() {
+		perfOnF3 = !perfOnF3;
+	}
+
+	public void toggleShaderPackFastPath() {
+		shaderPackFastPath = !shaderPackFastPath;
+	}
+
+	public void toggleMergeTrainParts() {
+		mergeTrainParts = !mergeTrainParts;
+	}
+
+	public void toggleTrainLod() {
+		trainLod = !trainLod;
+	}
+
+	public void setTrainInteriorChunks(int trainInteriorChunks) {
+		this.trainInteriorChunks = Utilities.clamp(trainInteriorChunks, 0, TRAIN_INTERIOR_CHUNKS_MAX);
+	}
+
+	public void setTrainBoxChunks(int trainBoxChunks) {
+		this.trainBoxChunks = Utilities.clamp(trainBoxChunks, 0, TRAIN_BOX_CHUNKS_MAX);
+	}
+
 	public void toggleUseMTRFont() {
 		useMTRFont = !useMTRFont;
 	}
 
 	public void toggleDisableShadowsForShaders() {
 		disableShadowsForShaders = !disableShadowsForShaders;
+	}
+
+	public void toggleFasterDoorChecks() {
+		fasterDoorChecks = !fasterDoorChecks;
+	}
+
+	public void toggleCheapShadows() {
+		cheapShadows = !cheapShadows;
+	}
+
+	public void toggleFasterModelLoading() {
+		fasterModelLoading = !fasterModelLoading;
+	}
+
+	public void toggleBackgroundModelLoading() {
+		backgroundModelLoading = !backgroundModelLoading;
+	}
+
+	public void toggleFreeUnusedModels() {
+		freeUnusedModels = !freeUnusedModels;
 	}
 
 	public void hideBetaWarningScreen() {

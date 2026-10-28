@@ -6,6 +6,7 @@ import org.mtr.core.data.Rail;
 import org.mtr.core.data.TransportMode;
 import org.mtr.core.tool.Angle;
 import org.mtr.core.tool.Utilities;
+import org.mtr.core.tool.Vector;
 import org.mtr.libraries.it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
 import org.mtr.libraries.it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -34,6 +35,7 @@ import org.mtr.mod.item.ItemNodeModifierBase;
 import org.mtr.mod.item.ItemRailModifier;
 import org.mtr.mod.model.ModelSmallCube;
 import org.mtr.mod.packet.PacketUpdateLastRailStyles;
+import org.mtr.mod.resource.OptimizedModelWrapper;
 import org.mtr.mod.resource.RailResource;
 
 import javax.annotation.Nullable;
@@ -203,7 +205,7 @@ public class RenderRails implements IGui {
 			}
 		}
 
-		if (!OptimizedRenderer.renderingShadows()) {
+		if (!MainRenderer.renderingShadows()) {
 			MainRenderer.WORKER_THREAD.scheduleMTRRails(occlusionCullingInstance -> {
 				final ObjectArrayList<Runnable> tasks = new ObjectArrayList<>();
 				cullingTasks.forEach(occlusionCullingInstanceRunnableFunction -> tasks.add(occlusionCullingInstanceRunnableFunction.apply(occlusionCullingInstance)));
@@ -254,7 +256,13 @@ public class RenderRails implements IGui {
 				renderType[0] = true;
 			} else {
 				final boolean flip = newStyle.endsWith("_2");
+				// Cheap shadows simplify rails in the shadow pass even with rail LOD off
+				final boolean railLod = Config.getClient().getRailLod() || Config.getClient().getCheapShadows() && MainRenderer.renderingShadows();
+				final Vector railLodStart = railLod ? rail.railMath.getPosition(0, false) : null;
 				CustomResourceLoader.getRailById(RailResource.getIdWithoutDirection(newStyle), railResource -> renderWithinRenderDistance(rail, (blockPos, x1, z1, x2, z2, x3, z3, x4, z4, y1, y2) -> {
+					if (railLod && renderRailLodPiece(clientWorld, railResource, flip, renderType, blockPos, railLodStart, x1, z1, x3, z3, y1, y2)) {
+						return;
+					}
 					final int light = LightmapTextureManager.pack(clientWorld.getLightLevel(LightType.getBlockMapped(), blockPos), clientWorld.getLightLevel(LightType.getSkyMapped(), blockPos));
 					final double differenceX = x3 - x1;
 					final double differenceZ = z3 - z1;
@@ -286,6 +294,99 @@ public class RenderRails implements IGui {
 				});
 			}, 0.5, -railWidth, railWidth);
 		}
+	}
+
+	/**
+	 * Rail LOD (ported from Aurelia Transit Utilities 1.4.0). Returns true when the piece was drawn simplified or skipped on purpose and the full 3D piece must not be drawn.
+	 */
+	private static boolean renderRailLodPiece(ClientWorld clientWorld, RailResource railResource, boolean flip, boolean[] renderType, BlockPos blockPos, Vector railStart, double x1, double z1, double x3, double z3, double y1, double y2) {
+		final boolean cheapShadowPass = Config.getClient().getCheapShadows() && MainRenderer.renderingShadows();
+		final int simpleChunks = Config.getClient().getRailLod() ? Config.getClient().getRailSimpleChunks() : 0;
+		final int farChunks = Config.getClient().getRailLod() ? Config.getClient().getRailFarChunks() : 0;
+		if (simpleChunks <= 0 && farChunks <= 0 && !cheapShadowPass) {
+			return false;
+		}
+		final Vector3d cameraPosition = MinecraftClient.getInstance().getGameRendererMapped().getCamera().getPos();
+		final RailLod.Tier tier = RailLod.tier(Math.hypot(x1 - cameraPosition.getXMapped(), z1 - cameraPosition.getZMapped()), simpleChunks, farChunks, cheapShadowPass);
+		if (tier == RailLod.Tier.FULL) {
+			return false;
+		}
+		final OptimizedModelWrapper optimizedModel = railResource.getOptimizedModel();
+		final float height = optimizedModel == null ? Float.NaN : optimizedModel.getHeight();
+		if (Float.isNaN(height)) {
+			// Not loaded yet (or not an OBJ model): leave it to the full path
+			return false;
+		}
+		final boolean tall = RailLod.isTall(height);
+		if (tier == RailLod.Tier.SIMPLE) {
+			if (tall) {
+				return false;
+			}
+			renderRailLodStrip(clientWorld, blockPos, x1, z1, x3, z3, y1, y2);
+			return true;
+		}
+		final double interval = railResource.getRepeatInterval();
+		final int step = RailLod.farStep(interval, tall);
+		if (step > 1 && !RailLod.drawsFarPiece(RailLod.pieceIndex(Math.hypot(x1 - railStart.x, z1 - railStart.z), interval), step)) {
+			return true;
+		}
+		// This piece stands for the next `step` pieces: extend it along its own direction
+		final double endX = x1 + (x3 - x1) * step;
+		final double endZ = z1 + (z3 - z1) * step;
+		final double endY = y1 + (y2 - y1) * step;
+		if (tall) {
+			if (step == 1) {
+				return false;
+			}
+			final double differenceX = endX - x1;
+			final double differenceZ = endZ - z1;
+			final double yaw = Math.atan2(differenceZ, differenceX);
+			final double pitch = Math.atan2(endY - y1, Math.sqrt(differenceX * differenceX + differenceZ * differenceZ));
+			final StoredMatrixTransformations storedMatrixTransformations = new StoredMatrixTransformations((x1 + endX) / 2, (y1 + endY) / 2 + railResource.getModelYOffset(), (z1 + endZ) / 2);
+			storedMatrixTransformations.add(graphicsHolder -> {
+				graphicsHolder.rotateYRadians((float) (Math.PI / 2 - yaw + (flip ? Math.PI : 0)));
+				graphicsHolder.rotateXRadians((float) (Math.PI - pitch * (flip ? -1 : 1)));
+				graphicsHolder.rotateZDegrees((float) ((x1 * z1) % 10) / 100);
+				graphicsHolder.scale(1, 1, step);
+			});
+			railResource.render(storedMatrixTransformations, getRailLight(clientWorld, blockPos));
+			renderType[1] = true;
+		} else {
+			renderRailLodStrip(clientWorld, blockPos, x1, z1, endX, endZ, y1, endY);
+		}
+		return true;
+	}
+
+	/**
+	 * Same quads as the 2D rail in {@link #renderRailStandard(ClientWorld, Rail, float, RenderState, float, Identifier, float, float, float, float)}
+	 */
+	private static void renderRailLodStrip(ClientWorld clientWorld, BlockPos blockPos, double x1, double z1, double x3, double z3, double y1, double y2) {
+		final double differenceX = x3 - x1;
+		final double differenceZ = z3 - z1;
+		final double length = Math.hypot(differenceX, differenceZ);
+		if (length < 1E-6) {
+			return;
+		}
+		final double offsetX = -differenceZ / length;
+		final double offsetZ = differenceX / length;
+		final double ax = x1 - offsetX, az = z1 - offsetZ;
+		final double bx = x1 + offsetX, bz = z1 + offsetZ;
+		final double cx = x3 + offsetX, cz = z3 + offsetZ;
+		final double dx = x3 - offsetX, dz = z3 - offsetZ;
+		final double yStart = y1 + 0.065625;
+		final double yEnd = y2 + 0.065625;
+		final float textureOffset = (((int) (x1 + z1)) % 4) * 0.25F;
+		final float v1 = 0.1875F + textureOffset;
+		final float v2 = 0.3125F + textureOffset;
+		final int light = getRailLight(clientWorld, blockPos);
+		MainRenderer.scheduleRender(RAIL_TEXTURE, false, QueuedRenderLayer.EXTERIOR, (graphicsHolder, offset) -> {
+			IDrawing.drawTexture(graphicsHolder, ax, yStart, az, bx, yStart + SMALL_OFFSET, bz, cx, yEnd, cz, dx, yEnd + SMALL_OFFSET, dz, offset, 0, v1, 1, v2, Direction.UP, -1, light);
+			IDrawing.drawTexture(graphicsHolder, bx, yStart + SMALL_OFFSET, bz, ax, yStart, az, dx, yEnd + SMALL_OFFSET, dz, cx, yEnd, cz, offset, 0, v1, 1, v2, Direction.UP, -1, light);
+		});
+	}
+
+	private static int getRailLight(ClientWorld clientWorld, BlockPos blockPos) {
+		return LightmapTextureManager.pack(clientWorld.getLightLevel(LightType.getBlockMapped(), blockPos), clientWorld.getLightLevel(LightType.getSkyMapped(), blockPos));
 	}
 
 	private static void renderSignalsStandard(ClientWorld clientWorld, Rail rail) {

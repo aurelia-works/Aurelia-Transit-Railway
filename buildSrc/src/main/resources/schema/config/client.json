@@ -35,17 +35,73 @@
 			"type": "boolean",
 			"default": true
 		},
+		"railLod": {
+			"type": "boolean",
+			"default": true
+		},
+		"railSimpleChunks": {
+			"type": "integer",
+			"default": 3
+		},
+		"railFarChunks": {
+			"type": "integer",
+			"default": 8
+		},
+		"perfOnF3": {
+			"type": "boolean",
+			"default": true
+		},
+		"shaderPackFastPath": {
+			"type": "boolean",
+			"default": true
+		},
+		"mergeTrainParts": {
+			"type": "boolean",
+			"default": true
+		},
+		"trainLod": {
+			"type": "boolean",
+			"default": true
+		},
+		"trainInteriorChunks": {
+			"type": "integer",
+			"default": 5
+		},
+		"trainBoxChunks": {
+			"type": "integer",
+			"default": 10
+		},
 		"useMTRFont": {
 			"type": "boolean"
 		},
 		"disableShadowsForShaders": {
 			"type": "boolean"
 		},
+		"fasterDoorChecks": {
+			"type": "boolean",
+			"default": true
+		},
+		"cheapShadows": {
+			"type": "boolean",
+			"default": true
+		},
 		"preloadResourcePattern": {
 			"type": "string"
 		},
 		"betaWarningVersion": {
 			"type": "string"
+		},
+		"fasterModelLoading": {
+			"type": "boolean",
+			"default": true
+		},
+		"backgroundModelLoading": {
+			"type": "boolean",
+			"default": true
+		},
+		"freeUnusedModels": {
+			"type": "boolean",
+			"default": true
 		}
 	}
 }

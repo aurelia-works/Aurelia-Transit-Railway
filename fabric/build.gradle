@@ -9,10 +9,33 @@ plugins {
 
 final BuildTools buildTools = new BuildTools(minecraftVersion, "fabric", project)
 
+// Dev-only perf bench mod (src/perfbench): never part of the release jar. `./gradlew :fabric:runPerfbench` boots into
+// fabric/run/perf/saves/ATU Test (a copy of ATU's bench folder: NS pack, Iris, Complementary) and writes perfbench.txt there.
+sourceSets {
+	perfbench {
+		compileClasspath += main.compileClasspath + main.output
+		runtimeClasspath += main.runtimeClasspath + main.output
+	}
+}
+
 loom {
 	accessWidenerPath = file("src/main/resources/mtr.accesswidener")
 	runConfigs.configureEach { ideConfigGenerated = true }
 	mixin { setDefaultRefmapName("mtr.refmap.json") }
+	mods {
+		mtr { sourceSet sourceSets.main }
+		atr_perfbench { sourceSet sourceSets.perfbench }
+	}
+	runs {
+		perfbench {
+			client()
+			name = "ATR perf bench"
+			source sourceSets.perfbench
+			runDir = "run/perf"
+			programArgs "--quickPlaySingleplayer", "ATU Test"
+			vmArg "-Dsodium.checks.issue2561=false"
+		}
+	}
 }
 
 dependencies {
