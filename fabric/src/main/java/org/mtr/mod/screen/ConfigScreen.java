@@ -33,6 +33,9 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 	private final ButtonWidgetExtension buttonRailLod;
 	private final WidgetShorterSlider sliderRailSimpleChunks;
 	private final WidgetShorterSlider sliderRailFarChunks;
+	private final ButtonWidgetExtension buttonTrainLod;
+	private final WidgetShorterSlider sliderTrainInteriorChunks;
+	private final WidgetShorterSlider sliderTrainBoxChunks;
 	private final ButtonWidgetExtension buttonFasterModelLoading;
 	private final ButtonWidgetExtension buttonBackgroundModelLoading;
 	private final ButtonWidgetExtension buttonFreeUnusedModels;
@@ -42,6 +45,10 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 	private static final int HEADER_LOGO_SIZE = 40;
 	private static final int BUTTON_WIDTH = 60;
 	private static final int BUTTON_HEIGHT = TEXT_HEIGHT * 2;
+
+	/** The rows no longer fit one screen, so the whole page scrolls (header, rows and Patreon list). */
+	private int scrollOffset;
+	private int rowCount;
 
 	public ConfigScreen(@Nullable Screen previousScreen) {
 		super(previousScreen);
@@ -94,6 +101,12 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		});
 		sliderRailSimpleChunks = new WidgetShorterSlider(0, 0, Client.RAIL_SIMPLE_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
 		sliderRailFarChunks = new WidgetShorterSlider(0, 0, Client.RAIL_FAR_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
+		buttonTrainLod = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleTrainLod();
+			setButtonText(button, client.getTrainLod());
+		});
+		sliderTrainInteriorChunks = new WidgetShorterSlider(0, 0, Client.TRAIN_INTERIOR_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
+		sliderTrainBoxChunks = new WidgetShorterSlider(0, 0, Client.TRAIN_BOX_CHUNKS_MAX, i -> i == 0 ? "-" : String.valueOf(i), null);
 		buttonFasterModelLoading = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
 			client.toggleFasterModelLoading();
 			setButtonText(button, client.getFasterModelLoading());
@@ -113,27 +126,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 	protected void init2() {
 		super.init2();
 
-		int startY = TEXT_PADDING;
-		int i = 1;
-		IDrawing.setPositionAndWidth(buttonShowAnnouncementMessages, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonUseTTSAnnouncements, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonHideTranslucentParts, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonHideRainInsideVehicles, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonLanguageOptions, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(sliderDynamicTextureResolution, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
-		IDrawing.setPositionAndWidth(sliderTrainOscillationMultiplier, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
-		IDrawing.setPositionAndWidth(buttonDefaultRail3D, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonUseMTRFont, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonDisableShadowsForShaders, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonFasterDoorChecks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonCheapShadows, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonRailLod, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(sliderRailSimpleChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
-		IDrawing.setPositionAndWidth(sliderRailFarChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
-		IDrawing.setPositionAndWidth(buttonFasterModelLoading, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonBackgroundModelLoading, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonFreeUnusedModels, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
-		IDrawing.setPositionAndWidth(buttonSupportPatreon, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * i + SQUARE_SIZE, BUTTON_WIDTH);
+		positionWidgets();
 		setButtonText(new ButtonWidget(buttonShowAnnouncementMessages), client.getChatAnnouncements());
 		setButtonText(new ButtonWidget(buttonUseTTSAnnouncements), client.getTextToSpeechAnnouncements());
 		setButtonText(new ButtonWidget(buttonHideTranslucentParts), client.getHideTranslucentParts());
@@ -148,6 +141,11 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		sliderRailSimpleChunks.setValue(client.getRailSimpleChunks());
 		sliderRailFarChunks.setHeight(BUTTON_HEIGHT);
 		sliderRailFarChunks.setValue(client.getRailFarChunks());
+		setButtonText(new ButtonWidget(buttonTrainLod), client.getTrainLod());
+		sliderTrainInteriorChunks.setHeight(BUTTON_HEIGHT);
+		sliderTrainInteriorChunks.setValue(client.getTrainInteriorChunks());
+		sliderTrainBoxChunks.setHeight(BUTTON_HEIGHT);
+		sliderTrainBoxChunks.setValue(client.getTrainBoxChunks());
 		setButtonText(new ButtonWidget(buttonFasterModelLoading), client.getFasterModelLoading());
 		setButtonText(new ButtonWidget(buttonBackgroundModelLoading), client.getBackgroundModelLoading());
 		setButtonText(new ButtonWidget(buttonFreeUnusedModels), client.getFreeUnusedModels());
@@ -174,6 +172,9 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		addChild(new ClickableWidget(buttonRailLod));
 		addChild(new ClickableWidget(sliderRailSimpleChunks));
 		addChild(new ClickableWidget(sliderRailFarChunks));
+		addChild(new ClickableWidget(buttonTrainLod));
+		addChild(new ClickableWidget(sliderTrainInteriorChunks));
+		addChild(new ClickableWidget(sliderTrainBoxChunks));
 		addChild(new ClickableWidget(buttonFasterModelLoading));
 		addChild(new ClickableWidget(buttonBackgroundModelLoading));
 		addChild(new ClickableWidget(buttonFreeUnusedModels));
@@ -185,9 +186,12 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		try {
 			renderBackground(graphicsHolder);
 
+			graphicsHolder.push();
+			graphicsHolder.translate(0, -scrollOffset, 0);
 			drawHeader(graphicsHolder);
+			graphicsHolder.pop();
 
-			final int yStart1 = SQUARE_SIZE + TEXT_PADDING + TEXT_PADDING / 2;
+			final int yStart1 = SQUARE_SIZE + TEXT_PADDING + TEXT_PADDING / 2 - scrollOffset;
 			int i = 1;
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_SHOW_ANNOUNCEMENT_MESSAGES.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_USE_TTS_ANNOUNCEMENTS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
@@ -204,6 +208,9 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_RAIL_LOD.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_RAIL_SIMPLE_CHUNKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_RAIL_FAR_CHUNKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
+			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_TRAIN_LOD.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
+			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_TRAIN_INTERIOR_CHUNKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
+			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_TRAIN_BOX_CHUNKS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_FASTER_MODEL_LOADING.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_BACKGROUND_MODEL_LOADING.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_FREE_UNUSED_MODELS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
@@ -241,14 +248,61 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 	}
 
 	@Override
+	public boolean mouseScrolled2(double mouseX, double mouseY, double amount) {
+		final int newScrollOffset = Math.max(0, Math.min(maxScrollOffset(), scrollOffset - (int) Math.round(amount * BUTTON_HEIGHT)));
+		if (newScrollOffset != scrollOffset) {
+			scrollOffset = newScrollOffset;
+			positionWidgets();
+		}
+		return super.mouseScrolled2(mouseX, mouseY, amount);
+	}
+
+	@Override
 	public void onClose2() {
 		super.onClose2();
 		client.setDynamicTextureResolution(sliderDynamicTextureResolution.getIntValue());
 		client.setVehicleOscillationMultiplier(sliderTrainOscillationMultiplier.getIntValue() / 10.0);
 		client.setRailSimpleChunks(sliderRailSimpleChunks.getIntValue());
 		client.setRailFarChunks(sliderRailFarChunks.getIntValue());
+		client.setTrainInteriorChunks(sliderTrainInteriorChunks.getIntValue());
+		client.setTrainBoxChunks(sliderTrainBoxChunks.getIntValue());
 		DynamicTextureCache.instance.refresh();
 		Config.save();
+	}
+
+	private void positionWidgets() {
+		scrollOffset = Math.min(scrollOffset, maxScrollOffset());
+		final int startY = TEXT_PADDING - scrollOffset;
+		int i = 1;
+		IDrawing.setPositionAndWidth(buttonShowAnnouncementMessages, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonUseTTSAnnouncements, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonHideTranslucentParts, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonHideRainInsideVehicles, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonLanguageOptions, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(sliderDynamicTextureResolution, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
+		IDrawing.setPositionAndWidth(sliderTrainOscillationMultiplier, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
+		IDrawing.setPositionAndWidth(buttonDefaultRail3D, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonUseMTRFont, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonDisableShadowsForShaders, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonFasterDoorChecks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonCheapShadows, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonRailLod, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(sliderRailSimpleChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
+		IDrawing.setPositionAndWidth(sliderRailFarChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
+		IDrawing.setPositionAndWidth(buttonTrainLod, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(sliderTrainInteriorChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
+		IDrawing.setPositionAndWidth(sliderTrainBoxChunks, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
+		IDrawing.setPositionAndWidth(buttonFasterModelLoading, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonBackgroundModelLoading, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonFreeUnusedModels, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonSupportPatreon, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * i + SQUARE_SIZE, BUTTON_WIDTH);
+		rowCount = i;
+	}
+
+	/** Scrolls far enough to show every row, the Patreon tier titles and their first names. */
+	private int maxScrollOffset() {
+		final int contentHeight = BUTTON_HEIGHT * (rowCount + 2) + SQUARE_SIZE + TEXT_PADDING + TEXT_PADDING / 2 + TEXT_HEIGHT * 2 + TEXT_PADDING + SQUARE_SIZE;
+		return Math.max(0, contentHeight - height);
 	}
 
 	private void drawHeader(GraphicsHolder graphicsHolder) {
