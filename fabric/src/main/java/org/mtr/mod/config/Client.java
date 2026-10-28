@@ -155,6 +155,8 @@ public final class Client extends ClientSchema {
 
 	public void toggleCheapShadows() {
 		cheapShadows = !cheapShadows;
+	}
+
 	public void toggleFasterModelLoading() {
 		fasterModelLoading = !fasterModelLoading;
 	}
