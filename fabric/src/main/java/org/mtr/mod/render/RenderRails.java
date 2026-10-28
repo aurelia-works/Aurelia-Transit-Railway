@@ -205,7 +205,7 @@ public class RenderRails implements IGui {
 			}
 		}
 
-		if (!OptimizedRenderer.renderingShadows()) {
+		if (!MainRenderer.renderingShadows()) {
 			MainRenderer.WORKER_THREAD.scheduleMTRRails(occlusionCullingInstance -> {
 				final ObjectArrayList<Runnable> tasks = new ObjectArrayList<>();
 				cullingTasks.forEach(occlusionCullingInstanceRunnableFunction -> tasks.add(occlusionCullingInstanceRunnableFunction.apply(occlusionCullingInstance)));

@@ -40,7 +40,8 @@
 	},
 	"mixins": [
 		"mtr.mixins.json",
-		"atr.mixins.json"
+		"atr.mixins.json",
+		"mtr.models.mixins.json"
 	],
 	"depends": {
 		"fabric": "*",
