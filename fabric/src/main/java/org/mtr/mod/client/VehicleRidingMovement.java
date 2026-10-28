@@ -284,6 +284,10 @@ public class VehicleRidingMovement {
 		return isRiding(vehicleId) ? new IntObjectImmutablePair<>(ridingVehicleCarNumberCacheOld, new ObjectObjectImmutablePair<>(ridingPositionCacheOld, ridingYawDifference)) : null;
 	}
 
+	public static boolean isRidingAnyVehicle() {
+		return ridingVehicleId != 0;
+	}
+
 	public static boolean isRiding(long vehicleId) {
 		return vehicleId == ridingVehicleId;
 	}

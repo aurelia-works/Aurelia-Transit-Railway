@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "org.mtr.atr.mixin",
+	"compatibilityLevel": "JAVA_8",
+	"refmap": "mtr.refmap.json",
+	"mixins": [],
+	"client": [
+		"WeatherInsideVehicleMixin"
+	],
+	"server": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

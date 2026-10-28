@@ -27,6 +27,10 @@ public final class Client extends ClientSchema {
 		return hideTranslucentParts;
 	}
 
+	public boolean getHideRainInsideVehicles() {
+		return hideRainInsideVehicles;
+	}
+
 	public LanguageDisplay getLanguageDisplay() {
 		return languageDisplay;
 	}
@@ -69,6 +73,10 @@ public final class Client extends ClientSchema {
 
 	public void toggleHideTranslucentParts() {
 		hideTranslucentParts = !hideTranslucentParts;
+	}
+
+	public void toggleHideRainInsideVehicles() {
+		hideRainInsideVehicles = !hideRainInsideVehicles;
 	}
 
 	public void cycleLanguageDisplay() {

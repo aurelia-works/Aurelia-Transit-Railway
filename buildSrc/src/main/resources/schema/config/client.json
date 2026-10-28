@@ -16,6 +16,10 @@
 		"hideTranslucentParts": {
 			"type": "boolean"
 		},
+		"hideRainInsideVehicles": {
+			"type": "boolean",
+			"default": true
+		},
 		"languageDisplay": {
 			"$ref": "LanguageDisplay"
 		},
