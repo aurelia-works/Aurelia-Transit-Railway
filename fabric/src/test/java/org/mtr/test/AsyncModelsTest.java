@@ -18,10 +18,21 @@ class AsyncModelsTest {
 		assertTrue(job.isDone());
 	}
 
-	/** Other tests may leave finished jobs behind: age them out. */
-	private static void dropLeftovers() {
-		AsyncModels.tick(1L << 50);
-		AsyncModels.tick(1L << 51);
+	/** Other tests may leave jobs behind, some still parsing: wait for them to finish and age them out. */
+	private static void dropLeftovers() throws InterruptedException {
+		final long end = System.currentTimeMillis() + 10000;
+		long now = 1L << 50;
+		while (AsyncModels.outstanding() > 0 && System.currentTimeMillis() < end) {
+			// tick skips jobs still parsing; the first tick notes the finished ones, the second drops them
+			AsyncModels.tick(now);
+			now += AsyncModels.UNCLAIMED_MILLIS + 1;
+			AsyncModels.tick(now);
+			now += AsyncModels.UNCLAIMED_MILLIS + 1;
+			if (AsyncModels.outstanding() > 0) {
+				Thread.sleep(5);
+			}
+		}
+		assertEquals(0, AsyncModels.outstanding());
 	}
 
 	@Test
