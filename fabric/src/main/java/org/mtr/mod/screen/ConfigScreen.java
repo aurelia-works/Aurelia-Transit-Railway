@@ -21,6 +21,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 	private final ButtonWidgetExtension buttonShowAnnouncementMessages;
 	private final ButtonWidgetExtension buttonUseTTSAnnouncements;
 	private final ButtonWidgetExtension buttonHideTranslucentParts;
+	private final ButtonWidgetExtension buttonHideRainInsideVehicles;
 	private final ButtonWidgetExtension buttonLanguageOptions;
 	private final WidgetShorterSlider sliderDynamicTextureResolution;
 	private final WidgetShorterSlider sliderTrainOscillationMultiplier;
@@ -48,6 +49,10 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		buttonHideTranslucentParts = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
 			client.toggleHideTranslucentParts();
 			setButtonText(button, client.getHideTranslucentParts());
+		});
+		buttonHideRainInsideVehicles = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
+			client.toggleHideRainInsideVehicles();
+			setButtonText(button, client.getHideRainInsideVehicles());
 		});
 		buttonLanguageOptions = new ButtonWidgetExtension(0, 0, 0, BUTTON_HEIGHT, TextHelper.literal(""), button -> {
 			client.cycleLanguageDisplay();
@@ -79,6 +84,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		IDrawing.setPositionAndWidth(buttonShowAnnouncementMessages, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(buttonUseTTSAnnouncements, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(buttonHideTranslucentParts, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
+		IDrawing.setPositionAndWidth(buttonHideRainInsideVehicles, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(buttonLanguageOptions, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH);
 		IDrawing.setPositionAndWidth(sliderDynamicTextureResolution, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
 		IDrawing.setPositionAndWidth(sliderTrainOscillationMultiplier, width - SQUARE_SIZE - BUTTON_WIDTH, startY + BUTTON_HEIGHT * (i++) + SQUARE_SIZE, BUTTON_WIDTH - TEXT_PADDING - GraphicsHolder.getTextWidth("100%"));
@@ -89,6 +95,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		setButtonText(new ButtonWidget(buttonShowAnnouncementMessages), client.getChatAnnouncements());
 		setButtonText(new ButtonWidget(buttonUseTTSAnnouncements), client.getTextToSpeechAnnouncements());
 		setButtonText(new ButtonWidget(buttonHideTranslucentParts), client.getHideTranslucentParts());
+		setButtonText(new ButtonWidget(buttonHideRainInsideVehicles), client.getHideRainInsideVehicles());
 		setButtonText(new ButtonWidget(buttonDefaultRail3D), client.getDefaultRail3D());
 		setButtonText(new ButtonWidget(buttonUseMTRFont), client.getUseMTRFont());
 		setButtonText(new ButtonWidget(buttonDisableShadowsForShaders), client.getDisableShadowsForShaders());
@@ -103,6 +110,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 		addChild(new ClickableWidget(buttonShowAnnouncementMessages));
 		addChild(new ClickableWidget(buttonUseTTSAnnouncements));
 		addChild(new ClickableWidget(buttonHideTranslucentParts));
+		addChild(new ClickableWidget(buttonHideRainInsideVehicles));
 		addChild(new ClickableWidget(buttonLanguageOptions));
 		addChild(new ClickableWidget(sliderDynamicTextureResolution));
 		addChild(new ClickableWidget(sliderTrainOscillationMultiplier));
@@ -124,6 +132,7 @@ public class ConfigScreen extends MTRScreenBase implements IGui {
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_SHOW_ANNOUNCEMENT_MESSAGES.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_USE_TTS_ANNOUNCEMENTS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_HIDE_TRANSLUCENT_PARTS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
+			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_HIDE_RAIN_INSIDE_VEHICLES.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_LANGUAGE_OPTIONS.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_DYNAMIC_TEXTURE_RESOLUTION.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());
 			graphicsHolder.drawText(TranslationProvider.OPTIONS_MTR_VEHICLE_OSCILLATION_MULTIPLIER.getMutableText(), SQUARE_SIZE, BUTTON_HEIGHT * (i++) + yStart1, ARGB_WHITE, false, GraphicsHolder.getDefaultLight());

@@ -535,6 +535,7 @@
 	"options.mtr.disable_shadows_for_shaders": "Disable shadows when using shaders",
 	"options.mtr.dynamic_texture_resolution": "Dynamic texture resolution (higher values might crash!)",
 	"options.mtr.hide_special_rail_colors": "Hide special rail colours",
+	"options.mtr.hide_rain_inside_vehicles": "Hide rain inside vehicles",
 	"options.mtr.hide_translucent_parts": "Hide translucent parts on vehicles",
 	"options.mtr.language_options": "Language display on signs",
 	"options.mtr.language_options_cjk_only": "CJK Only",
