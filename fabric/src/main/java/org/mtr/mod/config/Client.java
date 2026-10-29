@@ -254,7 +254,9 @@ public final class Client extends ClientSchema {
 	}
 
 	public void cyclePantographDefaultEnd() {
-		pantographDefaultEnd = (Utilities.clamp((int) pantographDefaultEnd, 0, PantographEnd.values().length - 1) + 1) % PantographEnd.values().length;
+		// front, rear, both; DEFAULT means "both" here too, so the panel skips it
+		final int next = (int) pantographDefaultEnd + 1;
+		pantographDefaultEnd = next < 1 || next >= PantographEnd.values().length ? 1 : next;
 	}
 
 	public void setPantographStayUpKilometersPerHour(double pantographStayUpKilometersPerHour) {

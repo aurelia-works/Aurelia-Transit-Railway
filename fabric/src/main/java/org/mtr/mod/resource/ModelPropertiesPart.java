@@ -115,7 +115,7 @@ public final class ModelPropertiesPart extends ModelPropertiesPartSchema impleme
 	/**
 	 * Maps each part name to the corresponding part and collects all floors, doors, and doorways for processing later.
 	 * Writes to the collective vehicle model parts (one with doors, one without doors).
-	 * If this part is a door, create an optimized model to be rendered later.
+	 * If this part is a door or a moving pantograph, create an optimized model to be rendered later.
 	 */
 	public void writeCache(
 			Identifier texture,
@@ -779,26 +779,6 @@ public final class ModelPropertiesPart extends ModelPropertiesPartSchema impleme
 		this.pantographArmPivotY = pantographArmPivotY;
 		this.pantographArmPivotZ = pantographArmPivotZ;
 		this.pantographHeadRise = pantographHeadRise;
-	}
-
-	PantographEnd getPantographEnd() {
-		return pantographEnd;
-	}
-
-	double getPantographArmMaxAngle() {
-		return pantographArmMaxAngle;
-	}
-
-	double getPantographArmPivotY() {
-		return pantographArmPivotY;
-	}
-
-	double getPantographArmPivotZ() {
-		return pantographArmPivotZ;
-	}
-
-	double getPantographHeadRise() {
-		return pantographHeadRise;
 	}
 
 	/**

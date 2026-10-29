@@ -20,7 +20,7 @@ public final class PantographState {
 	/**
 	 * Moves this car's progress toward {@code up} for the time since it was last asked, and returns the eased raise value.
 	 * A car seen for the first time starts at its target, so a train that comes into view on a route already has its pantograph up.
-	 * Asking twice with the same time (several parts of one car in one frame) returns the same value.
+	 * Asking twice within microseconds (several parts of one car in one frame) moves it by a negligible amount.
 	 */
 	public synchronized double update(long vehicleId, int carNumber, PantographEnd end, boolean up, long nowNanos, double raiseSeconds) {
 		if (nowNanos - lastCleanupNanos > FORGET_AFTER_NANOS) {
