@@ -9,9 +9,14 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import org.mtr.aurelia.client.Announcer;
 import org.mtr.aurelia.client.MtrBridge;
+import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.ScriptingHandshake;
+import org.mtr.mod.InitClient;
+import org.mtr.mod.Items;
 import org.mtr.mod.config.Client;
 import org.mtr.mod.config.Config;
+import org.mtr.mod.item.ItemRailBuilder;
+import org.mtr.mod.packet.PacketUpdateRailBuilder;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -19,14 +24,16 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
+import java.util.function.UnaryOperator;
 
 /**
  * The Aurelia panel: one screen with tabs for ATR's own switches and tools. Rendering rows read and write ATR's client
- * config ({@code config/mtr.json}); Tools are ATU's hub; Sound holds the Announcer switches.
+ * config ({@code config/mtr.json}); Tools are ATU's hub; Sound holds the Announcer switches; Riding holds sitting while
+ * riding; Builder sets the Rail Builder in the player's hand.
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND}
+	public enum Tab {RENDERING, TOOLS, SOUND, RIDING, BUILDER}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -112,6 +119,8 @@ public final class AureliaPanelScreen extends Screen {
 			case RENDERING -> initRendering();
 			case TOOLS -> initTools();
 			case SOUND -> initSound();
+			case RIDING -> initRiding();
+			case BUILDER -> initBuilder();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
@@ -169,6 +178,81 @@ public final class AureliaPanelScreen extends Screen {
 		melodies.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.melodies.tooltip")));
 	}
 
+	/**
+	 * Whether each ride starts sitting (the sit key flips it on the way), and how far a sitting rider drops onto the seat.
+	 */
+	private void initRiding() {
+		final int left = (width - BUTTON_WIDTH) / 2;
+		addDrawableChild(ButtonWidget.builder(sitLabel(), b -> {
+			RideClient.setSitWhenBoarding(!RideClient.sitWhenBoarding());
+			b.setMessage(sitLabel());
+		}).dimensions(left, TOP, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.riding.sit.tooltip")));
+		addDrawableChild(new SliderWidget(left, TOP + ROW, BUTTON_WIDTH, 20, Text.empty(), RideClient.sitDrop() / RideClient.MAX_SIT_DROP) {
+			{
+				updateMessage();
+			}
+
+			@Override
+			protected void updateMessage() {
+				setMessage(Text.translatable("gui.aurelia.riding.drop", String.format("%.2f", value * RideClient.MAX_SIT_DROP)));
+			}
+
+			@Override
+			protected void applyValue() {
+				RideClient.setSitDrop(value * RideClient.MAX_SIT_DROP);
+			}
+
+			@Override
+			public void onRelease(double mouseX, double mouseY) {
+				super.onRelease(mouseX, mouseY);
+				RideClient.saveSitDrop();
+			}
+		});
+	}
+
+	private static Text sitLabel() {
+		return Text.translatable("gui.aurelia.riding.sit", ScreenTexts.onOrOff(RideClient.sitWhenBoarding()));
+	}
+
+	/**
+	 * Width and height sliders and the three part switches. Each change is written to the stack here and sent to the server.
+	 */
+	private void initBuilder() {
+		final boolean offHand = !isRailBuilder(client.player.getMainHandStack()) && isRailBuilder(client.player.getOffHandStack());
+		final net.minecraft.item.ItemStack itemStack = offHand ? client.player.getOffHandStack() : client.player.getMainHandStack();
+		if (!isRailBuilder(itemStack)) {
+			return;
+		}
+		final int left = (width - BUTTON_WIDTH) / 2;
+		final UnaryOperator<UnaryOperator<ItemRailBuilder.Settings>> update = change -> settings -> {
+			final ItemRailBuilder.Settings newSettings = change.apply(settings);
+			ItemRailBuilder.write(itemStack, newSettings);
+			InitClient.REGISTRY_CLIENT.sendPacketToServer(new PacketUpdateRailBuilder(offHand, newSettings));
+			return newSettings;
+		};
+		addDrawableChild(new BuilderSlider(left, TOP, "gui.aurelia.builder.width", ItemRailBuilder.MIN_WIDTH, ItemRailBuilder.MAX_WIDTH, 2, ItemRailBuilder.read(itemStack).width(),
+				value -> update.apply(settings -> new ItemRailBuilder.Settings(value, settings.height(), settings.deck(), settings.clear(), settings.walls())).apply(ItemRailBuilder.read(itemStack))));
+		addDrawableChild(new BuilderSlider(left, TOP + ROW, "gui.aurelia.builder.height", ItemRailBuilder.MIN_HEIGHT, ItemRailBuilder.MAX_HEIGHT, 1, ItemRailBuilder.read(itemStack).height(),
+				value -> update.apply(settings -> new ItemRailBuilder.Settings(settings.width(), value, settings.deck(), settings.clear(), settings.walls())).apply(ItemRailBuilder.read(itemStack))));
+		addBuilderToggle(left, TOP + ROW * 2, "gui.aurelia.builder.deck", itemStack, ItemRailBuilder.Settings::deck,
+				settings -> new ItemRailBuilder.Settings(settings.width(), settings.height(), !settings.deck(), settings.clear(), settings.walls()), update);
+		addBuilderToggle(left, TOP + ROW * 3, "gui.aurelia.builder.clear", itemStack, ItemRailBuilder.Settings::clear,
+				settings -> new ItemRailBuilder.Settings(settings.width(), settings.height(), settings.deck(), !settings.clear(), settings.walls()), update);
+		addBuilderToggle(left, TOP + ROW * 4, "gui.aurelia.builder.walls", itemStack, ItemRailBuilder.Settings::walls,
+				settings -> new ItemRailBuilder.Settings(settings.width(), settings.height(), settings.deck(), settings.clear(), !settings.walls()), update);
+	}
+
+	private void addBuilderToggle(int x, int y, String key, net.minecraft.item.ItemStack itemStack, Function<ItemRailBuilder.Settings, Boolean> get, UnaryOperator<ItemRailBuilder.Settings> flip, UnaryOperator<UnaryOperator<ItemRailBuilder.Settings>> update) {
+		addDrawableChild(ButtonWidget.builder(Text.translatable(key, ScreenTexts.onOrOff(get.apply(ItemRailBuilder.read(itemStack)))), b -> {
+			final ItemRailBuilder.Settings settings = update.apply(flip).apply(ItemRailBuilder.read(itemStack));
+			b.setMessage(Text.translatable(key, ScreenTexts.onOrOff(get.apply(settings))));
+		}).dimensions(x, y, BUTTON_WIDTH, 20).build());
+	}
+
+	private static boolean isRailBuilder(net.minecraft.item.ItemStack itemStack) {
+		return itemStack.getItem() == Items.RAIL_BUILDER.get().data;
+	}
+
 	private static Text platformLabel() {
 		return Text.translatable("gui.aurelia.tools.platform", ScreenTexts.onOrOff(Announcer.platformEnabled()));
 	}
@@ -207,6 +291,8 @@ public final class AureliaPanelScreen extends Screen {
 			}
 		} else if (tab == Tab.TOOLS && !MtrBridge.canEdit()) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), width / 2, TOP - 10, 0xFF5555);
+		} else if (tab == Tab.BUILDER && !isRailBuilder(client.player.getMainHandStack()) && !isRailBuilder(client.player.getOffHandStack())) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), width / 2, TOP + 6, 0xAAAAAA);
 		}
 		super.render(context, mouseX, mouseY, delta);
 	}
@@ -215,6 +301,40 @@ public final class AureliaPanelScreen extends Screen {
 	public void close() {
 		Config.save();
 		client.setScreen(parent);
+	}
+
+	/** A Rail Builder number from {@code min} to {@code max} in steps of {@code step}. */
+	private static final class BuilderSlider extends SliderWidget {
+
+		private final String key;
+		private final int min;
+		private final int steps;
+		private final int step;
+		private final IntConsumer set;
+
+		private BuilderSlider(int x, int y, String key, int min, int max, int step, int current, IntConsumer set) {
+			super(x, y, BUTTON_WIDTH, 20, Text.empty(), (double) (current - min) / step / ((max - min) / step));
+			this.key = key;
+			this.min = min;
+			this.steps = (max - min) / step;
+			this.step = step;
+			this.set = set;
+			updateMessage();
+		}
+
+		private int current() {
+			return min + (int) Math.round(value * steps) * step;
+		}
+
+		@Override
+		protected void updateMessage() {
+			setMessage(Text.translatable(key, current()));
+		}
+
+		@Override
+		protected void applyValue() {
+			set.accept(current());
+		}
 	}
 
 	/** Whole chunks from 0 (off, shown as "-") to the row's maximum. */

@@ -5,7 +5,8 @@ import org.mtr.mod.generated.lang.TranslationProvider;
 public enum RailActionType {
 	BRIDGE(TranslationProvider.GUI_MTR_PERCENTAGE_COMPLETE_BRIDGE, TranslationProvider.GUI_MTR_RAIL_ACTION_BRIDGE, 0xFFCCCCCC),
 	TUNNEL(TranslationProvider.GUI_MTR_PERCENTAGE_COMPLETE_TUNNEL, TranslationProvider.GUI_MTR_RAIL_ACTION_TUNNEL, 0xFF663300),
-	TUNNEL_WALL(TranslationProvider.GUI_MTR_PERCENTAGE_COMPLETE_TUNNEL_WALL, TranslationProvider.GUI_MTR_RAIL_ACTION_TUNNEL_WALL, 0xFF666666);
+	TUNNEL_WALL(TranslationProvider.GUI_MTR_PERCENTAGE_COMPLETE_TUNNEL_WALL, TranslationProvider.GUI_MTR_RAIL_ACTION_TUNNEL_WALL, 0xFF666666),
+	RAIL_BUILDER(TranslationProvider.GUI_MTR_PERCENTAGE_COMPLETE_RAIL_BUILDER, TranslationProvider.GUI_MTR_RAIL_ACTION_RAIL_BUILDER, 0xFFB8860B);
 
 	public final TranslationProvider.TranslationHolder progressTranslation;
 	public final TranslationProvider.TranslationHolder nameTranslation;

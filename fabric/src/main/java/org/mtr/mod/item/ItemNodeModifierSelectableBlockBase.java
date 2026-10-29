@@ -18,7 +18,6 @@ public abstract class ItemNodeModifierSelectableBlockBase extends ItemNodeModifi
 	private final boolean canSaveBlock;
 	private final int height;
 	private final int width;
-	private final int radius;
 
 	private static final String TAG_BLOCK_ID = "block_id";
 
@@ -27,7 +26,6 @@ public abstract class ItemNodeModifierSelectableBlockBase extends ItemNodeModifi
 		this.canSaveBlock = canSaveBlock;
 		this.height = height;
 		this.width = width;
-		radius = width / 2;
 	}
 
 	@Nonnull
@@ -58,10 +56,10 @@ public abstract class ItemNodeModifierSelectableBlockBase extends ItemNodeModifi
 
 	@Override
 	public void addTooltips(ItemStack stack, @Nullable World world, List<MutableText> tooltip, TooltipContext options) {
-		if (height > 0) {
-			tooltip.add(TranslationProvider.TOOLTIP_MTR_RAIL_ACTION_HEIGHT.getMutableText(height).formatted(TextFormatting.GRAY));
+		if (getHeight(stack) > 0) {
+			tooltip.add(TranslationProvider.TOOLTIP_MTR_RAIL_ACTION_HEIGHT.getMutableText(getHeight(stack)).formatted(TextFormatting.GRAY));
 		}
-		tooltip.add(TranslationProvider.TOOLTIP_MTR_RAIL_ACTION_WIDTH.getMutableText(width).formatted(TextFormatting.GRAY));
+		tooltip.add(TranslationProvider.TOOLTIP_MTR_RAIL_ACTION_WIDTH.getMutableText(getWidth(stack)).formatted(TextFormatting.GRAY));
 
 		if (canSaveBlock) {
 			final BlockState state = getSavedState(stack);
@@ -78,12 +76,23 @@ public abstract class ItemNodeModifierSelectableBlockBase extends ItemNodeModifi
 	@Override
 	protected final void onConnect(World world, ItemStack itemStack, TransportMode transportMode, BlockState stateStart, BlockState stateEnd, BlockPos posStart, BlockPos posEnd, Angle facingStart, Angle facingEnd, @Nullable ServerPlayerEntity serverPlayerEntity) {
 		if (serverPlayerEntity != null) {
-			getRail(world, posStart, posEnd, serverPlayerEntity, rail -> onConnect(rail, serverPlayerEntity, itemStack, radius, height));
+			getRail(world, posStart, posEnd, serverPlayerEntity, rail -> onConnect(rail, serverPlayerEntity, itemStack, getWidth(itemStack) / 2, getHeight(itemStack)));
 		}
 	}
 
 	@Override
 	protected final void onRemove(World world, BlockPos posStart, BlockPos posEnd, @Nullable ServerPlayerEntity serverPlayerEntity) {
+	}
+
+	/**
+	 * The width this stack builds; fixed per item unless the item keeps it on the stack.
+	 */
+	protected int getWidth(ItemStack stack) {
+		return width;
+	}
+
+	protected int getHeight(ItemStack stack) {
+		return height;
 	}
 
 	protected BlockState getSavedState(ItemStack stack) {

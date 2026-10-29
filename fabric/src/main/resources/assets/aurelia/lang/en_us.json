@@ -233,5 +233,17 @@
 	"gui.aurelia.panel.tab.sound": "Sound",
 	"gui.aurelia.panel.scroll": "Rows %s-%s of %s (scroll)",
 	"gui.aurelia.open_panel": "Open...",
-	"key.aurelia.open_panel": "Open Aurelia panel"
+	"key.aurelia.open_panel": "Open Aurelia panel",
+	"gui.aurelia.panel.tab.builder": "Builder",
+	"gui.aurelia.builder.width": "Width: %s",
+	"gui.aurelia.builder.height": "Height: %s",
+	"gui.aurelia.builder.deck": "Deck under the track: %s",
+	"gui.aurelia.builder.clear": "Dig the clearance: %s",
+	"gui.aurelia.builder.walls": "Walls where there is ground: %s",
+	"gui.aurelia.builder.hold": "Hold a Rail Builder to change it",
+	"key.aurelia.sit": "Sit / stand while riding",
+	"gui.aurelia.panel.tab.riding": "Riding",
+	"gui.aurelia.riding.sit": "Sit when boarding: %s",
+	"gui.aurelia.riding.sit.tooltip": "Each ride starts sitting or standing. The sit key (X by default) switches while you ride.",
+	"gui.aurelia.riding.drop": "Sit height: %s blocks lower"
 }

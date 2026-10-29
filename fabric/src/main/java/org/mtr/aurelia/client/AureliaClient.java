@@ -62,6 +62,7 @@ public final class AureliaClient implements ClientModInitializer {
 			}
 		});
 		Announcer.register();
+		RideClient.register();
 		LOGGER.info("[ATR] Aurelia panel ready");
 	}
 
