@@ -17,6 +17,7 @@ First release of Aurelia Transit Railway, a maintained fork of Minecraft Transit
 - **Aurelia Transit Architecture blocks, Station Studio and wrenches** ship inside the jar (replaces the separate ATA mod).
 - **AureliaMap**: a 3D web map with a live layer of lines, stations and trains.
 - Web map: opens fitted to the network, less label clutter, solid lines, a clearer station panel.
+- **Moving pantographs**: the Class 802 raises its pantograph on the route and lowers it at the depot; resource packs can add the same with new optional part fields; switches on the Aurelia panel.
 - Opaque lift style, configurable ticket currency and free barriers.
 
 ### Fixed

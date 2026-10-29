@@ -38,4 +38,14 @@ public class DashboardListRowTest {
 		assertEquals(11, row(150, 75, 2));
 		assertEquals(-1, row(150, 95, 2));
 	}
+
+	@Test
+	public void aSearchedListGivesTheItemIndexNotTheRow() {
+		// the search left the items 1 and 3 of 4: the first row shown is item 1
+		final int[] keys = {1, 3};
+		assertEquals(1, DashboardList.keyAtPosition(keys, 0));
+		assertEquals(3, DashboardList.keyAtPosition(keys, 1));
+		assertEquals(-1, DashboardList.keyAtPosition(keys, 2));
+		assertEquals(-1, DashboardList.keyAtPosition(keys, -1));
+	}
 }
