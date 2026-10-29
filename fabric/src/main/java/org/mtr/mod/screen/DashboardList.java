@@ -300,6 +300,21 @@ public class DashboardList implements IGui {
 		return (height - TOP_OFFSET) / SQUARE_SIZE;
 	}
 
+	/**
+	 * The index of the list row under the mouse, or -1. The strip at the right where the hover buttons sit is left to those buttons.
+	 */
+	public int getRowIndexAt(double mouseX, double mouseY) {
+		return rowIndexAt(mouseX, mouseY, x, y + TOP_OFFSET, width - (hasFind ? SQUARE_SIZE : 0), SQUARE_SIZE, itemsToShow(), page, dataFiltered.size());
+	}
+
+	public static int rowIndexAt(double mouseX, double mouseY, int left, int top, int clickableWidth, int rowHeight, int itemsToShow, int page, int dataSize) {
+		if (mouseX < left || mouseX >= left + clickableWidth || mouseY < top || mouseY >= top + (double) rowHeight * itemsToShow) {
+			return -1;
+		}
+		final int index = (int) ((mouseY - top) / rowHeight) + page * itemsToShow;
+		return index < dataSize ? index : -1;
+	}
+
 	@FunctionalInterface
 	public interface Callback {
 		void accept(DashboardListItem dashboardListItem, int index);

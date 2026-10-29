@@ -98,6 +98,18 @@ public class LiftSelectionScreen extends MTRScreenBase implements IGui {
 		return false;
 	}
 
+	@Override
+	public boolean mouseClicked2(double mouseX, double mouseY, int button) {
+		if (button == 0) {
+			final int rowIndex = selectionList.getRowIndexAt(mouseX, mouseY);
+			if (rowIndex >= 0 && rowIndex < floorLevels.size()) {
+				onPress(null, rowIndex);
+				return true;
+			}
+		}
+		return super.mouseClicked2(mouseX, mouseY, button);
+	}
+
 	private void onPress(DashboardListItem dashboardListItem, int index) {
 		final PressLift pressLift = new PressLift();
 		pressLift.add(Init.blockPosToPosition(floorLevels.get(floorLevels.size() - index - 1)), LiftDirection.NONE);
