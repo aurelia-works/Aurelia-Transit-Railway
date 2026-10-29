@@ -23,6 +23,8 @@ public final class Config extends ConfigSchema {
 
 	private static Config instance;
 	private static Path basePath;
+	/** Last-modified time of config/mtr.json last applied to the ticket keys, or {@link Long#MIN_VALUE} if none. */
+	private static long ticketSettingsStamp = Long.MIN_VALUE;
 
 	public static void init(File baseFolder) {
 		if (instance == null || basePath == null) {
@@ -59,11 +61,59 @@ public final class Config extends ConfigSchema {
 	}
 
 	public static void save() {
+		// Pick up an admin's ticket edits before rewriting the file, so a client options save cannot clobber them.
+		refreshTicketSettings();
 		try {
 			FileUtils.write(getConfigFilePath().toFile(), Utilities.prettyPrint(Utilities.getJsonObjectFromData(instance)), StandardCharsets.UTF_8);
 		} catch (Exception e) {
 			Init.LOGGER.error("", e);
 		}
+	}
+
+	/**
+	 * Re-reads {@code ticketCurrency} and {@code freeTicketBarriers} when {@code config/mtr.json} has changed.
+	 * Other server keys stay as they were at startup, matching the webserver port and the threading flags.
+	 * Safe to call on every ticket purchase or barrier pass: the file is parsed only after its timestamp changes.
+	 */
+	public static void refreshTicketSettings() {
+		if (instance == null || basePath == null) {
+			return;
+		}
+		final Path path = getConfigFilePath();
+		final long stamp;
+		try {
+			stamp = Files.getLastModifiedTime(path).toMillis();
+		} catch (Exception e) {
+			return;
+		}
+		if (stamp == ticketSettingsStamp) {
+			return;
+		}
+		try (final InputStream inputStream = Files.newInputStream(path); final InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+			final JsonElement root = JsonParser.parseReader(reader);
+			if (!root.isJsonObject()) {
+				Init.LOGGER.warn("config/mtr.json is not an object; ticket settings were left unchanged");
+				ticketSettingsStamp = stamp;
+				return;
+			}
+			JsonObject serverObject = new JsonObject();
+			final JsonElement serverElement = root.getAsJsonObject().get("server");
+			if (serverElement != null && serverElement.isJsonObject()) {
+				serverObject = serverElement.getAsJsonObject();
+			}
+			instance.server.copyTicketSettingsFrom(new Server(new JsonReader(serverObject)));
+			ticketSettingsStamp = stamp;
+		} catch (Exception e) {
+			Init.LOGGER.error("Could not reload ticket settings from config/mtr.json", e);
+			ticketSettingsStamp = stamp;
+		}
+	}
+
+	/** Drops the loaded config so tests can point {@link #init} at another folder. */
+	static void resetForTesting() {
+		instance = null;
+		basePath = null;
+		ticketSettingsStamp = Long.MIN_VALUE;
 	}
 
 	private static Path getConfigFilePath() {

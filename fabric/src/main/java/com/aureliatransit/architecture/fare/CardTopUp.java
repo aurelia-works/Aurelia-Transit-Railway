@@ -1,10 +1,10 @@
 package com.aureliatransit.architecture.fare;
 
 /**
- * What {@code /card load <emeralds>} adds to a card. Uses MTR 4's ticket machine rates exactly, so loading by command
- * never beats the machine: tier {@code i} (0-9) costs {@code 2^i} emeralds and adds {@code ceil(2^i * (10 + i))}
- * (MTR {@code PacketAddBalance.getAddAmount}). A load is split into the largest tiers first, the same as pressing the
- * machine's buttons for those tiers one by one.
+ * What {@code /card load} adds to a card. Uses MTR 4's ticket machine rates exactly, so loading by command
+ * never beats the machine: tier {@code i} (0-9) costs {@code 2^i} of the server's ticket currency and adds
+ * {@code ceil(2^i * (10 + i))} (MTR {@code PacketAddBalance.getAddAmount}). A load is split into the largest tiers
+ * first, the same as pressing the machine's buttons for those tiers one by one.
  */
 public final class CardTopUp {
 

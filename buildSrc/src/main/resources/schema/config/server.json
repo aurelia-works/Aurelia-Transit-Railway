@@ -17,6 +17,16 @@
 		},
 		"forceShutDownStrayThreads": {
 			"type": "boolean"
+		},
+		"ticketCurrency": {
+			"type": "string",
+			"default": "minecraft:emerald",
+			"description": "Item id players spend at ticket machines and /card load. Default matches the old hardcoded emerald. An unknown or invalid id falls back to minecraft:emerald."
+		},
+		"freeTicketBarriers": {
+			"type": "boolean",
+			"default": false,
+			"description": "When true, ticket barriers, ticket processors and ATA fare gates open without charging or checking a station. Entry records and balance are left unchanged."
 		}
 	}
 }

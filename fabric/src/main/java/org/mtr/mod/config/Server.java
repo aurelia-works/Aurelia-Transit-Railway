@@ -25,4 +25,19 @@ public final class Server extends ServerSchema {
 	public boolean forceShutDownStrayThreads() {
 		return forceShutDownStrayThreads;
 	}
+
+	/** Raw configured item id, including values that are not a real item. Blank becomes the emerald default. */
+	public String getTicketCurrency() {
+		return ticketCurrency == null || ticketCurrency.isBlank() ? org.mtr.mod.data.TicketRules.DEFAULT_CURRENCY_ID : ticketCurrency;
+	}
+
+	public boolean getFreeTicketBarriers() {
+		return freeTicketBarriers;
+	}
+
+	/** Copies only the ticket keys, so a config reload cannot reset the webserver port or the threading flags. */
+	void copyTicketSettingsFrom(Server other) {
+		ticketCurrency = other.ticketCurrency;
+		freeTicketBarriers = other.freeTicketBarriers;
+	}
 }
