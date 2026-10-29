@@ -66,6 +66,9 @@ public final class PerfBench implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		if (PanelShots.ACTIVE) {
+			return;
+		}
 		for (final boolean shaders : new boolean[]{false, true}) {
 			for (final Fixes fixes : new Fixes[]{NONE, ALL}) {
 				for (final int distance : DISTANCES) {

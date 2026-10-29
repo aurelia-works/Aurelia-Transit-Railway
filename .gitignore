@@ -44,6 +44,8 @@ forge/src/main/resources/META-INF
 **/website/src/app/entity/generated
 **/website/.gitignore
 fabric.mod.json
+# The dev-only perf bench mod has no template; its fabric.mod.json is the source
+!fabric/src/perfbench/resources/fabric.mod.json
 mtr.accesswidener
 Keys.java
 Patreon.java
