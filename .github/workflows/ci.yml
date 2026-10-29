@@ -6,6 +6,9 @@ on:
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+# The suites are split over jobs that run side by side, so the run takes as long as the slowest job: ATR's build and tests,
+# ATA's unit tests, ATA's three slowest unit test classes, the StationRecipeTest sweep in 4 shards of looks, and ATA's game
+# tests in 2 servers (the airport rebuild test, real-time MTR waits for two airport builds, alone in one).
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,14 +23,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
-      # Pull requests: compile and unit tests only (Fabric 1.20.1)
+      # Pull requests: compile and ATR's unit tests (Fabric 1.20.1); ATA's suites run in the jobs below
       - name: Compile and unit tests
         if: github.event_name == 'pull_request'
-        run: ./gradlew setupFiles :fabric:test
+        run: ./gradlew setupFiles :fabric:test -x runGameTest
       # master: the full jar build
       - name: Build the jar
         if: github.event_name == 'push'
-        run: ./gradlew setupFiles build
+        run: ./gradlew setupFiles build -x runGameTest -x ataTest
       - name: Keep the jar
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
@@ -35,3 +38,64 @@ jobs:
           name: ATR-fabric-1.20.1
           path: build/release/*.jar
           retention-days: 7
+  ata-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: ATA unit tests
+        run: ./gradlew setupFiles :fabric:ataTest -Pata.tests.exclude="$SLOW_UNIT_TESTS,*StationRecipeTest"
+        env:
+          # the classes the ata-slow-unit job runs; keep the two lists the same
+          SLOW_UNIT_TESTS: '*StationPlannerTest,*RealCitiesATest,*CityLandmarksTest'
+  # The three slowest ATA unit test classes, beside the other jobs
+  ata-slow-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: StationPlannerTest, RealCitiesATest, CityLandmarksTest
+        run: ./gradlew setupFiles :fabric:ataTest --tests '*StationPlannerTest' --tests '*RealCitiesATest' --tests '*CityLandmarksTest'
+  ata-recipe-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: StationRecipeTest, looks ${{ matrix.shard }}/4
+        run: ./gradlew setupFiles :fabric:ataTest --tests '*StationRecipeTest' -Pata.sweep.shard=${{ matrix.shard }}/4
+  ata-gametest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        # simple class names for -Pata.gametests (fabric/build.gradle); "!" keeps every class but those, so new classes land there
+        classes: ['AirportMtrRebuildGameTests', '!AirportMtrRebuildGameTests']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Game tests ${{ matrix.classes }}
+        run: ./gradlew setupFiles :fabric:runGameTest '-Pata.gametests=${{ matrix.classes }}'

@@ -16,6 +16,10 @@ sourceSets {
 		compileClasspath += main.compileClasspath + main.output
 		runtimeClasspath += main.runtimeClasspath + main.output
 	}
+	ataTest {
+		compileClasspath += main.compileClasspath + main.output
+		runtimeClasspath += main.runtimeClasspath + main.output
+	}
 }
 
 loom {
@@ -39,6 +43,22 @@ loom {
 	}
 }
 
+// ATA's headless in-game tests (./gradlew :fabric:runGameTest): the gametest source set (src/gametest) is never part of the release jar
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "aurelia_transit_architecture_gametest"
+		enableGameTests = true
+		enableClientGameTests = false
+		eula = true
+	}
+}
+
+// MTR keeps its stations in the game test world, so each run starts from a fresh one
+tasks.named("runGameTest") {
+	doFirst { delete layout.buildDirectory.dir("run/gameTest/world") }
+}
+
 configurations {
 	// Upstream MTR 4.0.5, never on a classpath: only read by DropInSignaturesTest
 	mtrBaseline { transitive = false }
@@ -55,6 +75,13 @@ dependencies {
 	testImplementation "org.junit.jupiter:junit-jupiter-api:5.+"
 	testImplementation "org.junit.platform:junit-platform-launcher:1.+"
 	testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.+"
+	// ATA's unit tests (src/ataTest) create blocks, so they run inside Fabric Loader. Kept out of ATR's own tests: inside the
+	// loader, a classpath lookup of /fabric.mod.json finds another mod's file first
+	ataTestImplementation "org.junit.jupiter:junit-jupiter-api:5.+"
+	ataTestImplementation "org.junit.jupiter:junit-jupiter-params:5.+"
+	ataTestRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.+"
+	ataTestRuntimeOnly "org.junit.platform:junit-platform-launcher:1.+"
+	ataTestImplementation "net.fabricmc:fabric-loader-junit:${buildTools.getFabricVersion()}"
 
 	if (buildTools.hasJadeSupport()) {
 		modCompileOnly "maven.modrinth:jade:${buildTools.getJadeVersion()}"
@@ -171,3 +198,49 @@ test {
 	inputs.files(configurations.mtrBaseline)
 	doFirst { systemProperty "atr.mtrBaselineJar", configurations.mtrBaseline.singleFile.absolutePath }
 }
+
+// ATA's unit tests; `check` runs them with ATR's own
+tasks.register("ataTest", Test) {
+	description = "Runs Aurelia Transit Architecture's unit tests inside Fabric Loader."
+	group = "verification"
+	testClassesDirs = sourceSets.ataTest.output.classesDirs
+	classpath = sourceSets.ataTest.runtimeClasspath
+	useJUnitPlatform()
+	// The test classes share no files or ports; fabric-loader-junit creates mods/ as each JVM starts
+	maxParallelForks = System.getenv("CI") ? Runtime.runtime.availableProcessors() : Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))
+	doFirst { mkdir("mods") }
+	// CI runs the slowest classes in jobs of their own: -Pata.tests.exclude takes comma-separated class patterns
+	if (project.hasProperty("ata.tests.exclude")) {
+		filter {
+			project.property("ata.tests.exclude").toString().split(",").each { excludeTestsMatching it.trim() }
+		}
+	}
+	// StationRecipeTest's sweep runs every n-th look from the k-th with -Pata.sweep.shard=k/n, so CI spreads it over n jobs
+	if (project.hasProperty("ata.sweep.shard")) {
+		systemProperty "ata.sweep.shard", project.property("ata.sweep.shard")
+	}
+}
+
+// Fabric 1.20.1 runs every registered game test and has no filter, so CI splits the suite over jobs by which test classes the
+// gametest mod registers: -Pata.gametests=A,B keeps only those simple class names, -Pata.gametests=!A,B keeps all but those.
+// A name that is not registered fails the build, so a rename cannot quietly drop tests from CI.
+tasks.named("processGametestResources") {
+	final String chosen = project.findProperty("ata.gametests") ?: ""
+	inputs.property("ata.gametests", chosen)
+	doLast {
+		if (!chosen.isEmpty()) {
+			final File json = new File(destinationDir, "fabric.mod.json")
+			final def mod = new groovy.json.JsonSlurper().parse(json)
+			final boolean skip = chosen.startsWith("!")
+			final Set<String> names = (skip ? chosen.substring(1) : chosen).split(",").collect { it.trim() } as Set
+			final List<String> all = mod.entrypoints["fabric-gametest"]
+			final Set<String> known = all.collect { it.substring(it.lastIndexOf('.') + 1) } as Set
+			if (!known.containsAll(names)) {
+				throw new GradleException("ata.gametests names unknown game test classes: " + (names - known))
+			}
+			mod.entrypoints["fabric-gametest"] = all.findAll { names.contains(it.substring(it.lastIndexOf('.') + 1)) != skip }
+			json.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(mod))
+		}
+	}
+}
+tasks.named("check") { dependsOn("ataTest") }

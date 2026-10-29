@@ -1,12 +1,18 @@
 package org.mtr.aurelia.client.screen;
 
+import com.aureliatransit.architecture.client.AirportWrenchScreen;
+import com.aureliatransit.architecture.client.StationStudioClient;
+import com.aureliatransit.architecture.client.StationWrenchScreen;
+import com.aureliatransit.architecture.registry.ModItems;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
+import net.minecraft.item.Item;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import net.minecraft.util.Hand;
 import org.mtr.aurelia.client.Announcer;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.RideClient;
@@ -21,6 +27,7 @@ import org.mtr.mod.packet.PacketUpdateRailBuilder;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
@@ -33,7 +40,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, RIDING, BUILDER}
+	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -119,6 +126,7 @@ public final class AureliaPanelScreen extends Screen {
 			case RENDERING -> initRendering();
 			case TOOLS -> initTools();
 			case SOUND -> initSound();
+			case ARCHITECTURE -> initArchitecture();
 			case RIDING -> initRiding();
 			case BUILDER -> initBuilder();
 		}
@@ -251,6 +259,37 @@ public final class AureliaPanelScreen extends Screen {
 
 	private static boolean isRailBuilder(net.minecraft.item.ItemStack itemStack) {
 		return itemStack.getItem() == Items.RAIL_BUILDER.get().data;
+	}
+
+	/** ATA's tools: Station Studio opens in the browser; each wrench screen edits the wrench in the player's hand. */
+	private void initArchitecture() {
+		final int left = (width - BUTTON_WIDTH) / 2;
+		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.studio"), b -> StationStudioClient.open())
+				.dimensions(left, TOP, BUTTON_WIDTH, 20).build())
+				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.studio.tooltip")));
+		addWrenchButton("station", ModItems.STATION_WRENCH, StationWrenchScreen::open, TOP + ROW);
+		addWrenchButton("airport", ModItems.AIRPORT_WRENCH, AirportWrenchScreen::open, TOP + ROW * 2);
+	}
+
+	private void addWrenchButton(String key, Item wrench, Consumer<Hand> open, int y) {
+		final Hand hand = heldHand(wrench);
+		final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture." + key), b -> open.accept(hand))
+				.dimensions((width - BUTTON_WIDTH) / 2, y, BUTTON_WIDTH, 20).build());
+		button.active = hand != null;
+		button.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture." + key + (hand == null ? ".hold" : ".tooltip"))));
+	}
+
+	@Nullable
+	private Hand heldHand(Item item) {
+		if (client == null || client.player == null) {
+			return null;
+		}
+		for (final Hand hand : Hand.values()) {
+			if (client.player.getStackInHand(hand).isOf(item)) {
+				return hand;
+			}
+		}
+		return null;
 	}
 
 	private static Text platformLabel() {

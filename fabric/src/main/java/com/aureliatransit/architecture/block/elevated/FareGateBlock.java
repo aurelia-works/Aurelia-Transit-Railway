@@ -1,0 +1,168 @@
+package com.aureliatransit.architecture.block.elevated;
+
+import com.aureliatransit.architecture.AureliaTransitArchitecture;
+import com.aureliatransit.architecture.block.Placement;
+import com.aureliatransit.architecture.block.elevated.ElevatedKinds.FareGateKind;
+import com.aureliatransit.architecture.block.elevated.ElevatedKinds.FareGateOpen;
+import com.aureliatransit.architecture.block.mtr.MtrFareContract;
+import com.aureliatransit.architecture.util.Shapes;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.ShapeContext;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.state.StateManager;
+import net.minecraft.state.property.EnumProperty;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.world.BlockView;
+import net.minecraft.world.World;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import static net.minecraft.block.Block.createCuboidShape;
+
+/**
+ * Fare gate unit that charges fares through MTR's own fare system, like MTR's ticket barrier: walk up to the paddles,
+ * MTR charges the entry or exit fare from the player's MTR balance and the paddles open for one passage. No item is
+ * needed; the transit card only shows and tops up that balance. The gate works both ways, as real gates do, so a gate
+ * line built facing the street still lets passengers out. The gate closes once the player is clear of the paddles on
+ * either side, or two seconds after the last player left the gate; it never closes on a player standing in it, so a
+ * pause in the gate is never charged twice.
+ * MTR decides entry or exit from the player's record and only charges inside an MTR station area; outside one, or with
+ * too little balance, the paddles stay shut (MTR says why). An {@code END} cabinet has no passage.
+ *
+ * <p>Collision is 1.5 blocks high, like a fence, so the gate cannot be jumped. Without MTR's fare system the gate is a
+ * walkable prop, as before 1.4. No block entity and no ticking: work happens only while a player touches the block.
+ */
+public class FareGateBlock extends FacingKindBlock<FareGateKind> {
+
+	public static final EnumProperty<FareGateKind> KIND = EnumProperty.of("kind", FareGateKind.class);
+	public static final EnumProperty<FareGateOpen> OPEN = EnumProperty.of("open", FareGateOpen.class);
+	private static final int CLOSE_DELAY_TICKS = 40;
+	/** Player centre this far from the paddle line: the player's box (half width 0.3) is clear of the paddles. */
+	private static final double CLEAR_OF_PADDLES = 0.4;
+	/** Player centre this close to the paddle line: walking into the shut paddles (they stop the centre at about 0.36). */
+	private static final double AT_PADDLES = 0.45;
+	private static final Map<Direction, VoxelShape> CABINET = Shapes.horizontalMap(createCuboidShape(0, 0, 1, 4, 24, 15));
+	private static final Map<Direction, VoxelShape> SHUT = Shapes.horizontalMap(VoxelShapes.union(createCuboidShape(0, 0, 1, 4, 24, 15), createCuboidShape(4, 0, 7, 16, 24, 9)));
+	private static final Map<Direction, VoxelShape> PROP = Shapes.horizontalMap(createCuboidShape(0, 0, 1, 4, 14, 15));
+	/** An end cabinet closes the bank: a solid panel across the whole cell, so nobody walks through the end of a gate line. */
+	private static final Map<Direction, VoxelShape> END_PANEL = Shapes.horizontalMap(createCuboidShape(0, 0, 4, 16, 24, 12));
+	/** How long an open gate remembers the passenger it opened for. */
+	private static final long PAYER_WINDOW_TICKS = 60;
+	private static final int MAX_TRACKED_GATES = 512;
+
+	/** The passenger a gate last opened for, so anyone else slipping through the open paddles is charged the maximum fare. */
+	private record Payer(UUID id, long until) {
+	}
+
+	private static final Map<Long, Payer> PAYER = new HashMap<>();
+
+	private static void rememberPayer(BlockPos pos, PlayerEntity player, long now) {
+		if (PAYER.size() >= MAX_TRACKED_GATES) {
+			PAYER.clear();
+		}
+		PAYER.put(pos.asLong(), new Payer(player.getUuid(), now + PAYER_WINDOW_TICKS));
+	}
+
+	private static void forgetPayer(BlockPos pos) {
+		PAYER.remove(pos.asLong());
+	}
+
+	public FareGateBlock(Settings settings) {
+		super(settings, "fare_gate", Placement.TOWARD_PLAYER, FareGateKind.class, kind -> switch (kind) {
+			case GATE -> VoxelShapes.union(createCuboidShape(0, 0, 1, 4, 14, 15), createCuboidShape(4, 5, 7, 9, 12, 9));
+			case WIDE -> VoxelShapes.union(createCuboidShape(0, 0, 1, 4, 14, 15), createCuboidShape(4, 5, 7, 13, 12, 9));
+			case END -> createCuboidShape(0, 0, 4, 16, 16, 12);
+		});
+		setDefaultState(getDefaultState().with(OPEN, FareGateOpen.CLOSED));
+	}
+
+	@Override
+	protected EnumProperty<FareGateKind> kindProperty() {
+		return KIND;
+	}
+
+	@Override
+	protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+		super.appendProperties(builder);
+		builder.add(OPEN);
+	}
+
+	@Override
+	public VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+		final Direction facing = state.get(FACING);
+		if (!MtrFareContract.available()) {
+			return PROP.get(facing);
+		}
+		if (state.get(KIND) == FareGateKind.END) {
+			return END_PANEL.get(facing);
+		}
+		return state.get(OPEN) == FareGateOpen.OPEN ? CABINET.get(facing) : SHUT.get(facing);
+	}
+
+	@Override
+	public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity) {
+		if (world.isClient || !(entity instanceof PlayerEntity player) || state.get(KIND) == FareGateKind.END || !MtrFareContract.available()) {
+			return;
+		}
+		// distance of the player's centre from the paddle line, on either side
+		final Direction facing = state.get(FACING);
+		final double off = Math.abs((player.getX() - pos.getX() - 0.5) * facing.getOffsetX() + (player.getZ() - pos.getZ() - 0.5) * facing.getOffsetZ());
+		final FareGateOpen open = state.get(OPEN);
+		if (open == FareGateOpen.OPEN) {
+			// someone else slipping through while the paddles stand open for their payer: an incomplete journey
+			final Payer payer = PAYER.get(pos.asLong());
+			if (payer != null && world.getTime() <= payer.until() && !payer.id().equals(player.getUuid())) {
+				PAYER.remove(pos.asLong());
+				final int charged = MtrFareContract.chargeMaximumFare(world, player);
+				if (charged > 0) {
+					player.sendMessage(Text.translatable("message." + AureliaTransitArchitecture.MOD_ID + ".maximum_fare", charged).formatted(Formatting.RED), true);
+				}
+			}
+		}
+		if (open == FareGateOpen.OPEN && off > CLEAR_OF_PADDLES) {
+			// through (or backed out): the paddles shut behind the player
+			world.setBlockState(pos, state.with(OPEN, FareGateOpen.CLOSED));
+			forgetPayer(pos);
+		} else if (open == FareGateOpen.CLOSED && off < AT_PADDLES) {
+			// The pos handed to onEntityCollision is a mutable cursor that the caller moves on to other blocks; MTR answers
+			// later, so its callback must hold a copy.
+			final BlockPos gatePos = pos.toImmutable();
+			// PENDING until the scheduled tick: a refused player (no station, low balance) is asked again at most every
+			// two seconds instead of every tick, and the gate still closes if MTR never answers.
+			world.setBlockState(gatePos, state.with(OPEN, FareGateOpen.PENDING));
+			world.scheduleBlockTick(gatePos, this, CLOSE_DELAY_TICKS);
+			MtrFareContract.passThrough(world, gatePos, player, opened -> {
+				final BlockState now = world.getBlockState(gatePos);
+				if (opened && now.isOf(this)) {
+					world.setBlockState(gatePos, now.with(OPEN, FareGateOpen.OPEN));
+					rememberPayer(gatePos, player, world.getTime());
+				}
+			});
+		}
+	}
+
+	@Override
+	public void scheduledTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
+		if (state.get(OPEN) == FareGateOpen.CLOSED) {
+			return;
+		}
+		if (!world.getEntitiesByClass(PlayerEntity.class, new Box(pos), player -> !player.isSpectator()).isEmpty()) {
+			world.scheduleBlockTick(pos, this, CLOSE_DELAY_TICKS);
+		} else {
+			world.setBlockState(pos, state.with(OPEN, FareGateOpen.CLOSED));
+			forgetPayer(pos);
+		}
+	}
+}

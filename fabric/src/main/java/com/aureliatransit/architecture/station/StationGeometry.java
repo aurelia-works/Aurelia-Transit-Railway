@@ -1,0 +1,525 @@
+package com.aureliatransit.architecture.station;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Railway geometry: the fixed clearances of an MTR station and the cross-section of tracks and platforms for a spec.
+ * Knows nothing about styles or blocks.
+ */
+public final class StationGeometry {
+
+	/**
+	 * The scale everything people use is built at: 1.5 blocks to the real metre, so a station's halls, storeys, stairs and
+	 * buildings have their real proportions around a player (who stands 1.8 blocks, about 1.2 m at this scale). What MTR's
+	 * trains fix stays as MTR needs it: the platform edge, the track spacing and the train's clearance.
+	 */
+	public static final double BLOCKS_PER_METRE = 1.5;
+
+	/**
+	 * Columns from a track's rail node column to the nearest platform cell (the edge), at the same y as the rail node.
+	 * Live-checked in this repo's release-check world (tools/release_check/ata_test place.mcfunction: rail z=0, platform edge
+	 * z=2 facing the track, same Y), where MTR train doors were verified to open.
+	 */
+	public static final int EDGE_OFFSET = 2;
+	/** Platform blocks (and rail nodes) are at y = 0; passengers walk at y = 1. */
+	public static final int PLATFORM_Y = 0;
+	public static final int WALK_Y = 1;
+	/**
+	 * Rows a dead-end track runs on past its platform's end before its buffer stop (Jah, 10-21: "add like five blocks, add the
+	 * buffer, add another rail node"), as real termini leave room for a train that overshoots; the buffer stands in the row
+	 * after them, so a terminus's track zone is the asked length plus {@code overrun + 1}. Shorter on a short platform (see
+	 * {@link #overrun}), so a small station keeps room for its lift.
+	 */
+	public static final int OVERRUN = 5;
+
+	/** The overrun past a platform of a station {@code builtLength} long: a row per 12, from 1 up to {@link #OVERRUN}. */
+	public static int overrun(int builtLength) {
+		return Math.max(1, Math.min(OVERRUN, builtLength / 12));
+	}
+	/** Track clearance envelope: columns u-1..u+1 ... */
+	public static final int ENVELOPE_HALF_WIDTH = 1;
+	/** ... and y = 0..ENVELOPE_HEIGHT-1. */
+	public static final int ENVELOPE_HEIGHT = 5;
+	/** Smallest centre-to-centre distance of two neighbouring tracks with no platform between them. */
+	public static final int TRACK_SPACING = 4;
+	/** Clear cells above the walking surface under any roof (y = 1..3): the least anything may leave, not what is built. */
+	public static final int HEADROOM = 3;
+	/** The lowest a roof part (girder, rib, roof) may hang over a platform: three clear cells above the walking surface. */
+	public static final int MIN_ROOF_Y = WALK_Y + HEADROOM;
+	/**
+	 * Clear cells under a platform canopy (y = 1..6): about 4 m, as real canopies stand, clear of the trains' envelope so the
+	 * roof can reach out over the boarding edge.
+	 */
+	public static final int CANOPY_HEADROOM = 6;
+	/** Platform canopies sit directly above their headroom, level with the footbridge deck. */
+	public static final int CANOPY_Y = WALK_Y + CANOPY_HEADROOM;
+	/** A compact flat hall's beams sit level with the canopies, a storey over the platforms ... */
+	public static final int HALL_BEAM_Y = CANOPY_Y;
+	/** ... and the hall roof on top of them. */
+	public static final int HALL_ROOF_Y = HALL_BEAM_Y + 1;
+	/** The frame of a wide vaulted shed, so the vault springs well above the trains. */
+	public static final int HIGH_HALL_BEAM_Y = 10;
+	/** The frame of a shed over a footbridge or beside a station building: above the bridge roof and the building's cornice. */
+	public static final int TALL_HALL_BEAM_Y = 14;
+	/** A city flat hall's frame: higher than the compact one so the hall reads as a real volume, not a lid on the trains. */
+	public static final int CITY_HALL_BEAM_Y = 10;
+	/** A grand flat hall's frame: a real high hall. */
+	public static final int GRAND_HALL_BEAM_Y = 15;
+	/** A city wide vault's springing. */
+	public static final int CITY_HIGH_HALL_BEAM_Y = 14;
+	/** A grand wide vault's springing: a real train-shed springing height. */
+	public static final int GRAND_HIGH_HALL_BEAM_Y = 19;
+	/** A city shed over a footbridge or building: clears a taller building. */
+	public static final int CITY_TALL_HALL_BEAM_Y = 18;
+	/** A grand shed over a footbridge or building: about 16 m to the springing, a real monumental train shed. */
+	public static final int GRAND_TALL_HALL_BEAM_Y = 24;
+	/** Columns stand every this many cells along a platform. */
+	public static final int COLUMN_SPACING = 8;
+	/** A roof cell must be within this many cells (along u and along v) of a column top or a beam carried by columns. */
+	public static final int MAX_CANTILEVER = 4;
+	/** Longest beam between two neighbouring columns on one beam line. */
+	public static final int MAX_BEAM_SPAN = 12;
+	/** Ramp cells beyond each platform end for step-free access (lower half, upper half). */
+	public static final int RAMP_LENGTH = 2;
+
+	/** Station building: entrance apron (the entrance ramp's two cells) on the street side ... */
+	public static final int APRON = 2;
+	/** A car park in front of a station building's street wall: its depth across u (a kerb, two runs of bays and a central aisle). */
+	public static final int PARKING_DEPTH = 14;
+	/** ... then the building across u, walls included (street wall, 7 interior columns, platform wall); the compact depth
+	 * ({@link #buildingDepth}). */
+	public static final int BUILDING_DEPTH = 9;
+	/** A city building's depth (street wall to platform wall): the compact block grown to a real ticket hall, about 15 m. */
+	public static final int CITY_BUILDING_DEPTH = 15;
+	/** A grand building's depth: a real monumental hall, about 21 m, the depth a Beaux-Arts or Gothic front really has. */
+	public static final int GRAND_BUILDING_DEPTH = 21;
+	/**
+	 * Ground storey: floor at y = 0, rooms y = 1..6 (4 m clear), upper slab (and footbridge deck) at y = UPPER_FLOOR_Y, which
+	 * leaves the trains about 4.7 m under the footbridge ...
+	 */
+	public static final int UPPER_FLOOR_Y = 7;
+	/** ... upper storey walking level ... */
+	public static final int UPPER_WALK_Y = UPPER_FLOOR_Y + 1;
+	/** ... its clear height (y = 8..11, about 2.7 m: the footbridge corridor and the building's first floor) ... */
+	public static final int UPPER_HEADROOM = 4;
+	/** ... and the flat roof (footbridge roof too) above it. */
+	public static final int BUILDING_ROOF_Y = UPPER_WALK_Y + UPPER_HEADROOM;
+	/** Floor to floor of every storey a city or grand building adds over the first two: a slab and four clear, about 3.3 m. */
+	public static final int STOREY = UPPER_HEADROOM + 1;
+	/** Height of a doorway: y = 1..3, about 2.1 m. */
+	public static final int DOOR_HEIGHT = 3;
+	/** Facade bay width along the tracks, pilaster to pilaster. */
+	public static final int BAY = 6;
+	/** Footbridge corridor: clear width inside its walls ({@link #bridgeWidth}); the compact width. */
+	public static final int BRIDGE_WIDTH = 3;
+	/** A mezzanine ("upper concourse"): the footbridge corridor widened to a concourse over the tracks, this wide inside its walls. */
+	public static final int MEZZANINE_WIDTH = 9;
+	/** Terminus head building along v past the platform ends: the arcade, paid concourse, gate line, ticket hall and street
+	 * wall. {@link #HEAD_DEPTH} is the compact depth ({@link #headDepth}); a real terminus hall, not a strip behind the gates. */
+	public static final int HEAD_DEPTH = 18;
+	/** A city terminus head building's depth: about 30 m of hall, a real concourse behind the gate line. */
+	public static final int CITY_HEAD_DEPTH = 30;
+	/** A grand terminus head building's depth: about 42 m, room for a monumental hall with a gallery. */
+	public static final int GRAND_HEAD_DEPTH = 42;
+	/** A hub's forecourt past the head building's entrance ramps: a taxi rank on one side, a bus interchange on the other. */
+	public static final int FORECOURT_DEPTH = 18;
+	/** A terminus's forecourt asked for with "parking": a drop-off lay-by off the street, cycle stands and trees. */
+	public static final int TERMINUS_FORECOURT_DEPTH = 12;
+
+	/** Rows of forecourt past a terminus's head building: a hub's, a terminus's when it asked for parking, else none. */
+	public static int forecourtDepth(StationSpec spec) {
+		return !spec.terminus() ? 0 : spec.hub() ? FORECOURT_DEPTH : spec.parking() ? TERMINUS_FORECOURT_DEPTH : 0;
+	}
+	/** Entrance ramps outside a terminus head building's street wall. */
+	public static final int HEAD_APRON = RAMP_LENGTH;
+	/** Narrowest island with a two-column stair and room for a lift beside the walkway. */
+	public static final int MIN_LIFT_ISLAND_WIDTH = 6;
+	/** Stairs from a walking level to the footbridge or upper floor: one step per block of rise. */
+	public static final int STAIR_STEPS = UPPER_WALK_Y - WALK_Y;
+	/** An underpass's floor: a storey (seven steps) below the platforms, under the track bed with a row of ground to spare. */
+	public static final int UNDERPASS_FLOOR_Y = PLATFORM_Y - STAIR_STEPS;
+	/** Its ceiling, three clear over the floor. */
+	public static final int UNDERPASS_CEILING_Y = UNDERPASS_FLOOR_Y + HEADROOM + 1;
+
+	private StationGeometry() {
+	}
+
+	/** Whole blocks for a real length in metres, at {@link #BLOCKS_PER_METRE}. */
+	public static int metres(double metres) {
+		return (int) Math.round(metres * BLOCKS_PER_METRE);
+	}
+
+	/**
+	 * Depth of a station building beside the tracks at {@code scale}: the block's walls included, at roughly a block a
+	 * metre. {@link #BUILDING_DEPTH} is the compact block; a city or grand building is deeper, so a bigger station gets a
+	 * hall the depth of a real one rather than only more storeys over the same footprint.
+	 */
+	public static int buildingDepth(StationScale scale) {
+		return switch (scale) {
+			case COMPACT -> BUILDING_DEPTH;
+			case CITY -> CITY_BUILDING_DEPTH;
+			case GRAND -> GRAND_BUILDING_DEPTH;
+		};
+	}
+
+	/**
+	 * Depth of a terminus head building along v at {@code scale}, past the platform ends, its street wall included.
+	 * {@link #HEAD_DEPTH} is the compact head; a city or grand one is deeper for a real concourse.
+	 */
+	public static int headDepth(StationScale scale) {
+		return switch (scale) {
+			case COMPACT -> HEAD_DEPTH;
+			case CITY -> CITY_HEAD_DEPTH;
+			case GRAND -> GRAND_HEAD_DEPTH;
+		};
+	}
+
+	/**
+	 * Depth of a terminus head building for a station of {@code tracks} platforms: the scale's base plus a term per platform,
+	 * because the concourse holds the waiting crowd and must grow with the station (a terminus's passengers wait in the
+	 * concourse, not on the platforms).
+	 */
+	public static int headDepth(StationScale scale, int tracks) {
+		return headDepth(scale) + Math.max(0, tracks - 2);
+	}
+
+	/**
+	 * Clear width of a footbridge corridor at {@code scale}: {@link #BRIDGE_WIDTH} compact, wider where the platforms
+	 * allow it. Always odd, so its centre line is a whole column and a stair or lift can leave through each wall.
+	 */
+	public static int bridgeWidth(StationScale scale) {
+		return BRIDGE_WIDTH;
+	}
+
+	/**
+	 * Clear width a footbridge corridor of this spec is built at. Every scale builds {@link #BRIDGE_WIDTH} today; the
+	 * accessor is kept so a wider corridor can be introduced in one place.
+	 */
+	public static int bridgeWidth(StationSpec spec, TrackLayout layout) {
+		if (spec.real().hallOverTracks()) {
+			// a real station's hall over the tracks is its footbridge, as deep along the tracks as the real one
+			return spec.real().hallDepth(layout.platformLength());
+		}
+		return spec.mezzanine() ? MEZZANINE_WIDTH : bridgeWidth(spec.buildingScale());
+	}
+
+	/** The corridor's long walls stand this many rows from its centre line: the clear half-width plus the wall itself. */
+	public static int bridgeWallOffset(int width) {
+		return width / 2 + 1;
+	}
+
+	/**
+	 * y of a flat hall's girder frame at {@code scale}: just above the track envelopes, {@link #HALL_BEAM_Y} compact and
+	 * higher for a bigger station, so a city or grand hall is a real volume rather than a lid on the trains.
+	 */
+	public static int hallBeamY(StationScale scale) {
+		return switch (scale) {
+			case COMPACT -> HALL_BEAM_Y;
+			case CITY -> CITY_HALL_BEAM_Y;
+			case GRAND -> GRAND_HALL_BEAM_Y;
+		};
+	}
+
+	/** y of a wide vaulted shed's springing at {@code scale}: {@link #HIGH_HALL_BEAM_Y} compact, higher when grander. */
+	public static int highHallBeamY(StationScale scale) {
+		return switch (scale) {
+			case COMPACT -> HIGH_HALL_BEAM_Y;
+			case CITY -> CITY_HIGH_HALL_BEAM_Y;
+			case GRAND -> GRAND_HIGH_HALL_BEAM_Y;
+		};
+	}
+
+	/**
+	 * y of a shed's frame over a footbridge or a station building at {@code scale}: {@link #TALL_HALL_BEAM_Y} compact, up to
+	 * a real monumental train-shed height for a grand station.
+	 */
+	public static int tallHallBeamY(StationScale scale) {
+		return switch (scale) {
+			case COMPACT -> TALL_HALL_BEAM_Y;
+			case CITY -> CITY_TALL_HALL_BEAM_Y;
+			case GRAND -> GRAND_TALL_HALL_BEAM_Y;
+		};
+	}
+
+	/** The cross-section and length for a spec. */
+	public static TrackLayout layout(StationSpec spec) {
+		if (spec.isAirport()) {
+			// an airport has no tracks or platforms: the footprint is the airport's width and length
+			final AirportGeometry airport = AirportGeometry.of(spec.airport());
+			return new TrackLayout(airport.width(), airport.length(), 0, List.of(), List.of());
+		}
+		final String bands = bandPattern(spec);
+		final List<TrackLayout.Track> tracks = new ArrayList<>();
+		final List<TrackLayout.PlatformBand> platforms = new ArrayList<>();
+		// u of the previous band's last occupied column (track centre or platform uMax), and whether it was a track
+		int previousU = 0;
+		boolean previousTrack = false;
+		for (int i = 0; i < bands.length(); i++) {
+			if (bands.charAt(i) == 'W') {
+				// a gap behind a side platform, so its back never faces the next track
+				previousU++;
+				previousTrack = false;
+				continue;
+			}
+			final boolean track = bands.charAt(i) == 'T';
+			final boolean leftIsTrack = i > 0 && bands.charAt(i - 1) == 'T';
+			final boolean leftIsPlatform = i > 0 && bands.charAt(i - 1) == 'P';
+			final boolean rightIsTrack = i + 1 < bands.length() && bands.charAt(i + 1) == 'T';
+			final boolean rightIsPlatform = i + 1 < bands.length() && bands.charAt(i + 1) == 'P';
+			if (track) {
+				final int u;
+				if (i == 0) {
+					u = ENVELOPE_HALF_WIDTH;
+				} else if (previousTrack) {
+					u = previousU + TRACK_SPACING;
+				} else {
+					u = previousU + EDGE_OFFSET;
+				}
+				tracks.add(new TrackLayout.Track(tracks.size() + 1, u, leftIsPlatform, rightIsPlatform, stackedLevel(spec, tracks.size())));
+				previousU = u;
+			} else {
+				// a side platform back to back with the one before touches it
+				final int uMin = i == 0 ? 0 : leftIsPlatform ? previousU + 1 + pillar(spec) : previousU + EDGE_OFFSET;
+				final int uMax = uMin + platformWidth(spec, platforms.size()) - 1;
+				final int[] run = platformRun(spec, platforms.size());
+				final boolean deadEnd = spec.listed() && !spec.terminus() && spec.platforms().get(platforms.size()).bay();
+				platforms.add(new TrackLayout.PlatformBand(platforms.size() + 1, uMin, uMax, leftIsTrack, rightIsTrack, run[0], run[1], deadEnd, stackedLevel(spec, platforms.size())));
+				previousU = uMax;
+			}
+			previousTrack = track;
+		}
+		final int railWidth = previousTrack ? previousU + ENVELOPE_HALF_WIDTH + 1 : previousU + 1;
+		final StationScale scale = spec.buildingScale();
+		final int parking = spec.parking() && spec.sideBuilding() ? PARKING_DEPTH : 0;
+		// an underground station's box: a wall column each side, and two rows past each platform end for its end walls (its
+		// platforms never ramp down onto the tracks)
+		final int box = boxMargin(spec);
+		final int ramps = spec.options().deepStation() ? deepEndRows(spec) : spec.stepFree() || box > 0 ? RAMP_LENGTH : 0;
+		final int access = spec.options().deepStation() ? accessRows(spec) : 0;
+		final int shift = box + parking + (spec.sideBuilding() ? APRON + buildingDepth(scale) : streetEntrance(spec) ? streetWidth(spec) : 0);
+		if (shift == 0) {
+			// a terminus's tracks run on past the platforms to their buffer stops, so its track zone is that much longer
+			final int built = builtLength(spec.platformLength());
+			final int zone = built + (spec.terminus() ? overrun(built) + 1 : 0);
+			return new TrackLayout(railWidth, zone, ramps, tracks, platforms, 0,
+					spec.terminus() ? headDepth(scale, spec.trackCount()) + HEAD_APRON : 0, hubThrough(spec), 0, forecourtDepth(spec), access);
+		}
+		final List<TrackLayout.Track> shiftedTracks = new ArrayList<>();
+		for (final TrackLayout.Track track : tracks) {
+			shiftedTracks.add(new TrackLayout.Track(track.number(), track.u() + shift, track.platformLeft(), track.platformRight(), track.level()));
+		}
+		final List<TrackLayout.PlatformBand> shiftedPlatforms = new ArrayList<>();
+		for (final TrackLayout.PlatformBand band : platforms) {
+			shiftedPlatforms.add(new TrackLayout.PlatformBand(band.number(), band.uMin() + shift, band.uMax() + shift, band.trackLeft(), band.trackRight(),
+					band.vFrom(), band.vTo(), band.deadEnd(), band.level()));
+		}
+		// a real station's hall is entered from the street beside the last track too
+		final int farStreet = spec.real().hallOverTracks() && streetEntrance(spec) ? streetWidth(spec) : 0;
+		return new TrackLayout(railWidth + shift + farStreet + box, builtLength(spec.platformLength()), ramps, shiftedTracks, shiftedPlatforms,
+				spec.sideBuilding() ? shift : 0, 0, 0, parking, 0, access);
+	}
+
+	/** Height of the second bore's platform over the first's in a stacked deep tube station: a bore's crown and a slab of rock. */
+	public static final int STACK_RISE = 12;
+
+	/** y of the rail level of the {@code index}th (0-based) track or platform: the second bore of a stacked station is raised. */
+	static int stackedLevel(StationSpec spec, int index) {
+		return index == 1 && spec.options().stacked() ? STACK_RISE : PLATFORM_Y;
+	}
+
+	/** Columns of rock and lining each side of an underground station's rails: one for the shallow box, two round a bored tube. */
+	public static int boxMargin(StationSpec spec) {
+		if (!spec.options().underground()) {
+			return 0;
+		}
+		return spec.options().type().tube() ? 2 : 1;
+	}
+
+	/** Columns between the two platforms of a deep tube station: the pillar of rock (a wall, with cross-passages) between its bores. */
+	public static int pillar(StationSpec spec) {
+		return spec.options().deepStation() && spec.options().type().tube() ? 1 : 0;
+	}
+
+	/**
+	 * Rows past each platform end of a deep station that the box takes: a cut-and-cover box's end zones (a mezzanine, the street
+	 * escalator bank and the platform bank), a bored tube's few rows of bore running on.
+	 */
+	public static int deepEndRows(StationSpec spec) {
+		return spec.options().type() == UndergroundType.CUT_AND_COVER ? PlanDeep.boxEndRows(spec.options().streetDepth()) : RAMP_LENGTH;
+	}
+
+	/** Rows before a deep tube station's platforms taken by its escalator shaft and ticket hall; 0 for a box. */
+	public static int accessRows(StationSpec spec) {
+		return spec.options().type().tube() ? PlanDeep.tubeAccessRows(spec.options().streetDepth()) : 0;
+	}
+
+	/** Columns of the street entrance beside the first track: a side platform's width, so its stair and lift fit as on one. */
+	public static final int STREET_WIDTH = 6;
+	/**
+	 * Columns beside the tracks at each end of a real station's hall (Utrecht Centraal: the Stationsplein and the
+	 * Jaarbeursplein, both at the hall's level): a broad stair up from the square, {@link #PLATEAU_STAIR} columns, then the
+	 * hall's floor inside its glass end wall, the unpaid end before the gate line, with ticket machines and a lift down to the
+	 * square.
+	 */
+	public static final int REAL_STREET_WIDTH = 18;
+
+	/**
+	 * Columns before a real station's hall floor at each end: a landing on the square, then the broad stair up, one step a
+	 * column, to the floor.
+	 */
+	public static final int PLATEAU_STAIR = STAIR_STEPS + 1;
+
+	/** Columns of the street entrance of this spec. */
+	public static int streetWidth(StationSpec spec) {
+		return spec.real().hallOverTracks() ? REAL_STREET_WIDTH : STREET_WIDTH;
+	}
+
+	/**
+	 * A through station with a footbridge but no building, whose outermost bands are both tracks (island platforms), gets a
+	 * street entrance beside its first track: otherwise nobody could reach the footbridge without walking across a track.
+	 */
+	public static boolean streetEntrance(StationSpec spec) {
+		// underground, the flights go up from the platforms to the street over the box
+		if (spec.sideBuilding() || spec.terminus() || !spec.footbridge() || spec.options().underground()) {
+			return false;
+		}
+		final String bands = bandPattern(spec);
+		return bands.startsWith("T") && bands.endsWith("T");
+	}
+
+	/**
+	 * How many tracks on each side of a hub run on through past the head building: one up to six tracks, two from eight (an
+	 * outer island whose tracks both run through, reached by a footbridge), when the platforms are wide enough for its lifts;
+	 * 0 for any other station.
+	 */
+	public static int hubThrough(StationSpec spec) {
+		if (!spec.hub()) {
+			return 0;
+		}
+		final int outer = Math.min(platformWidth(spec, 0), platformWidth(spec, platformCount(spec) - 1));
+		return spec.trackCount() >= 8 && outer >= MIN_LIFT_ISLAND_WIDTH ? 2 : 1;
+	}
+
+	/**
+	 * Blocks a platform of {@code picked} blocks is built at: one more, because MTR measures a platform between the rail nodes on
+	 * its first and last block, one less than the blocks it spans. So MTR reports the length the player picked.
+	 */
+	public static int builtLength(int picked) {
+		return picked + 1;
+	}
+
+	/** Rows a footbridge's stairs, landings and lifts take on either side of its line, which every platform must reach. */
+	static final int BRIDGE_REACH = 12;
+
+	/**
+	 * First and last v of the platform at {@code index} (0-based): the whole length, or a listed platform's own length. A
+	 * terminus's shorter platform ends at the head building; a through station's is centred on the footbridge line. Any
+	 * platform a footbridge may serve (a through station's, a hub's) still reaches {@link #BRIDGE_REACH} rows past that line.
+	 */
+	public static int[] platformRun(StationSpec spec, int index) {
+		final int length = builtLength(spec.platformLength());
+		final int overrun = overrun(length);
+		// a through station's bay platform stops short of the end by its track's overrun and buffer row, so the buffer stop
+		// stands inside the station
+		final boolean bay = spec.listed() && !spec.terminus() && spec.platforms().get(index).bay();
+		final int own = spec.listed() ? Math.min(builtLength(spec.platforms().get(index).lengthIn(spec.platformLength())), bay ? length - 1 - overrun : length)
+				: length;
+		if (own >= length) {
+			return new int[]{0, length - 1};
+		}
+		int from;
+		int to;
+		if (spec.terminus()) {
+			from = length - own;
+			to = length - 1;
+		} else {
+			from = StationLayout.entranceV(spec.sideBuilding(), length) - own / 2;
+			to = from + own - 1;
+		}
+		if (bay && from + own - 1 >= length - 1 - overrun) {
+			from = length - 1 - overrun - own;
+			to = length - 2 - overrun;
+		}
+		if (!spec.terminus() || spec.hub()) {
+			final int line = StationLayout.entranceV(spec.sideBuilding(), length);
+			from = Math.min(from, line - BRIDGE_REACH);
+			to = Math.max(to, line + BRIDGE_REACH);
+		}
+		return new int[]{Math.max(0, from), Math.min(bay ? length - 2 - overrun : length - 1, to)};
+	}
+
+	/** Width of the platform at {@code index} (0-based, left to right): its own when the platforms are listed. */
+	public static int platformWidth(StationSpec spec, int index) {
+		return spec.listed() ? spec.platforms().get(index).widthIn(spec.platformWidth()) : spec.platformWidth();
+	}
+
+	/**
+	 * The roof over platform {@code number} (1-based): the station's, or under canopies or none the platform's own canopy or
+	 * open sky when the platforms are listed. A train shed covers every platform.
+	 */
+	public static RoofType roof(StationSpec spec, int number) {
+		if (!spec.listed() || spec.roof() == RoofType.HALL) {
+			return spec.roof();
+		}
+		return switch (spec.platforms().get(number - 1).roof()) {
+			case STATION -> spec.roof();
+			case CANOPY -> RoofType.CANOPY;
+			case OPEN -> RoofType.NONE;
+		};
+	}
+
+	/** How many platforms the station has. */
+	public static int platformCount(StationSpec spec) {
+		return spec.listed() ? spec.platforms().size() : (int) bandPattern(spec).chars().filter(c -> c == 'P').count();
+	}
+
+	/** Bands left to right: 'T' for a track, 'P' for a platform, 'W' for a one-column gap. */
+	private static String bandPattern(StationSpec spec) {
+		final int tracks = spec.trackCount();
+		final StringBuilder bands = new StringBuilder();
+		if (spec.options().stacked()) {
+			// stacked bores: both laid out track then platform, so the second lifted over the first is the same way round
+			// (PlanDeep.raiseSecondBore puts it there); the gap keeps the first platform's back off the second track
+			return "TPWTP";
+		}
+		if (spec.options().deepStation() && spec.options().type().tube()) {
+			// twin bores: a track and its platform in each, the two platforms facing each other across a pillar
+			return "TPPT";
+		}
+		if (spec.listed()) {
+			// each platform brings its tracks: an island one on each side, a side platform one. A side platform's back is the
+			// station's edge, or the back of the side platform after it; a side platform with an island after it gets a gap
+			// ('W') behind it, so no track is shared and every side platform keeps one boarding edge
+			boolean openBack = false;
+			for (int i = 0; i < spec.platforms().size(); i++) {
+				if (spec.platforms().get(i).kind() == PlatformSpec.Kind.ISLAND) {
+					bands.append(openBack ? "WTPT" : "TPT");
+					openBack = false;
+				} else if (i == 0 || openBack) {
+					bands.append("PT");
+					openBack = false;
+				} else {
+					bands.append("TP");
+					openBack = true;
+				}
+			}
+		} else if (spec.platformLayout() == PlatformLayout.SIDE) {
+			bands.append('P');
+			for (int i = 0; i < tracks; i++) {
+				bands.append('T');
+			}
+			if (tracks >= 2) {
+				bands.append('P');
+			}
+		} else {
+			for (int i = 0; i + 1 < tracks; i += 2) {
+				bands.append("TPT");
+			}
+			if ((tracks & 1) == 1) {
+				bands.append("TP");
+			}
+		}
+		return bands.toString();
+	}
+}

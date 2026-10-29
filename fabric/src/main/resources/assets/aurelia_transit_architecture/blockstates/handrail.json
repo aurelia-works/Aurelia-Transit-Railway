@@ -1,0 +1,976 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_post"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "north": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_handrail"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "east": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_handrail",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "south": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_handrail",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "west": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_handrail",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_post"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "north": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_balustrade"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "east": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_balustrade",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "south": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_balustrade",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "west": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_balustrade",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_post"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "north": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_ramp_rail"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "east": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_ramp_rail",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "south": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_ramp_rail",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "west": "true"
+          },
+          {
+            "edge_north": "false"
+          },
+          {
+            "edge_east": "false"
+          },
+          {
+            "edge_south": "false"
+          },
+          {
+            "edge_west": "false"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_side_ramp_rail",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "edge_north": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_handrail"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "edge_east": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_handrail",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "edge_south": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_handrail",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "edge_west": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_handrail",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "corner": "north_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_handrail"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "corner": "east_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_handrail",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "corner": "south_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_handrail",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "corner": "west_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_handrail",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "corner": "north_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_handrail"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "corner": "east_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_handrail",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "corner": "south_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_handrail",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "handrail"
+          },
+          {
+            "corner": "west_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_handrail",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "edge_north": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_balustrade"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "edge_east": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_balustrade",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "edge_south": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_balustrade",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "edge_west": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_balustrade",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "corner": "north_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_balustrade"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "corner": "east_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_balustrade",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "corner": "south_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_balustrade",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "corner": "west_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_balustrade",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "corner": "north_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_balustrade"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "corner": "east_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_balustrade",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "corner": "south_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_balustrade",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "balustrade"
+          },
+          {
+            "corner": "west_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_balustrade",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "edge_north": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_ramp_rail"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "edge_east": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_ramp_rail",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "edge_south": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_ramp_rail",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "edge_west": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_edge_ramp_rail",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "corner": "north_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_ramp_rail"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "corner": "east_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_ramp_rail",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "corner": "south_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_ramp_rail",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "corner": "west_cw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_cw_ramp_rail",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "corner": "north_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_ramp_rail"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "corner": "east_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_ramp_rail",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "corner": "south_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_ramp_rail",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "kind": "ramp_rail"
+          },
+          {
+            "corner": "west_ccw"
+          }
+        ]
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/handrail_corner_ccw_ramp_rail",
+        "y": 270
+      }
+    }
+  ]
+}
