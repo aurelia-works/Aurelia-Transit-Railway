@@ -165,7 +165,7 @@ public class RenderLifts implements IGui {
 				new ModelLift1((int) Math.round(lift.getHeight() * 2), (int) Math.round(lift.getWidth()), (int) Math.round(lift.getDepth()), lift.getIsDoubleSided()).render(
 						storedMatrixTransformations,
 						null,
-						getLiftResource(lift.getStyle()).getTexture(),
+						getLiftResource(lift.getStyle()).cabTexture(),
 						absolutePositionAndRotation.light,
 						doorway1Open ? lift.getDoorValue() / LIFT_DOOR_VALUE : 0, doorway2Open ? lift.getDoorValue() / LIFT_DOOR_VALUE : 0, false,
 						0, 1, true, true, false, true, false
@@ -252,7 +252,7 @@ public class RenderLifts implements IGui {
 			liftResource = tempLiftResource[0];
 		}
 
-		return liftResource == null ? CustomResourceLoader.getLifts().get(0) : liftResource;
+		return liftResource == null ? CustomResourceLoader.defaultLiftResource() : liftResource;
 	}
 
 	private static PositionAndRotation getLiftPositionAndRotation(ClientWorld clientWorld, Lift lift) {
