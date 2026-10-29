@@ -102,4 +102,4 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - name: Game tests ${{ matrix.classes }}
-        run: ./gradlew setupFiles :fabric:runGameTest '-Pata.gametests=${{ matrix.classes }}'
+        run: ./gradlew setupFiles :fabric:runGameTest '-Pata.gametests=${{ matrix.classes }}' --stacktrace
