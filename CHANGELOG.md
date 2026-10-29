@@ -1,0 +1,29 @@
+# Changelog
+
+## 1.0.0 (4.0.5+atr.1.0.0), Minecraft 1.20.1, Fabric
+
+First release of Aurelia Transit Railway, a maintained fork of Minecraft Transit Railway 4.0.5.
+
+### Drop-in
+- Mod id stays `mtr`; version reports `4.0.5+atr.1.0.0`. JCM, MAGIC, Tianjin, the London Underground add-on and train packs keep working, and MTR worlds open unchanged.
+- A test (`DropInSignaturesTest`) guards the MTR 4.0.5 methods that add-ons hook.
+
+### Speed
+- Rendering and model-loading fixes from Aurelia Transit Utilities: merged train parts, a shader-pack fast path, cheaper shadows, level of detail for trains and rails, a fast OBJ reader, background model loading, door checks, freeing unused models, F3 counters. Each has a switch.
+
+### New
+- **Aurelia panel**: one place for every tool and switch, with the Announcer and platform calls.
+- **Rail Builder**: one smart tool; creators build faster; sit or stand while riding (X key).
+- **Aurelia Transit Architecture blocks, Station Studio and wrenches** ship inside the jar (replaces the separate ATA mod).
+- **AureliaMap**: a 3D web map with a live layer of lines, stations and trains.
+- Web map: opens fitted to the network, less label clutter, solid lines, a clearer station panel.
+- Opaque lift style, configurable ticket currency and free barriers.
+
+### Fixed
+- No rain, rain splash or rain sound inside train cars.
+- Platform gate maps no longer stretch past 10 blocks.
+- Airplanes stay on the platform and the glideslope when landing.
+- Lift floor menu: the whole row is clickable.
+
+### Credits
+Based on Minecraft Transit Railway by jonafanho (MIT). See LICENSE.

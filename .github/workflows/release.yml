@@ -1,0 +1,30 @@
+name: Release
+# Push a tag like v1.0.0 to build the jar and attach it to a GitHub Release.
+# Modrinth and CurseForge pages are filled by hand from docs/release/.
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build the jar
+        run: ./gradlew setupFiles build -x runGameTest -x ataTest
+      - name: Check the jar is the only release file
+        run: |
+          ls -l build/release/
+          test "$(ls build/release/*.jar | wc -l)" = "1"
+      - name: Publish the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/release/*.jar
+          body_path: docs/release/github-release.md

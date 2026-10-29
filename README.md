@@ -7,6 +7,10 @@ _Aurelia Transit Railway_ (ATR) is a maintained fork of [Minecraft Transit Railw
 - Install by removing the MTR jar and putting the ATR jar in its place. Do not run both.
 - Build: `./gradlew build -x test` gives `build/release/ATR-fabric-<version>-mc1.20.1.jar`.
 
+### Features
+- Faster rendering with a switch for every fix, the Aurelia panel for all tools and settings, the Rail Builder, built-in Aurelia Transit Architecture blocks and Station Studio, and AureliaMap, a 3D web map with a live layer of lines, stations and trains.
+- See [CHANGELOG.md](CHANGELOG.md) and the release page text in [docs/release](docs/release).
+
 The rest of this file is MTR's original README.
 
 ---
