@@ -34,8 +34,18 @@ public class RailAction {
 	private final BlockState state;
 	private final boolean isSlab;
 	private final ObjectOpenHashSet<BlockPos> blacklistedPositions = new ObjectOpenHashSet<>();
+	private int placed;
+	@Nullable
+	private final RailActionPlan plan;
+	@Nullable
+	private final RailBuilder builder;
 
 	private static final double INCREMENT = 0.1;
+	/**
+	 * Server time an action may use in a tick: a fifth of the 50 ms tick, as ATA's station builds use. It was 2 ms, which
+	 * spread a long bridge's walk and placement over many seconds on an idle server.
+	 */
+	private static final long NANOS_PER_TICK = 10_000_000L;
 
 	public RailAction(ServerWorld serverWorld, ServerPlayerEntity serverPlayerEntity, RailActionType railActionType, Rail rail, int radius, int height, @Nullable BlockState state) {
 		id = new Random().nextLong();
@@ -50,6 +60,28 @@ public class RailAction {
 		isSlab = state != null && SlabBlock.isInstance(state.getBlock());
 		length = rail.railMath.getLength();
 		distance = 0;
+		plan = railActionType == RailActionType.BRIDGE ? RailActionPlan.bridge(rail, radius, isSlab) : RailActionPlan.tunnel(rail, radius, height, railActionType == RailActionType.TUNNEL);
+		builder = null;
+	}
+
+	/**
+	 * A Rail Builder action: {@code deck}, {@code clear} and {@code walls} are the parts it builds.
+	 */
+	public RailAction(ServerWorld serverWorld, ServerPlayerEntity serverPlayerEntity, Rail rail, int radius, int height, BlockState state, boolean deck, boolean clear, boolean walls) {
+		id = new Random().nextLong();
+		this.serverWorld = serverWorld;
+		uuid = serverPlayerEntity.getUuid();
+		playerName = serverPlayerEntity.getName().getString();
+		railActionType = RailActionType.RAIL_BUILDER;
+		this.rail = rail;
+		this.radius = radius;
+		this.height = height;
+		this.state = state;
+		isSlab = SlabBlock.isInstance(state.getBlock());
+		length = rail.railMath.getLength();
+		distance = 0;
+		plan = null;
+		builder = new RailBuilder(rail, radius, height, isSlab, deck, clear, walls);
 	}
 
 	public String getDescription() {
@@ -67,11 +99,11 @@ public class RailAction {
 	public boolean build() {
 		switch (railActionType) {
 			case BRIDGE:
-				return createBridge();
 			case TUNNEL:
-				return createTunnel();
 			case TUNNEL_WALL:
-				return createTunnelWall();
+				return buildPlanned();
+			case RAIL_BUILDER:
+				return buildWithBuilder();
 			default:
 				return true;
 		}
@@ -163,6 +195,56 @@ public class RailAction {
 		return false;
 	}
 
+	/**
+	 * Walks the rail into a {@link RailActionPlan}, then changes the planned blocks in walk order, within
+	 * {@link #NANOS_PER_TICK} each tick. Replaces {@link #create(boolean, Consumer)}, which is kept for add-ons that hook it.
+	 */
+	private boolean buildPlanned() {
+		final long deadline = System.nanoTime() + NANOS_PER_TICK;
+		if (plan.walk(deadline)) {
+			while (placed < plan.size() && System.nanoTime() < deadline) {
+				applyPlanned(plan.get(placed++));
+			}
+			if (placed == plan.size()) {
+				sendProgressMessage(100);
+				return true;
+			}
+		}
+
+		sendProgressMessage((float) Utilities.round(50 * plan.walked() + (plan.size() == 0 ? 0 : 50.0 * placed / plan.size()), 1));
+		return false;
+	}
+
+	private void applyPlanned(RailActionPlan.Op op) {
+		final BlockPos blockPos = new BlockPos(op.x(), op.y(), op.z());
+		switch (railActionType) {
+			case TUNNEL:
+				if (canPlace(serverWorld, blockPos)) {
+					serverWorld.setBlockState(blockPos, Blocks.getAirMapped().getDefaultState());
+				}
+				break;
+			case TUNNEL_WALL:
+				if (canPlace(serverWorld, blockPos)) {
+					serverWorld.setBlockState(blockPos, state);
+				}
+				break;
+			default:
+				if (op.clearAbove() && canPlace(serverWorld, blockPos.up())) {
+					serverWorld.setBlockState(blockPos.up(), Blocks.getAirMapped().getDefaultState());
+				}
+				if (canPlace(serverWorld, blockPos)) {
+					serverWorld.setBlockState(blockPos, isSlab ? state.with(new Property<>(SlabBlockExtension.TYPE), (op.topHalf() ? SlabType.TOP : SlabType.BOTTOM).data) : state);
+				}
+				break;
+		}
+	}
+
+	private boolean buildWithBuilder() {
+		final boolean done = builder.step(System.nanoTime() + NANOS_PER_TICK, new WorldTerrain());
+		sendProgressMessage(done ? 100 : (float) Utilities.round(100 * builder.progress(), 1));
+		return done;
+	}
+
 	private void sendProgressMessage(float percentage) {
 		final PlayerEntity playerEntity = serverWorld.getPlayerByUuid(uuid);
 		if (playerEntity != null) {
@@ -172,6 +254,36 @@ public class RailAction {
 
 	private static boolean canPlace(ServerWorld serverWorld, BlockPos pos) {
 		return serverWorld.getBlockEntity(pos) == null && !(serverWorld.getBlockState(pos).getBlock().data instanceof BlockNode);
+	}
+
+	/**
+	 * The world as the {@link RailBuilder} sees it.
+	 */
+	private final class WorldTerrain implements RailBuilder.Terrain {
+
+		@Override
+		public boolean isGround(int x, int y, int z) {
+			final BlockState blockState = serverWorld.getBlockState(new BlockPos(x, y, z));
+			return !blockState.isAir() && blockState.data.getFluidState().isEmpty();
+		}
+
+		@Override
+		public boolean canChange(int x, int y, int z) {
+			return canPlace(serverWorld, new BlockPos(x, y, z));
+		}
+
+		@Override
+		public void set(int x, int y, int z, RailBuilder.Part part, boolean topHalf) {
+			final BlockState placeState;
+			if (part == RailBuilder.Part.AIR) {
+				placeState = Blocks.getAirMapped().getDefaultState();
+			} else if (isSlab) {
+				placeState = state.with(new Property<>(SlabBlockExtension.TYPE), (part == RailBuilder.Part.WALL ? SlabType.DOUBLE : topHalf ? SlabType.TOP : SlabType.BOTTOM).data);
+			} else {
+				placeState = state;
+			}
+			serverWorld.setBlockState(new BlockPos(x, y, z), placeState);
+		}
 	}
 
 	private static BlockPos getHalfPos(BlockPos pos, boolean isTopHalf) {

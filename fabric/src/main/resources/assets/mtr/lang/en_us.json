@@ -752,5 +752,11 @@
 	"train.mtr.sp1900": "SP1900",
 	"train.mtr.sp1900_mini": "SP1900 (Mini)",
 	"train.mtr.sp1900_small": "SP1900 (Small)",
-	"train.mtr.spruce_boat": "Spruce Boat"
+	"train.mtr.spruce_boat": "Spruce Boat",
+	"gui.mtr.percentage_complete_rail_builder": "Building Rail (%s%%)",
+	"gui.mtr.rail_action_rail_builder": "Rail Builder by %s (%s blocks long, %s)",
+	"item.mtr.rail_builder": "Rail Builder",
+	"tooltip.mtr.rail_builder_parts": "Deck: %s, Dig: %s, Walls: %s",
+	"tooltip.mtr.rail_builder_smart": "Walls where there is ground, a deck where there is none",
+	"tooltip.mtr.rail_builder_panel": "Width, height and parts: Aurelia panel, Builder tab"
 }

@@ -5,11 +5,22 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.block.Blocks;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Hand;
 import net.minecraft.world.GameMode;
 import org.mtr.aurelia.client.MtrBridge;
+import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.screen.*;
+import org.mtr.core.data.Position;
+import org.mtr.core.data.Rail;
 import org.mtr.core.data.TransportMode;
+import org.mtr.core.tool.Angle;
+import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import org.mtr.mod.Init;
+import org.mtr.mod.Items;
+import org.mtr.mod.item.ItemRailBuilder;
 import org.mtr.mod.screen.ConfigScreen;
 import org.mtr.mod.screen.DashboardScreen;
 import org.slf4j.Logger;
@@ -68,6 +79,16 @@ public final class PanelShots implements ClientModInitializer {
 		shots.add(new Shot("14-speed", SpeedAuditScreen::new));
 		shots.add(new Shot("15-trains", TrainInspectorScreen::new));
 		shots.add(new Shot("16-jump", JumpScreen::new));
+		shots.add(new Shot("17-panel-builder", parent -> new AureliaPanelScreen(null, AureliaPanelScreen.Tab.BUILDER)));
+		// No screen: the Rail Builder's work beside the player, built while the screens above were shot
+		shots.add(new Shot("18-rail-builder-world", parent -> null));
+		shots.add(new Shot("19-panel-riding", parent -> new AureliaPanelScreen(null, AureliaPanelScreen.Tab.RIDING)));
+		// The local player seated, seen from the front in third person
+		shots.add(new Shot("20-sitting", parent -> {
+			RideClient.forceSittingForScreenshots(true);
+			MinecraftClient.getInstance().options.setPerspective(net.minecraft.client.option.Perspective.THIRD_PERSON_FRONT);
+			return null;
+		}));
 		ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 	}
 
@@ -84,6 +105,7 @@ public final class PanelShots implements ClientModInitializer {
 					final ServerPlayerEntity player = client.getServer().getPlayerManager().getPlayer(id);
 					if (player != null) {
 						player.changeGameMode(GameMode.CREATIVE);
+						startRailBuilder(player);
 					}
 				});
 			}
@@ -107,6 +129,39 @@ public final class PanelShots implements ClientModInitializer {
 		} else {
 			open(client);
 		}
+	}
+
+	/**
+	 * Puts a Rail Builder (stone bricks, the default settings) in the player's hand and builds along a rail that starts
+	 * 6 blocks to the player's side at foot level and drops 12 blocks over 60, so it runs from the surface into the ground.
+	 * The player then looks along it from above.
+	 */
+	private static void startRailBuilder(ServerPlayerEntity player) {
+		final ItemStack itemStack = new ItemStack(Items.RAIL_BUILDER.get().data);
+		ItemRailBuilder.write(itemStack, new ItemRailBuilder.Settings(5, 5, true, true, true));
+		itemStack.getOrCreateNbt().putInt("block_id", net.minecraft.block.Block.getRawIdFromState(Blocks.STONE_BRICKS.getDefaultState()));
+		player.setStackInHand(Hand.MAIN_HAND, itemStack);
+
+		final int x = player.getBlockX();
+		final int y = player.getBlockY();
+		final int z = player.getBlockZ() + 6;
+		final Rail rail = Rail.newRail(new Position(x, y, z), Angle.E, new Position(x + 60, y - 12, z), Angle.W, Rail.Shape.QUADRATIC, 0, new ObjectArrayList<>(), 80, 80, false, false, true, false, false, TransportMode.TRAIN);
+		// The bench world is flat: a stone hill over the rail's far half, its near face on the rail's middle and its north half
+		// cut away for the last third, so one build shows bridge, tunnel and a cutting walled on the hill side only
+		for (int hillX = x + 25; hillX <= x + 60; hillX++) {
+			for (int hillZ = z - 8; hillZ <= z + 8; hillZ++) {
+				if (hillX > x + 45 && hillZ < z) {
+					continue;
+				}
+				for (int hillY = -60; hillY <= y; hillY++) {
+					player.getWorld().setBlockState(new net.minecraft.util.math.BlockPos(hillX, hillY, hillZ), Blocks.STONE.getDefaultState());
+				}
+			}
+		}
+		final org.mtr.mapping.holder.ServerWorld serverWorld = new org.mtr.mapping.holder.ServerWorld((net.minecraft.server.world.ServerWorld) player.getWorld());
+		Init.getRailActionModule(serverWorld, module -> module.markRailForBuilder(rail, new org.mtr.mapping.holder.ServerPlayerEntity(player), 2, 5, new org.mtr.mapping.holder.BlockState(Blocks.STONE_BRICKS.getDefaultState()), true, true, true));
+		player.teleport((net.minecraft.server.world.ServerWorld) player.getWorld(), x + 20, y + 14, z - 22, -40, 35);
+		LOGGER.info("Rail Builder started at {} {} {} along +x", x, y, z);
 	}
 
 	private void open(MinecraftClient client) {

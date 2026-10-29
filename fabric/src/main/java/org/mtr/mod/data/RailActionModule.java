@@ -40,6 +40,11 @@ public class RailActionModule {
 		broadcastUpdate();
 	}
 
+	public void markRailForBuilder(Rail rail, ServerPlayerEntity serverPlayerEntity, int radius, int height, BlockState blockState, boolean deck, boolean clear, boolean walls) {
+		railActions.add(new RailAction(serverWorld, serverPlayerEntity, rail, radius, height, blockState, deck, clear, walls));
+		broadcastUpdate();
+	}
+
 	public void removeRailAction(long id) {
 		railActions.removeIf(railAction -> railAction.id == id);
 		broadcastUpdate();

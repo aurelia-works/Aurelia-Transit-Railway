@@ -109,6 +109,7 @@ public final class Items {
 		SIGNAL_REMOVER_BLACK = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "signal_remover_black"), itemSettings -> new Item(new ItemSignalModifier(false, ItemSignalModifier.COLORS[15], itemSettings)), CreativeModeTabs.CORE);
 
 		// Building tools
+		RAIL_BUILDER = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "rail_builder"), itemSettings -> new Item(new ItemRailBuilder(itemSettings)), CreativeModeTabs.CORE);
 		BRIDGE_CREATOR_1 = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "bridge_creator_1"), itemSettings -> new Item(new ItemBridgeCreator(1, itemSettings)), CreativeModeTabs.CORE);
 		BRIDGE_CREATOR_3 = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "bridge_creator_3"), itemSettings -> new Item(new ItemBridgeCreator(3, itemSettings)), CreativeModeTabs.CORE);
 		BRIDGE_CREATOR_5 = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "bridge_creator_5"), itemSettings -> new Item(new ItemBridgeCreator(5, itemSettings)), CreativeModeTabs.CORE);
@@ -152,6 +153,7 @@ public final class Items {
 	public static final ItemRegistryObject BRIDGE_CREATOR_5;
 	public static final ItemRegistryObject BRIDGE_CREATOR_7;
 	public static final ItemRegistryObject BRIDGE_CREATOR_9;
+	public static final ItemRegistryObject RAIL_BUILDER;
 	public static final ItemRegistryObject CABLE_CAR_DASHBOARD;
 	public static final ItemRegistryObject GUARD_KEY;
 	public static final ItemRegistryObject BASIC_DRIVER_KEY;

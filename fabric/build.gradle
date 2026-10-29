@@ -32,7 +32,8 @@ loom {
 			name = "ATR perf bench"
 			source sourceSets.perfbench
 			runDir = "run/perf"
-			programArgs "--quickPlaySingleplayer", "ATU Test"
+			// -Patr.world names another save in run/perf/saves
+			programArgs "--quickPlaySingleplayer", (project.findProperty("atr.world") ?: "ATU Test").toString()
 			vmArg "-Dsodium.checks.issue2561=false"
 		}
 	}
