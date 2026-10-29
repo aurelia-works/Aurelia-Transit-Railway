@@ -57,3 +57,4 @@ mtr_custom_resources.json
 **/lang/*.json
 !en_us.json
 !fabric/src/gametest/resources/fabric.mod.json
+!fabric/src/main/resources/data/aurelia_transit_architecture/loot_tables/
