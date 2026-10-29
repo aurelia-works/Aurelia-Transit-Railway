@@ -39,6 +39,10 @@ final class MtrFares {
 		TicketSystem.addBalance(new org.mtr.mapping.holder.World(world), new org.mtr.mapping.holder.PlayerEntity(player), amount);
 	}
 
+	static boolean freePassage() {
+		return TicketSystem.freePassage();
+	}
+
 	/** What MTR's own ticket machine does on use ({@code BlockTicketMachine.onUse2}): its screen, with the player's balance. */
 	static void openTicketMachine(World world, ServerPlayerEntity player) {
 		Init.REGISTRY.sendPacketToClient(new org.mtr.mapping.holder.ServerPlayerEntity(player), new PacketOpenTicketMachineScreen(balance(world, player)));

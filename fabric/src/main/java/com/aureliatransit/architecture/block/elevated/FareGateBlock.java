@@ -39,7 +39,9 @@ import static net.minecraft.block.Block.createCuboidShape;
  * either side, or two seconds after the last player left the gate; it never closes on a player standing in it, so a
  * pause in the gate is never charged twice.
  * MTR decides entry or exit from the player's record and only charges inside an MTR station area; outside one, or with
- * too little balance, the paddles stay shut (MTR says why). An {@code END} cabinet has no passage.
+ * too little balance, the paddles stay shut (MTR says why). With {@code freeTicketBarriers} on, MTR opens the gate
+ * without charging, including outside a station, and a player slipping through is not charged the maximum fare either.
+ * An {@code END} cabinet has no passage.
  *
  * <p>Collision is 1.5 blocks high, like a fence, so the gate cannot be jumped. Without MTR's fare system the gate is a
  * walkable prop, as before 1.4. No block entity and no ticking: work happens only while a player touches the block.

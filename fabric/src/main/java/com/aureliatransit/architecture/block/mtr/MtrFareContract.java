@@ -82,10 +82,10 @@ public final class MtrFareContract {
 	/**
 	 * Charges the maximum fare for an incomplete journey (no tap out, or slipping through an open gate behind the
 	 * passenger it opened for) through MTR's own balance. Never takes the balance below zero. Returns what was charged,
-	 * or 0 when fares are unavailable or the balance is already empty.
+	 * or 0 when fares are unavailable, the balance is already empty, or the server lets everyone through barriers for free.
 	 */
 	public static int chargeMaximumFare(World world, PlayerEntity player) {
-		if (!AVAILABLE) {
+		if (!AVAILABLE || MtrFares.freePassage()) {
 			return 0;
 		}
 		final int amount = com.aureliatransit.architecture.fare.MaximumFare.charge(balance(world, player));

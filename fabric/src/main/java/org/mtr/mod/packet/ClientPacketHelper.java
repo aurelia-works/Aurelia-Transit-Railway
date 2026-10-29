@@ -81,7 +81,13 @@ public final class ClientPacketHelper {
 	}
 
 	public static void openTicketMachineScreen(int balance) {
-		openScreen(new TicketMachineScreen(balance), screenExtension -> screenExtension instanceof TicketMachineScreen);
+		openTicketMachineScreen(balance, org.mtr.mod.data.TicketRules.DEFAULT_CURRENCY_ID);
+	}
+
+	public static void openTicketMachineScreen(int balance, String currencyId) {
+		final TicketMachineScreen screen = new TicketMachineScreen(balance);
+		screen.setCurrencyId(currencyId);
+		openScreen(screen, screenExtension -> screenExtension instanceof TicketMachineScreen);
 	}
 
 	private static void openScreen(ScreenExtension screenExtension, Predicate<ScreenExtension> isInstance) {

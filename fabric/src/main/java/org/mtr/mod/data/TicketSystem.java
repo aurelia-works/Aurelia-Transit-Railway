@@ -10,6 +10,7 @@ import org.mtr.mapping.mapper.ScoreboardCriteria;
 import org.mtr.mapping.mapper.ScoreboardHelper;
 import org.mtr.mapping.mapper.TextHelper;
 import org.mtr.mod.Init;
+import org.mtr.mod.config.Config;
 import org.mtr.mod.generated.lang.TranslationProvider;
 
 import javax.annotation.Nonnull;
@@ -30,7 +31,16 @@ public class TicketSystem {
 	private static final int ZONE_FARE = 1;
 	private static final int EVASION_FINE = 500;
 
+	/** True when barriers, processors and ATA fare gates should open without taking a fare. Read from config on each pass, so an edit applies without a restart. */
+	public static boolean freePassage() {
+		Config.refreshTicketSettings();
+		return Config.getServer().getFreeTicketBarriers();
+	}
+
 	public static void passThrough(World world, BlockPos blockPos, PlayerEntity player, boolean isEntrance, boolean isExit, SoundEvent entrySound, SoundEvent entrySoundConcessionary, SoundEvent exitSound, SoundEvent exitSoundConcessionary, @Nullable SoundEvent failSound, boolean remindIfNoRecord, Consumer<EnumTicketBarrierOpen> callback) {
+		if (openFree(world, blockPos, player, isEntrance, isExit, entrySound, entrySoundConcessionary, exitSound, exitSoundConcessionary, callback)) {
+			return;
+		}
 		Init.sendMessageC2S(OperationProcessor.NEARBY_STATIONS, world.getServer(), world, new NearbyAreasRequest<>(Init.blockPosToPosition(blockPos), 0), nearbyAreasResponse -> {
 			final ObjectImmutableList<Station> stations = nearbyAreasResponse.getStations();
 			if (stations.isEmpty()) {
@@ -65,6 +75,26 @@ public class TicketSystem {
 				callback.accept(canOpen ? isConcessionary(player) ? EnumTicketBarrierOpen.OPEN_CONCESSIONARY : EnumTicketBarrierOpen.OPEN : EnumTicketBarrierOpen.CLOSED);
 			}
 		}, NearbyAreasResponse.class);
+	}
+
+	/**
+	 * Opens the barrier and leaves balance and entry zones alone. Decorative barriers are often outside a station,
+	 * so this does not ask the simulation which station is nearby. Returns false when fares still apply.
+	 */
+	private static boolean openFree(World world, BlockPos blockPos, PlayerEntity player, boolean isEntrance, boolean isExit, SoundEvent entrySound, SoundEvent entrySoundConcessionary, SoundEvent exitSound, SoundEvent exitSoundConcessionary, Consumer<EnumTicketBarrierOpen> callback) {
+		final boolean alreadyEntered = entered(
+				getPlayerScore(world, player, ENTRY_ZONE_1_OBJECTIVE, ENTRY_ZONE_1_TITLE),
+				getPlayerScore(world, player, ENTRY_ZONE_2_OBJECTIVE, ENTRY_ZONE_2_TITLE),
+				getPlayerScore(world, player, ENTRY_ZONE_3_OBJECTIVE, ENTRY_ZONE_3_TITLE)
+		);
+		final TicketRules.FreePassage free = TicketRules.freePassage(freePassage(), isEntrance, isExit, alreadyEntered, isConcessionary(player));
+		if (free == null) {
+			return false;
+		}
+		final SoundEvent sound = free.concessionary ? (free.entering ? entrySoundConcessionary : exitSoundConcessionary) : (free.entering ? entrySound : exitSound);
+		world.playSound((PlayerEntity) null, blockPos, sound, SoundCategory.BLOCKS, 1, 1);
+		callback.accept(free.concessionary ? EnumTicketBarrierOpen.OPEN_CONCESSIONARY : EnumTicketBarrierOpen.OPEN);
+		return true;
 	}
 
 	public static int getBalance(World world, PlayerEntity player) {
