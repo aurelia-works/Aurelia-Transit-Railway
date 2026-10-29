@@ -3,6 +3,9 @@ on:
   push:
     branches: [master]
   pull_request:
+# ATA's three slowest unit test classes: ata-slow-unit runs them, ata-unit leaves them out
+env:
+  SLOW_UNIT_TESTS: '*StationPlannerTest,*RealCitiesATest,*CityLandmarksTest'
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -50,9 +53,6 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: ATA unit tests
         run: ./gradlew setupFiles :fabric:ataTest -Pata.tests.exclude="$SLOW_UNIT_TESTS,*StationRecipeTest"
-        env:
-          # the classes the ata-slow-unit job runs; keep the two lists the same
-          SLOW_UNIT_TESTS: '*StationPlannerTest,*RealCitiesATest,*CityLandmarksTest'
   # The three slowest ATA unit test classes, beside the other jobs
   ata-slow-unit:
     runs-on: ubuntu-latest
@@ -65,7 +65,11 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - name: StationPlannerTest, RealCitiesATest, CityLandmarksTest
-        run: ./gradlew setupFiles :fabric:ataTest --tests '*StationPlannerTest' --tests '*RealCitiesATest' --tests '*CityLandmarksTest'
+        run: |
+          args=()
+          IFS=, read -ra classes <<< "$SLOW_UNIT_TESTS"
+          for class in "${classes[@]}"; do args+=(--tests "$class"); done
+          ./gradlew setupFiles :fabric:ataTest "${args[@]}"
   ata-recipe-sweep:
     runs-on: ubuntu-latest
     timeout-minutes: 45

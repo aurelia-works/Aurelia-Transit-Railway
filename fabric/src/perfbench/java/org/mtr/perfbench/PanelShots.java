@@ -90,8 +90,6 @@ public final class PanelShots implements ClientModInitializer {
 			return null;
 		}));
 		shots.add(new Shot("21-panel-architecture", parent -> new AureliaPanelScreen(null, AureliaPanelScreen.Tab.ARCHITECTURE)));
-		// No screen: the world itself (with -Patr.world, an ATA world's blocks)
-		shots.add(new Shot("22-world", parent -> null));
 		ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 	}
 
