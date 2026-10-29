@@ -1,6 +1,6 @@
 package org.mtr.aurelia.ride;
 
-import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import org.mtr.libraries.it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 import java.util.UUID;
 
@@ -68,22 +68,29 @@ public final class RidePose {
 	}
 
 	/**
-	 * Which other players sit, as the server reports them.
+	 * Which other players sit, as the server reports them. A seated rider's client repeats the pose every few seconds, so a
+	 * report older than {@link #EXPIRE_MILLIS} means the player left or logged out seated, and they are drawn standing.
 	 */
 	public static final class Others {
 
-		private final ObjectOpenHashSet<UUID> sitting = new ObjectOpenHashSet<>();
+		public static final long EXPIRE_MILLIS = 12_000;
 
-		public void set(UUID uuid, boolean value) {
+		private final Object2LongOpenHashMap<UUID> sittingSince = new Object2LongOpenHashMap<>();
+
+		public void set(UUID uuid, boolean value, long nowMillis) {
 			if (value) {
-				sitting.add(uuid);
+				sittingSince.put(uuid, nowMillis);
 			} else {
-				sitting.remove(uuid);
+				sittingSince.removeLong(uuid);
 			}
 		}
 
-		public boolean isSitting(UUID uuid) {
-			return sitting.contains(uuid);
+		public boolean isSitting(UUID uuid, long nowMillis) {
+			return sittingSince.containsKey(uuid) && nowMillis - sittingSince.getLong(uuid) <= EXPIRE_MILLIS;
+		}
+
+		public void clear() {
+			sittingSince.clear();
 		}
 	}
 }

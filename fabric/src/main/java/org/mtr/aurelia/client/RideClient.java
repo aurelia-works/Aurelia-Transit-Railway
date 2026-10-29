@@ -2,6 +2,7 @@ package org.mtr.aurelia.client;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
@@ -30,7 +31,8 @@ public final class RideClient {
 
 	public static final double MAX_SIT_DROP = 1;
 	/**
-	 * Ticks between repeats of the pose while riding, so players who arrive later see it.
+	 * Ticks between repeats of the pose while riding, so players who arrive later see it; well inside
+	 * {@link RidePose.Others#EXPIRE_MILLIS}.
 	 */
 	private static final int RESEND_TICKS = 100;
 
@@ -51,6 +53,7 @@ public final class RideClient {
 		load();
 		LOCAL.setDefault(sitWhenBoarding);
 		final KeyBinding sitKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.aurelia.sit", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_X, "key.categories.mtr"));
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> OTHERS.clear());
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player == null) {
 				return;
@@ -72,7 +75,7 @@ public final class RideClient {
 	 */
 	public static boolean isSitting(UUID uuid) {
 		final MinecraftClient client = MinecraftClient.getInstance();
-		return client.player != null && client.player.getUuid().equals(uuid) ? forceSitting || LOCAL.isSitting() : OTHERS.isSitting(uuid);
+		return client.player != null && client.player.getUuid().equals(uuid) ? forceSitting || LOCAL.isSitting() : OTHERS.isSitting(uuid, System.currentTimeMillis());
 	}
 
 	public static void forceSittingForScreenshots(boolean value) {
@@ -80,7 +83,7 @@ public final class RideClient {
 	}
 
 	public static void setOther(UUID uuid, boolean sitting) {
-		OTHERS.set(uuid, sitting);
+		OTHERS.set(uuid, sitting, System.currentTimeMillis());
 	}
 
 	public static boolean sitWhenBoarding() {
@@ -97,8 +100,14 @@ public final class RideClient {
 		return sitDrop;
 	}
 
+	/**
+	 * Applied at once; saved by {@link #saveSitDrop} when the slider is let go.
+	 */
 	public static void setSitDrop(double value) {
 		sitDrop = Math.max(0, Math.min(MAX_SIT_DROP, value));
+	}
+
+	public static void saveSitDrop() {
 		save();
 	}
 

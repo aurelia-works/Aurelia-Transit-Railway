@@ -63,10 +63,22 @@ public class RidePoseTest {
 		final RidePose.Others others = new RidePose.Others();
 		final UUID a = UUID.randomUUID();
 		final UUID b = UUID.randomUUID();
-		others.set(a, true);
-		Assertions.assertTrue(others.isSitting(a));
-		Assertions.assertFalse(others.isSitting(b));
-		others.set(a, false);
-		Assertions.assertFalse(others.isSitting(a));
+		others.set(a, true, 0);
+		Assertions.assertTrue(others.isSitting(a, 0));
+		Assertions.assertFalse(others.isSitting(b, 0));
+		others.set(a, false, 0);
+		Assertions.assertFalse(others.isSitting(a, 0));
+	}
+
+	@Test
+	public void anOtherPlayerStandsWhenTheServerStopsRepeating() {
+		final RidePose.Others others = new RidePose.Others();
+		final UUID a = UUID.randomUUID();
+		others.set(a, true, 0);
+		Assertions.assertTrue(others.isSitting(a, RidePose.Others.EXPIRE_MILLIS - 1));
+		Assertions.assertFalse(others.isSitting(a, RidePose.Others.EXPIRE_MILLIS + 1), "a player who logged out seated is not drawn seated forever");
+		others.set(a, true, 0);
+		others.clear();
+		Assertions.assertFalse(others.isSitting(a, 0), "leaving the world forgets everyone");
 	}
 }

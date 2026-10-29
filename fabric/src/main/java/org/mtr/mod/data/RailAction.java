@@ -197,7 +197,9 @@ public class RailAction {
 
 	/**
 	 * Walks the rail into a {@link RailActionPlan}, then changes the planned blocks in walk order, within
-	 * {@link #NANOS_PER_TICK} each tick. Replaces {@link #create(boolean, Consumer)}, which is kept for add-ons that hook it.
+	 * {@link #NANOS_PER_TICK} each tick. Replaces {@link #create(boolean, Consumer)}. The old private create* methods and
+	 * their lambdas stay unused: add-on mixins target methods by name, private ones included, and DropInSignaturesTest keeps
+	 * every MTR 4.0.5 method.
 	 */
 	private boolean buildPlanned() {
 		final long deadline = System.nanoTime() + NANOS_PER_TICK;

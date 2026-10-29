@@ -201,6 +201,12 @@ public final class AureliaPanelScreen extends Screen {
 			protected void applyValue() {
 				RideClient.setSitDrop(value * RideClient.MAX_SIT_DROP);
 			}
+
+			@Override
+			public void onRelease(double mouseX, double mouseY) {
+				super.onRelease(mouseX, mouseY);
+				RideClient.saveSitDrop();
+			}
 		});
 	}
 

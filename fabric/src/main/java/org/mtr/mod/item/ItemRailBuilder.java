@@ -56,7 +56,9 @@ public class ItemRailBuilder extends ItemNodeModifierSelectableBlockBase {
 	@Override
 	public void addTooltips(ItemStack stack, @Nullable World world, List<MutableText> tooltip, TooltipContext options) {
 		final Settings settings = read(stack.data);
-		tooltip.add(TranslationProvider.TOOLTIP_MTR_RAIL_BUILDER_PARTS.getMutableText(onOff(settings.deck), onOff(settings.clear), onOff(settings.walls)).formatted(TextFormatting.GRAY));
+		// What a use builds: the deck and walls need a saved block
+		final boolean hasBlock = !getSavedState(stack).isAir();
+		tooltip.add(TranslationProvider.TOOLTIP_MTR_RAIL_BUILDER_PARTS.getMutableText(onOff(settings.deck && hasBlock), onOff(settings.clear), onOff(settings.walls && hasBlock)).formatted(TextFormatting.GRAY));
 		tooltip.add(TranslationProvider.TOOLTIP_MTR_RAIL_BUILDER_SMART.getMutableText().formatted(TextFormatting.GRAY));
 		tooltip.add(TranslationProvider.TOOLTIP_MTR_RAIL_BUILDER_PANEL.getMutableText().formatted(TextFormatting.GRAY).formatted(TextFormatting.ITALIC));
 		super.addTooltips(stack, world, tooltip, options);
