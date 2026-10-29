@@ -5,6 +5,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.world.GameMode;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.screen.*;
 import org.mtr.core.data.TransportMode;
@@ -19,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -76,11 +79,11 @@ public final class PanelShots implements ClientModInitializer {
 		if (index < 0) {
 			if (ticks == START_TICKS - 5 * 20 && client.getServer() != null) {
 				// Edit tools need MTR edit permission (creative or survival); the bench world's player has neither
-				final java.util.UUID id = client.player.getUuid();
+				final UUID id = client.player.getUuid();
 				client.getServer().execute(() -> {
-					final var player = client.getServer().getPlayerManager().getPlayer(id);
+					final ServerPlayerEntity player = client.getServer().getPlayerManager().getPlayer(id);
 					if (player != null) {
-						player.changeGameMode(net.minecraft.world.GameMode.CREATIVE);
+						player.changeGameMode(GameMode.CREATIVE);
 					}
 				});
 			}
@@ -114,6 +117,13 @@ public final class PanelShots implements ClientModInitializer {
 		} catch (RuntimeException e) {
 			LOGGER.error("Could not open {}", shot.name(), e);
 			results.add(shot.name() + ": FAILED " + e);
+			// No screenshot of whatever screen is still open
+			index++;
+			if (index >= shots.size()) {
+				finish(client);
+			} else {
+				open(client);
+			}
 		}
 	}
 

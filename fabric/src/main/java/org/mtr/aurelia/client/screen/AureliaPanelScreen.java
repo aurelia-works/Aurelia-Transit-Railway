@@ -137,8 +137,7 @@ public final class AureliaPanelScreen extends Screen {
 	}
 
 	private void initTools() {
-		final int rowsThatFit = Math.max(1, (height - 36 - TOP) / ROW);
-		final int columns = Math.min(3, (TOOLS.size() + rowsThatFit - 1) / rowsThatFit);
+		final int columns = Math.min(3, (TOOLS.size() + visibleRows() - 1) / visibleRows());
 		final int buttonWidth = columns == 1 ? BUTTON_WIDTH : Math.min(BUTTON_WIDTH, (width - 16 - (columns - 1) * 8) / columns);
 		final int rows = (TOOLS.size() + columns - 1) / columns;
 		final int left = (width - columns * buttonWidth - (columns - 1) * 8) / 2;

@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.IntConsumer;
 
 /**
  * One-time import of Aurelia Transit Utilities settings on the first start of ATR. The old files are left alone; a
@@ -132,7 +133,7 @@ public final class AtuImport {
 		return true;
 	}
 
-	private static boolean chunks(String value, int max, java.util.function.IntConsumer setter) {
+	private static boolean chunks(String value, int max, IntConsumer setter) {
 		try {
 			final int chunks = Integer.parseInt(value);
 			if (chunks < 0) {
