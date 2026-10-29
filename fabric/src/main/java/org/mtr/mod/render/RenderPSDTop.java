@@ -7,6 +7,7 @@ import org.mtr.mod.block.BlockPSDAPGGlassEndBase;
 import org.mtr.mod.block.BlockPSDTop;
 import org.mtr.mod.block.IBlock;
 import org.mtr.mod.client.DynamicTextureCache;
+import org.mtr.mod.client.DynamicTextureLimits;
 import org.mtr.mod.client.IDrawing;
 
 public class RenderPSDTop extends RenderRouteBase<BlockPSDTop.BlockEntity> {
@@ -17,9 +18,18 @@ public class RenderPSDTop extends RenderRouteBase<BlockPSDTop.BlockEntity> {
 	private static final float BOTTOM_END_DIAGONAL_OFFSET = END_FRONT_OFFSET - BOTTOM_DIAGONAL_OFFSET / MathHelper.getSquareRootOfTwoMapped();
 	private static final float COLOR_STRIP_START = 14.5F / 16;
 	private static final float COLOR_STRIP_END = 15 / 16F;
+	/** Route-map and arrow insets, in sixteenths of a block. */
+	public static final float MAP_TOP = 7.5F;
+	public static final float MAP_BOTTOM = 1.5F;
+	public static final float MAP_SIDE = 0.125F;
 
 	public RenderPSDTop(Argument dispatcher) {
-		super(dispatcher, 2 - SMALL_OFFSET_16, 7.5F, 1.5F, 0.125F, true, 3, BlockPSDTop.ARROW_DIRECTION);
+		super(dispatcher, 2 - SMALL_OFFSET_16, MAP_TOP, MAP_BOTTOM, MAP_SIDE, true, 3, BlockPSDTop.ARROW_DIRECTION);
+	}
+
+	/** Aspect ratio of a run of this many platform screen door top blocks, matching {@link RenderRouteBase}. */
+	public static float mapAspectRatio(int blocks) {
+		return DynamicTextureLimits.runAspectRatio(blocks, MAP_TOP / 16F, MAP_BOTTOM / 16F, MAP_SIDE / 16F);
 	}
 
 	@Override

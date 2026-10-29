@@ -7,15 +7,25 @@ import org.mtr.mapping.holder.World;
 import org.mtr.mod.block.BlockAPGGlass;
 import org.mtr.mod.block.IBlock;
 import org.mtr.mod.client.DynamicTextureCache;
+import org.mtr.mod.client.DynamicTextureLimits;
 import org.mtr.mod.client.IDrawing;
 
 public class RenderAPGGlass extends RenderRouteBase<BlockAPGGlass.BlockEntity> {
 
 	private static final float COLOR_STRIP_START = 0.75F;
 	private static final float COLOR_STRIP_END = 0.78125F;
+	/** Route-map and station-name insets, in sixteenths of a block. */
+	public static final float MAP_TOP = 8;
+	public static final float MAP_BOTTOM = 4;
+	public static final float MAP_SIDE = 8;
 
 	public RenderAPGGlass(Argument dispatcher) {
-		super(dispatcher, 4, 8, 4, 8, false, 2, BlockAPGGlass.ARROW_DIRECTION);
+		super(dispatcher, 4, MAP_TOP, MAP_BOTTOM, MAP_SIDE, false, 2, BlockAPGGlass.ARROW_DIRECTION);
+	}
+
+	/** Aspect ratio of a run of this many automatic platform gate blocks, matching {@link RenderRouteBase}. */
+	public static float mapAspectRatio(int blocks) {
+		return DynamicTextureLimits.runAspectRatio(blocks, MAP_TOP / 16F, MAP_BOTTOM / 16F, MAP_SIDE / 16F);
 	}
 
 	@Override
@@ -41,9 +51,9 @@ public class RenderAPGGlass extends RenderRouteBase<BlockAPGGlass.BlockEntity> {
 				graphicsHolder.pop();
 			});
 
-			final float width = leftBlocks + rightBlocks + 1 - sidePadding * 2;
-			final float height = 1 - topPadding - bottomPadding;
-			MainRenderer.scheduleRender(DynamicTextureCache.instance.getSingleRowStationName(platformId, width / height).identifier, false, QueuedRenderLayer.EXTERIOR, (graphicsHolder, offset) -> {
+			final int blocks = leftBlocks + rightBlocks + 1;
+			final float width = blocks - sidePadding * 2;
+			MainRenderer.scheduleRender(DynamicTextureCache.instance.getSingleRowStationName(platformId, DynamicTextureLimits.runAspectRatio(blocks, topPadding, bottomPadding, sidePadding)).identifier, false, QueuedRenderLayer.EXTERIOR, (graphicsHolder, offset) -> {
 				storedMatrixTransformations.transform(graphicsHolder, offset);
 				IDrawing.drawTexture(graphicsHolder, 1 - (rightBlocks == 0 ? sidePadding : 0), topPadding, 0.125F, leftBlocks == 0 ? sidePadding : 0, 1 - bottomPadding, 0.125F, (rightBlocks - (rightBlocks == 0 ? 0 : sidePadding)) / width, 0, (width - leftBlocks + (leftBlocks == 0 ? 0 : sidePadding)) / width, 1, facing, color, light);
 				graphicsHolder.pop();
