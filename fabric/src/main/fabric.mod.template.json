@@ -29,7 +29,8 @@
 			"org.mtr.init.MTR"
 		],
 		"client": [
-			"org.mtr.init.MTRClient"
+			"org.mtr.init.MTRClient",
+			"org.mtr.aurelia.client.AureliaClient"
 		],
 		"modmenu": [
 			"org.mtr.init.ModMenuConfig"
@@ -43,6 +44,9 @@
 		"atr.mixins.json",
 		"mtr.models.mixins.json"
 	],
+	"breaks": {
+		"aurelia_transit_utilities": "*"
+	},
 	"depends": {
 		"fabric": "*",
 		"minecraft": "@minecraft@"
