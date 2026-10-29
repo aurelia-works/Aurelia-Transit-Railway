@@ -45,6 +45,8 @@ public class CustomResourceLoader {
 	public static final String DEFAULT_RAIL_3D_ID = "default_3d";
 	public static final String DEFAULT_RAIL_3D_SIDING_ID = "default_3d_siding";
 	public static final String DEFAULT_LIFT_TRANSPARENT_ID = "default_transparent";
+	/** Solid walls and doors. Player-selected; never the style written for a new lift. */
+	public static final String DEFAULT_LIFT_OPAQUE_ID = "default_opaque";
 
 	private static final Object2ObjectAVLTreeMap<String, String> RESOURCE_CACHE = new Object2ObjectAVLTreeMap<>();
 	private static final Object2ObjectAVLTreeMap<TransportMode, ObjectArrayList<VehicleResource>> VEHICLES = new Object2ObjectAVLTreeMap<>();
@@ -296,6 +298,19 @@ public class CustomResourceLoader {
 
 	public static ObjectImmutableList<LiftResource> getLifts() {
 		return new ObjectImmutableList<>(LIFTS);
+	}
+
+	/**
+	 * Glass cab used when a saved style is missing or not in the loaded resources.
+	 * Prefers {@link #DEFAULT_LIFT_TRANSPARENT_ID} even if a resource pack listed another lift first,
+	 * so an old world does not change look because of pack order.
+	 */
+	public static LiftResource defaultLiftResource() {
+		final LiftResource transparent = LIFTS_CACHE.get(DEFAULT_LIFT_TRANSPARENT_ID);
+		if (transparent != null) {
+			return transparent;
+		}
+		return LIFTS.get(0);
 	}
 
 	public static void getLiftById(String liftId, Consumer<LiftResource> ifPresent) {

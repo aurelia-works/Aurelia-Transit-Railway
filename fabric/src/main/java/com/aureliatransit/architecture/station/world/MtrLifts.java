@@ -11,6 +11,7 @@ import org.mtr.core.data.Position;
 import org.mtr.core.tool.Angle;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.mod.Init;
+import org.mtr.mod.client.CustomResourceLoader;
 import org.mtr.mod.client.MinecraftClientData;
 import org.mtr.mod.packet.PacketDeleteData;
 
@@ -19,7 +20,8 @@ import java.util.List;
 /**
  * The calls into MTR's lift data. Only reached through {@link MtrLiftContract} once it has confirmed they exist. Creation
  * follows MTR's own Lift Refresher ({@code ItemLiftRefresher.sendUpdate}): a new lift with its stops, a 3 high 2×2 car and
- * MTR's default style, sent to MTR's simulation as {@code generate_by_lift}, which replaces any lift on the same stops.
+ * the glass style ({@code default_transparent}). The opaque cab is chosen later in the refresher; generated stations stay
+ * glass. Sent to MTR's simulation as {@code generate_by_lift}, which replaces any lift on the same stops.
  * Deletion follows MTR's break handler for a stop ({@code BlockLiftTrackFloor.onBreak2}).
  */
 final class MtrLifts {
@@ -47,7 +49,7 @@ final class MtrLifts {
 			lift.setFloors(floors);
 			lift.setDimensions(3, 2, 2, shaft.offsetX(), 0, shaft.offsetZ());
 			lift.setIsDoubleSided(shaft.doubleSided());
-			lift.setStyle("default_transparent");
+			lift.setStyle(CustomResourceLoader.DEFAULT_LIFT_TRANSPARENT_ID);
 			lift.setAngle(switch (shaft.doors()) {
 				case EAST -> Angle.E;
 				case SOUTH -> Angle.S;

@@ -16,6 +16,21 @@
 		},
 		"textureResource": {
 			"type": "string"
+		},
+		"model": {
+			"type": "string",
+			"default": "mtr:lift_1",
+			"description": "Cab model id. Only mtr:lift_1 exists. A later custom cab keeps this field and adds a model; unknown ids still draw lift_1."
+		},
+		"walls": {
+			"type": "string",
+			"default": "glass",
+			"description": "Wall panes: glass (see-through, the saved-world default) or opaque. Custom wall art is a later step: paint LiftGlassRegions wall rects, or set textureResource to an atlas that already has them filled. Not stored on the lift."
+		},
+		"doors": {
+			"type": "string",
+			"default": "glass",
+			"description": "Door panes: glass or opaque. Independent of walls so a later style can mix them (Minecraft-Transit-Railway issue 598). Door motion types stay on the model, not this field."
 		}
 	},
 	"required": [

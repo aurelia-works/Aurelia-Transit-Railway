@@ -1004,6 +1004,15 @@
 			"name": "lift.mtr.default_transparent",
 			"color": "CCCCCC",
 			"textureResource": "mtr:textures/vehicle/lift_1.png"
+		},
+		{
+			"id": "default_opaque",
+			"name": "lift.mtr.default_opaque",
+			"color": "7A7A7A",
+			"textureResource": "mtr:textures/vehicle/lift_1_opaque.png",
+			"model": "mtr:lift_1",
+			"walls": "opaque",
+			"doors": "opaque"
 		}
 	]
 }
