@@ -40,11 +40,7 @@ public class RouteMapGenerator implements IGui {
 	private static final int PIXEL_RESOLUTION = 24;
 
 	public static void setConstants() {
-		scale = (int) Math.pow(2, Config.getClient().getDynamicTextureResolution() + 5);
-		lineSize = scale / 8;
-		lineSpacing = lineSize * 3 / 2;
-		fontSizeBig = lineSize * 2;
-		fontSizeSmall = fontSizeBig / 2;
+		applyScale(DynamicTextureLimits.textureScale(Config.getClient().getDynamicTextureResolution()));
 	}
 
 	public static NativeImage generatePixelatedText(String text, int textColor, int maxWidth, double cjkSizeRatio, boolean fullPixel) {
@@ -94,9 +90,14 @@ public class RouteMapGenerator implements IGui {
 			return null;
 		}
 
+		final int height = scale * 2;
+		final int width = Math.round(height * aspectRatio);
+		final int chosenScale = fittingScale(width, height);
+		if (chosenScale != scale) {
+			return generateStationNameAtScale(chosenScale, stationName, aspectRatio);
+		}
+
 		try {
-			final int height = scale * 2;
-			final int width = Math.round(height * aspectRatio);
 			final int padding = scale / 16;
 			final int[] dimensions = new int[2];
 			final byte[] pixels = DynamicTextureCache.instance.getTextPixels(stationName, dimensions, width - padding * 2, height - padding * 2, fontSizeBig * 2, fontSizeSmall * 2, padding, HorizontalAlignment.CENTER);
@@ -117,9 +118,14 @@ public class RouteMapGenerator implements IGui {
 			return null;
 		}
 
+		final int width = Math.round(scale * 1.6F);
+		final int height = Math.round(width / aspectRatio);
+		final int chosenScale = fittingScale(width, height);
+		if (chosenScale != scale) {
+			return generateTallStationNameAtScale(chosenScale, textColor, stationName, stationColor, aspectRatio);
+		}
+
 		try {
-			final int width = Math.round(scale * 1.6F);
-			final int height = Math.round(width / aspectRatio);
 			final int[] dimensions = new int[2];
 			final byte[] pixels = DynamicTextureCache.instance.getTextPixels(IGui.formatVerticalChinese(stationName), dimensions, width, height, fontSizeBig * 2, fontSizeSmall * 2, 0, HorizontalAlignment.CENTER);
 
@@ -140,9 +146,14 @@ public class RouteMapGenerator implements IGui {
 			return null;
 		}
 
+		final int size = scale * 2;
+		final int width = Math.round(size * aspectRatio);
+		final int chosenScale = fittingScale(width, size);
+		if (chosenScale != scale) {
+			return generateStationNameEntranceAtScale(chosenScale, textColor, stationName, aspectRatio);
+		}
+
 		try {
-			final int size = scale * 2;
-			final int width = Math.round(size * aspectRatio);
 			final int padding = scale / 16;
 			final int[] dimensions = new int[2];
 			final byte[] pixels = DynamicTextureCache.instance.getTextPixels(stationName, dimensions, width - size - padding, size - padding * 2, fontSizeBig * 3, fontSizeSmall * 3, padding, HorizontalAlignment.LEFT);
@@ -174,6 +185,10 @@ public class RouteMapGenerator implements IGui {
 			final int padding = dimensions[1] / 2;
 			final int height = dimensions[1] + padding;
 			final int width = Math.max(Math.round(height * aspectRatio), dimensions[0] + padding);
+			final int chosenScale = fittingScale(width, height);
+			if (chosenScale != scale) {
+				return generateSingleRowStationNameAtScale(chosenScale, platformId, aspectRatio);
+			}
 
 			final NativeImage nativeImage = new NativeImage(NativeImageFormat.getAbgrMapped(), width, height, false);
 			nativeImage.fillRect(0, 0, width, height, ARGB_WHITE);
@@ -280,6 +295,12 @@ public class RouteMapGenerator implements IGui {
 	public static NativeImage generateDirectionArrow(long platformId, boolean hasLeft, boolean hasRight, HorizontalAlignment horizontalAlignment, boolean showToString, float paddingScale, float aspectRatio, int backgroundColor, int textColor, int transparentColor) {
 		if (aspectRatio <= 0) {
 			return null;
+		}
+
+		final DynamicTextureLimits.Size arrowPixels = DynamicTextureLimits.directionArrowPixels(aspectRatio, scale);
+		final int chosenScale = fittingScale(arrowPixels.width, arrowPixels.height);
+		if (chosenScale != scale) {
+			return generateDirectionArrowAtScale(chosenScale, platformId, hasLeft, hasRight, horizontalAlignment, showToString, paddingScale, aspectRatio, backgroundColor, textColor, transparentColor);
 		}
 
 		try {
@@ -445,21 +466,15 @@ public class RouteMapGenerator implements IGui {
 					yOffset = rawHeightPart;
 				}
 
-				final int height;
-				final int width;
-				final float widthScale;
-				final float heightScale;
-				if (rawWidth / rawHeight > aspectRatio) {
-					width = Math.round(rawWidth * scale);
-					height = Math.round(width / aspectRatio);
-					widthScale = 1;
-					heightScale = height / rawHeight / scale;
-				} else {
-					height = Math.round(rawHeight * scale);
-					width = Math.round(height * aspectRatio);
-					heightScale = 1;
-					widthScale = width / rawWidth / scale;
+				final DynamicTextureLimits.MapPixels mapPixels = DynamicTextureLimits.routeMapPixels(rawWidth, rawHeight, aspectRatio, scale);
+				final int chosenScale = fittingScale(mapPixels.width, mapPixels.height);
+				if (chosenScale != scale) {
+					return generateRouteMapAtScale(chosenScale, platformId, vertical, flip, aspectRatio, transparentWhite);
 				}
+				final int height = mapPixels.height;
+				final int width = mapPixels.width;
+				final float widthScale = mapPixels.widthScale;
+				final float heightScale = mapPixels.heightScale;
 
 				if (width <= 0 || height <= 0) {
 					return null;
@@ -848,6 +863,90 @@ public class RouteMapGenerator implements IGui {
 					nativeImage.setPixelColor(x, y, 0);
 				}
 			}
+		}
+	}
+
+	private static void applyScale(int newScale) {
+		scale = newScale;
+		lineSize = scale / 8;
+		lineSpacing = lineSize * 3 / 2;
+		fontSizeBig = lineSize * 2;
+		fontSizeSmall = fontSizeBig / 2;
+	}
+
+	private static int fittingScale(int naturalWidth, int naturalHeight) {
+		return DynamicTextureLimits.generationScale(scale, naturalWidth, naturalHeight, DynamicTextureLimits.maxImageSize(Config.getClient().getDynamicTextureResolution()), DynamicTextureLimits.MAX_ALLOCATED_PIXELS);
+	}
+
+	private static int[] snapshotScale() {
+		return new int[]{scale, lineSize, lineSpacing, fontSizeBig, fontSizeSmall};
+	}
+
+	private static void restoreScale(int[] saved) {
+		scale = saved[0];
+		lineSize = saved[1];
+		lineSpacing = saved[2];
+		fontSizeBig = saved[3];
+		fontSizeSmall = saved[4];
+	}
+
+	private static NativeImage generateStationNameAtScale(int newScale, String stationName, float aspectRatio) {
+		final int[] saved = snapshotScale();
+		applyScale(newScale);
+		try {
+			return generateStationName(stationName, aspectRatio);
+		} finally {
+			restoreScale(saved);
+		}
+	}
+
+	private static NativeImage generateTallStationNameAtScale(int newScale, int textColor, String stationName, int stationColor, float aspectRatio) {
+		final int[] saved = snapshotScale();
+		applyScale(newScale);
+		try {
+			return generateTallStationName(textColor, stationName, stationColor, aspectRatio);
+		} finally {
+			restoreScale(saved);
+		}
+	}
+
+	private static NativeImage generateStationNameEntranceAtScale(int newScale, int textColor, String stationName, float aspectRatio) {
+		final int[] saved = snapshotScale();
+		applyScale(newScale);
+		try {
+			return generateStationNameEntrance(textColor, stationName, aspectRatio);
+		} finally {
+			restoreScale(saved);
+		}
+	}
+
+	private static NativeImage generateSingleRowStationNameAtScale(int newScale, long platformId, float aspectRatio) {
+		final int[] saved = snapshotScale();
+		applyScale(newScale);
+		try {
+			return generateSingleRowStationName(platformId, aspectRatio);
+		} finally {
+			restoreScale(saved);
+		}
+	}
+
+	private static NativeImage generateDirectionArrowAtScale(int newScale, long platformId, boolean hasLeft, boolean hasRight, HorizontalAlignment horizontalAlignment, boolean showToString, float paddingScale, float aspectRatio, int backgroundColor, int textColor, int transparentColor) {
+		final int[] saved = snapshotScale();
+		applyScale(newScale);
+		try {
+			return generateDirectionArrow(platformId, hasLeft, hasRight, horizontalAlignment, showToString, paddingScale, aspectRatio, backgroundColor, textColor, transparentColor);
+		} finally {
+			restoreScale(saved);
+		}
+	}
+
+	private static NativeImage generateRouteMapAtScale(int newScale, long platformId, boolean vertical, boolean flip, float aspectRatio, boolean transparentWhite) {
+		final int[] saved = snapshotScale();
+		applyScale(newScale);
+		try {
+			return generateRouteMap(platformId, vertical, flip, aspectRatio, transparentWhite);
+		} finally {
+			restoreScale(saved);
 		}
 	}
 

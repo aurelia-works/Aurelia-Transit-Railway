@@ -8,6 +8,7 @@ import org.mtr.mod.InitClient;
 import org.mtr.mod.block.BlockPSDTop;
 import org.mtr.mod.block.IBlock;
 import org.mtr.mod.client.DynamicTextureCache;
+import org.mtr.mod.client.DynamicTextureLimits;
 import org.mtr.mod.client.IDrawing;
 import org.mtr.mod.data.IGui;
 
@@ -63,15 +64,16 @@ public abstract class RenderRouteBase<T extends BlockPSDTop.BlockEntityBase> ext
 			final RenderType renderType = getRenderType(world, blockPos.offset(facing.rotateYCounterclockwise(), leftBlocks), state);
 
 			if ((renderType == RenderType.ARROW || renderType == RenderType.ROUTE) && IBlock.getStatePropertySafe(state, SIDE_EXTENDED) != EnumSide.SINGLE) {
-				final float width = leftBlocks + rightBlocks + 1 - sidePadding * 2;
-				final float height = 1 - topPadding - bottomPadding;
+				final int blocks = leftBlocks + rightBlocks + 1;
+				final float width = blocks - sidePadding * 2;
+				final float aspectRatio = DynamicTextureLimits.runAspectRatio(blocks, topPadding, bottomPadding, sidePadding);
 				final int arrowDirection = IBlock.getStatePropertySafe(state, arrowDirectionProperty);
 
 				final Identifier identifier;
 				if (renderType == RenderType.ARROW) {
-					identifier = DynamicTextureCache.instance.getDirectionArrow(platformId, (arrowDirection & 0b01) > 0, (arrowDirection & 0b10) > 0, HorizontalAlignment.CENTER, true, 0.25F, width / height, ARGB_WHITE, ARGB_BLACK, transparentWhite ? ARGB_WHITE : 0).identifier;
+					identifier = DynamicTextureCache.instance.getDirectionArrow(platformId, (arrowDirection & 0b01) > 0, (arrowDirection & 0b10) > 0, HorizontalAlignment.CENTER, true, 0.25F, aspectRatio, ARGB_WHITE, ARGB_BLACK, transparentWhite ? ARGB_WHITE : 0).identifier;
 				} else {
-					identifier = DynamicTextureCache.instance.getRouteMap(platformId, false, arrowDirection == 2, width / height, transparentWhite).identifier;
+					identifier = DynamicTextureCache.instance.getRouteMap(platformId, false, arrowDirection == 2, aspectRatio, transparentWhite).identifier;
 				}
 
 				MainRenderer.scheduleRender(identifier, false, QueuedRenderLayer.EXTERIOR, (graphicsHolderNew, offset) -> {

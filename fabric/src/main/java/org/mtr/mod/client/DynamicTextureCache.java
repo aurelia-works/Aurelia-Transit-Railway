@@ -42,7 +42,6 @@ public class DynamicTextureCache implements IGui {
 	private static final Identifier DEFAULT_BLACK_RESOURCE = new Identifier(Init.MOD_ID, "textures/block/black.png");
 	private static final Identifier DEFAULT_WHITE_RESOURCE = new Identifier(Init.MOD_ID, "textures/block/white.png");
 	private static final Identifier DEFAULT_TRANSPARENT_RESOURCE = new Identifier(Init.MOD_ID, "textures/block/transparent.png");
-	private static final int MAX_IMAGE_SIZE = 2048;
 
 	/**
 	 * Clear all asset-related cache and mark all dynamic textures to be drawn.
@@ -275,18 +274,11 @@ public class DynamicTextureCache implements IGui {
 
 				final DynamicResource dynamicResourceNew;
 				if (nativeImage != null) {
-					final NativeImage newNativeImage;
-					final int newMaxImageSize = MAX_IMAGE_SIZE * (int) Math.pow(2, Config.getClient().getDynamicTextureResolution());
-					if (nativeImage.getWidth() > newMaxImageSize || nativeImage.getHeight() > newMaxImageSize) {
-						newNativeImage = new NativeImage(NativeImageFormat.getAbgrMapped(), Math.min(newMaxImageSize, nativeImage.getWidth()), Math.min(newMaxImageSize, nativeImage.getHeight()), false);
-						for (int x = 0; x < Math.min(newMaxImageSize, nativeImage.getWidth()); x++) {
-							for (int y = 0; y < Math.min(newMaxImageSize, nativeImage.getHeight()); y++) {
-								newNativeImage.setPixelColor(x, y, nativeImage.getColor(x, y));
-							}
-						}
-					} else {
-						newNativeImage = nativeImage;
-					}
+					// Scale, don't crop. Cropping a wide gate-run map to the upload cap changed its aspect ratio, and the
+					// 0–1 texture coordinates then stretched that fragment across every door. Pictures that already fit
+					// are the same image object as before.
+					final int newMaxImageSize = DynamicTextureLimits.maxImageSize(Config.getClient().getDynamicTextureResolution());
+					final NativeImage newNativeImage = fitToMaxSize(nativeImage, newMaxImageSize);
 
 					final NativeImageBackedTexture nativeImageBackedTexture = new NativeImageBackedTexture(newNativeImage);
 					final Identifier identifier = new Identifier(Init.MOD_ID, "id_" + Init.randomString());
@@ -308,6 +300,37 @@ public class DynamicTextureCache implements IGui {
 			dynamicResource.needsRefresh = false;
 			return dynamicResource;
 		}
+	}
+
+	/**
+	 * Uniform downscale into the upload cap. The source is closed when a new image is produced; an image that already
+	 * fits is returned as-is.
+	 */
+	static NativeImage fitToMaxSize(NativeImage source, int maxSize) {
+		final int width = source.getWidth();
+		final int height = source.getHeight();
+		final DynamicTextureLimits.Size fitted = DynamicTextureLimits.fit(width, height, maxSize);
+		if (fitted.sameAs(width, height)) {
+			return source;
+		}
+
+		final int[] pixels = new int[width * height];
+		for (int y = 0; y < height; y++) {
+			final int row = y * width;
+			for (int x = 0; x < width; x++) {
+				pixels[row + x] = source.getColor(x, y);
+			}
+		}
+		final int[] scaled = DynamicTextureLimits.scale(pixels, width, height, fitted.width, fitted.height);
+		final NativeImage fittedImage = new NativeImage(source.getFormat(), fitted.width, fitted.height, false);
+		for (int y = 0; y < fitted.height; y++) {
+			final int row = y * fitted.width;
+			for (int x = 0; x < fitted.width; x++) {
+				fittedImage.setPixelColor(x, y, scaled[row + x]);
+			}
+		}
+		source.close();
+		return fittedImage;
 	}
 
 	public static class DynamicResource {
