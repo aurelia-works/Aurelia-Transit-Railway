@@ -60,6 +60,44 @@ public final class ModelPropertiesPartWrapper extends ModelPropertiesPartWrapper
 		this.displayOptions.addAll(displayOptions);
 	}
 
+	ModelPropertiesPartWrapper(
+			PositionDefinition positionDefinition,
+			PartCondition condition,
+			RenderStage renderStage,
+			PartType type,
+			double displayXPadding,
+			double displayYPadding,
+			String displayColorCjk,
+			String displayColor,
+			double displayMaxLineHeight,
+			double displayCjkSizeRatio,
+			ObjectArrayList<String> displayOptions,
+			double displayPadZeros,
+			DisplayType displayType,
+			String displayDefaultText,
+			double doorXMultiplier,
+			double doorZMultiplier,
+			DoorAnimationType doorAnimationType,
+			long renderFromOpeningDoorTime,
+			long renderUntilOpeningDoorTime,
+			long renderFromClosingDoorTime,
+			long renderUntilClosingDoorTime,
+			long flashOnTime,
+			long flashOffTime,
+			PantographEnd pantographEnd,
+			double pantographArmMaxAngle,
+			double pantographArmPivotY,
+			double pantographArmPivotZ,
+			double pantographHeadRise
+	) {
+		this(positionDefinition, condition, renderStage, type, displayXPadding, displayYPadding, displayColorCjk, displayColor, displayMaxLineHeight, displayCjkSizeRatio, displayOptions, displayPadZeros, displayType, displayDefaultText, doorXMultiplier, doorZMultiplier, doorAnimationType, renderFromOpeningDoorTime, renderUntilOpeningDoorTime, renderFromClosingDoorTime, renderUntilClosingDoorTime, flashOnTime, flashOffTime);
+		this.pantographEnd = pantographEnd;
+		this.pantographArmMaxAngle = pantographArmMaxAngle;
+		this.pantographArmPivotY = pantographArmPivotY;
+		this.pantographArmPivotZ = pantographArmPivotZ;
+		this.pantographHeadRise = pantographHeadRise;
+	}
+
 	public ModelPropertiesPartWrapper(ReaderBase readerBase) {
 		super(readerBase);
 		updateData(readerBase);
@@ -77,7 +115,7 @@ public final class ModelPropertiesPartWrapper extends ModelPropertiesPartWrapper
 			positions.addAll(partPositions);
 			positionsFlipped.addAll(partPositionsFlipped);
 		});
-		return new ObjectObjectImmutablePair<>(new ModelPropertiesPart(
+		final ModelPropertiesPart modelPropertiesPart = new ModelPropertiesPart(
 				ObjectArrayList.of(positionDefinition.getName()),
 				ObjectArrayList.of(name),
 				condition,
@@ -102,6 +140,8 @@ public final class ModelPropertiesPartWrapper extends ModelPropertiesPartWrapper
 				renderUntilClosingDoorTime,
 				flashOnTime,
 				flashOffTime
-		), new PositionDefinition(name, positions, positionsFlipped));
+		);
+		modelPropertiesPart.setPantograph(pantographEnd, pantographArmMaxAngle, pantographArmPivotY, pantographArmPivotZ, pantographHeadRise);
+		return new ObjectObjectImmutablePair<>(modelPropertiesPart, new PositionDefinition(name, positions, positionsFlipped));
 	}
 }

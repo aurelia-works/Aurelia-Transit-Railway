@@ -39,6 +39,9 @@ public final class ModelProperties extends ModelPropertiesSchema {
 	public ModelProperties(ReaderBase readerBase) {
 		super(readerBase);
 		updateData(readerBase);
+		for (final ModelPropertiesPart part : parts) {
+			part.setModelYOffset(modelYOffset);
+		}
 		gangwayInnerSideTexture = CustomResourceTools.formatIdentifier(gangwayInnerSideResource, "png");
 		gangwayInnerTopTexture = CustomResourceTools.formatIdentifier(gangwayInnerTopResource, "png");
 		gangwayInnerBottomTexture = CustomResourceTools.formatIdentifier(gangwayInnerBottomResource, "png");
@@ -117,6 +120,9 @@ public final class ModelProperties extends ModelPropertiesSchema {
 				barrierZOffset
 		);
 		this.parts.addAll(parts);
+		for (final ModelPropertiesPart part : this.parts) {
+			part.setModelYOffset(modelYOffset);
+		}
 		gangwayInnerSideTexture = CustomResourceTools.formatIdentifier(gangwayInnerSideResource, "png");
 		gangwayInnerTopTexture = CustomResourceTools.formatIdentifier(gangwayInnerTopResource, "png");
 		gangwayInnerBottomTexture = CustomResourceTools.formatIdentifier(gangwayInnerBottomResource, "png");

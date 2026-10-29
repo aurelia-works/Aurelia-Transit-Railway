@@ -78,6 +78,22 @@
 			"$ref": "DoorAnimationType",
 			"typeScriptEnum": "STANDARD|STANDARD_SLOW|CONSTANT|PLUG_FAST|PLUG_SLOW|PLUG_SLOW_2|PLUG_SLOW_3|BOUNCY_1|BOUNCY_2|MLR|R179|R211"
 		},
+		"pantographEnd": {
+			"$ref": "PantographEnd",
+			"typeScriptEnum": "DEFAULT|FRONT|REAR|BOTH"
+		},
+		"pantographArmMaxAngle": {
+			"type": "number"
+		},
+		"pantographArmPivotY": {
+			"type": "number"
+		},
+		"pantographArmPivotZ": {
+			"type": "number"
+		},
+		"pantographHeadRise": {
+			"type": "number"
+		},
 		"renderFromOpeningDoorTime": {
 			"type": "integer",
 			"minimum": 0

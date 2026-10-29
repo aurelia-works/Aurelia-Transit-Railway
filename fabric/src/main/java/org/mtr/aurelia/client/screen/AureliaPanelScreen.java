@@ -23,10 +23,13 @@ import org.mtr.mod.config.Client;
 import org.mtr.mod.config.Config;
 import org.mtr.mod.item.ItemRailBuilder;
 import org.mtr.mod.packet.PacketUpdateRailBuilder;
+import org.mtr.mod.resource.PantographEnd;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.BooleanSupplier;
+import java.util.function.DoubleConsumer;
+import java.util.function.DoubleSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
@@ -40,7 +43,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER}
+	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -129,6 +132,7 @@ public final class AureliaPanelScreen extends Screen {
 			case ARCHITECTURE -> initArchitecture();
 			case RIDING -> initRiding();
 			case BUILDER -> initBuilder();
+			case PANTOGRAPH -> initPantograph();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
@@ -216,6 +220,35 @@ public final class AureliaPanelScreen extends Screen {
 				RideClient.saveSitDrop();
 			}
 		});
+	}
+
+	/**
+	 * Moving pantographs: whether they animate, how long a raise takes, which end rises when a part does not say, and the
+	 * speed above which they stay up even off a route.
+	 */
+	private void initPantograph() {
+		final int left = (width - BUTTON_WIDTH) / 2;
+		addDrawableChild(ButtonWidget.builder(pantographAnimationLabel(), b -> {
+			config.togglePantographAnimation();
+			b.setMessage(pantographAnimationLabel());
+		}).dimensions(left, TOP, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.pantograph.animation.tooltip")));
+		addDrawableChild(new PantographSlider(left, TOP + ROW, Client.PANTOGRAPH_RAISE_SECONDS_MAX, 0.1, config::getPantographRaiseSeconds, config::setPantographRaiseSeconds,
+				seconds -> Text.translatable("gui.aurelia.pantograph.raise_time", String.format("%.1f", seconds))));
+		addDrawableChild(ButtonWidget.builder(pantographEndLabel(), b -> {
+			config.cyclePantographDefaultEnd();
+			b.setMessage(pantographEndLabel());
+		}).dimensions(left, TOP + ROW * 2, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.pantograph.end.tooltip")));
+		addDrawableChild(new PantographSlider(left, TOP + ROW * 3, Client.PANTOGRAPH_STAY_UP_KILOMETERS_PER_HOUR_MAX, 5, config::getPantographStayUpKilometersPerHour, config::setPantographStayUpKilometersPerHour,
+				speed -> speed == 0 ? Text.translatable("gui.aurelia.pantograph.speed.off") : Text.translatable("gui.aurelia.pantograph.speed", speed.intValue())));
+	}
+
+	private Text pantographAnimationLabel() {
+		return Text.translatable("gui.aurelia.pantograph.animation", ScreenTexts.onOrOff(config.getPantographAnimation()));
+	}
+
+	private Text pantographEndLabel() {
+		final PantographEnd end = config.getPantographDefaultEnd();
+		return Text.translatable("gui.aurelia.pantograph.end", Text.translatable("gui.aurelia.pantograph.end." + (end == PantographEnd.DEFAULT ? PantographEnd.BOTH : end).name().toLowerCase()));
 	}
 
 	private static Text sitLabel() {
@@ -399,6 +432,38 @@ public final class AureliaPanelScreen extends Screen {
 		@Override
 		protected void applyValue() {
 			row.set().accept(chunks());
+		}
+	}
+
+	/** A number from 0 to {@code max} in steps of {@code step}, written to the client config as it moves. */
+	private static final class PantographSlider extends SliderWidget {
+
+		private final double max;
+		private final double step;
+		private final DoubleConsumer set;
+		private final Function<Double, Text> label;
+
+		private PantographSlider(int x, int y, double max, double step, DoubleSupplier get, DoubleConsumer set, Function<Double, Text> label) {
+			super(x, y, BUTTON_WIDTH, 20, Text.empty(), get.getAsDouble() / max);
+			this.max = max;
+			this.step = step;
+			this.set = set;
+			this.label = label;
+			updateMessage();
+		}
+
+		private double current() {
+			return Math.round(value * max / step) * step;
+		}
+
+		@Override
+		protected void updateMessage() {
+			setMessage(label.apply(current()));
+		}
+
+		@Override
+		protected void applyValue() {
+			set.accept(current());
 		}
 	}
 }
