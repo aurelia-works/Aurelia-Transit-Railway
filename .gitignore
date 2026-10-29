@@ -56,3 +56,4 @@ mtr_custom_resources.json
 **/font/mtr.json
 **/lang/*.json
 !en_us.json
+!fabric/src/gametest/resources/fabric.mod.json
