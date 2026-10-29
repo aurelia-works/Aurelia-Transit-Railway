@@ -4,7 +4,11 @@
 	"package": "org.mtr.atr.mixin",
 	"compatibilityLevel": "JAVA_8",
 	"refmap": "mtr.refmap.json",
-	"mixins": [],
+	"mixins": [
+		"AirplanePathMixin",
+		"AirplanePositionMixin",
+		"AirplaneRepeatMixin"
+	],
 	"client": [
 		"DebugHudMixin",
 		"WeatherInsideVehicleMixin",

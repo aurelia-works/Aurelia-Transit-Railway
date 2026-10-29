@@ -17,6 +17,7 @@ import org.mtr.mapping.mapper.OptimizedRenderer;
 import org.mtr.mod.Init;
 import org.mtr.mod.client.*;
 import org.mtr.mod.config.Config;
+import org.mtr.mod.data.AirplanePath;
 import org.mtr.mod.data.VehicleExtension;
 import org.mtr.mod.data.IGui;
 import org.mtr.mod.item.ItemDriverKey;
@@ -66,7 +67,21 @@ public class RenderVehicles implements IGui {
 								.stream()
 								.map(bogiePositionPair -> new PositionAndRotation(bogiePositionPair.left(), bogiePositionPair.right(), true))
 								.collect(Collectors.toCollection(ObjectArrayList::new));
-						return new ObjectObjectImmutablePair<>(vehicleCarAndPosition.left(), new ObjectObjectImmutablePair<>(bogiePositions, new PositionAndRotation(bogiePositions, vehicleCarAndPosition.left(), vehicle.getTransportMode().hasPitchAscending || vehicle.getTransportMode().hasPitchDescending)));
+						final double noseY;
+						final double tailY;
+						if (bogiePositions.size() >= 2) {
+							noseY = bogiePositions.get(0).position.y;
+							tailY = bogiePositions.get(bogiePositions.size() - 1).position.y;
+						} else if (bogiePositions.size() == 1) {
+							// Negative bogie pitch means the sample ahead is higher, so the nose is climbing.
+							final double bogiePitch = bogiePositions.get(0).pitch;
+							noseY = bogiePitch < 0 ? 1 : 0;
+							tailY = bogiePitch > 0 ? 1 : 0;
+						} else {
+							noseY = 0;
+							tailY = 0;
+						}
+						return new ObjectObjectImmutablePair<>(vehicleCarAndPosition.left(), new ObjectObjectImmutablePair<>(bogiePositions, new PositionAndRotation(bogiePositions, vehicleCarAndPosition.left(), AirplanePath.allowBodyPitch(vehicle.getTransportMode(), noseY, tailY))));
 					})
 					.collect(Collectors.toCollection(ObjectArrayList::new));
 
