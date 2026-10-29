@@ -26,11 +26,13 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"org.mtr.init.MTR"
+			"org.mtr.init.MTR",
+			"com.aureliatransit.architecture.AureliaTransitArchitecture"
 		],
 		"client": [
 			"org.mtr.init.MTRClient",
-			"org.mtr.aurelia.client.AureliaClient"
+			"org.mtr.aurelia.client.AureliaClient",
+			"com.aureliatransit.architecture.client.AureliaTransitArchitectureClient"
 		],
 		"modmenu": [
 			"org.mtr.init.ModMenuConfig"
@@ -45,10 +47,14 @@
 		"mtr.models.mixins.json"
 	],
 	"breaks": {
-		"aurelia_transit_utilities": "*"
+		"aurelia_transit_utilities": "*",
+		"aurelia_transit_architecture": "<1.8.0"
 	},
 	"depends": {
 		"fabric": "*",
 		"minecraft": "@minecraft@"
-	}
+	},
+	"provides": [
+		"aurelia_transit_architecture"
+	]
 }

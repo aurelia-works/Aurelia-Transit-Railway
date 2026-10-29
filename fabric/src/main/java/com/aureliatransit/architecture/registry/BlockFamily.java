@@ -1,0 +1,68 @@
+package com.aureliatransit.architecture.registry;
+
+/**
+ * Feature families, in creative-tab order. Each family belongs to exactly one {@link Tab}.
+ */
+public enum BlockFamily {
+	PLATFORMS(Tab.ARCHITECTURE),
+	ARCHITECTURE(Tab.ARCHITECTURE),
+	FURNITURE(Tab.ARCHITECTURE),
+	CATENARY(Tab.ARCHITECTURE),
+	/** 1.3 elevated viaduct and station infrastructure. */
+	ELEVATED(Tab.ARCHITECTURE),
+	SIGNAGE(Tab.WAYFINDING),
+	WAYFINDING(Tab.WAYFINDING),
+	PASSENGER_INFO(Tab.PASSENGER_EQUIPMENT),
+	ACCESSIBILITY(Tab.PASSENGER_EQUIPMENT),
+	/** 1.4 station equipment props: fare gates, card readers, booth windows, CCTV (no fare logic). */
+	STATION_EQUIPMENT(Tab.PASSENGER_EQUIPMENT),
+	BUS(Tab.BUS_STREET),
+	STREET(Tab.BUS_STREET),
+	/** 1.5 architectural glass: float, tinted, reflective, frosted, fritted and wired glass, glass brick, curtain wall pieces. */
+	GLASS(Tab.GLASS),
+	/** 1.5 Dutch and Belgian station architecture. */
+	STATIONS_NL_BE(Tab.STATIONS),
+	/** 1.5 German and Italian station architecture (Frankfurt, Munich, Hamburg, S-Bahn, Roma Termini). */
+	STATIONS_DE_IT(Tab.STATIONS),
+	/** British suburban stations (Teddington, Surbiton, Coventry), 2026-10-20. */
+	STATIONS_UK(Tab.STATIONS),
+	/** 1.5 metro (underground) station finishes. */
+	METRO(Tab.METRO),
+	/** 1.7 airport: airfield lights, check-in desks, baggage belts, departures boards, windsocks. */
+	AIRPORT(Tab.AIRPORT);
+
+	/**
+	 * The dedicated creative tabs. Tab ids are not stored in worlds, so regrouping never touches block or item ids.
+	 */
+	public enum Tab {
+		ARCHITECTURE("main"),
+		WAYFINDING("wayfinding"),
+		PASSENGER_EQUIPMENT("passenger_equipment"),
+		BUS_STREET("bus_street"),
+		GLASS("glass"),
+
+		STATIONS("stations"),
+		METRO("metro"),
+		AIRPORT("airport");
+
+		private final String id;
+
+		Tab(String id) {
+			this.id = id;
+		}
+
+		public String id() {
+			return id;
+		}
+	}
+
+	private final Tab tab;
+
+	BlockFamily(Tab tab) {
+		this.tab = tab;
+	}
+
+	public Tab tab() {
+		return tab;
+	}
+}

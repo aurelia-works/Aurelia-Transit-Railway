@@ -1,0 +1,79 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "particle": "aurelia_transit_architecture:block/concrete_light",
+    "pier": "aurelia_transit_architecture:block/concrete_light"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        0,
+        2
+      ],
+      "to": [
+        14,
+        16,
+        14
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            2,
+            2,
+            14,
+            14
+          ],
+          "texture": "#pier",
+          "cullface": "down"
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            14,
+            14
+          ],
+          "texture": "#pier",
+          "cullface": "up"
+        },
+        "north": {
+          "uv": [
+            2,
+            0.0,
+            14,
+            16.0
+          ],
+          "texture": "#pier"
+        },
+        "south": {
+          "uv": [
+            2,
+            0.0,
+            14,
+            16.0
+          ],
+          "texture": "#pier"
+        },
+        "west": {
+          "uv": [
+            2,
+            0.0,
+            14,
+            16.0
+          ],
+          "texture": "#pier"
+        },
+        "east": {
+          "uv": [
+            2,
+            0.0,
+            14,
+            16.0
+          ],
+          "texture": "#pier"
+        }
+      }
+    }
+  ]
+}

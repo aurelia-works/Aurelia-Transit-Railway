@@ -1,0 +1,76 @@
+package com.aureliatransit.architecture;
+
+import com.aureliatransit.architecture.block.mtr.MtrFareContract;
+import com.aureliatransit.architecture.block.mtr.MtrPlatformContract;
+import com.aureliatransit.architecture.fare.FareSystems;
+import com.aureliatransit.architecture.interactive.InteractiveSystems;
+import com.aureliatransit.architecture.live.LiveSystems;
+import com.aureliatransit.architecture.network.ModPackets;
+import com.aureliatransit.architecture.registry.GlassBlocks;
+import com.aureliatransit.architecture.registry.InteractiveBlocks;
+import com.aureliatransit.architecture.registry.LiveBlocks;
+import com.aureliatransit.architecture.registry.ModBlockEntities;
+import com.aureliatransit.architecture.registry.ModBlocks;
+import com.aureliatransit.architecture.registry.ModItemGroups;
+import com.aureliatransit.architecture.registry.ModItems;
+import com.aureliatransit.architecture.registry.ElevatedBlocks;
+import com.aureliatransit.architecture.registry.StationBlocksNlBe;
+import com.aureliatransit.architecture.registry.StationBlocksDeIt;
+import com.aureliatransit.architecture.registry.StationBlocksUk;
+import com.aureliatransit.architecture.registry.AirportBlocks;
+import com.aureliatransit.architecture.registry.StationBlocksOperators;
+import com.aureliatransit.architecture.registry.StationFittingBlocks;
+import com.aureliatransit.architecture.registry.MetroBlocks;
+import com.aureliatransit.architecture.registry.WayfindingBlocks;
+import com.aureliatransit.architecture.station.world.StationSystems;
+import com.aureliatransit.architecture.wayfinding.WayfindingSystems;
+import net.fabricmc.api.ModInitializer;
+import net.minecraft.util.Identifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public final class AureliaTransitArchitecture implements ModInitializer {
+
+	public static final String MOD_ID = "aurelia_transit_architecture";
+	public static final Logger LOGGER = LoggerFactory.getLogger("Aurelia Transit Architecture");
+
+	public static Identifier id(String path) {
+		return new Identifier(MOD_ID, path);
+	}
+
+	/**
+	 * Registers every block, block entity type and item. Idempotent (class loading does the work), and public because
+	 * Fabric collects the game test functions before this mod's initializer has run: the tests call it before listing blocks.
+	 */
+	public static void registerContent() {
+		ModBlocks.init();
+		LiveBlocks.init();
+		InteractiveBlocks.init();
+		WayfindingBlocks.init();
+		ElevatedBlocks.init();
+		GlassBlocks.init();
+		StationBlocksNlBe.init();
+		StationBlocksDeIt.init();
+		StationBlocksUk.init();
+		StationBlocksOperators.init();
+		StationFittingBlocks.init();
+		MetroBlocks.init();
+		AirportBlocks.init();
+		ModBlockEntities.init();
+		ModItems.init();
+	}
+
+	@Override
+	public void onInitialize() {
+		registerContent();
+		ModItemGroups.init();
+		ModPackets.registerServerReceivers();
+		LiveSystems.init();
+		InteractiveSystems.init();
+		WayfindingSystems.init();
+		FareSystems.init();
+		StationSystems.init();
+		LOGGER.info("Registered {} Aurelia Transit Architecture blocks (MTR platform door contract: {}, MTR fares: {})", ModBlocks.entries().size(),
+				MtrPlatformContract.available() ? "enabled" : "unavailable", MtrFareContract.available() ? "enabled" : "unavailable");
+	}
+}

@@ -1,0 +1,949 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "facing": "north",
+        "left": "false",
+        "right": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "false",
+        "right": "false",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_d"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "false",
+        "right": "false",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_u"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "false",
+        "right": "false",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_u_d"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "false",
+        "right": "true",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "false",
+        "right": "true",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_d"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "false",
+        "right": "true",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_u"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "false",
+        "right": "true",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_u_d"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "true",
+        "right": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "true",
+        "right": "false",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_d"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "true",
+        "right": "false",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_u"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "true",
+        "right": "false",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_u_d"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "true",
+        "right": "true",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "true",
+        "right": "true",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_d"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "true",
+        "right": "true",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_u"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "left": "true",
+        "right": "true",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_u_d"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "arm": "true",
+        "offset": "none"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_c"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "arm": "true",
+        "offset": "left"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_l"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "arm": "true",
+        "offset": "right"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_r"
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "false",
+        "right": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "false",
+        "right": "false",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_d",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "false",
+        "right": "false",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_u",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "false",
+        "right": "false",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_u_d",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "false",
+        "right": "true",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "false",
+        "right": "true",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_d",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "false",
+        "right": "true",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_u",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "false",
+        "right": "true",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_u_d",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "true",
+        "right": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "true",
+        "right": "false",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_d",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "true",
+        "right": "false",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_u",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "true",
+        "right": "false",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_u_d",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "true",
+        "right": "true",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "true",
+        "right": "true",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_d",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "true",
+        "right": "true",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_u",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "left": "true",
+        "right": "true",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_u_d",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "arm": "true",
+        "offset": "none"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_c",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "arm": "true",
+        "offset": "left"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_l",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "arm": "true",
+        "offset": "right"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_r",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "false",
+        "right": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "false",
+        "right": "false",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_d",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "false",
+        "right": "false",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_u",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "false",
+        "right": "false",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_u_d",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "false",
+        "right": "true",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "false",
+        "right": "true",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_d",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "false",
+        "right": "true",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_u",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "false",
+        "right": "true",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_u_d",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "true",
+        "right": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "true",
+        "right": "false",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_d",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "true",
+        "right": "false",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_u",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "true",
+        "right": "false",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_u_d",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "true",
+        "right": "true",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "true",
+        "right": "true",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_d",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "true",
+        "right": "true",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_u",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "left": "true",
+        "right": "true",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_u_d",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "arm": "true",
+        "offset": "none"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_c",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "arm": "true",
+        "offset": "left"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_l",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "arm": "true",
+        "offset": "right"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_r",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "false",
+        "right": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "false",
+        "right": "false",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_d",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "false",
+        "right": "false",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_u",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "false",
+        "right": "false",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_u_d",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "false",
+        "right": "true",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "false",
+        "right": "true",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_d",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "false",
+        "right": "true",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_u",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "false",
+        "right": "true",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_r_u_d",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "true",
+        "right": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "true",
+        "right": "false",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_d",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "true",
+        "right": "false",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_u",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "true",
+        "right": "false",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_u_d",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "true",
+        "right": "true",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "true",
+        "right": "true",
+        "up": "false",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_d",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "true",
+        "right": "true",
+        "up": "true",
+        "down": "false"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_u",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "left": "true",
+        "right": "true",
+        "up": "true",
+        "down": "true"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_l_r_u_d",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "arm": "true",
+        "offset": "none"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_c",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "arm": "true",
+        "offset": "left"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_l",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "arm": "true",
+        "offset": "right"
+      },
+      "apply": {
+        "model": "aurelia_transit_architecture:block/platform_pids_arm_r",
+        "y": 270
+      }
+    }
+  ]
+}

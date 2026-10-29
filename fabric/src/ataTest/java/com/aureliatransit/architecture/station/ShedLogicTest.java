@@ -1,0 +1,131 @@
+package com.aureliatransit.architecture.station;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/** Train sheds join up, carry every span and stay within bounds across the station types. */
+class ShedLogicTest {
+
+	private static StationPlan plan(String text) {
+		return StationPlanner.plan(StationDescriptionParser.parse(text).spec());
+	}
+
+	private static boolean girder(PlannedBlock block) {
+		return block != null && (block.blockId().endsWith(":station_girder") || block.blockId().endsWith(":roof_truss"));
+	}
+
+	@Test
+	void everyGirderJoinsAnotherOnTwoSidesOrMore() {
+		for (final String text : List.of("flat train shed island 4 tracks", "several arches train shed 6 tracks island", "arched train shed 4 tracks",
+				"pointed train shed with a footbridge 3 tracks island", "terminus 8 tracks several arches train shed")) {
+			final StationPlan plan = plan(text);
+			final Map<String, PlannedBlock> at = new HashMap<>();
+			for (final PlannedBlock block : plan.blocks()) {
+				at.put(block.u() + "," + block.y() + "," + block.v(), block);
+			}
+			final List<String> ends = new ArrayList<>();
+			for (final PlannedBlock block : plan.blocks()) {
+				if (!girder(block)) {
+					continue;
+				}
+				int joined = 0;
+				for (final int[] o : new int[][]{{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}}) {
+					// a girder may also end on a column (a screen's girder runs from one column to the next)
+					final PlannedBlock next = at.get((block.u() + o[0]) + "," + (block.y() + o[1]) + "," + (block.v() + o[2]));
+					if (girder(next) || next != null && next.role() == Role.COLUMN) {
+						joined++;
+					}
+				}
+				if (joined < 2) {
+					ends.add(block.u() + "," + block.y() + "," + block.v());
+				}
+			}
+			assertEquals(List.of(), ends, text + ": girders stopping short");
+		}
+	}
+
+	@Test
+	void tracksSideBySideGetColumnsBetweenThem() {
+		final StationPlan plan = plan("4 tracks flat train shed side");
+		assertEquals(List.of(), LayoutValidator.validate(plan));
+		final TrackLayout layout = plan.layout();
+		assertTrue(plan.blocks().stream().anyMatch(b -> b.role() == Role.COLUMN && layout.platforms().stream().noneMatch(p -> b.u() >= p.uMin() && b.u() <= p.uMax())),
+				"a column between the tracks");
+		for (final TrackLayout.Track track : layout.tracks()) {
+			assertTrue(plan.blocks().stream().noneMatch(b -> b.role() == Role.COLUMN && Math.abs(b.u() - track.u()) <= StationGeometry.ENVELOPE_HALF_WIDTH),
+					"no column in track " + track.number() + "'s clearance");
+		}
+	}
+
+	@Test
+	void longFootbridgesAndVaultTiesStayWithinTheirSpan() {
+		for (final String text : List.of("6 tracks side with a footbridge", "8 tracks side with a footbridge", "city building 4 tracks arched train shed side 12 wide",
+				"hamburg 6 tracks 80 long several arches train shed island")) {
+			assertEquals(List.of(), LayoutValidator.validate(plan(text)), text);
+		}
+	}
+
+	@Test
+	void sampledStationsPlanCleanly() {
+		final String[] kinds = {"", "with a station building", "city building", "grand building", "terminus", "hub"};
+		final String[] roofs = {"canopies", "butterfly canopies", "gable canopies", "flat train shed", "arched train shed", "pointed train shed", "several arches train shed", "no roof"};
+		final int[] tracks = {1, 2, 3, 4, 5, 6, 8, 10};
+		final Random random = new Random(4440);
+		final List<String> problems = new ArrayList<>();
+		for (int round = 0; round < 250; round++) {
+			final String kind = kinds[random.nextInt(kinds.length)];
+			final boolean hub = kind.equals("hub");
+			final int count = hub ? 4 + 2 * random.nextInt(4) : tracks[random.nextInt(tracks.length)];
+			final String text = kind + " " + roofs[random.nextInt(roofs.length)] + " " + (hub || random.nextBoolean() ? "island" : "side") + " " + count
+					+ " tracks " + (random.nextBoolean() ? (StationSpec.MIN_WIDTH + 1 + random.nextInt(17)) + " wide " : "")
+					+ (!kind.equals("terminus") && !hub && random.nextBoolean() ? "with a footbridge " : "") + (16 + random.nextInt(120)) + " long";
+			final StationPlan plan = plan(text);
+			final List<Violation> violations = LayoutValidator.validate(plan);
+			if (!violations.isEmpty()) {
+				problems.add(text + " -> " + violations.get(0));
+			} else if (!StationAudit.audit(plan).buildable()) {
+				problems.add(text + " -> audit " + StationAudit.audit(plan).problems());
+			}
+		}
+		assertEquals(List.of(), problems);
+	}
+
+	/**
+	 * A real shed of several spans (Frankfurt 3, Milan 5) or of nave and aisles (Hamburg) stands only on the column rows
+	 * under its valleys and at its outer edges, not on two rows along every island (Jah 10-26: realism pass).
+	 */
+	@Test
+	void realShedsStandOnTheirValleyRowsOnly() {
+		final Map<String, Integer> lines = Map.of("frankfurt", 4, "milan", 6, "hamburg_hbf", 4);
+		for (final StationPresets.Preset preset : StationPresets.ALL) {
+			if (!lines.containsKey(preset.key())) {
+				continue;
+			}
+			final java.util.Set<Integer> us = new java.util.TreeSet<>();
+			for (final PlannedBlock block : plan(preset.description()).blocks()) {
+				if (block.role() == Role.COLUMN_CAP) {
+					us.add(block.u());
+				}
+			}
+			assertEquals(lines.get(preset.key()), us.size(), preset.key() + " column lines " + us);
+		}
+	}
+
+	/** The nave springs from the rows that carry it: aisles of different widths, each a vault of its own under the nave. */
+	@Test
+	void naveSpringsFromItsColumnRows() {
+		final int[] rise = new int[60];
+		PlanRoofs.naveAndAisles(rise, 60, 10, 53, 24);
+		assertTrue(rise[10] > 0, "the nave and the left aisle meet above the frame at u=10");
+		assertTrue(rise[30] > rise[10] && rise[30] > rise[53], "the nave's crown is above both aisles");
+		assertTrue(rise[5] > 0 && rise[56] > 0, "each aisle is a vault");
+	}
+}

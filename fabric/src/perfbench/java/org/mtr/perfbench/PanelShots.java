@@ -89,6 +89,7 @@ public final class PanelShots implements ClientModInitializer {
 			MinecraftClient.getInstance().options.setPerspective(net.minecraft.client.option.Perspective.THIRD_PERSON_FRONT);
 			return null;
 		}));
+		shots.add(new Shot("21-panel-architecture", parent -> new AureliaPanelScreen(null, AureliaPanelScreen.Tab.ARCHITECTURE)));
 		ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 	}
 
