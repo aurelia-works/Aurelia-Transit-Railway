@@ -21,4 +21,6 @@ Take out the MTR jar and put ATR in its place. The mod id is still `mtr`, so you
 - Fabric 1.20.1 only. Needs Fabric API.
 - Based on Minecraft Transit Railway by jonafanho, MIT licensed.
 
-Source and issues: https://github.com/aurelia-works/Minecraft-Transit-Railway
+Source and issues: https://github.com/aurelia-works/Aurelia-Transit-Railway
+
+**Version:** 1.0.1 (`4.0.5+atr.1.0.1`), Minecraft 1.20.1, Fabric.
