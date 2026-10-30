@@ -31,8 +31,16 @@ import org.mtr.mod.render.DrivingGuiRenderer;
 import org.mtr.mod.resource.VehicleResource;
 
 import javax.annotation.Nullable;
+import java.util.function.BooleanSupplier;
 
 public class VehicleExtension extends Vehicle implements Utilities {
+
+	/**
+	 * Client-only hook set by the Aurelia announcer. True means that announcer already showed the next stop
+	 * (chat, action bar, voice pack) and MTR's own chat announcement should stay quiet. A dedicated server
+	 * never sets this, so vanilla MTR clients and servers keep the original announcement.
+	 */
+	public static BooleanSupplier aureliaRideAnnouncements = () -> false;
 
 	private double oldSpeed;
 	private int speedLimitKilometersPerHour;
@@ -124,8 +132,9 @@ public class VehicleExtension extends Vehicle implements Utilities {
 				}
 			}
 
-			// TODO chat announcements (next station, route number, etc.)
-			if (persistentVehicleData.canAnnounce(oldRailProgress, railProgress)) {
+			// Next stop, interchanges and terminus: the Aurelia announcer (voice packs, display style, client toggle).
+			// MTR's own chat announcement remains when that announcer is switched off.
+			if (!aureliaRideAnnouncements.getAsBoolean() && persistentVehicleData.canAnnounce(oldRailProgress, railProgress)) {
 				InitClient.REGISTRY_CLIENT.sendPacketToServer(new PacketCheckRouteIdHasDisabledAnnouncements(thisRouteId, routeIdHasDisabledAnnouncements -> {
 					if (!routeIdHasDisabledAnnouncements) {
 						final ObjectArrayList<String> narrateText = new ObjectArrayList<>();
