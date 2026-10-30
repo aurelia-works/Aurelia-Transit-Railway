@@ -13,7 +13,8 @@
 			"com.aureliatransit.architecture.gametest.ChunkStreamingGameTests",
 			"com.aureliatransit.architecture.gametest.AirportScaleGameTests",
 			"com.aureliatransit.architecture.gametest.AirportMtrGameTests",
-			"com.aureliatransit.architecture.gametest.AirportMtrRebuildGameTests"
+			"com.aureliatransit.architecture.gametest.AirportMtrRebuildGameTests",
+			"org.mtr.mod.gametest.CouplingGameTests"
 		]
 	},
 	"depends": {

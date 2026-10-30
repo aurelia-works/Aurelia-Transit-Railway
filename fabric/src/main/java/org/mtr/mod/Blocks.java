@@ -251,6 +251,8 @@ public final class Blocks {
 
 		// NTE
 		EYE_CANDY = registerBlockWithBlockItem(new Identifier(Init.MOD_ID_NTE, "eye_candy"), () -> new Block(new BlockEyeCandy()), CreativeModeTabs.STATION_BUILDING_BLOCKS);
+
+		TRAIN_COUPLER = registerCoupler();
 	}
 
 	public static final BlockRegistryObject AIRPLANE_NODE;
@@ -446,6 +448,7 @@ public final class Blocks {
 	public static final BlockRegistryObject TRAIN_CARGO_UNLOADER;
 	public static final BlockRegistryObject TRAIN_REDSTONE_SENSOR;
 	public static final BlockRegistryObject TRAIN_SCHEDULE_SENSOR;
+	public static final BlockRegistryObject TRAIN_COUPLER;
 	public static final BlockRegistryObject EYE_CANDY;
 
 	private static final ObjectAVLTreeSet<String> REGISTERED_IDENTIFIERS;
@@ -516,5 +519,13 @@ public final class Blocks {
 	private static BlockRegistryObject registerBlockWithBlockItem(Identifier identifier, Supplier<Block> supplier, BiFunction<Block, ItemSettings, BlockItemExtension> function, CreativeModeTabHolder... creativeModeTabHolders) {
 		REGISTERED_IDENTIFIERS.add(identifier.data.toString());
 		return Init.REGISTRY.registerBlockWithBlockItem(identifier, supplier, function, creativeModeTabHolders);
+	}
+
+	/**
+	 * The registration lambda lives in this method, after every existing lambda in the class, so {@code lambda$init$}
+	 * keeps the numbers add-ons already use.
+	 */
+	private static BlockRegistryObject registerCoupler() {
+		return registerBlockWithBlockItem(new Identifier(Init.MOD_ID, "train_coupler"), () -> new Block(new BlockTrainCoupler()), CreativeModeTabs.RAILWAY_FACILITIES);
 	}
 }

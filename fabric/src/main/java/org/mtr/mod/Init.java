@@ -27,6 +27,7 @@ import org.mtr.mapping.registry.Registry;
 import org.mtr.mapping.tool.DummyClass;
 import org.mtr.mixin.PlayerTeleportationStateAccessor;
 import org.mtr.mod.config.Config;
+import org.mtr.mod.coupling.CouplingService;
 import org.mtr.mod.data.ArrivalsCacheServer;
 import org.mtr.mod.data.RailActionModule;
 import org.mtr.mod.generated.lang.TranslationProvider;
@@ -185,7 +186,9 @@ public final class Init implements Utilities {
 			Config.init(minecraftServer.getRunDirectory());
 			final int defaultPort = Config.getServer().getWebserverPort();
 			serverPort = defaultPort <= 0 ? -1 : findFreePort(defaultPort);
-			main = new Main(minecraftServer.getSavePath(WorldSavePath.getRootMapped()).resolve("mtr"), serverPort, Config.getServer().getUseThreadedSimulation(), Config.getServer().getUseThreadedFileLoading(), Init::setupWebserver, WORLD_ID_LIST.toArray(new String[0]));
+			final java.nio.file.Path mtrDirectory = minecraftServer.getSavePath(WorldSavePath.getRootMapped()).resolve("mtr");
+			main = new Main(mtrDirectory, serverPort, Config.getServer().getUseThreadedSimulation(), Config.getServer().getUseThreadedFileLoading(), Init::setupWebserver, WORLD_ID_LIST.toArray(new String[0]));
+			CouplingService.attach(main, mtrDirectory);
 
 			serverTick = 0;
 			lastSavedMillis = System.currentTimeMillis();
@@ -223,6 +226,7 @@ public final class Init implements Utilities {
 		});
 
 		REGISTRY.eventRegistry.registerServerStopping(minecraftServer -> {
+			CouplingService.stop();
 			if (main != null) {
 				main.stop();
 			}
@@ -245,6 +249,7 @@ public final class Init implements Utilities {
 
 				final long currentMillis = System.currentTimeMillis();
 				if (currentMillis - lastSavedMillis > AUTOSAVE_INTERVAL) {
+					CouplingService.onAutosave();
 					main.save();
 					lastSavedMillis = currentMillis;
 				}
@@ -262,6 +267,7 @@ public final class Init implements Utilities {
 			if (main != null) {
 				final String dimension = getWorldId(new World(serverWorld.data));
 				main.processMessagesS2C(WORLD_ID_LIST.indexOf(dimension), queueObject -> MinecraftOperationProcessor.process(queueObject, serverWorld, dimension));
+				CouplingService.onWorldEnd(dimension);
 			}
 		});
 
