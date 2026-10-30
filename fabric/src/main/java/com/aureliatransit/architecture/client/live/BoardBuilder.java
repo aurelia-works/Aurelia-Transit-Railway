@@ -12,9 +12,12 @@ import com.aureliatransit.architecture.live.display.DepartureText;
 import com.aureliatransit.architecture.live.display.Marquee;
 import com.aureliatransit.architecture.live.display.Pagination;
 import com.aureliatransit.architecture.text.Tr;
+import com.aureliatransit.architecture.transit.Footfall;
 import com.aureliatransit.architecture.transit.ServiceSnapshot;
 import com.aureliatransit.architecture.transit.StationSnapshot;
 import com.aureliatransit.architecture.wayfinding.MessageRotation;
+import com.aureliatransit.architecture.wayfinding.MessageScope;
+import com.aureliatransit.architecture.wayfinding.MessageSeverity;
 import com.aureliatransit.architecture.wayfinding.ServiceMessage;
 import com.aureliatransit.architecture.wayfinding.SuffixContext;
 import net.minecraft.client.font.TextRenderer;
@@ -1009,7 +1012,14 @@ final class BoardBuilder {
 			this.boardH = boardH;
 			final String plain = snapshot.station() == null ? "" : snapshot.station().displayName();
 			this.station = snapshot.station() == null ? "" : ClientStationSuffixes.apply(plain, SuffixContext.DISPLAYS);
-			this.messages = ClientServiceMessages.applicable(config.message(), plain);
+			final List<ServiceMessage> notices = new ArrayList<>(ClientServiceMessages.applicable(config.message(), plain));
+			if (snapshot.station() != null) {
+				final String busy = Footfall.notice(snapshot.station().id(), now);
+				if (busy != null) {
+					notices.add(new ServiceMessage(0, MessageScope.DISPLAY, "", MessageSeverity.WARNING, busy));
+				}
+			}
+			this.messages = List.copyOf(notices);
 			this.concourse = kind == DisplayKind.CONCOURSE;
 			this.arrivals = concourse && config.arrivals();
 			this.services = arrivals ? arrivals(snapshot, plain, now) : visible(kind, snapshot, here, now);

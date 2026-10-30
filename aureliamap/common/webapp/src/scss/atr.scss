@@ -38,6 +38,14 @@
   &:hover .atr-name {
     text-decoration: underline;
   }
+
+  .atr-crowd {
+    font-weight: 600;
+  }
+
+  &.atr-busy .atr-crowd {
+    color: #ffb020;
+  }
 }
 
 .atr-train {

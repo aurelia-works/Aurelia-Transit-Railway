@@ -209,14 +209,17 @@ export class AtrLayer {
                 .map(color => `<i style="background:#${color}"></i>`).join("");
             const interchange = lineKeys.size >= 2;
             const y = heights.reduce((sum, value) => sum + value, 0) / heights.length;
+            const crowd = typeof station.passengers === "number"
+                ? `<span class="atr-crowd" style="margin-left:.35em;opacity:.9${station.busy ? ";color:#ffb020" : ""}">${station.passengers}</span>`
+                : "";
             stations[station.id] = {
                 type: "html",
                 classes: [],
                 label: pickName(station.name, settings.nameMode),
                 position: {x: station.x, y: y + 2, z: station.z},
                 anchor: {x: 0, y: 0},
-                html: `<div class="atr-station${interchange ? " atr-interchange" : ""}" data-id="${station.id}" style="--atr-label:${settings.labelColor}">` +
-                    `<span class="atr-dots">${dots}</span><span class="atr-name">${escapeHtml(pickName(station.name, settings.nameMode))}</span></div>`,
+                html: `<div class="atr-station${interchange ? " atr-interchange" : ""}${station.busy ? " atr-busy" : ""}" data-id="${station.id}" style="--atr-label:${settings.labelColor}">` +
+                    `<span class="atr-dots">${dots}</span><span class="atr-name">${escapeHtml(pickName(station.name, settings.nameMode))}</span>${crowd}</div>`,
                 maxDistance: (interchange ? 3000 : 1200) * settings.labelDistance,
                 listed: true,
             };

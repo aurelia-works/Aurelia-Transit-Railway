@@ -1,5 +1,6 @@
 package org.mtr.mod.servlet;
 
+import com.aureliatransit.architecture.transit.Footfall;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.mtr.core.data.*;
@@ -19,6 +20,11 @@ import java.util.*;
 public final class MapLayerJson {
 
 	private static final Logger LOGGER = LogManager.getLogger("MinecraftTransitRailway");
+	/**
+	 * When non-zero, the passenger count uses this epoch millis instead of {@link System#currentTimeMillis()}. Tests pin the
+	 * clock here. Zero is the live clock, so a normal server never reads a supplier and no synthetic method is added.
+	 */
+	public static long nowMillisOverride;
 	/**
 	 * Blocks between shape points along a rail.
 	 */
@@ -135,6 +141,9 @@ public final class MapLayerJson {
 			final JsonArray routeIds = new JsonArray();
 			stationRoutes.getOrDefault(station, Collections.emptySet()).forEach(routeIds::add);
 			stationObject.add("routes", routeIds);
+			final int passengers = Footfall.passengers(station.getId(), nowMillisOverride != 0 ? nowMillisOverride : System.currentTimeMillis());
+			stationObject.addProperty("passengers", passengers);
+			stationObject.addProperty("busy", Footfall.busy(passengers));
 			stationsArray.add(stationObject);
 		});
 

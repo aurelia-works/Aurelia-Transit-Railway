@@ -31,6 +31,7 @@ import com.aureliatransit.architecture.station.StationOptions;
 import com.aureliatransit.architecture.station.StationSpec;
 import com.aureliatransit.architecture.station.TrackLayout;
 import com.aureliatransit.architecture.station.Violation;
+import com.aureliatransit.architecture.transit.Footfall;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -626,6 +627,8 @@ public final class StudioApi {
 				.append(",\"name\":").append(Json.quote(spec.name())).append('}');
 		out.append(",\"size\":{\"width\":").append(audit.width()).append(",\"length\":").append(audit.length()).append(",\"height\":")
 				.append(audit.height()).append(",\"blocks\":").append(plan.blocks().size()).append('}');
+		final int peak = Footfall.passengersAtMinute(Footfall.key(spec.name()), Footfall.MORNING_PEAK_MINUTE);
+		out.append(",\"footfall\":{\"passengers\":").append(peak).append(",\"busy\":").append(Footfall.busy(peak)).append('}');
 		out.append(",\"buildable\":").append(violations.isEmpty() && audit.buildable());
 		out.append(",\"checks\":[");
 		for (int i = 0; i < audit.checks().size(); i++) {

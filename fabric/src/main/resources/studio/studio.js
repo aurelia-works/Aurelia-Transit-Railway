@@ -1689,6 +1689,9 @@
 		const facts = [["Size", plan.size.width + " × " + plan.size.length + " × " + plan.size.height], ["Blocks", NUMBER.format(plan.size.blocks)],
 			air ? ["Runway", air.length + " × " + air.width + " (" + NUMBER.format(air.metres) + " m)"] : ["Tracks", plan.built.tracks + " · " + plan.built.faces + " faces"],
 			["Planned", plan.ms + " ms"]];
+		if (plan.footfall && typeof plan.footfall.passengers === "number") {
+			facts.push(["Morning peak", NUMBER.format(plan.footfall.passengers) + (plan.footfall.busy ? " · busy, try the next train" : "")]);
+		}
 		$("facts").innerHTML = facts.map(([k, v]) => "<div><dt>" + esc(k) + "</dt><dd>" + esc(v) + "</dd></div>").join("");
 		if (air) {
 			$("banner").innerHTML = "<b>" + esc(plan.title) + "</b>" + esc((air.real ? "regional scale" : "compact scale") + " · " + (air.terminal ? "terminal" : "remote stands")
