@@ -1,0 +1,48 @@
+{
+	"parts": [
+		{
+			"names": [
+				"pantograph_base"
+			],
+			"positionDefinitions": [
+				"window5"
+			],
+			"renderStage": "EXTERIOR"
+		},
+		{
+			"names": [
+				"pantograph_arm_1"
+			],
+			"positionDefinitions": [
+				"window5"
+			],
+			"renderStage": "EXTERIOR",
+			"pantographArmMaxAngle": 44,
+			"pantographArmPivotY": 41.5,
+			"pantographArmPivotZ": -10
+		},
+		{
+			"names": [
+				"pantograph_arm_2"
+			],
+			"positionDefinitions": [
+				"window5"
+			],
+			"renderStage": "EXTERIOR",
+			"pantographArmMaxAngle": -44,
+			"pantographArmPivotY": 41.5,
+			"pantographArmPivotZ": 10
+		},
+		{
+			"names": [
+				"pantograph_head"
+			],
+			"positionDefinitions": [
+				"window5"
+			],
+			"renderStage": "EXTERIOR",
+			"pantographHeadRise": 9.7
+		}
+	],
+	"modelYOffset": 1
+}
