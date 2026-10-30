@@ -1,3 +1,5 @@
+# File mapping only. The Crowdin project id lives in .github/workflows/crowdin.yml
+# and is still the upstream project (455212). Do not sync until ATR has its own project.
 files:
   - source: /fabric/src/main/resources/assets/mtr/lang/en_us.json
     translation: /%locale_with_underscore%.json
