@@ -246,6 +246,19 @@ public class BveVehicleSound extends VehicleSoundBase {
 		@Nullable
 		private final VehicleLoopingSoundInstance soundLoopCompressor;
 
+		/** The MTR 4.0.5 constructor. Add-ons hook it by descriptor, so it stays even though new code passes the flange array. */
+		@SuppressWarnings("unused")
+		private VehicleLoopingSoundHolder(
+				VehicleLoopingSoundInstance[] soundLoopMotor,
+				@Nullable VehicleLoopingSoundInstance soundLoopRun,
+				@Nullable VehicleLoopingSoundInstance soundLoopFlange,
+				@Nullable VehicleLoopingSoundInstance soundLoopNoise,
+				@Nullable VehicleLoopingSoundInstance soundLoopShoe,
+				@Nullable VehicleLoopingSoundInstance soundLoopCompressor
+		) {
+			this(soundLoopMotor, soundLoopRun, soundLoopFlange == null ? new VehicleLoopingSoundInstance[0] : new VehicleLoopingSoundInstance[]{soundLoopFlange}, soundLoopNoise, soundLoopShoe, soundLoopCompressor);
+		}
+
 		private VehicleLoopingSoundHolder(
 				VehicleLoopingSoundInstance[] soundLoopMotor,
 				@Nullable VehicleLoopingSoundInstance soundLoopRun,
