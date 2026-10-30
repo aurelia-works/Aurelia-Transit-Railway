@@ -263,6 +263,8 @@ public class DynamicTextureCache implements IGui {
 				});
 			}
 
+			// The generator keeps its scale in statics that only this worker thread may touch
+			RouteMapGenerator.setConstants();
 			final NativeImage nativeImage = supplier.get();
 
 			resourceRegistryQueue.put(() -> {
@@ -290,7 +292,6 @@ public class DynamicTextureCache implements IGui {
 				generatingResources.remove(key);
 			});
 		});
-		RouteMapGenerator.setConstants();
 		generatingResources.add(key);
 
 		if (dynamicResource == null) {
