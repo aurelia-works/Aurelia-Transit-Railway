@@ -68,6 +68,7 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		LiveSystems.init();
 		InteractiveSystems.init();
 		WayfindingSystems.init();
+		org.mtr.mod.data.DepotSuspension.init();
 		FareSystems.init();
 		StationSystems.init();
 		LOGGER.info("Registered {} Aurelia Transit Architecture blocks (MTR platform door contract: {}, MTR fares: {})", ModBlocks.entries().size(),

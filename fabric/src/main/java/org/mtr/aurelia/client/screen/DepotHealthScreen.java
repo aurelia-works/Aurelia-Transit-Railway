@@ -63,14 +63,26 @@ public final class DepotHealthScreen extends Screen {
 	private void refresh() {
 		final long keep = selected == null ? 0 : selected.id();
 		final List<DepotHealth.DepotInfo> depots = new ArrayList<>();
-		MtrBridge.dashboardData().depots.forEach(depot -> depots.add(MtrBridge.depotInfo(depot)));
+		final java.util.Map<Long, List<String>> suspendedByDepot = new java.util.HashMap<>();
+		MtrBridge.dashboardData().depots.forEach(depot -> {
+			depots.add(MtrBridge.depotInfo(depot));
+			final List<String> hit = new ArrayList<>();
+			for (final String suspended : com.aureliatransit.architecture.client.wayfinding.logic.ClientServiceMessages.suspendedRoutes()) {
+				depot.routes.forEach(route -> {
+					if (com.aureliatransit.architecture.wayfinding.RouteHold.affects(java.util.List.of(new com.aureliatransit.architecture.wayfinding.RouteHold(1, suspended, Long.MAX_VALUE)), route.getName(), 0) && !hit.contains(suspended)) {
+						hit.add(suspended);
+					}
+				});
+			}
+			suspendedByDepot.put(depot.getId(), hit);
+		});
 		depots.sort(DepotHealth.worstFirst());
 		problems.clear();
 		errorDepots = 0;
 		final List<SimpleListWidget.Item<DepotHealth.DepotInfo>> items = new ArrayList<>();
 		DepotHealth.DepotInfo reselect = null;
 		for (final DepotHealth.DepotInfo depot : depots) {
-			final List<DepotHealth.Problem> depotProblems = DepotHealth.check(depot);
+			final List<DepotHealth.Problem> depotProblems = DepotHealth.check(depot, suspendedByDepot.getOrDefault(depot.id(), List.of()));
 			problems.put(depot.id(), depotProblems);
 			final int rank = DepotHealth.rank(depotProblems);
 			if (rank == 0) {

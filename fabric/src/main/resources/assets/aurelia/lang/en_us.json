@@ -102,6 +102,7 @@
 	"gui.aurelia.depots.regenerating": "Regenerating %s depot(s). Press Refresh in a moment.",
 	"gui.aurelia.depots.problem.path_between": "No path found between platform %s and platform %s. Check the rails connect in the route's direction and that trains can turn back where needed.",
 	"gui.aurelia.depots.problem.path_not_found": "No path found for its routes. Check the rails connect between all stops.",
+	"gui.aurelia.depots.problem.route_suspended": "Route %s is suspended: its trains are held at the depot until the message expires.",
 	"gui.aurelia.depots.problem.no_sidings": "Has no sidings inside its zone.",
 	"gui.aurelia.depots.problem.two_platforms": "A route needs at least two platforms.",
 	"gui.aurelia.depots.problem.never_generated": "Has never been generated (or MTR has no result yet).",

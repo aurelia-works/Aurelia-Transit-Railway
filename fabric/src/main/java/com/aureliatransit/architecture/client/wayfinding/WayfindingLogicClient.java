@@ -6,6 +6,7 @@ import com.aureliatransit.architecture.client.wayfinding.logic.ClientServiceMess
 import com.aureliatransit.architecture.client.wayfinding.logic.ClientStationSuffixes;
 import com.aureliatransit.architecture.terminal.Terminals;
 import com.aureliatransit.architecture.client.wayfinding.logic.MtrWayfindingSource;
+import com.aureliatransit.architecture.wayfinding.RouteHold;
 import com.aureliatransit.architecture.wayfinding.ServiceMessageSync;
 import com.aureliatransit.architecture.wayfinding.ServiceMessages;
 import com.aureliatransit.architecture.wayfinding.StationSuffixSync;
@@ -33,13 +34,20 @@ public final class WayfindingLogicClient {
 		}
 		ClientPlayNetworking.registerGlobalReceiver(ServiceMessageSync.SYNC, (client, handler, buf, responseSender) -> {
 			final ServiceMessages messages;
+			final java.util.List<RouteHold> holds = new java.util.ArrayList<>();
 			try {
 				messages = ServiceMessages.read(buf);
+				if (buf.readableBytes() > 0) {
+					final int count = Math.min(buf.readVarInt(), 32);
+					for (int i = 0; i < count && buf.readableBytes() > 0; i++) {
+						holds.add(new RouteHold(buf.readVarInt(), buf.readString(64), buf.readLong()));
+					}
+				}
 			} catch (RuntimeException malformed) {
 				AureliaTransitArchitecture.LOGGER.warn("Ignoring malformed service message sync: {}", malformed.getMessage());
 				return;
 			}
-			client.execute(() -> ClientServiceMessages.set(messages));
+			client.execute(() -> ClientServiceMessages.set(messages, holds));
 		});
 		ClientPlayNetworking.registerGlobalReceiver(StationSuffixSync.SYNC, (client, handler, buf, responseSender) -> {
 			final StationSuffixes suffixes;
