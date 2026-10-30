@@ -10,7 +10,7 @@ import net.minecraft.util.math.BlockPos;
 import java.util.List;
 
 /**
- * The rows the departures renderer draws. Refreshed every second on the client from the live station snapshot.
+ * The rows the departures renderer draws. Refreshed about once a second while the board is on screen.
  * Not saved.
  */
 public class DeparturesBoardBlockEntity extends BlockEntity {
@@ -18,7 +18,7 @@ public class DeparturesBoardBlockEntity extends BlockEntity {
 	static final int ROWS = 5;
 	private static final int REFRESH_TICKS = 20;
 
-	private int cooldown;
+	private long lastRefresh = Long.MIN_VALUE;
 	private List<String> lines = List.of();
 
 	public DeparturesBoardBlockEntity(BlockPos pos, BlockState state) {
@@ -29,12 +29,12 @@ public class DeparturesBoardBlockEntity extends BlockEntity {
 		return lines;
 	}
 
-	public void clientTick() {
-		if (cooldown > 0) {
-			cooldown--;
+	/** Refreshes the rows at most once a second of world time. Called from the renderer, so the block has no ticker. */
+	public void advance(long time) {
+		if (lastRefresh != Long.MIN_VALUE && time - lastRefresh < REFRESH_TICKS) {
 			return;
 		}
-		cooldown = REFRESH_TICKS;
+		lastRefresh = time;
 		refresh();
 	}
 

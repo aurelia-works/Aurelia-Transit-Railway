@@ -41,6 +41,9 @@ public final class JetBridgeRenderer implements BlockEntityRenderer<JetBridgeBlo
 
 	@Override
 	public void render(JetBridgeBlockEntity entity, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int overlay) {
+		if (entity.getWorld() != null) {
+			entity.advance(entity.getWorld().getTime());
+		}
 		final float extension = entity.extension();
 		if (extension <= 0.001f) {
 			return;

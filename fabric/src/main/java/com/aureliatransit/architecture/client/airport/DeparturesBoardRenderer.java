@@ -31,6 +31,9 @@ public final class DeparturesBoardRenderer implements BlockEntityRenderer<Depart
 
 	@Override
 	public void render(DeparturesBoardBlockEntity entity, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int overlay) {
+		if (entity.getWorld() != null) {
+			entity.advance(entity.getWorld().getTime());
+		}
 		final BlockState state = entity.getCachedState();
 		if (!(state.getBlock() instanceof DeparturesBoardBlock)) {
 			return;

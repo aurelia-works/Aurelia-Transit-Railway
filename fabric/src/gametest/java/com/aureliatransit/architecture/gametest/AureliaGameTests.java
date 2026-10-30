@@ -114,7 +114,10 @@ public class AureliaGameTests implements FabricGameTest {
 			Map.entry("hanging_digital_clock", "ClockBlock"), Map.entry("wall_digital_clock", "ClockBlock"), Map.entry("station_analog_clock", "ClockBlock"),
 			Map.entry("information_case", "InfoDisplayBlock"), Map.entry("information_pillar", "InfoDisplayBlock"), Map.entry("bus_timetable_case", "InfoDisplayBlock"),
 			// TrainEdgeBlock: platform edges that react to a stopped train
-			Map.entry("drop_barrier_edge", "TrainEdgeBlock"), Map.entry("boarding_step_edge", "TrainEdgeBlock")
+			Map.entry("drop_barrier_edge", "TrainEdgeBlock"), Map.entry("boarding_step_edge", "TrainEdgeBlock"),
+			// JetBridgeBlock and DeparturesBoardBlock: the tunnel and the flight rows are drawn by the client renderer.
+			// Neither block registers a ticker; the renderer advances them while they are on screen.
+			Map.entry("jet_bridge", "JetBridgeBlock"), Map.entry("departures_board", "DeparturesBoardBlock")
 	);
 
 	private static final int[] CELL = {1, 5};
