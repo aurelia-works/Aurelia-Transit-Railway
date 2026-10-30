@@ -29,6 +29,11 @@ public final class AirplanePath {
 	private AirplanePath() {
 	}
 
+	/** The corrections here are for airplanes only. Trains and boats keep the core's own positions. */
+	public static boolean appliesTo(TransportMode mode) {
+		return mode == TransportMode.AIRPLANE;
+	}
+
 	/**
 	 * A repeat sentinel is the segment whose end distance is unbounded. The core builds it from an
 	 * empty JSON object, so both of its positions are the origin. Anchor it to the end of the previous

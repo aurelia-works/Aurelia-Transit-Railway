@@ -27,7 +27,7 @@ public abstract class AirplanePositionMixin {
 
 	@Inject(method = "getPosition", at = @At("RETURN"), cancellable = true)
 	private void atr$keepBogieOnThePath(double value, DoubleArrayList overrideY, CallbackInfoReturnable<Vector> callback) {
-		if (callback.getReturnValue() == null) {
+		if (callback.getReturnValue() == null || !AirplanePath.appliesTo(((Vehicle) (Object) this).getTransportMode())) {
 			return;
 		}
 		final int index = Utilities.getIndexFromConditionalList(vehicleExtraData.immutablePath, value);

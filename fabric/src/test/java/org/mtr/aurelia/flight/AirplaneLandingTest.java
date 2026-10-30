@@ -194,8 +194,12 @@ public final class AirplaneLandingTest {
 		final ObjectArrayList<SidingPathFinder<org.mtr.core.data.Station, Platform, org.mtr.core.data.Station, Platform>> finders = new ObjectArrayList<>();
 		finders.add(new SidingPathFinder<>(data, home, far, 0));
 		final boolean[] failed = {false};
-		SidingPathFinder.findPathTick(path, finders, 256, () -> {
-		}, (start, end) -> failed[0] = true);
+		// One findPathTick call only searches for 5 ms of wall clock, so a cold or busy machine returns before the path is done.
+		final long deadline = System.currentTimeMillis() + 30_000;
+		while (path.isEmpty() && !failed[0] && System.currentTimeMillis() < deadline) {
+			SidingPathFinder.findPathTick(path, finders, 256, () -> {
+			}, (start, end) -> failed[0] = true);
+		}
 		assertFalse(failed[0], "pathfinder failed with " + path.size() + " segments and " + data.runwaysInbound.size() + " inbound runways");
 		assertTrue(path.size() >= 2, "path has " + path.size() + " segments");
 		return path;
