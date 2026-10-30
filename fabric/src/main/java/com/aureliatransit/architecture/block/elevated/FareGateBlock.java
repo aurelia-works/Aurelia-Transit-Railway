@@ -25,7 +25,6 @@ import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -62,23 +61,16 @@ public class FareGateBlock extends FacingKindBlock<FareGateKind> {
 	private static final Map<Direction, VoxelShape> END_PANEL = Shapes.horizontalMap(createCuboidShape(0, 0, 4, 16, 24, 12));
 	/** How long an open gate remembers the passenger it opened for. */
 	private static final long PAYER_WINDOW_TICKS = 60;
-	private static final int MAX_TRACKED_GATES = 512;
 
-	/** The passenger a gate last opened for, so anyone else slipping through the open paddles is charged the maximum fare. */
-	private record Payer(UUID id, long until) {
+	/** The passenger a gate last opened for, so anyone else slipping through the open paddles is charged the maximum fare. Per world, not just per position. */
+	private static final FarePayers PAYERS = new FarePayers();
+
+	private static void rememberPayer(World world, BlockPos pos, PlayerEntity player, long now) {
+		PAYERS.remember(world, pos.asLong(), player.getUuid(), now + PAYER_WINDOW_TICKS);
 	}
 
-	private static final Map<Long, Payer> PAYER = new HashMap<>();
-
-	private static void rememberPayer(BlockPos pos, PlayerEntity player, long now) {
-		if (PAYER.size() >= MAX_TRACKED_GATES) {
-			PAYER.clear();
-		}
-		PAYER.put(pos.asLong(), new Payer(player.getUuid(), now + PAYER_WINDOW_TICKS));
-	}
-
-	private static void forgetPayer(BlockPos pos) {
-		PAYER.remove(pos.asLong());
+	private static void forgetPayer(World world, BlockPos pos) {
+		PAYERS.forget(world, pos.asLong());
 	}
 
 	public FareGateBlock(Settings settings) {
@@ -124,9 +116,9 @@ public class FareGateBlock extends FacingKindBlock<FareGateKind> {
 		final FareGateOpen open = state.get(OPEN);
 		if (open == FareGateOpen.OPEN) {
 			// someone else slipping through while the paddles stand open for their payer: an incomplete journey
-			final Payer payer = PAYER.get(pos.asLong());
-			if (payer != null && world.getTime() <= payer.until() && !payer.id().equals(player.getUuid())) {
-				PAYER.remove(pos.asLong());
+			final UUID payer = PAYERS.payerWithin(world, pos.asLong(), world.getTime());
+			if (payer != null && !payer.equals(player.getUuid())) {
+				forgetPayer(world, pos);
 				final int charged = MtrFareContract.chargeMaximumFare(world, player);
 				if (charged > 0) {
 					player.sendMessage(Text.translatable("message." + AureliaTransitArchitecture.MOD_ID + ".maximum_fare", charged).formatted(Formatting.RED), true);
@@ -136,7 +128,7 @@ public class FareGateBlock extends FacingKindBlock<FareGateKind> {
 		if (open == FareGateOpen.OPEN && off > CLEAR_OF_PADDLES) {
 			// through (or backed out): the paddles shut behind the player
 			world.setBlockState(pos, state.with(OPEN, FareGateOpen.CLOSED));
-			forgetPayer(pos);
+			forgetPayer(world, pos);
 		} else if (open == FareGateOpen.CLOSED && off < AT_PADDLES) {
 			// The pos handed to onEntityCollision is a mutable cursor that the caller moves on to other blocks; MTR answers
 			// later, so its callback must hold a copy.
@@ -149,7 +141,7 @@ public class FareGateBlock extends FacingKindBlock<FareGateKind> {
 				final BlockState now = world.getBlockState(gatePos);
 				if (opened && now.isOf(this)) {
 					world.setBlockState(gatePos, now.with(OPEN, FareGateOpen.OPEN));
-					rememberPayer(gatePos, player, world.getTime());
+					rememberPayer(world, gatePos, player, world.getTime());
 				}
 			});
 		}
@@ -164,7 +156,7 @@ public class FareGateBlock extends FacingKindBlock<FareGateKind> {
 			world.scheduleBlockTick(pos, this, CLOSE_DELAY_TICKS);
 		} else {
 			world.setBlockState(pos, state.with(OPEN, FareGateOpen.CLOSED));
-			forgetPayer(pos);
+			forgetPayer(world, pos);
 		}
 	}
 }
