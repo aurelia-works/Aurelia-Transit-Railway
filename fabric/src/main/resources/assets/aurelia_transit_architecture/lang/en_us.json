@@ -702,6 +702,7 @@
   "block.aurelia_transit_architecture.runway_threshold_light": "Runway Threshold Light",
   "block.aurelia_transit_architecture.taxiway_edge_light": "Taxiway Edge Light",
   "block.aurelia_transit_architecture.apron_floodlight": "Apron Floodlight",
+  "block.aurelia_transit_architecture.apron_platform": "Apron Platform",
   "block.aurelia_transit_architecture.check_in_desk": "Check-in Desk",
   "block.aurelia_transit_architecture.baggage_belt": "Baggage Belt",
   "block.aurelia_transit_architecture.departures_board": "Departures Board",
@@ -719,5 +720,10 @@
   "block.aurelia_transit_architecture.baggage_carousel_corner": "Baggage Carousel Corner",
   "block.aurelia_transit_architecture.gate_desk": "Gate Desk",
   "block.aurelia_transit_architecture.luggage_trolley": "Luggage Trolley",
-  "block.aurelia_transit_architecture.airport_seat": "Airport Seating"
+  "block.aurelia_transit_architecture.airport_seat": "Airport Seating",
+  "block.aurelia_transit_architecture.jet_bridge": "Jet Bridge",
+  "tooltip.aurelia_transit_architecture.apron_platform": "Apron paving that opens a plane's doors beside the stand",
+  "tooltip.aurelia_transit_architecture.jet_bridge": "Extends to the aircraft door while the plane is stopped at the stand, and retracts when it leaves",
+  "tooltip.aurelia_transit_architecture.departures_board": "Upcoming flights at this airport",
+  "text.aurelia_transit_architecture.no_departures": "No departures"
 }
