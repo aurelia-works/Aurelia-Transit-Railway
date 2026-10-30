@@ -40,7 +40,17 @@ public class VehicleExtension extends Vehicle implements Utilities {
 	 * (chat, action bar, voice pack) and MTR's own chat announcement should stay quiet. A dedicated server
 	 * never sets this, so vanilla MTR clients and servers keep the original announcement.
 	 */
-	public static BooleanSupplier aureliaRideAnnouncements = () -> false;
+	public static BooleanSupplier aureliaRideAnnouncements = AureliaRideAnnouncementsOff.INSTANCE;
+
+	/** Not a lambda: a lambda here would renumber VehicleExtension's existing ones and break add-on hooks. */
+	private static final class AureliaRideAnnouncementsOff implements BooleanSupplier {
+		static final AureliaRideAnnouncementsOff INSTANCE = new AureliaRideAnnouncementsOff();
+
+		@Override
+		public boolean getAsBoolean() {
+			return false;
+		}
+	}
 
 	private double oldSpeed;
 	private int speedLimitKilometersPerHour;
