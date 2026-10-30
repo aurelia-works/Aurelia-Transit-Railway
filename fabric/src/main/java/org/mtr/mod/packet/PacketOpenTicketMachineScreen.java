@@ -13,7 +13,7 @@ public final class PacketOpenTicketMachineScreen extends PacketHandler {
 
 	public PacketOpenTicketMachineScreen(PacketBufferReceiver packetBufferReceiver) {
 		balance = packetBufferReceiver.readInt();
-		currencyId = packetBufferReceiver.readString();
+		currencyId = readCurrencyId(packetBufferReceiver);
 	}
 
 	public PacketOpenTicketMachineScreen(int balance) {
@@ -31,5 +31,14 @@ public final class PacketOpenTicketMachineScreen extends PacketHandler {
 	@Override
 	public void runClient() {
 		ClientPacketHelper.openTicketMachineScreen(balance, currencyId);
+	}
+
+	/** A plain MTR server sends only the balance, so a missing currency means the default one. */
+	private static String readCurrencyId(PacketBufferReceiver packetBufferReceiver) {
+		try {
+			return packetBufferReceiver.readString();
+		} catch (RuntimeException e) {
+			return null;
+		}
 	}
 }
