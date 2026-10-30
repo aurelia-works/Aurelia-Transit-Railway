@@ -102,6 +102,22 @@
 		"freeUnusedModels": {
 			"type": "boolean",
 			"default": true
+		},
+		"pantographAnimation": {
+			"type": "boolean",
+			"default": true
+		},
+		"pantographRaiseSeconds": {
+			"type": "number",
+			"default": 2.0
+		},
+		"pantographDefaultEnd": {
+			"type": "integer",
+			"default": 3
+		},
+		"pantographStayUpKilometersPerHour": {
+			"type": "number",
+			"default": 40.0
 		}
 	}
 }

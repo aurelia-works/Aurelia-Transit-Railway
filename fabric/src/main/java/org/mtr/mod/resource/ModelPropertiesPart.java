@@ -14,6 +14,8 @@ import org.mtr.mod.client.CustomResourceLoader;
 import org.mtr.mod.client.DynamicTextureCache;
 import org.mtr.mod.client.IDrawing;
 import org.mtr.mod.client.ScrollingText;
+import org.mtr.mod.config.Client;
+import org.mtr.mod.config.Config;
 import org.mtr.mod.data.IGui;
 import org.mtr.mod.data.VehicleExtension;
 import org.mtr.mod.generated.resource.ModelPropertiesPartSchema;
@@ -32,8 +34,12 @@ public final class ModelPropertiesPart extends ModelPropertiesPartSchema impleme
 	private final ObjectArrayList<DisplayPartDetails> displayPartDetailsList = new ObjectArrayList<>();
 	private final int displayColorCjkInt;
 	private final int displayColorInt;
+	private double modelYOffset;
+	private boolean pantographMoves;
 
 	private static final int LINE_PADDING = 2;
+	/** A speed in blocks per millisecond times 1000 (to metres per second) times 3.6. */
+	private static final double PANTOGRAPH_KILOMETERS_PER_HOUR_PER_BLOCK_PER_MILLISECOND = 3600;
 
 	public ModelPropertiesPart(ReaderBase readerBase) {
 		super(readerBase);
@@ -109,7 +115,7 @@ public final class ModelPropertiesPart extends ModelPropertiesPartSchema impleme
 	/**
 	 * Maps each part name to the corresponding part and collects all floors, doors, and doorways for processing later.
 	 * Writes to the collective vehicle model parts (one with doors, one without doors).
-	 * If this part is a door, create an optimized model to be rendered later.
+	 * If this part is a door or a moving pantograph, create an optimized model to be rendered later.
 	 */
 	public void writeCache(
 			Identifier texture,
@@ -139,7 +145,11 @@ public final class ModelPropertiesPart extends ModelPropertiesPartSchema impleme
 			}
 		});
 
-		if (isDoor()) {
+		if (isPantograph()) {
+			pantographMoves = true;
+		}
+
+		if (isDoor() || pantographMoves) {
 			final OptimizedModelWrapper.MaterialGroupWrapper materialGroup = new OptimizedModelWrapper.MaterialGroupWrapper(renderStage.shaderType, texture);
 			modelParts.forEach(modelPart -> materialGroup.addCube(modelPart, 0, 0, 0, false, MAX_LIGHT_INTERIOR));
 			optimizedModelDoor = OptimizedModelWrapper.fromMaterialGroups(ObjectArrayList.of(materialGroup));
@@ -151,10 +161,12 @@ public final class ModelPropertiesPart extends ModelPropertiesPartSchema impleme
 			switch (type) {
 				case NORMAL:
 					iteratePositions(positions, positionsFlipped, (x, y, z, flipped) -> {
-						if (!isDoor()) {
+						if (!isDoor() && !pantographMoves) {
 							addCube(texture, modelParts, materialGroupsForPartConditionAndRenderStage, x, y, z, flipped);
 						}
-						addCube(texture, modelParts, materialGroupsForPartConditionAndRenderStageDoorsClosed, x, y, z, flipped);
+						if (!pantographMoves) {
+							addCube(texture, modelParts, materialGroupsForPartConditionAndRenderStageDoorsClosed, x, y, z, flipped);
+						}
 						partDetailsList.add(new PartDetails(modelParts, optimizedModelDoor, addBox(mutableBox.get(), x, y, z, flipped), x, y, z, flipped));
 					});
 					break;
@@ -209,6 +221,10 @@ public final class ModelPropertiesPart extends ModelPropertiesPartSchema impleme
 		if (vehicle == null || VehicleResource.matchesCondition(vehicle, condition, openDoorways.isEmpty())) {
 			switch (type) {
 				case NORMAL:
+					if (pantographMoves) {
+						schedulePantograph(texture, storedMatrixTransformations, vehicle, carNumber, light);
+						break;
+					}
 					final ObjectIntImmutablePair<QueuedRenderLayer> renderProperties = getRenderProperties(renderStage, light, vehicle);
 					if (OptimizedRenderer.hasOptimizedRendering()) {
 						MainRenderer.scheduleRender(QueuedRenderLayer.TEXT, (graphicsHolder, offset) -> renderNormal(storedMatrixTransformations, vehicle, renderProperties, openDoorways, light, graphicsHolder, offset));
@@ -280,7 +296,12 @@ public final class ModelPropertiesPart extends ModelPropertiesPartSchema impleme
 				renderFromClosingDoorTime,
 				renderUntilClosingDoorTime,
 				flashOnTime,
-				flashOffTime
+				flashOffTime,
+				pantographEnd,
+				pantographArmMaxAngle,
+				pantographArmPivotY,
+				pantographArmPivotZ,
+				pantographHeadRise
 		)))));
 	}
 
@@ -736,6 +757,93 @@ public final class ModelPropertiesPart extends ModelPropertiesPartSchema impleme
 			this.z = z / 16;
 			this.flipped = flipped;
 		}
+	}
+
+	/**
+	 * A part moves as a pantograph when it has an arm angle or a head rise. Without them it renders exactly as before.
+	 */
+	boolean isPantograph() {
+		return type == PartType.NORMAL && !isDoor() && (pantographArmMaxAngle != 0 || pantographHeadRise != 0);
+	}
+
+	/**
+	 * The pivot is given in Blockbench coordinates, so the part needs the model's Y offset to find it in model space.
+	 */
+	void setModelYOffset(double modelYOffset) {
+		this.modelYOffset = modelYOffset;
+	}
+
+	void setPantograph(PantographEnd pantographEnd, double pantographArmMaxAngle, double pantographArmPivotY, double pantographArmPivotZ, double pantographHeadRise) {
+		this.pantographEnd = pantographEnd;
+		this.pantographArmMaxAngle = pantographArmMaxAngle;
+		this.pantographArmPivotY = pantographArmPivotY;
+		this.pantographArmPivotZ = pantographArmPivotZ;
+		this.pantographHeadRise = pantographHeadRise;
+	}
+
+	/**
+	 * Pantograph parts are not baked into the shared model, because they change every frame.
+	 * They are drawn on their own, like open doors, with the raise value of this car.
+	 */
+	private void schedulePantograph(Identifier texture, StoredMatrixTransformations storedMatrixTransformations, @Nullable VehicleExtension vehicle, int carNumber, int light) {
+		final double raise = getPantographRaise(vehicle, carNumber);
+		final ObjectIntImmutablePair<QueuedRenderLayer> renderProperties = getRenderProperties(renderStage, light, vehicle);
+		if (OptimizedRenderer.hasOptimizedRendering()) {
+			MainRenderer.scheduleRender(QueuedRenderLayer.TEXT, (graphicsHolder, offset) -> renderPantograph(storedMatrixTransformations, raise, renderProperties, light, graphicsHolder, offset));
+		} else {
+			MainRenderer.scheduleRender(texture, false, renderProperties.left(), (graphicsHolder, offset) -> renderPantograph(storedMatrixTransformations, raise, renderProperties, light, graphicsHolder, offset));
+		}
+	}
+
+	/**
+	 * The eased raise value, 0 (lowered, as modelled) to 1 (fully up). A preview without a vehicle shows the pantograph up.
+	 */
+	private double getPantographRaise(@Nullable VehicleExtension vehicle, int carNumber) {
+		final Client client = Config.getClient();
+		if (!client.getPantographAnimation()) {
+			return 0;
+		} else if (vehicle == null) {
+			return 1;
+		}
+		final PantographEnd defaultEnd = client.getPantographDefaultEnd();
+		final PantographEnd end = pantographEnd == PantographEnd.DEFAULT ? defaultEnd : pantographEnd;
+		final boolean up = PantographMotion.endActive(pantographEnd, defaultEnd, vehicle.getReversed())
+				&& PantographMotion.shouldBeUp(vehicle.getIsOnRoute(), vehicle.getSpeed() * PANTOGRAPH_KILOMETERS_PER_HOUR_PER_BLOCK_PER_MILLISECOND, client.getPantographStayUpKilometersPerHour());
+		return PantographState.INSTANCE.update(vehicle.getId(), carNumber, end, up, System.nanoTime(), client.getPantographRaiseSeconds());
+	}
+
+	private void renderPantograph(StoredMatrixTransformations storedMatrixTransformations, double raise, ObjectIntImmutablePair<QueuedRenderLayer> renderProperties, int light, GraphicsHolder graphicsHolder, Vector3d offset) {
+		storedMatrixTransformations.transform(graphicsHolder, offset);
+		final float angle = (float) PantographMotion.armAngleDegrees(raise, pantographArmMaxAngle);
+		final float rise = (float) PantographMotion.headRise(raise, pantographHeadRise);
+		// Blockbench has Y pointing up and the model Y offset applied to it; model space has Y pointing down
+		final float pivotY = (float) (-pantographArmPivotY - modelYOffset * 16) / 16;
+		final float pivotZ = (float) pantographArmPivotZ / 16;
+		for (final PartDetails partDetails : partDetailsList) {
+			graphicsHolder.push();
+			graphicsHolder.translate(partDetails.x / 16, partDetails.y / 16, partDetails.z / 16);
+			if (partDetails.flipped) {
+				graphicsHolder.rotateYDegrees(180);
+			}
+			// The head rises straight up; the arm turns about the X axis through its pivot, which lifts its free end
+			graphicsHolder.translate(0, -rise / 16, 0);
+			if (angle != 0) {
+				graphicsHolder.translate(0, pivotY, pivotZ);
+				graphicsHolder.rotateXDegrees(angle);
+				graphicsHolder.translate(0, -pivotY, -pivotZ);
+			}
+			if (OptimizedRenderer.hasOptimizedRendering()) {
+				if (partDetails.optimizedModelDoor != null) {
+					CustomResourceLoader.OPTIMIZED_RENDERER_WRAPPER.queue(partDetails.optimizedModelDoor, graphicsHolder, light);
+				}
+			} else {
+				for (final ModelPartExtension modelPart : partDetails.modelParts) {
+					modelPart.render(graphicsHolder, 0, 0, 0, 0, renderProperties.rightInt(), OverlayTexture.getDefaultUvMapped());
+				}
+			}
+			graphicsHolder.pop();
+		}
+		graphicsHolder.pop();
 	}
 
 	@FunctionalInterface

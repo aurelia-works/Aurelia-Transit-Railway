@@ -4,6 +4,7 @@ import org.mtr.core.serializer.ReaderBase;
 import org.mtr.core.tool.Utilities;
 import org.mtr.mod.Keys;
 import org.mtr.mod.generated.config.ClientSchema;
+import org.mtr.mod.resource.PantographEnd;
 
 public final class Client extends ClientSchema {
 
@@ -13,6 +14,8 @@ public final class Client extends ClientSchema {
 	public static final int RAIL_FAR_CHUNKS_MAX = 32;
 	public static final int TRAIN_INTERIOR_CHUNKS_MAX = 16;
 	public static final int TRAIN_BOX_CHUNKS_MAX = 32;
+	public static final double PANTOGRAPH_RAISE_SECONDS_MAX = 10;
+	public static final double PANTOGRAPH_STAY_UP_KILOMETERS_PER_HOUR_MAX = 200;
 
 	public Client(ReaderBase readerBase) {
 		super(readerBase);
@@ -221,5 +224,42 @@ public final class Client extends ClientSchema {
 
 	public void hideBetaWarningScreen() {
 		betaWarningVersion = Keys.MOD_VERSION;
+	}
+
+	public boolean getPantographAnimation() {
+		return pantographAnimation;
+	}
+
+	public double getPantographRaiseSeconds() {
+		return pantographRaiseSeconds;
+	}
+
+	/**
+	 * The end used by pantograph parts that do not choose one. {@code DEFAULT} itself means both ends.
+	 */
+	public PantographEnd getPantographDefaultEnd() {
+		return PantographEnd.values()[Utilities.clamp((int) pantographDefaultEnd, 0, PantographEnd.values().length - 1)];
+	}
+
+	public double getPantographStayUpKilometersPerHour() {
+		return pantographStayUpKilometersPerHour;
+	}
+
+	public void togglePantographAnimation() {
+		pantographAnimation = !pantographAnimation;
+	}
+
+	public void setPantographRaiseSeconds(double pantographRaiseSeconds) {
+		this.pantographRaiseSeconds = Utilities.clamp(pantographRaiseSeconds, 0, PANTOGRAPH_RAISE_SECONDS_MAX);
+	}
+
+	public void cyclePantographDefaultEnd() {
+		// front, rear, both; DEFAULT means "both" here too, so the panel skips it
+		final int next = (int) pantographDefaultEnd + 1;
+		pantographDefaultEnd = next < 1 || next >= PantographEnd.values().length ? 1 : next;
+	}
+
+	public void setPantographStayUpKilometersPerHour(double pantographStayUpKilometersPerHour) {
+		this.pantographStayUpKilometersPerHour = Utilities.clamp(pantographStayUpKilometersPerHour, 0, PANTOGRAPH_STAY_UP_KILOMETERS_PER_HOUR_MAX);
 	}
 }

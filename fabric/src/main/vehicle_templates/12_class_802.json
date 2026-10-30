@@ -77,6 +77,12 @@
 					"textureResource": "mtr:textures/vehicle/class_802_@id@.png",
 					"modelPropertiesResource": "mtr:properties/vehicle/class_802_end_2.json",
 					"positionDefinitionsResource": "mtr:properties/definition/class_802@definition@.json"
+				},
+				{
+					"modelResource": "mtr:models/vehicle/class_802.bbmodel",
+					"textureResource": "mtr:textures/vehicle/class_802_@id@.png",
+					"modelPropertiesResource": "mtr:properties/vehicle/class_802_pantograph.json",
+					"positionDefinitionsResource": "mtr:properties/definition/class_802@definition@.json"
 				}
 			],
 			"bogie1Models": [

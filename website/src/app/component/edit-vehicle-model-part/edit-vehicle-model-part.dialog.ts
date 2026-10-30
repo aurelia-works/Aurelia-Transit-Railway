@@ -67,6 +67,11 @@ export class EditVehicleModelPartDialog {
 			renderUntilOpeningDoorTime: new FormControl(modelPropertiesPart.renderUntilOpeningDoorTime),
 			renderFromClosingDoorTime: new FormControl(modelPropertiesPart.renderFromClosingDoorTime),
 			renderUntilClosingDoorTime: new FormControl(modelPropertiesPart.renderUntilClosingDoorTime),
+			pantographEnd: new FormControl(modelPropertiesPart.pantographEnd),
+			pantographArmMaxAngle: new FormControl(modelPropertiesPart.pantographArmMaxAngle),
+			pantographArmPivotY: new FormControl(modelPropertiesPart.pantographArmPivotY),
+			pantographArmPivotZ: new FormControl(modelPropertiesPart.pantographArmPivotZ),
+			pantographHeadRise: new FormControl(modelPropertiesPart.pantographHeadRise),
 			flashOnTime: new FormControl(modelPropertiesPart.flashOnTime),
 			flashOffTime: new FormControl(modelPropertiesPart.flashOffTime),
 			displayOptionSingleLine: new FormControl(modelPropertiesPart.displayOptions.includes("SINGLE_LINE")),
@@ -115,6 +120,11 @@ export class EditVehicleModelPartDialog {
 			modelPropertiesPart.renderUntilOpeningDoorTime = newData.renderUntilOpeningDoorTime ?? defaultModelPropertiesPart.renderUntilOpeningDoorTime;
 			modelPropertiesPart.renderFromClosingDoorTime = newData.renderFromClosingDoorTime ?? defaultModelPropertiesPart.renderFromClosingDoorTime;
 			modelPropertiesPart.renderUntilClosingDoorTime = newData.renderUntilClosingDoorTime ?? defaultModelPropertiesPart.renderUntilClosingDoorTime;
+			modelPropertiesPart.pantographEnd = newData.pantographEnd ?? defaultModelPropertiesPart.pantographEnd;
+			modelPropertiesPart.pantographArmMaxAngle = newData.pantographArmMaxAngle ?? defaultModelPropertiesPart.pantographArmMaxAngle;
+			modelPropertiesPart.pantographArmPivotY = newData.pantographArmPivotY ?? defaultModelPropertiesPart.pantographArmPivotY;
+			modelPropertiesPart.pantographArmPivotZ = newData.pantographArmPivotZ ?? defaultModelPropertiesPart.pantographArmPivotZ;
+			modelPropertiesPart.pantographHeadRise = newData.pantographHeadRise ?? defaultModelPropertiesPart.pantographHeadRise;
 			modelPropertiesPart.flashOnTime = newData.flashOnTime ?? defaultModelPropertiesPart.flashOnTime;
 			modelPropertiesPart.flashOffTime = newData.flashOffTime ?? defaultModelPropertiesPart.flashOffTime;
 			modelPropertiesPart.displayOptions.length = 0;
