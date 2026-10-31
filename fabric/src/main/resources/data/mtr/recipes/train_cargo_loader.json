@@ -1,0 +1,22 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		"H",
+		"C",
+		"R"
+	],
+	"key": {
+		"H": {
+			"item": "minecraft:hopper"
+		},
+		"C": {
+			"item": "minecraft:chest"
+		},
+		"R": {
+			"item": "minecraft:rail"
+		}
+	},
+	"result": {
+		"item": "mtr:train_cargo_loader"
+	}
+}
