@@ -282,5 +282,20 @@
 	"gui.aurelia.panel.tab.riding": "Riding",
 	"gui.aurelia.riding.sit": "Sit when boarding: %s",
 	"gui.aurelia.riding.sit.tooltip": "Each ride starts sitting or standing. The sit key (X by default) switches while you ride.",
-	"gui.aurelia.riding.drop": "Sit height: %s blocks lower"
+	"gui.aurelia.riding.drop": "Sit height: %s blocks lower",
+	"gui.aurelia.panel.tab.train_sound": "Train sound",
+	"gui.aurelia.train_sound.wide_pitch": "Wide pitch range: %s",
+	"gui.aurelia.train_sound.wide_pitch.tooltip": "Vanilla limits every sound to pitch 0.5-2. On: train sounds go from 0.25 up to the maximum below, so BVE motor tables play as written.",
+	"gui.aurelia.train_sound.max_pitch": "Highest train pitch: %s",
+	"gui.aurelia.train_sound.motor_smoothing": "Motor pitch bend: %s%%",
+	"gui.aurelia.train_sound.motor_smoothing.off": "Motor pitch bend: Off",
+	"gui.aurelia.train_sound.motor_smoothing.tooltip": "Old-style (non-BVE) trains jump between motor clips at each speed step. This bends the pitch across a step so the jump is smaller.",
+	"gui.aurelia.train_sound.door_chime": "Door chime: %s",
+	"gui.aurelia.train_sound.door_chime.0": "Off",
+	"gui.aurelia.train_sound.door_chime.1": "Two-tone",
+	"gui.aurelia.train_sound.door_chime.2": "Three-tone",
+	"gui.aurelia.train_sound.door_chime.tooltip": "Plays once on every train as its doors start to close.",
+	"gui.aurelia.train_sound.door_chime_volume": "Door chime volume: %s%%",
+	"gui.aurelia.train_sound.flange_volume": "Curve squeal volume: %s%%",
+	"gui.aurelia.train_sound.flange_volume.off": "Curve squeal: Off"
 }

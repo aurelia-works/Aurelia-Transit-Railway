@@ -118,6 +118,30 @@
 		"pantographStayUpKilometersPerHour": {
 			"type": "number",
 			"default": 40.0
+		},
+		"soundWidePitch": {
+			"type": "boolean",
+			"default": true
+		},
+		"soundMaxPitch": {
+			"type": "number",
+			"default": 4.0
+		},
+		"motorPitchSmoothing": {
+			"type": "number",
+			"default": 0.15
+		},
+		"doorChime": {
+			"type": "integer",
+			"default": 0
+		},
+		"doorChimeVolume": {
+			"type": "number",
+			"default": 0.8
+		},
+		"flangeVolume": {
+			"type": "number",
+			"default": 1.0
 		}
 	}
 }

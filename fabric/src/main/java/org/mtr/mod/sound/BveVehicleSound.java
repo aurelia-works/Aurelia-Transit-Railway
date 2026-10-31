@@ -3,6 +3,7 @@ package org.mtr.mod.sound;
 import org.mtr.mapping.holder.BlockPos;
 import org.mtr.mapping.holder.MinecraftClient;
 import org.mtr.mapping.holder.SoundEvent;
+import org.mtr.mod.config.Config;
 
 import javax.annotation.Nullable;
 import java.util.Random;
@@ -212,7 +213,7 @@ public class BveVehicleSound extends VehicleSoundBase {
 			lastBogieX = x;
 			lastBogieZ = z;
 		}
-		final float gain = loaded == 0 ? 0 : FlangeSqueal.gain(curvature, speedKilometersPerHour);
+		final float gain = loaded == 0 ? 0 : FlangeSqueal.gain(curvature, speedKilometersPerHour) * (float) Config.getClient().getFlangeVolume();
 		final float pitch = FlangeSqueal.pitch(speedKilometersPerHour);
 		final int slot = FlangeSqueal.slot(speedKilometersPerHour, loaded);
 		int seen = 0;
