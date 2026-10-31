@@ -145,7 +145,7 @@ public class VehicleExtension extends Vehicle implements Utilities {
 
 			// Next stop, interchanges and terminus: the Aurelia announcer (voice packs, display style, client toggle).
 			// MTR's own chat announcement remains when that announcer is switched off.
-			if (!aureliaRideAnnouncements.getAsBoolean() && persistentVehicleData.canAnnounce(oldRailProgress, railProgress)) {
+			if (!aureliaRideAnnouncements.getAsBoolean() && !DepotOptions.noAnnouncementsClient(vehicleExtraData.getDepotId()) && persistentVehicleData.canAnnounce(oldRailProgress, railProgress)) {
 				InitClient.REGISTRY_CLIENT.sendPacketToServer(new PacketCheckRouteIdHasDisabledAnnouncements(thisRouteId, routeIdHasDisabledAnnouncements -> {
 					if (!routeIdHasDisabledAnnouncements) {
 						final ObjectArrayList<String> narrateText = new ObjectArrayList<>();
