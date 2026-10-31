@@ -8,6 +8,7 @@ import org.mtr.libraries.it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArraySet;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import org.mtr.mod.cargo.CargoService;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -108,6 +109,8 @@ public final class CouplingActions {
 		}
 		final Vehicle joined = ConsistEdit.copy(lead, siding, data, cars, SidingFleet.railProgress(lead), false, lead.getDepartureIndex());
 		for (final Vehicle vehicle : parked) {
+			// the joined train keeps the lead's id, so the other trains' freight moves onto it before they go
+			CargoService.store().moveInto(vehicle.getId(), joined.getId());
 			fleet.remove(vehicle);
 			VISITED_STATION.remove(vehicle.getId());
 		}

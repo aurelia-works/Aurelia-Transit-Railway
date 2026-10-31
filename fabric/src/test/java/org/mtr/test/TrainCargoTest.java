@@ -67,4 +67,15 @@ public final class TrainCargoTest {
 		Assertions.assertEquals(List.of(2L), store.drainDirty("minecraft/overworld"));
 	}
 
+	@Test
+	public void couplingMovesTheRearHoldOntoTheJoinedTrain() {
+		final TrainCargoStore store = new TrainCargoStore();
+		store.getOrCreate("minecraft/overworld", 1L, 1).insert("minecraft:stone", "", 64, 64);
+		store.getOrCreate("minecraft/overworld", 2L, 1).insert("minecraft:dirt", "{a:1}", 64, 30);
+		store.moveInto(2L, 1L);
+		Assertions.assertEquals(94, store.itemCount(1L), "a full lead hold still takes the rear's stacks");
+		Assertions.assertEquals(0, store.itemCount(2L));
+		store.prune("minecraft/overworld", Set.of(1L));
+		Assertions.assertEquals(94, store.itemCount(1L), "pruning the rear train's id loses nothing");
+	}
 }
