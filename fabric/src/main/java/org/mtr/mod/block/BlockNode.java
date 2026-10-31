@@ -60,10 +60,8 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 
 	@Override
 	public void onBreak2(World world, BlockPos pos, BlockState state, PlayerEntity player) {
+		// The rails are deleted in onStateReplaced2, which runs for a player break too; deleting here as well cost a second full sync
 		super.onBreak2(world, pos, state, player);
-		if (!world.isClient()) {
-			PacketDeleteData.sendDirectlyToServerRailNodePosition(ServerWorld.cast(world), Init.blockPosToPosition(pos));
-		}
 	}
 
 	@Nonnull
@@ -119,7 +117,7 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 	}
 
 	/**
-	 * A node removed without a player breaking it (/setblock, /fill, another mod) takes its rails with it too (MTR #924).
+	 * A node that turns into any other block takes its rails with it: a player break, and also /setblock, /fill or another mod (MTR #924).
 	 * A node changing its own state, or swapped for another node, keeps them.
 	 */
 	@Override
