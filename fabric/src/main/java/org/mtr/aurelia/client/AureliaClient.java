@@ -62,6 +62,10 @@ public final class AureliaClient implements ClientModInitializer {
 			}
 		});
 		Announcer.register();
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(org.mtr.mod.data.DepotOptionsSync.SYNC, (client, handler, buf, response) -> {
+			final java.util.Map<Long, org.mtr.mod.data.DepotOptions.Flags> read = org.mtr.mod.data.DepotOptions.read(buf);
+			client.execute(() -> org.mtr.mod.data.DepotOptions.setClient(read));
+		});
 		RideClient.register();
 		LOGGER.info("[ATR] Aurelia panel ready");
 	}

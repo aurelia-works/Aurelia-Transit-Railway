@@ -18,6 +18,7 @@ import org.mtr.mod.Init;
 import org.mtr.mod.client.*;
 import org.mtr.mod.config.Config;
 import org.mtr.mod.data.AirplanePath;
+import org.mtr.mod.data.DepotOptions;
 import org.mtr.mod.data.VehicleExtension;
 import org.mtr.mod.data.IGui;
 import org.mtr.mod.item.ItemDriverKey;
@@ -186,7 +187,8 @@ public class RenderVehicles implements IGui {
 										doorBlockedAmount[0] = thisDoorBlockedAmount;
 									}
 								});
-								final boolean canOpenDoors = RenderVehicleHelper.canOpenDoors(doorway, absoluteVehicleCarPositionAndRotation, Math.max(doorBlockedAmount[0], vehicle.persistentVehicleData.getDoorValue() * 2));
+								// The depot switch is checked last: an earlier use of vehicle would reorder this lambda's captures and its MTR signature
+								final boolean canOpenDoors = RenderVehicleHelper.canOpenDoors(doorway, absoluteVehicleCarPositionAndRotation, Math.max(doorBlockedAmount[0], vehicle.persistentVehicleData.getDoorValue() * 2)) || DepotOptions.allDoorsClient(vehicle.vehicleExtraData.getDepotId());
 								if ((doorBlockedAmount[0] > 0 || vehicle.persistentVehicleData.checkCanOpenDoors()) && canOpenDoors) {
 									openDoorways.add(new ObjectDoubleImmutablePair<>(doorway, doorBlockedAmount[0]));
 								}

@@ -193,6 +193,24 @@ public final class MtrBridge {
 		return regenerateDepots(route.depots);
 	}
 
+	/** Same request as MTR's depot screen Instant deploy button. */
+	public static void instantDeploy(Depot depot) {
+		final DepotOperationByIds operation = new DepotOperationByIds();
+		operation.addDepotId(depot.getId());
+		InitClient.REGISTRY_CLIENT.sendPacketToServer(new org.mtr.mod.packet.PacketDepotInstantDeploy(operation));
+	}
+
+	/** Same request as MTR's depot screen Clear vehicles button. */
+	public static void clearVehicles(Depot depot) {
+		final DepotOperationByIds operation = new DepotOperationByIds();
+		operation.addDepotId(depot.getId());
+		InitClient.REGISTRY_CLIENT.sendPacketToServer(new org.mtr.mod.packet.PacketDepotClear(operation));
+	}
+
+	public static void setDepotOption(long depotId, org.mtr.mod.data.DepotOptions.Option option, boolean value) {
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(org.mtr.mod.data.DepotOptionsSync.SET, org.mtr.mod.data.DepotOptionsSync.request(depotId, option, value));
+	}
+
 	public static int regenerateDepots(Collection<Depot> depots) {
 		final DepotOperationByIds operation = new DepotOperationByIds();
 		depots.forEach(depot -> operation.addDepotId(depot.getId()));
@@ -438,7 +456,7 @@ public final class MtrBridge {
 		return new RideSnapshot(vehicle.getId(), extra.getThisPlatformId(), extra.getNextPlatformId(), extra.getNextStationName(), extra.getIsTerminating() || nextIsLastStop(data, extra),
 				extra.getThisRouteName(), extra.getThisRouteColor(), extra.getNextRouteName(), extra.getNextRouteColor(), extra.getNextRouteDestination(),
 				interchanges, vehicle.getSpeed() * 1000, vehicle.persistentVehicleData.getDoorValue(), distance,
-				data.getRouteIdHasDisabledAnnouncements(extra.getThisRouteId()));
+				data.getRouteIdHasDisabledAnnouncements(extra.getThisRouteId()) || org.mtr.mod.data.DepotOptions.noAnnouncementsClient(extra.getDepotId()));
 	}
 
 	/**
