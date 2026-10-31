@@ -288,6 +288,9 @@ public final class AureliaPanelScreen extends Screen {
 
 	private Text doorChimeLabel() {
 		return Text.translatable("gui.aurelia.train_sound.door_chime", Text.translatable("gui.aurelia.train_sound.door_chime." + config.getDoorChime()));
+	}
+
+	/**
 	 * Passengers (server caps, operators only): on/off, how many arrive per platform per minute, the most a platform and
 	 * the whole dimension may hold, and seats per car. The last line is what the server measured.
 	 */
