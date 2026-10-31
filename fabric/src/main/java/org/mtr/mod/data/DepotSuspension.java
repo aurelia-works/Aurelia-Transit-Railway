@@ -37,6 +37,11 @@ public final class DepotSuspension {
 		ServerTickEvents.END_SERVER_TICK.register(DepotSuspension::tick);
 	}
 
+	/** Whether a route hold has this depot's departures cleared right now. */
+	public static boolean isPaused(long depotId) {
+		return PAUSED.containsKey(depotId);
+	}
+
 	public static List<String> suspendedNames() {
 		return suspendedNames;
 	}

@@ -8,6 +8,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 import org.mtr.core.data.Depot;
 import org.mtr.mod.data.DepotOptions;
+import org.mtr.mod.data.DepotSchedulesSync;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -37,6 +38,11 @@ public final class DepotHealthScreen extends Screen {
 	private ButtonWidget clearButton;
 	private ButtonWidget allDoorsButton;
 	private ButtonWidget announcementsButton;
+	private ButtonWidget weeklyButton;
+	private ButtonWidget saveWeekdayButton;
+	private ButtonWidget saveWeekendButton;
+	private ButtonWidget cancelRunButton;
+	private ButtonWidget restoreRunsButton;
 
 	private final Map<Long, List<DepotHealth.Problem>> problems = new LinkedHashMap<>();
 	private DepotHealth.DepotInfo selected;
@@ -59,6 +65,12 @@ public final class DepotHealthScreen extends Screen {
 			updateButtons();
 		}));
 		final int quarter = (half - 4) / 2;
+		final int third = (half - 8) / 3;
+		weeklyButton = addDrawableChild(ButtonWidget.builder(Text.empty(), button -> scheduleAction(DepotSchedulesSync.Action.ENABLE, true)).dimensions(rightX, listBottom - 140, third, 20).build());
+		saveWeekdayButton = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.depots.save_weekday"), button -> scheduleAction(DepotSchedulesSync.Action.SAVE_WEEKDAY, false)).dimensions(rightX + third + 4, listBottom - 140, third, 20).build());
+		saveWeekendButton = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.depots.save_weekend"), button -> scheduleAction(DepotSchedulesSync.Action.SAVE_WEEKEND, false)).dimensions(rightX + (third + 4) * 2, listBottom - 140, third, 20).build());
+		cancelRunButton = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.depots.cancel_next"), button -> scheduleAction(DepotSchedulesSync.Action.CANCEL_NEXT, false)).dimensions(rightX, listBottom - 116, quarter, 20).build());
+		restoreRunsButton = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.depots.restore_runs"), button -> scheduleAction(DepotSchedulesSync.Action.RESTORE, false)).dimensions(rightX + quarter + 4, listBottom - 116, quarter, 20).build());
 		deployButton = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.depots.instant_deploy"), button -> withSelectedDepot(MtrBridge::instantDeploy, "gui.aurelia.depots.deployed")).dimensions(rightX, listBottom - 92, quarter, 20).build());
 		clearButton = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.depots.clear_vehicles"), button -> withSelectedDepot(MtrBridge::clearVehicles, "gui.aurelia.depots.cleared")).dimensions(rightX + quarter + 4, listBottom - 92, quarter, 20).build());
 		allDoorsButton = addDrawableChild(ButtonWidget.builder(Text.empty(), button -> toggle(DepotOptions.Option.ALL_DOORS)).dimensions(rightX, listBottom - 68, quarter, 20).build());
@@ -117,6 +129,14 @@ public final class DepotHealthScreen extends Screen {
 		clearButton.active = depotActions;
 		allDoorsButton.active = depotActions;
 		announcementsButton.active = depotActions;
+		final DepotSchedulesSync.Summary schedule = selected == null ? null : DepotSchedulesSync.client(selected.id());
+		final boolean weekly = schedule != null && schedule.enabled();
+		weeklyButton.active = depotActions && (weekly || schedule != null && schedule.hasWeekday());
+		saveWeekdayButton.active = depotActions;
+		saveWeekendButton.active = depotActions;
+		cancelRunButton.active = depotActions;
+		restoreRunsButton.active = depotActions && schedule != null && schedule.cancelled() > 0;
+		weeklyButton.setMessage(Text.translatable(weekly ? "gui.aurelia.depots.weekly_on" : "gui.aurelia.depots.weekly_off"));
 		final DepotOptions.Flags flags = selected == null ? DepotOptions.Flags.NONE : DepotOptions.client(selected.id());
 		allDoorsButton.setMessage(Text.translatable(flags.allDoors() ? "gui.aurelia.depots.all_doors_on" : "gui.aurelia.depots.all_doors_off"));
 		announcementsButton.setMessage(Text.translatable(flags.noAnnouncements() ? "gui.aurelia.depots.announcements_off" : "gui.aurelia.depots.announcements_on"));
@@ -135,6 +155,17 @@ public final class DepotHealthScreen extends Screen {
 			status = Text.translatable(doneKey, selected.name());
 			statusColor = COLOR_OK;
 		}
+	}
+
+	/** @param toggle ENABLE switches the weekly timetable on or off */
+	private void scheduleAction(DepotSchedulesSync.Action action, boolean toggle) {
+		if (selected == null || !MtrBridge.canEdit()) {
+			return;
+		}
+		final DepotSchedulesSync.Summary schedule = DepotSchedulesSync.client(selected.id());
+		MtrBridge.depotScheduleAction(selected.id(), toggle && schedule != null && schedule.enabled() ? DepotSchedulesSync.Action.DISABLE : action);
+		status = Text.translatable("gui.aurelia.depots.schedule_sent." + action.name().toLowerCase(java.util.Locale.ENGLISH), selected.name());
+		statusColor = COLOR_OK;
 	}
 
 	private void toggle(DepotOptions.Option option) {
@@ -201,13 +232,18 @@ public final class DepotHealthScreen extends Screen {
 			context.drawTextWithShadow(textRenderer, Text.translatable("gui.aurelia.depots.counts", selected.routeCount(), selected.sidingCount()), rightX, TOP + 14, COLOR_DIM);
 			final Depot depot = MtrBridge.dashboardData().depotIdMap.get(selected.id());
 			context.drawTextWithShadow(textRenderer, pathRefreshed(depot == null ? 0 : depot.getLastGeneratedMillis()), rightX, TOP + 26, COLOR_DIM);
-			int y = TOP + 42;
+			final DepotSchedulesSync.Summary schedule = DepotSchedulesSync.client(selected.id());
+			if (schedule != null) {
+				final String today = schedule.today().equals("WEEKEND") ? "gui.aurelia.depots.today_weekend" : "gui.aurelia.depots.today_weekday";
+				context.drawTextWithShadow(textRenderer, Text.translatable("gui.aurelia.depots.schedule_line", Text.translatable(today), Text.translatable(schedule.enabled() ? "gui.aurelia.depots.weekly_on" : "gui.aurelia.depots.weekly_off"), schedule.cancelled()), rightX, TOP + 38, COLOR_DIM);
+			}
+			int y = TOP + 54;
 			final List<DepotHealth.Problem> depotProblems = problems.getOrDefault(selected.id(), List.of());
 			if (depotProblems.isEmpty()) {
 				context.drawTextWithShadow(textRenderer, Text.translatable("gui.aurelia.depots.healthy"), rightX, y, COLOR_OK);
 			}
 			for (final DepotHealth.Problem problem : depotProblems) {
-				if (y > height - 160) {
+				if (y > height - 210) {
 					break;
 				}
 				final int color = problem.severity() == DepotHealth.Severity.ERROR ? COLOR_ERROR : COLOR_WARN;
