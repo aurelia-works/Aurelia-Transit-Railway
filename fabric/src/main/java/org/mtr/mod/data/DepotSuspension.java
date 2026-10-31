@@ -14,9 +14,9 @@ import org.mtr.mod.Init;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * While a {@link RouteHold} is active, depots that run that route have their departures cleared and their hourly
@@ -26,7 +26,7 @@ import java.util.Map;
  */
 public final class DepotSuspension {
 
-	private static final Map<Long, Snapshot> PAUSED = new HashMap<>();
+	private static final Map<Long, Snapshot> PAUSED = new ConcurrentHashMap<>();
 	/** Route name keys the map layer should draw as suspended. Updated on the server tick. */
 	private static volatile List<String> suspendedNames = List.of();
 
@@ -35,6 +35,11 @@ public final class DepotSuspension {
 
 	public static void init() {
 		ServerTickEvents.END_SERVER_TICK.register(DepotSuspension::tick);
+	}
+
+	/** Whether a route hold has this depot's departures cleared right now. */
+	public static boolean isPaused(long depotId) {
+		return PAUSED.containsKey(depotId);
 	}
 
 	public static List<String> suspendedNames() {

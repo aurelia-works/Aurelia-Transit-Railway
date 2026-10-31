@@ -211,6 +211,10 @@ public final class MtrBridge {
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(org.mtr.mod.data.DepotOptionsSync.SET, org.mtr.mod.data.DepotOptionsSync.request(depotId, option, value));
 	}
 
+	public static void depotScheduleAction(long depotId, org.mtr.mod.data.DepotSchedulesSync.Action action) {
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(org.mtr.mod.data.DepotSchedulesSync.ACTION, org.mtr.mod.data.DepotSchedulesSync.request(depotId, action));
+	}
+
 	public static int regenerateDepots(Collection<Depot> depots) {
 		final DepotOperationByIds operation = new DepotOperationByIds();
 		depots.forEach(depot -> operation.addDepotId(depot.getId()));
