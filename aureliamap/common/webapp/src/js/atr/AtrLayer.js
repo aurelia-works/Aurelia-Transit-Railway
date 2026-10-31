@@ -182,6 +182,7 @@ export class AtrLayer {
                 stationHeights.set(platform.stationId, heights);
             });
             if (route.hidden || route.shape.length < 2) return;
+            if (!routeOnPlan(route)) return;
             const color = route.suspended ? {r: 120, g: 120, b: 120} : hexToRgb(route.color);
             const label = (route.suspended ? "Suspended: " : "") + pickName(route.name, settings.nameMode);
             // where no rails were found between two platforms the server sends a straight line, which would cut across the map
@@ -280,6 +281,20 @@ export class AtrLayer {
         });
         this.app.mapViewer.redraw();
     }
+}
+
+/**
+ * When the page is opened with ?from=&to= (station names, case-insensitive), only routes that stop at either
+ * name are drawn, so the live layer shows the lines a journey can use. Without the query every route is drawn.
+ */
+function routeOnPlan(route) {
+    const params = new URLSearchParams(window.location.search);
+    const from = (params.get("from") || "").trim().toLowerCase();
+    const to = (params.get("to") || "").trim().toLowerCase();
+    if (!from || !to) return true;
+    const names = new Set();
+    (route.platforms || []).forEach(platform => names.add(String(platform.name || "").trim().toLowerCase()));
+    return names.has(from) || names.has(to);
 }
 
 function dimensionOfMap(mapId) {

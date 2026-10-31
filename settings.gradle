@@ -13,4 +13,4 @@ plugins {
 
 include("fabric")
 
-rootProject.name = "Minecraft-Transit-Railway"
+rootProject.name = "Aurelia-Transit-Railway"

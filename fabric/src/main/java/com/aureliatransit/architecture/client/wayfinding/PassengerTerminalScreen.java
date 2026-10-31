@@ -5,6 +5,7 @@ import com.aureliatransit.architecture.block.entity.WayfindingSignBlockEntity;
 import com.aureliatransit.architecture.client.wayfinding.logic.ClientServiceMessages;
 import com.aureliatransit.architecture.client.wayfinding.logic.ClientStationSuffixes;
 import com.aureliatransit.architecture.wayfinding.SuffixContext;
+import com.aureliatransit.architecture.terminal.JourneyPlanner;
 import com.aureliatransit.architecture.terminal.MapLine;
 import com.aureliatransit.architecture.terminal.StationInfo;
 import com.aureliatransit.architecture.terminal.SystemMap;
@@ -209,6 +210,7 @@ public class PassengerTerminalScreen extends Screen {
 			case STATION -> paginateText(TerminalText.stationLines(info));
 			case SERVICE -> paginateText(TerminalText.serviceLines(notices));
 			case ACCESSIBILITY -> paginateText(TerminalText.accessibilityLines(info));
+			case PLAN -> paginateText(planLines());
 		}
 		if (page == TerminalPage.HOME) {
 			pageCount = 1;
@@ -218,6 +220,36 @@ public class PassengerTerminalScreen extends Screen {
 		nextButton.visible = pageCount > 1;
 		prevButton.active = subPage > 0;
 		nextButton.active = subPage < pageCount - 1;
+	}
+
+	/** A to the far end of the first other line that leaves this station. Fare is 2 plus 2 per transfer. */
+	private List<TerminalText.Line> planLines() {
+		final String here = stationName();
+		String goal = "";
+		for (final MapLine line : map.lines()) {
+			for (final com.aureliatransit.architecture.terminal.MapStop stop : line.stops()) {
+				if (!stop.name().equalsIgnoreCase(here) && goal.isEmpty()) {
+					goal = stop.name();
+				}
+			}
+		}
+		final JourneyPlanner.Journey journey = JourneyPlanner.plan(map, here, goal.isEmpty() ? here : goal, 2, 2);
+		final List<TerminalText.Line> lines = new ArrayList<>();
+		lines.add(new TerminalText.Line(here + " → " + (goal.isEmpty() ? here : goal), TerminalText.Kind.HEADING));
+		if (!journey.found()) {
+			lines.add(new TerminalText.Line(Text.translatable("screen." + AureliaTransitArchitecture.MOD_ID + ".term_plan_none").getString(), TerminalText.Kind.DIM));
+			return lines;
+		}
+		for (final JourneyPlanner.Leg leg : journey.legs()) {
+			lines.add(new TerminalText.Line(leg.line() + "  " + String.join(" – ", leg.stops()), TerminalText.Kind.BODY));
+			final var next = JourneyPlanner.nextDeparture(snapshot.services(), leg.line(), System.currentTimeMillis());
+			if (next != null) {
+				final long minutes = Math.max(0, (next.departureMillis() - System.currentTimeMillis()) / 60_000);
+				lines.add(new TerminalText.Line(Text.translatable("screen." + AureliaTransitArchitecture.MOD_ID + ".term_plan_next", minutes, next.destination()).getString(), TerminalText.Kind.DIM));
+			}
+		}
+		lines.add(new TerminalText.Line(Text.translatable("screen." + AureliaTransitArchitecture.MOD_ID + ".term_plan_fare", journey.transfers(), journey.fare()).getString(), TerminalText.Kind.INFO));
+		return lines;
 	}
 
 	private void paginateText(List<TerminalText.Line> lines) {

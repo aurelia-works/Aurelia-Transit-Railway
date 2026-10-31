@@ -11,7 +11,8 @@ public enum TerminalPage {
 	MAP,
 	STATION,
 	SERVICE,
-	ACCESSIBILITY;
+	ACCESSIBILITY,
+	PLAN;
 
 	/** Language key suffix of the tab title ({@code screen.<mod>.term_tab.<id>}). */
 	public String id() {

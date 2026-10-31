@@ -3,6 +3,7 @@ package com.aureliatransit.architecture;
 import com.aureliatransit.architecture.block.mtr.MtrFareContract;
 import com.aureliatransit.architecture.block.mtr.MtrPlatformContract;
 import com.aureliatransit.architecture.fare.FareSystems;
+import com.aureliatransit.architecture.timetable.PocketTimetableNetworking;
 import com.aureliatransit.architecture.interactive.InteractiveSystems;
 import com.aureliatransit.architecture.live.LiveSystems;
 import com.aureliatransit.architecture.network.ModPackets;
@@ -70,6 +71,7 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		WayfindingSystems.init();
 		org.mtr.mod.data.DepotSuspension.init();
 		FareSystems.init();
+		PocketTimetableNetworking.registerServer();
 		StationSystems.init();
 		LOGGER.info("Registered {} Aurelia Transit Architecture blocks (MTR platform door contract: {}, MTR fares: {})", ModBlocks.entries().size(),
 				MtrPlatformContract.available() ? "enabled" : "unavailable", MtrFareContract.available() ? "enabled" : "unavailable");
