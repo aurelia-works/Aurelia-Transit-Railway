@@ -4,7 +4,6 @@ import org.mtr.mapping.holder.BlockPos;
 import org.mtr.mapping.holder.Identifier;
 import org.mtr.mapping.mapper.SoundHelper;
 import org.mtr.mod.Init;
-import org.mtr.mod.InitClient;
 import org.mtr.mod.config.Client;
 import org.mtr.mod.config.Config;
 
@@ -33,7 +32,7 @@ public abstract class VehicleSoundBase {
 	private static void playDoorChime(BlockPos blockPos) {
 		final Client config = Config.getClient();
 		final int chime = config.getDoorChime();
-		if (chime > 0 && config.getDoorChimeVolume() > 0 && InitClient.canPlaySound()) {
+		if (chime > 0 && config.getDoorChimeVolume() > 0) {
 			ScheduledSound.schedule(blockPos, SoundHelper.createSoundEvent(new Identifier(Init.MOD_ID, chime == 1 ? "atr_door_chime_two" : "atr_door_chime_three")), (float) config.getDoorChimeVolume(), 1);
 		}
 	}

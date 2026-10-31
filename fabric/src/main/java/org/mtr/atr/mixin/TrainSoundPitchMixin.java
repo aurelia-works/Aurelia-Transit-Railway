@@ -22,7 +22,7 @@ public abstract class TrainSoundPitchMixin {
 	private void atr$widePitch(SoundInstance sound, CallbackInfoReturnable<Float> callbackInfoReturnable) {
 		final Client config = Config.getClient();
 		if (config.getSoundWidePitch() && Init.MOD_ID.equals(sound.getId().getNamespace())) {
-			callbackInfoReturnable.setReturnValue(SoundTuning.pitch(sound.getPitch(), true, (float) config.getSoundMaxPitch()));
+			callbackInfoReturnable.setReturnValue(SoundTuning.pitch(sound.getPitch(), (float) config.getSoundMaxPitch()));
 		}
 	}
 }

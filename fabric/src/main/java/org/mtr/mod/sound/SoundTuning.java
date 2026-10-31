@@ -6,7 +6,6 @@ package org.mtr.mod.sound;
 public final class SoundTuning {
 
 	/** Vanilla clamps every sound's pitch to 0.5-2. */
-	public static final float VANILLA_MIN_PITCH = 0.5F;
 	public static final float VANILLA_MAX_PITCH = 2;
 	/** With the wide range on, train sounds may go down to here. */
 	public static final float WIDE_MIN_PITCH = 0.25F;
@@ -15,13 +14,14 @@ public final class SoundTuning {
 	}
 
 	/**
-	 * The pitch OpenAL gets for a train sound. BVE motor tables often ask for more than 2; vanilla would flatten that.
+	 * The pitch OpenAL gets for a train sound when the wide range is on. BVE motor tables often ask for more than 2;
+	 * vanilla would flatten that to 2.
 	 */
-	public static float pitch(float requested, boolean wide, float maxPitch) {
+	public static float pitch(float requested, float maxPitch) {
 		if (!Float.isFinite(requested)) {
 			return 1;
 		}
-		return wide ? Math.max(WIDE_MIN_PITCH, Math.min(Math.max(VANILLA_MAX_PITCH, maxPitch), requested)) : Math.max(VANILLA_MIN_PITCH, Math.min(VANILLA_MAX_PITCH, requested));
+		return Math.max(WIDE_MIN_PITCH, Math.min(Math.max(VANILLA_MAX_PITCH, maxPitch), requested));
 	}
 
 	/**
