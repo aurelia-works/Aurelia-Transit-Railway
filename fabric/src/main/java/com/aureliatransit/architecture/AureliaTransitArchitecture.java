@@ -69,6 +69,7 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		LiveSystems.init();
 		InteractiveSystems.init();
 		WayfindingSystems.init();
+		org.mtr.mod.data.DepotSuspension.init();
 		FareSystems.init();
 		PocketTimetableNetworking.registerServer();
 		StationSystems.init();

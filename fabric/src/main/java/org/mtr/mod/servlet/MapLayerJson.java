@@ -111,6 +111,7 @@ public final class MapLayerJson {
 			routeObject.addProperty("color", route.getColorHex());
 			routeObject.addProperty("type", route.getRouteTypeKey());
 			routeObject.addProperty("hidden", route.getHidden());
+			routeObject.addProperty("suspended", org.mtr.mod.data.DepotSuspension.suspended(route.getName()));
 			routeObject.addProperty("circular", circular);
 			routeObject.add("platforms", platformsArray);
 			routeObject.add("shape", shape);
@@ -161,6 +162,7 @@ public final class MapLayerJson {
 				vehicleObject.addProperty("station", extraData.getThisStationName());
 				vehicleObject.addProperty("nextStation", extraData.getNextStationName());
 				vehicleObject.addProperty("onRoute", vehicle.getIsOnRoute());
+				vehicleObject.addProperty("suspended", org.mtr.mod.data.DepotSuspension.suspended(extraData.getThisRouteName()));
 				vehicleObject.addProperty("moving", vehicle.isMoving());
 				vehicleObject.addProperty("cars", extraData.immutableVehicleCars.size());
 				vehicleObject.add("head", point(new double[]{head.x, head.y, head.z}));

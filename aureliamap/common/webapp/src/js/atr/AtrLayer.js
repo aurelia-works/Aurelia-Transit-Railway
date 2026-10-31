@@ -183,8 +183,8 @@ export class AtrLayer {
             });
             if (route.hidden || route.shape.length < 2) return;
             if (!routeOnPlan(route)) return;
-            const color = hexToRgb(route.color);
-            const label = pickName(route.name, settings.nameMode);
+            const color = route.suspended ? {r: 120, g: 120, b: 120} : hexToRgb(route.color);
+            const label = (route.suspended ? "Suspended: " : "") + pickName(route.name, settings.nameMode);
             // where no rails were found between two platforms the server sends a straight line, which would cut across the map
             splitShape(route.shape, route.straight).forEach((run, index) => {
                 if (run.straight && !settings.straightLines) return;
@@ -245,7 +245,7 @@ export class AtrLayer {
                 label: `${pickName(vehicle.routeName, settings.nameMode)} to ${pickName(vehicle.destination, settings.nameMode)}`,
                 position: {x, y: y + 1, z},
                 anchor: {x: 0, y: 0},
-                html: `<div class="atr-train${vehicle.moving ? "" : " atr-stopped"}" style="--atr-train:${color};--atr-size:${settings.trainSize}" title="${escapeHtml(pickName(vehicle.destination, settings.nameMode))}">${text}</div>`,
+                html: `<div class="atr-train${vehicle.moving ? "" : " atr-stopped"}${vehicle.suspended ? " atr-suspended" : ""}" style="--atr-train:${vehicle.suspended ? "#888" : color};--atr-size:${settings.trainSize}" title="${escapeHtml((vehicle.suspended ? "Held at depot: " : "") + pickName(vehicle.destination, settings.nameMode))}">${text}</div>`,
                 listed: false,
             };
             const motion = this.trainMotion.get(vehicle.id);
