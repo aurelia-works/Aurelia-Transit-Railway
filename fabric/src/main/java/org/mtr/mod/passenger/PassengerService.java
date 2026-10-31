@@ -24,6 +24,7 @@ import org.mtr.core.Main;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,6 +59,7 @@ public final class PassengerService {
 	private static Field vehiclesField;
 	private static volatile PassengerNetwork.Settings settings = PassengerNetwork.Settings.DEFAULT;
 	private static int ticks;
+	private static boolean loggedMissingSimulators;
 
 	private PassengerService() {
 	}
@@ -106,7 +108,19 @@ public final class PassengerService {
 		state.markDirty();
 		settings = requested;
 		if (!requested.enabled()) {
-			NETWORKS.values().forEach(PassengerNetwork::clear);
+			// Networks belong to the simulation threads; clear each on its own thread
+			final ObjectImmutableList<Simulator> simulators = simulators();
+			if (simulators != null) {
+				for (final Simulator simulator : simulators) {
+					simulator.run(() -> {
+						final PassengerNetwork network = NETWORKS.get(simulator.dimension);
+						if (network != null) {
+							network.clear();
+						}
+						STATS.remove(simulator.dimension);
+					});
+				}
+			}
 		}
 		server.getPlayerManager().getPlayerList().forEach(PassengerService::send);
 	}
@@ -222,7 +236,7 @@ public final class PassengerService {
 	}
 
 	private static List<Vehicle> vehicles(Simulator simulator) {
-		final List<Vehicle> result = new java.util.ArrayList<>();
+		final List<Vehicle> result = new ArrayList<>();
 		try {
 			if (vehiclesField == null) {
 				vehiclesField = Siding.class.getDeclaredField("vehicles");
@@ -269,6 +283,10 @@ public final class PassengerService {
 			field.setAccessible(true);
 			return (ObjectImmutableList<Simulator>) field.get(main);
 		} catch (ReflectiveOperationException e) {
+			if (!loggedMissingSimulators) {
+				loggedMissingSimulators = true;
+				Init.LOGGER.error("Passengers cannot reach the simulators", e);
+			}
 			return null;
 		}
 	}

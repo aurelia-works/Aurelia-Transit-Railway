@@ -53,10 +53,11 @@ public final class PassengerNetworkTest {
 	@Test
 	public void capsHoldAndGoneTrainsTakeTheirRiders() {
 		final PassengerNetwork network = new PassengerNetwork();
-		final PassengerNetwork.Settings small = new PassengerNetwork.Settings(true, 60, 50, 25, 5);
+		final PassengerNetwork.Settings small = new PassengerNetwork.Settings(true, 60, 15, 25, 5);
 		network.spawn(PLATFORM_A, new long[]{B}, 1, small, 0, new Random(2));
 		network.spawn(PLATFORM_B, new long[]{C}, 1, small, 0, new Random(2));
-		Assertions.assertEquals(25, network.total(), "the whole world holds 25");
+		Assertions.assertEquals(15, network.waitingAt(PLATFORM_A), "a platform holds 15");
+		Assertions.assertEquals(10, network.waitingAt(PLATFORM_B), "the whole world holds 25, so B gets the last 10");
 
 		for (int second = 0; second < 10; second++) {
 			network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, small);
@@ -65,7 +66,9 @@ public final class PassengerNetworkTest {
 
 		// The train is deleted and platform B is removed: their passengers go too.
 		network.retain(Set.of(), Set.of(PLATFORM_A));
-		Assertions.assertEquals(network.waitingAt(PLATFORM_A), network.total());
+		Assertions.assertEquals(0, network.waitingAt(PLATFORM_B));
+		Assertions.assertEquals(0, network.ridingOn(TRAIN));
+		Assertions.assertEquals(10, network.total(), "only A's ten left waiting");
 
 		network.expire(PassengerNetwork.GIVE_UP_MILLIS + 1);
 		Assertions.assertEquals(0, network.total(), "waited too long and went home");

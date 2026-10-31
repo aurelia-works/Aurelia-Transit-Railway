@@ -3,7 +3,7 @@
 Passengers are plain records, not mobs: `org.mtr.mod.passenger.PassengerNetwork`, one per dimension. `PassengerService` updates each network once a second on that dimension's MTR simulation thread.
 
 - **Spawn.** Each platform a route stops at gets new passengers at the set rate. Each one heads for a station reachable by staying on one of that platform's routes.
-- **Board.** A train standing on a route at a platform takes passengers whose station is ahead on its route. It takes 3 per car per second, up to seats per car times cars.
+- **Board.** A train standing on a route at a platform takes passengers whose station is ahead on its route. Each car moves 3 people through its doors per second, getting off first and then getting on, up to seats per car times cars.
 - **Leave.** Riders get off at their station, or at the end of the train's route if their station isn't on it.
 - **Give up.** Anyone who waited 10 minutes goes home. Deleted trains and platforms take their passengers with them.
 - **Caps** (Aurelia panel, Passengers tab, operators only): on/off (default off), new per platform per minute, most waiting per platform, most in the world, and seats per car. Saved in the overworld's `atr_passengers.dat`. Passengers themselves are not saved, so a restart empties the platforms.

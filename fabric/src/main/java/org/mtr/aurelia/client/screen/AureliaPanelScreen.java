@@ -325,7 +325,7 @@ public final class AureliaPanelScreen extends Screen {
 		}
 	}
 
-	private static void sendPassengers(java.util.function.UnaryOperator<PassengerNetwork.Settings> change) {
+	private static void sendPassengers(UnaryOperator<PassengerNetwork.Settings> change) {
 		PassengerClient.request(change.apply(PassengerClient.settings()));
 	}
 
