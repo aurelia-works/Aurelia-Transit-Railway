@@ -2,6 +2,7 @@ package org.mtr.aurelia.client;
 
 import org.mtr.aurelia.announce.Announcement;
 import org.mtr.aurelia.announce.AnnouncerLogic;
+import org.mtr.aurelia.announce.OnboardWording;
 import org.mtr.aurelia.announce.PlatformCalls;
 import org.mtr.aurelia.announce.RideSnapshot;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -16,6 +17,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import org.mtr.core.data.Platform;
 import org.mtr.mod.config.Client;
+import org.mtr.mod.data.VehicleExtension;
 import org.mtr.mod.config.Config;
 
 import java.io.IOException;
@@ -60,6 +62,11 @@ public final class Announcer {
 	private static final ArrayDeque<String> HISTORY = new ArrayDeque<>();
 	private static boolean enabled = true;
 	private static boolean platformEnabled = true;
+	/** Action-bar line as well as chat. Saved in announcer.properties; missing means on. */
+	private static boolean actionBar = true;
+	private static OnboardWording wording = OnboardWording.STANDARD;
+	/** {@link #offerRideAnnouncements()} ran recently, so the client tick must not step the ride logic again. */
+	private static long drivenAt;
 	private static int ticks;
 	private static int missedChecks;
 	private static SoundInstance playing;
@@ -73,6 +80,7 @@ public final class Announcer {
 
 	public static void register() {
 		load();
+		VehicleExtension.aureliaRideAnnouncements = Announcer::offerRideAnnouncements;
 		ScriptingHandshake.register(enabled);
 		ClientTickEvents.END_CLIENT_TICK.register(Announcer::tick);
 		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> restoreMtrChat());
@@ -103,6 +111,52 @@ public final class Announcer {
 		}
 	}
 
+	public static boolean actionBar() {
+		return actionBar;
+	}
+
+	public static void setActionBar(boolean value) {
+		actionBar = value;
+		save();
+	}
+
+	public static OnboardWording wording() {
+		return wording;
+	}
+
+	public static void cycleWording() {
+		wording = wording.next();
+		save();
+	}
+
+	/**
+	 * Called from the ridden vehicle each client tick. When the Announcer is on, this owns next-stop chat and the
+	 * action bar (voice-pack clips included) and the caller should skip MTR's own chat announcement. When it is off,
+	 * returns false so MTR's announcement runs unchanged.
+	 */
+	public static boolean offerRideAnnouncements() {
+		drivenAt = System.currentTimeMillis();
+		if (!enabled) {
+			return false;
+		}
+		final MinecraftClient client = MinecraftClient.getInstance();
+		if (client.world == null || client.player == null) {
+			return true;
+		}
+		final RideSnapshot ride = MtrBridge.ridingSnapshot();
+		if (ride == null) {
+			return true;
+		}
+		missedChecks = 0;
+		muteMtrChat();
+		final Announcement announcement = LOGIC.update(ride, Util.getMeasuringTimeMs(), key -> hasClip(client, key));
+		if (announcement != null) {
+			start(client, announcement);
+		}
+		pump(client);
+		return true;
+	}
+
 	public static List<String> historyForTest() {
 		return List.copyOf(HISTORY);
 	}
@@ -127,6 +181,11 @@ public final class Announcer {
 			return;
 		}
 		final RideSnapshot ride = MtrBridge.ridingSnapshot();
+		if (ride != null && System.currentTimeMillis() - drivenAt < 1000) {
+			// The ridden vehicle is already stepping the announcer this second.
+			pump(client);
+			return;
+		}
 		if (ride == null) {
 			// The ride is only over after a grace period; then the player may be waiting on a platform.
 			if (missedChecks < LEFT_AFTER_CHECKS && ++missedChecks == LEFT_AFTER_CHECKS) {
@@ -169,9 +228,16 @@ public final class Announcer {
 	private static void start(MinecraftClient client, Announcement announcement) {
 		stop(client);
 		CLIPS.addAll(announcement.clips());
+		final java.util.List<String> lines = wording.lines(announcement);
 		// local chat only (nothing is sent to the server), like MTR's own announcement
-		announcement.lines().forEach(line -> client.player.sendMessage(Text.literal(line), false));
-		remember(announcement.kind() + " " + announcement.lines() + " " + announcement.clips());
+		lines.forEach(line -> client.player.sendMessage(Text.literal(line), false));
+		if (actionBar) {
+			final String bar = wording.actionBar(announcement);
+			if (!bar.isEmpty()) {
+				client.player.sendMessage(Text.literal(bar), true);
+			}
+		}
+		remember(announcement.kind() + " " + lines + " " + announcement.clips());
 	}
 
 	/** Plays the queued clips one after another. */
@@ -254,6 +320,8 @@ public final class Announcer {
 			properties.load(reader);
 			enabled = !"false".equals(properties.getProperty("enabled"));
 			platformEnabled = !"false".equals(properties.getProperty("platform"));
+			actionBar = !"false".equals(properties.getProperty("actionBar", "true"));
+			wording = OnboardWording.byId(properties.getProperty("wording", "standard"));
 		} catch (IOException e) {
 			AureliaClient.LOGGER.error("[ATR] Could not read {}; the Announcer stays on", file, e);
 		}
@@ -267,6 +335,8 @@ public final class Announcer {
 				final Properties properties = new Properties();
 				properties.setProperty("enabled", Boolean.toString(enabled));
 				properties.setProperty("platform", Boolean.toString(platformEnabled));
+				properties.setProperty("actionBar", Boolean.toString(actionBar));
+				properties.setProperty("wording", wording.id());
 				properties.store(writer, "Aurelia Transit Utilities announcer");
 			}
 		} catch (IOException e) {

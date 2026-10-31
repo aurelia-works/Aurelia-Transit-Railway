@@ -183,6 +183,16 @@ public final class AureliaPanelScreen extends Screen {
 			b.setMessage(platformLabel());
 		}).dimensions(left, TOP + ROW, BUTTON_WIDTH, 20).build());
 		platform.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.platform.tooltip")));
+		final ButtonWidget actionBar = addDrawableChild(ButtonWidget.builder(actionBarLabel(), b -> {
+			Announcer.setActionBar(!Announcer.actionBar());
+			b.setMessage(actionBarLabel());
+		}).dimensions(left, TOP + ROW * 3, BUTTON_WIDTH, 20).build());
+		actionBar.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.announcer.action_bar.tooltip")));
+		final ButtonWidget wording = addDrawableChild(ButtonWidget.builder(wordingLabel(), b -> {
+			Announcer.cycleWording();
+			b.setMessage(wordingLabel());
+		}).dimensions(left, TOP + ROW * 4, BUTTON_WIDTH, 20).build());
+		wording.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.announcer.wording.tooltip")));
 		final ButtonWidget melodies = addDrawableChild(ButtonWidget.builder(melodiesLabel(), b -> {
 			ScriptingHandshake.setMelodies(!ScriptingHandshake.melodiesEnabled());
 			b.setMessage(melodiesLabel());
@@ -335,6 +345,14 @@ public final class AureliaPanelScreen extends Screen {
 
 	private static Text announcerLabel() {
 		return Text.translatable("gui.aurelia.tools.announcer", ScreenTexts.onOrOff(Announcer.enabled()));
+	}
+
+	private static Text actionBarLabel() {
+		return Text.translatable("gui.aurelia.tools.announcer.action_bar", ScreenTexts.onOrOff(Announcer.actionBar()));
+	}
+
+	private static Text wordingLabel() {
+		return Text.translatable("gui.aurelia.tools.announcer.wording", Text.translatable("gui.aurelia.tools.announcer.wording." + Announcer.wording().id()));
 	}
 
 	@Override
