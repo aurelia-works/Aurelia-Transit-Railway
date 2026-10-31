@@ -48,6 +48,7 @@ public final class ModItemGroups {
 									.forEach(entry -> entries.add(entry.block()));
 							if (tab == BlockFamily.Tab.PASSENGER_EQUIPMENT) {
 								entries.add(ModItems.TRANSIT_CARD);
+								entries.add(ModItems.POCKET_TIMETABLE);
 								entries.add(ModItems.STATION_WRENCH);
 								entries.add(ModItems.AIRPORT_WRENCH);
 								entries.add(ModItems.STATION_CODEX);

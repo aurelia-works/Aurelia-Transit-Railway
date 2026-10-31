@@ -142,6 +142,9 @@ public class FareGateBlock extends FacingKindBlock<FareGateKind> {
 				if (opened && now.isOf(this)) {
 					world.setBlockState(gatePos, now.with(OPEN, FareGateOpen.OPEN));
 					rememberPayer(world, gatePos, player, world.getTime());
+					if (player instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
+						com.aureliatransit.architecture.fare.CardTaps.onPass(serverPlayer, gatePos.getX() + " " + gatePos.getY() + " " + gatePos.getZ());
+					}
 				}
 			});
 		}

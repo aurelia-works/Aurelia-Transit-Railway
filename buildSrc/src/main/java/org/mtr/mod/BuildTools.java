@@ -54,6 +54,7 @@ public class BuildTools {
 	private final int majorVersion;
 
 	private static final Logger LOGGER = LogManager.getLogger("Build");
+	// Upstream Minecraft Transit Railway Crowdin project. ATR does not own it; do not download or upload with this id.
 	private static final long CROWDIN_PROJECT_ID = 455212;
 
 	public BuildTools(String minecraftVersion, String loader, Project project) throws IOException {

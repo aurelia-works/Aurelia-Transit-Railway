@@ -1,5 +1,7 @@
 package com.aureliatransit.architecture.client;
 
+import com.aureliatransit.architecture.client.fare.CardHistoryScreen;
+import com.aureliatransit.architecture.fare.TransitCardItem;
 import com.aureliatransit.architecture.station.world.StationCodexItem;
 import com.aureliatransit.architecture.station.world.AirportWrenchItem;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
@@ -7,6 +9,7 @@ import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.client.airport.AirportClient;
 import com.aureliatransit.architecture.client.interactive.InteractiveClient;
 import com.aureliatransit.architecture.client.live.LiveClient;
+import com.aureliatransit.architecture.client.timetable.PocketTimetableClient;
 import com.aureliatransit.architecture.client.wayfinding.WayfindingClient;
 import com.aureliatransit.architecture.client.wayfinding.WayfindingLogicClient;
 import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
@@ -27,6 +30,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		InteractiveClient.init();
 		WayfindingLogicClient.init();
 		WayfindingClient.init();
+		PocketTimetableClient.init();
 		StationStudioClient.init();
 		for (final ModBlocks.Entry entry : ModBlocks.entries()) {
 			switch (entry.renderKind()) {
@@ -40,6 +44,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		StationWrenchItem.openScreen = StationWrenchScreen::open;
 		AirportWrenchItem.openAirportScreen = AirportWrenchScreen::open;
 		StationCodexItem.openScreen = CodexScreen::open;
+		TransitCardItem.openScreen = stack -> MinecraftClient.getInstance().setScreen(new CardHistoryScreen(stack));
 		TextSignBlock.openEditor = pos -> {
 			final MinecraftClient client = MinecraftClient.getInstance();
 			if (client.world != null && client.world.getBlockEntity(pos) instanceof TextSignBlockEntity sign) {

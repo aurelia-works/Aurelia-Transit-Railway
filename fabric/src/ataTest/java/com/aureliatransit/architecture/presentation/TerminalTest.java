@@ -109,8 +109,9 @@ class TerminalTest {
 	@Test
 	void pageSelectionWrapsAndFallsBackToHome() {
 		assertEquals(TerminalPage.DEPARTURES, TerminalPage.HOME.next());
-		assertEquals(TerminalPage.HOME, TerminalPage.ACCESSIBILITY.next());
-		assertEquals(TerminalPage.ACCESSIBILITY, TerminalPage.HOME.previous());
+		assertEquals(TerminalPage.PLAN, TerminalPage.ACCESSIBILITY.next());
+		assertEquals(TerminalPage.HOME, TerminalPage.PLAN.next());
+		assertEquals(TerminalPage.PLAN, TerminalPage.HOME.previous());
 		assertEquals(TerminalPage.HOME, TerminalPage.byOrdinal(-1));
 		assertEquals(TerminalPage.HOME, TerminalPage.byOrdinal(99));
 		assertEquals("map", TerminalPage.MAP.id());

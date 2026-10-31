@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.mtr.core.data.*;
 import org.mtr.core.generated.data.SavedRailBaseSchema;
 import org.mtr.core.tool.Vector;
+import org.mtr.mod.cargo.CargoService;
 import org.mtr.libraries.com.google.gson.JsonArray;
 import org.mtr.libraries.com.google.gson.JsonObject;
 
@@ -111,6 +112,7 @@ public final class MapLayerJson {
 			routeObject.addProperty("color", route.getColorHex());
 			routeObject.addProperty("type", route.getRouteTypeKey());
 			routeObject.addProperty("hidden", route.getHidden());
+			routeObject.addProperty("suspended", org.mtr.mod.data.DepotSuspension.suspended(route.getName()));
 			routeObject.addProperty("circular", circular);
 			routeObject.add("platforms", platformsArray);
 			routeObject.add("shape", shape);
@@ -161,8 +163,10 @@ public final class MapLayerJson {
 				vehicleObject.addProperty("station", extraData.getThisStationName());
 				vehicleObject.addProperty("nextStation", extraData.getNextStationName());
 				vehicleObject.addProperty("onRoute", vehicle.getIsOnRoute());
+				vehicleObject.addProperty("suspended", org.mtr.mod.data.DepotSuspension.suspended(extraData.getThisRouteName()));
 				vehicleObject.addProperty("moving", vehicle.isMoving());
 				vehicleObject.addProperty("cars", extraData.immutableVehicleCars.size());
+				vehicleObject.addProperty("cargoItems", CargoService.itemCount(vehicle.getId()));
 				vehicleObject.add("head", point(new double[]{head.x, head.y, head.z}));
 				vehiclesArray.add(vehicleObject);
 			} catch (Exception e) {

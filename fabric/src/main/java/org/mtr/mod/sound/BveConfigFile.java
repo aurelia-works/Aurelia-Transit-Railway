@@ -10,7 +10,8 @@ import java.util.Locale;
 public class BveConfigFile {
 
 	public final SoundEvent[] run = new SoundEvent[1];
-	public final SoundEvent[] flange = new SoundEvent[1];
+	/** Up to eight BVE flange clips. Packs that only define flange[0] still load that one. */
+	public final SoundEvent[] flange = new SoundEvent[8];
 	public final SoundEvent[] motor = new SoundEvent[40];
 	public final SoundEvent[] joint = new SoundEvent[1];
 

@@ -182,8 +182,9 @@ export class AtrLayer {
                 stationHeights.set(platform.stationId, heights);
             });
             if (route.hidden || route.shape.length < 2) return;
-            const color = hexToRgb(route.color);
-            const label = pickName(route.name, settings.nameMode);
+            if (!routeOnPlan(route)) return;
+            const color = route.suspended ? {r: 120, g: 120, b: 120} : hexToRgb(route.color);
+            const label = (route.suspended ? "Suspended: " : "") + pickName(route.name, settings.nameMode);
             // where no rails were found between two platforms the server sends a straight line, which would cut across the map
             splitShape(route.shape, route.straight).forEach((run, index) => {
                 if (run.straight && !settings.straightLines) return;
@@ -244,7 +245,7 @@ export class AtrLayer {
                 label: `${pickName(vehicle.routeName, settings.nameMode)} to ${pickName(vehicle.destination, settings.nameMode)}`,
                 position: {x, y: y + 1, z},
                 anchor: {x: 0, y: 0},
-                html: `<div class="atr-train${vehicle.moving ? "" : " atr-stopped"}" style="--atr-train:${color};--atr-size:${settings.trainSize}" title="${escapeHtml(pickName(vehicle.destination, settings.nameMode))}">${text}</div>`,
+                html: `<div class="atr-train${vehicle.moving ? "" : " atr-stopped"}${vehicle.suspended ? " atr-suspended" : ""}" style="--atr-train:${vehicle.suspended ? "#888" : color};--atr-size:${settings.trainSize}" title="${escapeHtml((vehicle.suspended ? "Held at depot: " : "") + pickName(vehicle.destination, settings.nameMode))}">${text}</div>`,
                 listed: false,
             };
             const motion = this.trainMotion.get(vehicle.id);
@@ -280,6 +281,20 @@ export class AtrLayer {
         });
         this.app.mapViewer.redraw();
     }
+}
+
+/**
+ * When the page is opened with ?from=&to= (station names, case-insensitive), only routes that stop at either
+ * name are drawn, so the live layer shows the lines a journey can use. Without the query every route is drawn.
+ */
+function routeOnPlan(route) {
+    const params = new URLSearchParams(window.location.search);
+    const from = (params.get("from") || "").trim().toLowerCase();
+    const to = (params.get("to") || "").trim().toLowerCase();
+    if (!from || !to) return true;
+    const names = new Set();
+    (route.platforms || []).forEach(platform => names.add(String(platform.name || "").trim().toLowerCase()));
+    return names.has(from) || names.has(to);
 }
 
 function dimensionOfMap(mapId) {
