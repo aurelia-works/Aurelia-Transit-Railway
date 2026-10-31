@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Server side of {@link DepotSchedules}: saves them ({@code atr_depot_schedules.dat}), writes the plan for today into
@@ -53,7 +54,7 @@ public final class DepotSchedulesSync {
 	private static volatile DepotSchedules current = new DepotSchedules();
 	private static volatile Map<Long, Summary> client = Map.of();
 	/** The day type last written into each depot, so a plan is only written when the day type changes. */
-	private static final Map<Long, DepotSchedules.DayType> APPLIED = new HashMap<>();
+	private static final Map<Long, DepotSchedules.DayType> APPLIED = new ConcurrentHashMap<>();
 	private static int ticks;
 
 	private DepotSchedulesSync() {
