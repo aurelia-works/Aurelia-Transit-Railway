@@ -27,6 +27,26 @@
 			"type": "boolean",
 			"default": false,
 			"description": "When true, ticket barriers, ticket processors and ATA fare gates open without charging or checking a station. Entry records and balance are left unchanged."
+		},
+		"zoneFareBase": {
+			"type": "integer",
+			"default": 0,
+			"description": "ATA zone fare added on top of nothing when freeTicketBarriers is also set. 0 leaves charging to MTR."
+		},
+		"zoneFareStep": {
+			"type": "integer",
+			"default": 0,
+			"description": "Added once per zone crossed between tap-in and tap-out. 0 with zoneFareBase 0 disables ATA zone fares."
+		},
+		"dailyFareCap": {
+			"type": "integer",
+			"default": 0,
+			"description": "Most one player is charged by ATA zone fares in a Minecraft day. 0 means no cap."
+		},
+		"fareZoneTable": {
+			"type": "string",
+			"default": "",
+			"description": "Station key to zone, comma separated, for example central=1,airport=3. Keys are trimmed and lower cased. Unknown stations are zone 0. Empty keeps older worlds unchanged."
 		}
 	}
 }

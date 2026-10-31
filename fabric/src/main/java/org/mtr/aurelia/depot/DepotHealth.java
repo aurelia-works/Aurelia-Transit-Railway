@@ -80,6 +80,19 @@ public final class DepotHealth {
 		return problems;
 	}
 
+	/** {@link #check(DepotInfo)} plus one error per route currently held at the depot by a suspension. */
+	public static List<Problem> check(DepotInfo depot, List<String> suspendedRoutes) {
+		final List<Problem> problems = new ArrayList<>(check(depot));
+		if (suspendedRoutes != null) {
+			for (final String route : suspendedRoutes) {
+				if (route != null && !route.isBlank()) {
+					problems.add(new Problem(Severity.ERROR, "route_suspended", List.of(route)));
+				}
+			}
+		}
+		return problems;
+	}
+
 	/** Errors first, then warnings, then healthy; by name inside each group. */
 	public static Comparator<DepotInfo> worstFirst() {
 		return Comparator.comparingInt((DepotInfo depot) -> rank(check(depot))).thenComparing(depot -> depot.name().toLowerCase(java.util.Locale.ROOT));

@@ -215,10 +215,6 @@ tasks.register("ataTest", Test) {
 			project.property("ata.tests.exclude").toString().split(",").each { excludeTestsMatching it.trim() }
 		}
 	}
-	// StationRecipeTest's sweep runs every n-th look from the k-th with -Pata.sweep.shard=k/n, so CI spreads it over n jobs
-	if (project.hasProperty("ata.sweep.shard")) {
-		systemProperty "ata.sweep.shard", project.property("ata.sweep.shard")
-	}
 }
 
 // Fabric 1.20.1 runs every registered game test and has no filter, so CI splits the suite over jobs by which test classes the

@@ -35,9 +35,30 @@ public final class Server extends ServerSchema {
 		return freeTicketBarriers;
 	}
 
+	public int getZoneFareBase() {
+		return (int) Math.max(0, Math.min(Integer.MAX_VALUE, zoneFareBase));
+	}
+
+	public int getZoneFareStep() {
+		return (int) Math.max(0, Math.min(Integer.MAX_VALUE, zoneFareStep));
+	}
+
+	public int getDailyFareCap() {
+		return (int) Math.max(0, Math.min(Integer.MAX_VALUE, dailyFareCap));
+	}
+
+	/** Raw table. Blank means no zones, which is how older configs behave. */
+	public String getFareZoneTable() {
+		return fareZoneTable == null ? "" : fareZoneTable;
+	}
+
 	/** Copies only the ticket keys, so a config reload cannot reset the webserver port or the threading flags. */
 	void copyTicketSettingsFrom(Server other) {
 		ticketCurrency = other.ticketCurrency;
 		freeTicketBarriers = other.freeTicketBarriers;
+		zoneFareBase = other.zoneFareBase;
+		zoneFareStep = other.zoneFareStep;
+		dailyFareCap = other.dailyFareCap;
+		fareZoneTable = other.fareZoneTable;
 	}
 }

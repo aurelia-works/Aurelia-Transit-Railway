@@ -1,5 +1,9 @@
 name: Crowdin
-on: [ workflow_dispatch ]
+# Manual only. project_id 455212 is the upstream Minecraft Transit Railway Crowdin
+# project, which ATR does not own. Do not run this until it points at ATR's own
+# Crowdin project and CROWDIN_API_KEY is that project's token.
+on:
+  workflow_dispatch:
 
 jobs:
   crowdin:

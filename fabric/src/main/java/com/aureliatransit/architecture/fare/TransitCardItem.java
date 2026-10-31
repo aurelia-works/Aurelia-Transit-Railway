@@ -26,6 +26,10 @@ public class TransitCardItem extends Item {
 
 	private static final String TIP = "tooltip." + AureliaTransitArchitecture.MOD_ID + ".transit_card";
 
+	/** Client only: the history screen. Set by the client initializer. */
+	public static java.util.function.Consumer<ItemStack> openScreen = stack -> {
+	};
+
 	public TransitCardItem(Settings settings) {
 		super(settings);
 	}
@@ -37,7 +41,9 @@ public class TransitCardItem extends Item {
 
 	@Override
 	public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
-		if (!world.isClient) {
+		if (world.isClient) {
+			openScreen.accept(player.getStackInHand(hand));
+		} else {
 			player.sendMessage(FareText.balance(MtrFareContract.balance(world, player)), true);
 		}
 		return TypedActionResult.success(player.getStackInHand(hand), world.isClient);

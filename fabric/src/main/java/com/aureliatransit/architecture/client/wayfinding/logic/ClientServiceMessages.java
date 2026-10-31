@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.client.wayfinding.logic;
 
+import com.aureliatransit.architecture.wayfinding.RouteHold;
 import com.aureliatransit.architecture.wayfinding.ServiceMessage;
 import com.aureliatransit.architecture.wayfinding.ServiceMessages;
 
@@ -10,16 +11,35 @@ import com.aureliatransit.architecture.wayfinding.ServiceMessages;
 public final class ClientServiceMessages {
 
 	private static volatile ServiceMessages current = ServiceMessages.EMPTY;
+	private static volatile java.util.List<String> suspendedRoutes = java.util.List.of();
 
 	private ClientServiceMessages() {
 	}
 
 	public static void set(ServiceMessages messages) {
+		set(messages, java.util.List.of());
+	}
+
+	public static void set(ServiceMessages messages, java.util.List<RouteHold> holds) {
 		current = messages == null ? ServiceMessages.EMPTY : messages;
+		final java.util.List<String> names = new java.util.ArrayList<>();
+		if (holds != null) {
+			for (final RouteHold hold : holds) {
+				if (hold.route() != null && !hold.route().isBlank()) {
+					names.add(hold.route());
+				}
+			}
+		}
+		suspendedRoutes = java.util.List.copyOf(names);
+	}
+
+	public static java.util.List<String> suspendedRoutes() {
+		return suspendedRoutes;
 	}
 
 	public static void clear() {
 		current = ServiceMessages.EMPTY;
+		suspendedRoutes = java.util.List.of();
 	}
 
 	public static ServiceMessages get() {

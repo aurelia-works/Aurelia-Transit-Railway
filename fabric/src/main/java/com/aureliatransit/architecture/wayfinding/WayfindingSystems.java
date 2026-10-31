@@ -19,8 +19,8 @@ public final class WayfindingSystems {
 		});
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			final ServiceMessages messages = ServiceMessageState.get(server).messages();
-			if (!messages.isEmpty()) {
-				ServiceMessageSync.send(handler.getPlayer(), messages);
+			if (!messages.isEmpty() || !ServiceMessageState.get(server).holds().isEmpty()) {
+				ServiceMessageSync.send(handler.getPlayer(), messages, ServiceMessageState.get(server).holds());
 			}
 			final StationSuffixes suffixes = StationSuffixState.get(server).suffixes();
 			if (!suffixes.isEmpty()) {

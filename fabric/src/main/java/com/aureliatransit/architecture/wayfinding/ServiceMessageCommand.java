@@ -8,6 +8,8 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
+import java.util.List;
+
 /**
  * Operator-only (permission level 2) management of service messages. Any number can be active at once (at most
  * {@value ServiceMessages#MAX_MESSAGES}); each has a stable id shown by {@code list}.
@@ -70,7 +72,12 @@ final class ServiceMessageCommand {
 								.executes(context -> clear(context, MessageScope.STATION, StringArgumentType.getString(context, "name"))))))
 				.then(network)
 				.then(CommandManager.literal("station").then(station))
-				.then(CommandManager.literal("list").executes(ServiceMessageCommand::list)));
+				.then(CommandManager.literal("list").executes(ServiceMessageCommand::list))
+				.then(CommandManager.literal("suspend")
+						.then(CommandManager.argument("route", StringArgumentType.string())
+								.then(CommandManager.argument("minutes", IntegerArgumentType.integer(1, 1440))
+										.then(CommandManager.argument("text", StringArgumentType.greedyString())
+												.executes(ServiceMessageCommand::suspend))))));
 	}
 
 	private static com.mojang.brigadier.builder.LiteralArgumentBuilder<ServerCommandSource> severityNode(MessageSeverity severity, Action action) {
@@ -135,6 +142,8 @@ final class ServiceMessageCommand {
 			context.getSource().sendError(Text.literal("No message #" + id));
 			return 0;
 		}
+		final ServiceMessageState state = ServiceMessageState.get(context.getSource().getServer());
+		state.setHolds(state.holds().stream().filter(hold -> hold.messageId() != id).toList());
 		return store(context, current.remove(id), "Message #" + id + " removed");
 	}
 
@@ -144,6 +153,32 @@ final class ServiceMessageCommand {
 				: scope == MessageScope.NETWORK ? current.clearNetwork() : current.clearStation(station);
 		return store(context, next, scope == null ? "All service messages cleared"
 				: scope == MessageScope.NETWORK ? "Network messages cleared" : "Messages for " + station + " cleared");
+	}
+
+	/**
+	 * A disruption that names a route and expires. The hold is what keeps that route's trains at the depot; removing
+	 * the message or waiting out the minutes clears it.
+	 */
+	private static int suspend(CommandContext<ServerCommandSource> context) {
+		if (tooLong(context)) {
+			return 0;
+		}
+		final String route = StringArgumentType.getString(context, "route");
+		final int minutes = IntegerArgumentType.getInteger(context, "minutes");
+		final ServiceMessageState state = ServiceMessageState.get(context.getSource().getServer());
+		final ServiceMessages next = state.messages().add(MessageScope.NETWORK, "", MessageSeverity.DISRUPTION, StringArgumentType.getString(context, "text"));
+		if (next == null) {
+			context.getSource().sendError(Text.literal("Cannot suspend: the text is empty, or " + ServiceMessages.MAX_MESSAGES + " messages are already active"));
+			return 0;
+		}
+		final int id = next.nextId() - 1;
+		final List<RouteHold> holds = new java.util.ArrayList<>(state.holds());
+		holds.add(new RouteHold(id, route, System.currentTimeMillis() + minutes * 60_000L));
+		state.set(next);
+		state.setHolds(holds);
+		ServiceMessageSync.broadcast(context.getSource().getServer(), next);
+		context.getSource().sendFeedback(() -> Text.literal("Route " + route + " suspended for " + minutes + " min (message #" + id + ")"), true);
+		return 1;
 	}
 
 	private static int list(CommandContext<ServerCommandSource> context) {

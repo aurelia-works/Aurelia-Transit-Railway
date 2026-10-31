@@ -1,16 +1,16 @@
 name: Bug Report
-description: Help improve Minecraft Transit Railway by reporting bugs.
+description: Help improve Aurelia Transit Railway by reporting bugs.
 labels: [ "bug" ]
 body:
   - type: checkboxes
     attributes:
       label: Before reporting, I have confirmed that
       options:
-        - label: This bug does not appear to be reported on [GitHub Issues](https://github.com/Minecraft-Transit-Railway/Minecraft-Transit-Railway/issues?q=is%3Aissue) before.
+        - label: This bug does not appear to be reported on [GitHub Issues](https://github.com/aurelia-works/Aurelia-Transit-Railway/issues?q=is%3Aissue) before.
           required: true
-        - label: This bug still exists in the latest version of the Minecraft Transit Railway mod.
+        - label: This bug still exists in the latest version of Aurelia Transit Railway.
           required: true
-        - label: I have tested this in the official version of Minecraft Transit Railway, not a modified, custom, or unofficial build.
+        - label: I have tested this in an official Aurelia Transit Railway build from this repository, not a modified or unofficial jar.
           required: true
   - type: textarea
     attributes:
@@ -57,9 +57,9 @@ body:
       required: true
   - type: input
     attributes:
-      label: Minecraft Transit Railway Version
-      description: What version of the Minecraft Transit Railway mod were you using when you encountered the bug?
-      placeholder: "4.0.0"
+      label: Aurelia Transit Railway Version
+      description: What version of Aurelia Transit Railway were you using when you encountered the bug?
+      placeholder: "4.0.5+atr.1.0.1"
     validations:
       required: true
   - type: input

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.1 (4.0.5+atr.1.0.1), Minecraft 1.20.1, Fabric
+
+### Fixed
+- Route maps no longer reset the drawing scale on the render thread while a worker thread is still drawing with it.
+- Fare gates remember who paid per world. Two dimensions that share a block position no longer share one payer entry.
+
+### Project
+- Repository URLs now use `aurelia-works/Aurelia-Transit-Railway`. GitHub redirects the old name.
+- README no longer sends people to upstream images, the old todo list, Modrinth, Crowdin, Discord, Patreon, or the upstream email.
+- The Crowdin workflow stays manual. It still names the upstream Crowdin project and must not run until ATR has its own project.
+
 ## 1.0.0 (4.0.5+atr.1.0.0), Minecraft 1.20.1, Fabric
 
 First release of Aurelia Transit Railway, a maintained fork of Minecraft Transit Railway 4.0.5.
