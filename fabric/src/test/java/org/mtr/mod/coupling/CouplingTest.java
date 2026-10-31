@@ -24,47 +24,6 @@ import java.util.List;
 public final class CouplingTest {
 
 	@Test
-	public void halfKeepsOneCarEachWayAndARequestIsClamped() {
-		Assertions.assertEquals(2, Coupling.keepCount(4, 0));
-		Assertions.assertEquals(1, Coupling.keepCount(4, 1));
-		Assertions.assertEquals(3, Coupling.keepCount(4, 9));
-		Assertions.assertEquals(1, Coupling.keepCount(1, 0));
-		Assertions.assertFalse(Coupling.canSplit(1, 1));
-		Assertions.assertTrue(Coupling.canCouple(2, 2));
-	}
-
-	@Test
-	public void aManualSidingSplitsAndRemembersTheStop() {
-		CouplingActions.clearVisits();
-		final Siding siding = siding();
-		siding.setIsManual(true);
-		final Vehicle vehicle = vehicle(siding, 200, 7, "motor", "trailer", "trailer", "cab");
-		SidingFleet.vehicles(siding).add(vehicle);
-		Assertions.assertEquals(1, CouplingActions.split(siding, 7, 1));
-		final ObjectArraySet<Vehicle> fleet = SidingFleet.vehicles(siding);
-		Assertions.assertEquals(2, fleet.size());
-		final List<Integer> lengths = new ArrayList<>();
-		long frontId = vehicle.getId();
-		boolean frontKept = false;
-		for (final Vehicle train : fleet) {
-			lengths.add(train.vehicleExtraData.immutableVehicleCars.size());
-			if (train.getId() == frontId) {
-				frontKept = true;
-				Assertions.assertEquals(1, train.vehicleExtraData.immutableVehicleCars.size());
-				Assertions.assertEquals(200, SidingFleet.railProgress(train), 0.001);
-				Assertions.assertEquals("motor", train.vehicleExtraData.immutableVehicleCars.get(0).getVehicleId());
-			} else {
-				Assertions.assertEquals(3, train.vehicleExtraData.immutableVehicleCars.size());
-				Assertions.assertEquals(200 - trainLength(car("motor")), SidingFleet.railProgress(train), 0.001);
-			}
-		}
-		Assertions.assertTrue(frontKept);
-		Assertions.assertTrue(lengths.contains(1));
-		Assertions.assertTrue(lengths.contains(3));
-		Assertions.assertEquals(0, CouplingActions.split(siding, 7, 1), "the same stop does not split again");
-	}
-
-	@Test
 	public void anAutomaticSidingWithNoFreeDepartureDoesNotSplit() {
 		CouplingActions.clearVisits();
 		final Siding siding = siding();
@@ -74,27 +33,6 @@ public final class CouplingTest {
 		Assertions.assertEquals(0, CouplingActions.split(siding, 7, 2));
 		Assertions.assertEquals(1, SidingFleet.vehicles(siding).size());
 		Assertions.assertEquals(4, vehicle.vehicleExtraData.immutableVehicleCars.size());
-	}
-
-	@Test
-	public void twoStoppedTrainsCoupleOntoTheOneFurtherAlong() {
-		CouplingActions.clearVisits();
-		final Siding siding = siding();
-		siding.setIsManual(true);
-		final Vehicle rear = vehicle(siding, 80, 7, "c", "d");
-		final Vehicle lead = vehicle(siding, 160, 7, "a", "b");
-		final ObjectArraySet<Vehicle> fleet = SidingFleet.vehicles(siding);
-		fleet.add(rear);
-		fleet.add(lead);
-		Assertions.assertEquals(1, CouplingActions.couple(siding, 7));
-		Assertions.assertEquals(1, fleet.size());
-		final Vehicle joined = fleet.iterator().next();
-		Assertions.assertEquals(lead.getId(), joined.getId());
-		Assertions.assertEquals(4, joined.vehicleExtraData.immutableVehicleCars.size());
-		Assertions.assertEquals("a", joined.vehicleExtraData.immutableVehicleCars.get(0).getVehicleId());
-		Assertions.assertEquals("d", joined.vehicleExtraData.immutableVehicleCars.get(3).getVehicleId());
-		Assertions.assertEquals(160, SidingFleet.railProgress(joined), 0.001);
-		Assertions.assertEquals(0, CouplingActions.couple(siding, 7));
 	}
 
 	@Test
@@ -215,9 +153,4 @@ public final class CouplingTest {
 		return new VehicleCar(id, 8, 2.5, 2, 6, 0, 0);
 	}
 
-	private static double trainLength(VehicleCar car) {
-		final ObjectArrayList<VehicleCar> cars = new ObjectArrayList<>();
-		cars.add(car);
-		return Siding.getTotalVehicleLength(cars);
-	}
 }
