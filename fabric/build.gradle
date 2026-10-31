@@ -219,8 +219,8 @@ tasks.register("ataTest", Test) {
 	// classes land in a shard on their own. Nested classes go with their outer class.
 	if (project.hasProperty("ata.tests.shard")) {
 		final List<Integer> shard = project.property("ata.tests.shard").toString().split("/").collect { it.trim() as int }
-		final int index = shard[0], count = shard[1]
-		if (count < 1 || index < 1 || index > count) {
+		final int index = shard[0], count = shard[shard.size() - 1]
+		if (shard.size() != 2 || count < 1 || index < 1 || index > count) {
 			throw new GradleException("ata.tests.shard must be i/n with 1 <= i <= n, got " + project.property("ata.tests.shard"))
 		}
 		inputs.property("ata.tests.shard", "${index}/${count}")
