@@ -6,6 +6,7 @@ import com.aureliatransit.architecture.station.world.StationWrenchItem;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.client.interactive.InteractiveClient;
 import com.aureliatransit.architecture.client.live.LiveClient;
+import com.aureliatransit.architecture.client.timetable.PocketTimetableClient;
 import com.aureliatransit.architecture.client.wayfinding.WayfindingClient;
 import com.aureliatransit.architecture.client.wayfinding.WayfindingLogicClient;
 import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
@@ -25,6 +26,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		InteractiveClient.init();
 		WayfindingLogicClient.init();
 		WayfindingClient.init();
+		PocketTimetableClient.init();
 		StationStudioClient.init();
 		for (final ModBlocks.Entry entry : ModBlocks.entries()) {
 			switch (entry.renderKind()) {

@@ -2,6 +2,7 @@ package com.aureliatransit.architecture.registry;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.fare.TransitCardItem;
+import com.aureliatransit.architecture.timetable.PocketTimetableItem;
 import com.aureliatransit.architecture.station.world.StationCodexItem;
 import com.aureliatransit.architecture.station.world.AirportWrenchItem;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
@@ -16,6 +17,8 @@ public final class ModItems {
 
 	public static final Item TRANSIT_CARD = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("transit_card"),
 			new TransitCardItem(new Item.Settings().maxCount(1)));
+	public static final Item POCKET_TIMETABLE = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("pocket_timetable"),
+			new PocketTimetableItem(new Item.Settings().maxCount(1)));
 	/** Station generator tool; operators only (checked on the server for every action). */
 	public static final Item STATION_WRENCH = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("station_wrench"),
 			new StationWrenchItem(new Item.Settings().maxCount(1)));
