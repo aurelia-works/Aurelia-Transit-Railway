@@ -1,4 +1,14 @@
 {
+	"atr_door_chime_two": {
+		"sounds": [
+			"mtr:atr/door_chime_two"
+		]
+	},
+	"atr_door_chime_three": {
+		"sounds": [
+			"mtr:atr/door_chime_three"
+		]
+	},
 	"ticket_barrier": {
 		"sounds": [
 			{
