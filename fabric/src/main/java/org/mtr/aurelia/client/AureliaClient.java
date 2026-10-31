@@ -72,6 +72,8 @@ public final class AureliaClient implements ClientModInitializer {
 		});
 		RideClient.register();
 		PassengerClient.register();
+		PassengerDrawSettings.load(FabricLoader.getInstance().getConfigDir());
+		PassengerRenderer.register();
 		LOGGER.info("[ATR] Aurelia panel ready");
 	}
 
