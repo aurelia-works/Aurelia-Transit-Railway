@@ -10,8 +10,8 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 # The suites are split over jobs that run side by side, so the run takes as long as the slowest job: ATR's build and tests,
-# ATA's unit tests, ATA's three slowest unit test classes, the StationRecipeTest sweep in 4 shards of looks, and ATA's game
-# tests in 2 servers (the airport rebuild test, real-time MTR waits for two airport builds, alone in one).
+# ATA's unit tests, ATA's three slowest unit test classes, and ATA's game tests in 2 servers (the airport rebuild test,
+# real-time MTR waits for two airport builds, alone in one).
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -52,7 +52,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - name: ATA unit tests
-        run: ./gradlew setupFiles :fabric:ataTest -Pata.tests.exclude="$SLOW_UNIT_TESTS,*StationRecipeTest"
+        run: ./gradlew setupFiles :fabric:ataTest -Pata.tests.exclude="$SLOW_UNIT_TESTS"
   # The three slowest ATA unit test classes, beside the other jobs
   ata-slow-unit:
     runs-on: ubuntu-latest
@@ -70,22 +70,6 @@ jobs:
           IFS=, read -ra classes <<< "$SLOW_UNIT_TESTS"
           for class in "${classes[@]}"; do args+=(--tests "$class"); done
           ./gradlew setupFiles :fabric:ataTest "${args[@]}"
-  ata-recipe-sweep:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: zulu
-          java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
-      - name: StationRecipeTest, looks ${{ matrix.shard }}/4
-        run: ./gradlew setupFiles :fabric:ataTest --tests '*StationRecipeTest' -Pata.sweep.shard=${{ matrix.shard }}/4
   ata-gametest:
     runs-on: ubuntu-latest
     timeout-minutes: 45

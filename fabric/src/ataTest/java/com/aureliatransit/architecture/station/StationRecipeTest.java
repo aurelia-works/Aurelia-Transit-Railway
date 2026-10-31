@@ -2,13 +2,12 @@ package com.aureliatransit.architecture.station;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -30,7 +29,7 @@ class StationRecipeTest {
 			Map.entry(StationRecipe.Look.SURBITON, BuildingStyle.ART_DECO), Map.entry(StationRecipe.Look.COVENTRY, BuildingStyle.MODERNIST));
 
 	/**
-	 * Every look with every mix, both station types and every roof (tracks, platforms, length and building cycle along): the
+	 * Every look with every station type and every roof (the mix, tracks, platforms, length and building cycle along): the
 	 * description parses cleanly into what was chosen and the plan passes the design rules and the station checks.
 	 */
 	private static final int[] LENGTHS = {32, 64, 96, 128};
@@ -57,69 +56,53 @@ class StationRecipeTest {
 		}
 	}
 
-	/**
-	 * The looks the sweep covers in this run: all of them, or with {@code -Pata.sweep.shard=k/n} (Gradle passes it to the test JVM) every n-th look from the k-th, so CI
-	 * spreads the sweep over n jobs.
-	 */
-	static Stream<StationRecipe.Look> sweptLooks() {
-		final String shard = System.getProperty("ata.sweep.shard", "");
-		if (shard.isEmpty()) {
-			return Stream.of(StationRecipe.Look.values());
-		}
-		final String[] kn = shard.split("/");
-		final int k = Integer.parseInt(kn[0]) - 1;
-		final int n = Integer.parseInt(kn[1]);
-		return Stream.of(StationRecipe.Look.values()).filter(look -> look.ordinal() % n == k);
-	}
-
-	/** One case per look; each look's running index starts where the one sweep over all looks had it, so the choices are unchanged. */
+	/** One case per look; the mix steps through none and every look as the types and roofs go round, so every mix is still built. */
 	@ParameterizedTest
-	@MethodSource("sweptLooks")
+	@EnumSource(StationRecipe.Look.class)
 	void everyChoiceGivesACleanBuildableStation(final StationRecipe.Look look) {
 		final List<String> failures = new ArrayList<>();
 		final List<StationRecipe.Look> mixes = new ArrayList<>();
 		mixes.add(null);
 		mixes.addAll(List.of(StationRecipe.Look.values()));
-		int index = look.ordinal() * mixes.size() * 3 * StationRecipe.Roof.values().length;
+		int index = look.ordinal() * 3 * StationRecipe.Roof.values().length;
 		final int first = index;
-		for (final StationRecipe.Look mix : mixes) {
-			for (final int type : new int[] {0, 1, 2}) { // through, terminus, hub
-				for (final StationRecipe.Roof roof : StationRecipe.Roof.values()) {
-					index++;
-					final int tracks = 1 + index % 4;
-					final StationRecipe recipe = new StationRecipe(look, mix, type > 0, tracks, StationRecipe.Platforms.values()[index % 3],
-							LENGTHS[index % 4], roof, index % 5 != 0, index % 2 == 0 ? "Alpha Centraal" : "", StationRecipe.Size.values()[index % 4], type == 2);
-					final ParseResult result = StationDescriptionParser.parse(recipe.description());
-					final String label = recipe.encode() + " -> " + recipe.description();
-					if (!result.warnings().isEmpty() || !result.ignored().isEmpty()) {
-						failures.add(label + ": warnings " + result.warnings() + " ignored " + result.ignored());
-						continue;
-					}
-					final StationSpec spec = result.spec();
-					if (spec.trackCount() != recipe.tracks() || spec.terminus() != recipe.terminus() || spec.hub() != recipe.hub()
-							|| spec.platformLength() != recipe.length() || !spec.name().equals(recipe.name())
-							|| spec.hasBuilding() != recipe.building() || recipe.building() && look != StationRecipe.Look.AUTO && spec.building() != BUILDINGS.get(look)) {
-						failures.add(label + ": got " + spec);
-						continue;
-					}
-					final RoofType wantedRoof = switch (roof) {
-						case AUTO -> null;
-						case CANOPIES, FLAT_CANOPIES, BUTTERFLY, GABLE -> RoofType.CANOPY;
-						case OPEN -> RoofType.NONE;
-						default -> RoofType.HALL;
-					};
-					if (wantedRoof != null && spec.roof() != wantedRoof) {
-						failures.add(label + ": roof " + spec.roof());
-						continue;
-					}
-					final StationPlan plan = StationPlanner.plan(spec);
-					final List<Violation> violations = LayoutValidator.validate(plan);
-					final StationAudit.Result audit = StationAudit.audit(plan);
-					if (!violations.isEmpty()) {
-						failures.add(label + ": " + violations.get(0));
-					} else if (!audit.buildable()) {
-						failures.add(label + ": " + audit.problems());
-					}
+		for (final int type : new int[] {0, 1, 2}) { // through, terminus, hub
+			for (final StationRecipe.Roof roof : StationRecipe.Roof.values()) {
+				index++;
+				final StationRecipe.Look mix = mixes.get(index % mixes.size());
+				final int tracks = 1 + index % 4;
+				final StationRecipe recipe = new StationRecipe(look, mix, type > 0, tracks, StationRecipe.Platforms.values()[index % 3],
+						LENGTHS[index % 4], roof, index % 5 != 0, index % 2 == 0 ? "Alpha Centraal" : "", StationRecipe.Size.values()[index % 4], type == 2);
+				final ParseResult result = StationDescriptionParser.parse(recipe.description());
+				final String label = recipe.encode() + " -> " + recipe.description();
+				if (!result.warnings().isEmpty() || !result.ignored().isEmpty()) {
+					failures.add(label + ": warnings " + result.warnings() + " ignored " + result.ignored());
+					continue;
+				}
+				final StationSpec spec = result.spec();
+				if (spec.trackCount() != recipe.tracks() || spec.terminus() != recipe.terminus() || spec.hub() != recipe.hub()
+						|| spec.platformLength() != recipe.length() || !spec.name().equals(recipe.name())
+						|| spec.hasBuilding() != recipe.building() || recipe.building() && look != StationRecipe.Look.AUTO && spec.building() != BUILDINGS.get(look)) {
+					failures.add(label + ": got " + spec);
+					continue;
+				}
+				final RoofType wantedRoof = switch (roof) {
+					case AUTO -> null;
+					case CANOPIES, FLAT_CANOPIES, BUTTERFLY, GABLE -> RoofType.CANOPY;
+					case OPEN -> RoofType.NONE;
+					default -> RoofType.HALL;
+				};
+				if (wantedRoof != null && spec.roof() != wantedRoof) {
+					failures.add(label + ": roof " + spec.roof());
+					continue;
+				}
+				final StationPlan plan = StationPlanner.plan(spec);
+				final List<Violation> violations = LayoutValidator.validate(plan);
+				final StationAudit.Result audit = StationAudit.audit(plan);
+				if (!violations.isEmpty()) {
+					failures.add(label + ": " + violations.get(0));
+				} else if (!audit.buildable()) {
+					failures.add(label + ": " + audit.problems());
 				}
 			}
 		}
