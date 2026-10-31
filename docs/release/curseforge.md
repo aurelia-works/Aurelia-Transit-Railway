@@ -23,4 +23,4 @@ Take out the MTR jar and put ATR in its place. The mod id is still `mtr`, so you
 
 Source and issues: https://github.com/aurelia-works/Aurelia-Transit-Railway
 
-**Version:** 1.0.1 (`4.0.5+atr.1.0.1`), Minecraft 1.20.1, Fabric.
+**Version:** 1.0.2 (`4.0.5+atr.1.0.2`), Minecraft 1.20.1, Fabric.
