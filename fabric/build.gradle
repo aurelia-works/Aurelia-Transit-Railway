@@ -215,6 +215,23 @@ tasks.register("ataTest", Test) {
 			project.property("ata.tests.exclude").toString().split(",").each { excludeTestsMatching it.trim() }
 		}
 	}
+	// CI splits the rest over parallel jobs: -Pata.tests.shard=2/3 runs the classes whose name hashes to shard 2 of 3, so new
+	// classes land in a shard on their own. Nested classes go with their outer class.
+	if (project.hasProperty("ata.tests.shard")) {
+		final List<Integer> shard = project.property("ata.tests.shard").toString().split("/").collect { it.trim() as int }
+		final int index = shard[0], count = shard[1]
+		if (count < 1 || index < 1 || index > count) {
+			throw new GradleException("ata.tests.shard must be i/n with 1 <= i <= n, got " + project.property("ata.tests.shard"))
+		}
+		inputs.property("ata.tests.shard", "${index}/${count}")
+		exclude { element ->
+			if (element.directory || !element.name.endsWith(".class")) {
+				return false
+			}
+			final String outer = element.relativePath.pathString.replaceAll(/\.class$/, "").replaceAll(/\$.*$/, "")
+			return Math.floorMod(outer.hashCode(), count) != index - 1
+		}
+	}
 }
 
 // Fabric 1.20.1 runs every registered game test and has no filter, so CI splits the suite over jobs by which test classes the
