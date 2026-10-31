@@ -118,6 +118,18 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 				.with(new Property<>(IS_CONNECTED.data), false);
 	}
 
+	/**
+	 * A node removed without a player breaking it (/setblock, /fill, another mod) takes its rails with it too (MTR #924).
+	 * A node changing its own state, or swapped for another node, keeps them.
+	 */
+	@Override
+	public void onStateReplaced2(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
+		super.onStateReplaced2(state, world, pos, newState, moved);
+		if (!world.isClient() && !(newState.getBlock().data instanceof BlockNode)) {
+			PacketDeleteData.sendDirectlyToServerRailNodePosition(ServerWorld.cast(world), Init.blockPosToPosition(pos));
+		}
+	}
+
 	public static class BlockContinuousMovementNode extends BlockNode {
 
 		public final boolean upper;

@@ -7,7 +7,8 @@
 	"mixins": [
 		"AirplanePathMixin",
 		"AirplanePositionMixin",
-		"AirplaneRepeatMixin"
+		"AirplaneRepeatMixin",
+		"LiveDestinationMixin"
 	],
 	"client": [
 		"DebugHudMixin",
