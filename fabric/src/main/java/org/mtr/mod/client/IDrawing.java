@@ -189,7 +189,7 @@ public interface IDrawing {
 	}
 
 	static void narrateOrAnnounce(String narrateMessage, ObjectArrayList<MutableText> chatMessages) {
-		if (Config.getClient().getTextToSpeechAnnouncements() && !narrateMessage.isEmpty()) {
+		if (Config.getClient().getTextToSpeechAnnouncements() && !narrateMessage.isEmpty() && !TtsVolume.muted()) {
 			Narrator.getNarrator().say(narrateMessage, true);
 		}
 		if (Config.getClient().getChatAnnouncements() && !chatMessages.isEmpty()) {
