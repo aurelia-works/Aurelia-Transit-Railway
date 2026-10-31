@@ -16,7 +16,8 @@
 		"WeatherInsideVehicleMixin",
 		"SitCameraMixin",
 		"SitDropMixin",
-		"SitWhileRidingMixin"
+		"SitWhileRidingMixin",
+		"TrainSoundPitchMixin"
 	],
 	"server": [],
 	"injectors": {

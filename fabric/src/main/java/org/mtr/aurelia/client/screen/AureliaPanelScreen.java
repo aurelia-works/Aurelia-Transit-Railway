@@ -43,7 +43,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH}
+	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -133,6 +133,7 @@ public final class AureliaPanelScreen extends Screen {
 			case RIDING -> initRiding();
 			case BUILDER -> initBuilder();
 			case PANTOGRAPH -> initPantograph();
+			case TRAIN_SOUND -> initTrainSound();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
@@ -250,6 +251,39 @@ public final class AureliaPanelScreen extends Screen {
 		}).dimensions(left, TOP + ROW * 2, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.pantograph.end.tooltip")));
 		addDrawableChild(new PantographSlider(left, TOP + ROW * 3, Client.PANTOGRAPH_STAY_UP_KILOMETERS_PER_HOUR_MAX, 5, config::getPantographStayUpKilometersPerHour, config::setPantographStayUpKilometersPerHour,
 				speed -> speed == 0 ? Text.translatable("gui.aurelia.pantograph.speed.off") : Text.translatable("gui.aurelia.pantograph.speed", speed.intValue())));
+	}
+
+	/**
+	 * Train sounds: the pitch range past vanilla's 0.5-2, pitch bending across old-style motor steps, a door chime and
+	 * the flange squeal volume.
+	 */
+	private void initTrainSound() {
+		final int left = (width - BUTTON_WIDTH) / 2;
+		addDrawableChild(ButtonWidget.builder(widePitchLabel(), b -> {
+			config.toggleSoundWidePitch();
+			b.setMessage(widePitchLabel());
+		}).dimensions(left, TOP, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.wide_pitch.tooltip")));
+		addDrawableChild(new RangeSlider(left, TOP + ROW, Client.SOUND_MAX_PITCH_MIN, Client.SOUND_MAX_PITCH_MAX, 0.25, config::getSoundMaxPitch, config::setSoundMaxPitch,
+				pitch -> Text.translatable("gui.aurelia.train_sound.max_pitch", String.format("%.2f", pitch))));
+		addDrawableChild(new RangeSlider(left, TOP + ROW * 2, 0, Client.MOTOR_PITCH_SMOOTHING_MAX, 0.05, config::getMotorPitchSmoothing, config::setMotorPitchSmoothing,
+				spread -> spread == 0 ? Text.translatable("gui.aurelia.train_sound.motor_smoothing.off") : Text.translatable("gui.aurelia.train_sound.motor_smoothing", Math.round(spread * 100))))
+				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.motor_smoothing.tooltip")));
+		addDrawableChild(ButtonWidget.builder(doorChimeLabel(), b -> {
+			config.cycleDoorChime();
+			b.setMessage(doorChimeLabel());
+		}).dimensions(left, TOP + ROW * 3, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.door_chime.tooltip")));
+		addDrawableChild(new RangeSlider(left, TOP + ROW * 4, 0, 1, 0.05, config::getDoorChimeVolume, config::setDoorChimeVolume,
+				volume -> Text.translatable("gui.aurelia.train_sound.door_chime_volume", Math.round(volume * 100))));
+		addDrawableChild(new RangeSlider(left, TOP + ROW * 5, 0, 1, 0.05, config::getFlangeVolume, config::setFlangeVolume,
+				volume -> volume == 0 ? Text.translatable("gui.aurelia.train_sound.flange_volume.off") : Text.translatable("gui.aurelia.train_sound.flange_volume", Math.round(volume * 100))));
+	}
+
+	private Text widePitchLabel() {
+		return Text.translatable("gui.aurelia.train_sound.wide_pitch", ScreenTexts.onOrOff(config.getSoundWidePitch()));
+	}
+
+	private Text doorChimeLabel() {
+		return Text.translatable("gui.aurelia.train_sound.door_chime", Text.translatable("gui.aurelia.train_sound.door_chime." + config.getDoorChime()));
 	}
 
 	private Text pantographAnimationLabel() {
@@ -472,6 +506,40 @@ public final class AureliaPanelScreen extends Screen {
 
 		private double current() {
 			return Math.round(value * max / step) * step;
+		}
+
+		@Override
+		protected void updateMessage() {
+			setMessage(label.apply(current()));
+		}
+
+		@Override
+		protected void applyValue() {
+			set.accept(current());
+		}
+	}
+
+	/** A number from {@code min} to {@code max} in steps of {@code step}, written to the client config as it moves. */
+	private static final class RangeSlider extends SliderWidget {
+
+		private final double min;
+		private final double max;
+		private final double step;
+		private final DoubleConsumer set;
+		private final Function<Double, Text> label;
+
+		private RangeSlider(int x, int y, double min, double max, double step, DoubleSupplier get, DoubleConsumer set, Function<Double, Text> label) {
+			super(x, y, BUTTON_WIDTH, 20, Text.empty(), (get.getAsDouble() - min) / (max - min));
+			this.min = min;
+			this.max = max;
+			this.step = step;
+			this.set = set;
+			this.label = label;
+			updateMessage();
+		}
+
+		private double current() {
+			return min + Math.round(value * (max - min) / step) * step;
 		}
 
 		@Override
