@@ -2,10 +2,14 @@ package com.aureliatransit.architecture.registry;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.ClockBlock;
+import com.aureliatransit.architecture.block.DeparturesBoardBlock;
 import com.aureliatransit.architecture.block.InfoDisplayBlock;
+import com.aureliatransit.architecture.block.JetBridgeBlock;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.block.entity.ClockBlockEntity;
+import com.aureliatransit.architecture.block.entity.DeparturesBoardBlockEntity;
 import com.aureliatransit.architecture.block.entity.InfoDisplayBlockEntity;
+import com.aureliatransit.architecture.block.entity.JetBridgeBlockEntity;
 import com.aureliatransit.architecture.block.elevated.TrainEdgeBlock;
 import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
 import com.aureliatransit.architecture.block.entity.TrainEdgeBlockEntity;
@@ -34,6 +38,18 @@ public final class ModBlockEntities {
 			Registries.BLOCK_ENTITY_TYPE,
 			AureliaTransitArchitecture.id("clock"),
 			BlockEntityType.Builder.create(ClockBlockEntity::new, blocks(block -> block instanceof ClockBlock)).build(null)
+	);
+
+	public static final BlockEntityType<JetBridgeBlockEntity> JET_BRIDGE = Registry.register(
+			Registries.BLOCK_ENTITY_TYPE,
+			AureliaTransitArchitecture.id("jet_bridge"),
+			BlockEntityType.Builder.create(JetBridgeBlockEntity::new, blocks(block -> block instanceof JetBridgeBlock)).build(null)
+	);
+
+	public static final BlockEntityType<DeparturesBoardBlockEntity> DEPARTURES_BOARD = Registry.register(
+			Registries.BLOCK_ENTITY_TYPE,
+			AureliaTransitArchitecture.id("departures_board"),
+			BlockEntityType.Builder.create(DeparturesBoardBlockEntity::new, blocks(block -> block instanceof DeparturesBoardBlock)).build(null)
 	);
 
 	public static final BlockEntityType<TrainEdgeBlockEntity> TRAIN_EDGE = Registry.register(

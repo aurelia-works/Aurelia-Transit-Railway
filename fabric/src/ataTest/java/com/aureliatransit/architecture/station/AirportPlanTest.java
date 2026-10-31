@@ -3,7 +3,9 @@ package com.aureliatransit.architecture.station;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -165,6 +167,38 @@ class AirportPlanTest {
 		assertEquals("airport, 3 gates", StationDescriptionParser.airportWords("3 gates"));
 		assertEquals("small airport", StationDescriptionParser.airportWords("small airport"));
 		assertTrue(StationDescriptionParser.parse(StationDescriptionParser.airportWords("2 track station")).spec().isAirport());
+	}
+
+	/**
+	 * Ported from Aurelia Transit Architecture pull request 7. A plane's door opens only beside an MTR platform block.
+	 * Both rows beside every stand's platform rail are the apron-looking platform block at ground level, except the
+	 * stop bar's cells, which keep their paint.
+	 */
+	@Test
+	void everyStandHasPlatformBlocksBesideItsPlatformRail() {
+		for (final String words : new String[]{"airport", "small airport", "airport, 2 runways", "airport, no terminal"}) {
+			final StationPlan plan = plan(words);
+			final AirportGeometry g = AirportGeometry.of(plan.spec().airport());
+			final AirportRoute route = AirportRoute.of(g);
+			final Map<String, String> ground = new HashMap<>();
+			for (final PlannedBlock block : plan.blocks()) {
+				if (block.y() == StationGeometry.PLATFORM_Y) {
+					ground.putIfAbsent(block.u() + "," + block.v(), block.blockId());
+				}
+			}
+			for (final AirportRoute.Gate gate : route.gates()) {
+				assertFalse(gate.platform().isEmpty(), words + " gate " + (gate.index() + 1));
+				for (final AirportRoute.Cell cell : gate.platform()) {
+					for (final int side : new int[]{-1, 1}) {
+						final String key = cell.u() + "," + (cell.v() + side);
+						if (cell.u() == g.stopU()) {
+							continue;
+						}
+						assertEquals(PlanAirport.APRON_PLATFORM, ground.get(key), words + " gate " + (gate.index() + 1) + " beside " + cell);
+					}
+				}
+			}
+		}
 	}
 
 	@Test

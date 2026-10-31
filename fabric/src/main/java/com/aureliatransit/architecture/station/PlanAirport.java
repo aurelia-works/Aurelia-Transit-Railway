@@ -24,6 +24,12 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String BLAST_SURFACE = "minecraft:polished_andesite";
 	static final String TAXI_SURFACE = "minecraft:gray_concrete";
 	static final String APRON_SURFACE = "minecraft:light_gray_concrete";
+	/**
+	 * The apron's concrete as an MTR platform block, beside each stand's platform rail so the plane's doors open.
+	 * Ported from Aurelia Transit Architecture pull request 7 ({@code apron_platform} and {@code gatePlatforms}), which
+	 * is not in this bundled copy.
+	 */
+	static final String APRON_PLATFORM = "aurelia_transit_architecture:apron_platform";
 	static final String ROAD_SURFACE = "minecraft:gray_concrete";
 	static final String PAINT_WHITE = "minecraft:white_concrete";
 	static final String PAINT_YELLOW = "minecraft:yellow_concrete";
@@ -40,6 +46,7 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String MAST_LAMP = "aurelia_transit_architecture:apron_floodlight";
 	static final String CHECK_IN_DESK = "aurelia_transit_architecture:check_in_desk";
 	static final String DEPARTURES_BOARD = "aurelia_transit_architecture:departures_board";
+	static final String JET_BRIDGE = "aurelia_transit_architecture:jet_bridge";
 	static final String BAGGAGE_BELT = "aurelia_transit_architecture:baggage_belt";
 	static final String WINDSOCK = "aurelia_transit_architecture:windsock";
 	static final String TERMINAL_FLOOR = "aurelia_transit_architecture:terminal_terrazzo";
@@ -97,6 +104,7 @@ abstract class PlanAirport extends PlanFitOut {
 		windsock();
 		masts();
 		standMarks();
+		gatePlatforms();
 		for (int i = 0; i < spec.airport().runways(); i++) {
 			runwayMarks(i);
 		}
@@ -448,6 +456,20 @@ abstract class PlanAirport extends PlanFitOut {
 	}
 
 	/**
+	 * MTR opens a plane's doors only beside a platform block, so both rows beside every stand's platform rail are the
+	 * apron's concrete as a platform block. After the stand marks: a cell keeps the first block planned in it, so the
+	 * stop bar keeps its paint. Ported from Aurelia Transit Architecture pull request 7.
+	 */
+	void gatePlatforms() {
+		for (final AirportRoute.Gate gate : AirportRoute.of(air).gates()) {
+			for (final AirportRoute.Cell cell : gate.platform()) {
+				paint(cell.u(), cell.v() - 1, APRON_PLATFORM);
+				paint(cell.u(), cell.v() + 1, APRON_PLATFORM);
+			}
+		}
+	}
+
+	/**
 	 * The control tower: a 3 by 3 shaft up to a glazed 5 by 5 cab with a roof, on the apron's far margin by the taxiway. Planned before the
 	 * masts and the pavement, and its footprint is apron only, so the runway strip stays clear.
 	 */
@@ -734,8 +756,8 @@ abstract class PlanAirport extends PlanFitOut {
 
 	/**
 	 * A boarding bridge from every gate door in the terminal's airside wall out over the apron: a floor, glass along both sides,
-	 * a roof and a closed docking end. At ground level and at the aircraft's door height only in spirit: the bridge here is the
-	 * honest simple version, a covered walkway to the stand.
+	 * a roof, and a jet bridge at the docking end. The jet bridge extends to the aircraft door while the plane is stopped
+	 * there and retracts when it leaves.
 	 */
 	void boardingBridges() {
 		final StylePalette.Building b = palette.building();
@@ -748,7 +770,11 @@ abstract class PlanAirport extends PlanFitOut {
 					put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V, b.floor());
 					if (u == to) {
 						for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT; y++) {
-							put(Role.WALL, u, y, v, LocalDir.PLUS_U, b.wall());
+							if (v == c && y == StationGeometry.WALK_Y) {
+								put(Role.FIXTURE, u, y, v, LocalDir.PLUS_U, JET_BRIDGE);
+							} else {
+								put(Role.WALL, u, y, v, LocalDir.PLUS_U, b.wall());
+							}
 						}
 					}
 				}
