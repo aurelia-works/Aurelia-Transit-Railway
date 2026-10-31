@@ -125,7 +125,8 @@ public final class DepotSchedulesSync {
 				if (depot == null || !schedule.enabled() || DepotSuspension.isPaused(depotId)) {
 					return;
 				}
-				final DepotSchedules.DayType dayType = DepotSchedules.dayType(depot.getUseRealTime(), today, worldDay);
+				// Pick the calendar from the saved plans, not the depot: writing a plan changes the depot's mode
+				final DepotSchedules.DayType dayType = DepotSchedules.dayType(schedule.usesRealCalendar(), today, worldDay);
 				final DepotSchedules.Plan plan = schedule.planFor(dayType);
 				if (plan != null && APPLIED.put(depotId, dayType) != dayType) {
 					write(depot, plan);
@@ -159,6 +160,10 @@ public final class DepotSchedulesSync {
 						server.execute(() -> state.schedules.setEnabled(depotId, action == Action.ENABLE));
 					}
 					case SAVE_WEEKDAY, SAVE_WEEKEND -> {
+						if (DepotSuspension.isPaused(depotId)) {
+							// A route hold has cleared the timetable for now; saving would store an empty plan
+							return;
+						}
 						final DepotSchedules.Plan plan = capture(depot);
 						APPLIED.remove(depotId);
 						server.execute(() -> state.schedules.savePlan(depotId, action == Action.SAVE_WEEKDAY ? DepotSchedules.DayType.WEEKDAY : DepotSchedules.DayType.WEEKEND, plan));
@@ -193,7 +198,8 @@ public final class DepotSchedulesSync {
 			final ObjectArrayList<ArrivalResponse> arrivals = new ObjectArrayList<>();
 			siding.getArrivals(now, first, 16, arrivals);
 			for (final ArrivalResponse arrival : arrivals) {
-				if (arrival.getArrival() > now && !schedules.isCancelled(siding.getId(), arrival.getDepartureIndex(), arrival.getArrival()) && (next == null || arrival.getArrival() < next.getArrival())) {
+				// A realtime arrival is a train already out of the depot: cancelling it would only change the screens
+				if (arrival.getArrival() > now && !arrival.getRealtime() && !schedules.isCancelled(siding.getId(), arrival.getDepartureIndex(), arrival.getArrival()) && (next == null || arrival.getArrival() < next.getArrival())) {
 					next = arrival;
 					nextSiding = siding;
 				}

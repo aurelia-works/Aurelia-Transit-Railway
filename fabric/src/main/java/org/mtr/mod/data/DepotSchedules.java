@@ -62,6 +62,15 @@ public final class DepotSchedules {
 		public Plan planFor(DayType dayType) {
 			return dayType == DayType.WEEKEND && weekend != null ? weekend : weekday;
 		}
+
+		/**
+		 * Real-time plans follow the real calendar, others the world's days. Decided by the weekday plan (or the
+		 * weekend one if that is all there is), so a depot whose two plans differ in mode does not flip between them.
+		 */
+		public boolean usesRealCalendar() {
+			final Plan basis = weekday != null ? weekday : weekend;
+			return basis != null && basis.realTime();
+		}
 	}
 
 	private final Map<Long, Schedule> schedules = new HashMap<>();

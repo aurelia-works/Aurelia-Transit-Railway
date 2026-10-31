@@ -31,6 +31,9 @@ public final class DepotSchedulesTest {
 		schedules.savePlan(3, DepotSchedules.DayType.WEEKEND, weekend);
 		schedules.setEnabled(3, true);
 
+		// Weekday by frequency, weekend by timed departures: the calendar stays the weekday plan's (world days)
+		Assertions.assertFalse(schedules.get(3).usesRealCalendar(), "the calendar must not follow the plan just written");
+
 		final DepotSchedules loaded = DepotSchedules.fromNbt(schedules.toNbt(new NbtCompound()));
 		Assertions.assertTrue(loaded.get(3).enabled());
 		Assertions.assertEquals(weekday, loaded.get(3).planFor(DepotSchedules.DayType.WEEKDAY));
