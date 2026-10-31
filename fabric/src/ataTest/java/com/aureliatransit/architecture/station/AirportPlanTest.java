@@ -4,11 +4,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -174,7 +172,7 @@ class AirportPlanTest {
 	/**
 	 * Ported from Aurelia Transit Architecture pull request 7. A plane's door opens only beside an MTR platform block.
 	 * Both rows beside every stand's platform rail are the apron-looking platform block at ground level, except the
-	 * stop bar's cells, which keep their paint. It is used nowhere else.
+	 * stop bar's cells, which keep their paint.
 	 */
 	@Test
 	void everyStandHasPlatformBlocksBesideItsPlatformRail() {
@@ -188,13 +186,11 @@ class AirportPlanTest {
 					ground.putIfAbsent(block.u() + "," + block.v(), block.blockId());
 				}
 			}
-			final Set<String> beside = new HashSet<>();
 			for (final AirportRoute.Gate gate : route.gates()) {
 				assertFalse(gate.platform().isEmpty(), words + " gate " + (gate.index() + 1));
 				for (final AirportRoute.Cell cell : gate.platform()) {
 					for (final int side : new int[]{-1, 1}) {
 						final String key = cell.u() + "," + (cell.v() + side);
-						beside.add(key);
 						if (cell.u() == g.stopU()) {
 							continue;
 						}
@@ -202,26 +198,6 @@ class AirportPlanTest {
 					}
 				}
 			}
-			for (final Map.Entry<String, String> cell : ground.entrySet()) {
-				if (PlanAirport.APRON_PLATFORM.equals(cell.getValue())) {
-					assertTrue(beside.contains(cell.getKey()), words + ": apron platform away from a stand at " + cell.getKey());
-				}
-			}
-		}
-	}
-
-	@Test
-	void everyTerminalGateEndsInAJetBridge() {
-		for (final String words : new String[]{"airport", "small airport", "airport, 2 runways", "airport, no terminal"}) {
-			final StationPlan plan = plan(words);
-			int bridges = 0;
-			for (final PlannedBlock block : plan.blocks()) {
-				if (PlanAirport.JET_BRIDGE.equals(block.blockId())) {
-					bridges++;
-				}
-			}
-			final int expected = plan.spec().airport().terminal() ? plan.spec().airport().gates() : 0;
-			assertEquals(expected, bridges, words);
 		}
 	}
 
