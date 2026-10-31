@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.0.2 (4.0.5+atr.1.0.2), Minecraft 1.20.1, Fabric
+
+### Added
+- Next-stop announcements while riding (#19).
+- Flange squeal on curves (#20).
+- Pocket timetable printed from a platform (#21).
+- Zone fares, a daily cap and card tap history (#22).
+- A-to-B journey planner on the terminal and AureliaMap (#23).
+- Suspensions hold a route's trains at the depot (#24).
+- Load and unload freight at a stopped train (#25).
+- Jet bridges that meet the plane, and a live departures board (#26).
+- Split or couple a stopped train at a station (#29).
+- Depot controls: instant deploy, clear vehicles, and per-depot all-doors and announcement switches (#35).
+- Train sound: a pitch range past vanilla's 0.5-2, smoother motor steps for old-style trains, door chimes, and a curve squeal volume, all on a new Train sound panel tab (#36).
+
+### Fixed
+- Coupled trains keep the rear train's freight (#32).
+- Departure screens show a route's edited destination without a path refresh (#34).
+- Replacing a rail node block removes its rails, and breaking one no longer syncs twice (#34).
+- A long low-FPS step out of a doorway no longer leaves the player inside the car (#34).
+- Text-to-speech announcements stay silent when the Master or Voice volume is off (#34).
+
 ## 1.0.1 (4.0.5+atr.1.0.1), Minecraft 1.20.1, Fabric
 
 ### Fixed
