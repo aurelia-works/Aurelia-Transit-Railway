@@ -297,5 +297,15 @@
 	"gui.aurelia.train_sound.door_chime.tooltip": "Plays once on every train as its doors start to close.",
 	"gui.aurelia.train_sound.door_chime_volume": "Door chime volume: %s%%",
 	"gui.aurelia.train_sound.flange_volume": "Curve squeal volume: %s%%",
-	"gui.aurelia.train_sound.flange_volume.off": "Curve squeal: Off"
+	"gui.aurelia.train_sound.flange_volume.off": "Curve squeal: Off",
+	"gui.aurelia.panel.tab.passengers": "Passengers",
+	"gui.aurelia.passengers.enabled": "Passengers: %s",
+	"gui.aurelia.passengers.tooltip": "Passengers appear on platforms, board trains going to their station and get off there. They are plain records on the server, not mobs. Off by default.",
+	"gui.aurelia.passengers.per_minute": "New per platform per minute: %s",
+	"gui.aurelia.passengers.max_waiting": "Most waiting on a platform: %s",
+	"gui.aurelia.passengers.max_total": "Most in this world: %s",
+	"gui.aurelia.passengers.seats": "Seats per car: %s",
+	"gui.aurelia.passengers.stats": "Waiting %s, riding %s, boarded %s, got off %s",
+	"gui.aurelia.passengers.cost": "Server cost: %s ms per update (once a second)",
+	"gui.aurelia.passengers.operators": "Only operators can change these"
 }

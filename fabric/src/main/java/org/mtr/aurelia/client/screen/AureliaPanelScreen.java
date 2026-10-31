@@ -15,6 +15,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import org.mtr.aurelia.client.Announcer;
 import org.mtr.aurelia.client.MtrBridge;
+import org.mtr.aurelia.client.PassengerClient;
 import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.ScriptingHandshake;
 import org.mtr.mod.InitClient;
@@ -23,6 +24,8 @@ import org.mtr.mod.config.Client;
 import org.mtr.mod.config.Config;
 import org.mtr.mod.item.ItemRailBuilder;
 import org.mtr.mod.packet.PacketUpdateRailBuilder;
+import org.mtr.mod.passenger.PassengerNetwork;
+import org.mtr.mod.passenger.PassengerService;
 import org.mtr.mod.resource.PantographEnd;
 
 import javax.annotation.Nullable;
@@ -43,7 +46,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND}
+	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -134,6 +137,7 @@ public final class AureliaPanelScreen extends Screen {
 			case BUILDER -> initBuilder();
 			case PANTOGRAPH -> initPantograph();
 			case TRAIN_SOUND -> initTrainSound();
+			case PASSENGERS -> initPassengers();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
@@ -284,6 +288,46 @@ public final class AureliaPanelScreen extends Screen {
 
 	private Text doorChimeLabel() {
 		return Text.translatable("gui.aurelia.train_sound.door_chime", Text.translatable("gui.aurelia.train_sound.door_chime." + config.getDoorChime()));
+	 * Passengers (server caps, operators only): on/off, how many arrive per platform per minute, the most a platform and
+	 * the whole dimension may hold, and seats per car. The last line is what the server measured.
+	 */
+	private void initPassengers() {
+		final int left = (width - BUTTON_WIDTH) / 2;
+		final PassengerNetwork.Settings current = PassengerClient.settings();
+		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		final ButtonWidget enabled = addDrawableChild(ButtonWidget.builder(passengersLabel(current.enabled()), b -> {
+			final PassengerNetwork.Settings now = PassengerClient.settings();
+			PassengerClient.request(new PassengerNetwork.Settings(!now.enabled(), now.perPlatformPerMinute(), now.maxWaitingPerPlatform(), now.maxTotal(), now.seatsPerCar()));
+			b.setMessage(passengersLabel(!now.enabled()));
+		}).dimensions(left, TOP, BUTTON_WIDTH, 20).build());
+		enabled.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.passengers.tooltip")));
+		final List<RangeSlider> sliders = List.of(
+				new RangeSlider(left, TOP + ROW, 0, PassengerNetwork.Settings.MAX_PER_MINUTE, 1, () -> PassengerClient.settings().perPlatformPerMinute(),
+						value -> sendPassengers(s -> new PassengerNetwork.Settings(s.enabled(), (int) value, s.maxWaitingPerPlatform(), s.maxTotal(), s.seatsPerCar())),
+						value -> Text.translatable("gui.aurelia.passengers.per_minute", value.intValue())),
+				new RangeSlider(left, TOP + ROW * 2, 0, PassengerNetwork.Settings.MAX_WAITING, 5, () -> PassengerClient.settings().maxWaitingPerPlatform(),
+						value -> sendPassengers(s -> new PassengerNetwork.Settings(s.enabled(), s.perPlatformPerMinute(), (int) value, s.maxTotal(), s.seatsPerCar())),
+						value -> Text.translatable("gui.aurelia.passengers.max_waiting", value.intValue())),
+				new RangeSlider(left, TOP + ROW * 3, 0, PassengerNetwork.Settings.MAX_TOTAL, 250, () -> PassengerClient.settings().maxTotal(),
+						value -> sendPassengers(s -> new PassengerNetwork.Settings(s.enabled(), s.perPlatformPerMinute(), s.maxWaitingPerPlatform(), (int) value, s.seatsPerCar())),
+						value -> Text.translatable("gui.aurelia.passengers.max_total", value.intValue())),
+				new RangeSlider(left, TOP + ROW * 4, 1, PassengerNetwork.Settings.MAX_SEATS, 1, () -> PassengerClient.settings().seatsPerCar(),
+						value -> sendPassengers(s -> new PassengerNetwork.Settings(s.enabled(), s.perPlatformPerMinute(), s.maxWaitingPerPlatform(), s.maxTotal(), (int) value)),
+						value -> Text.translatable("gui.aurelia.passengers.seats", value.intValue()))
+		);
+		enabled.active = operator;
+		for (final RangeSlider slider : sliders) {
+			slider.active = operator;
+			addDrawableChild(slider);
+		}
+	}
+
+	private static void sendPassengers(java.util.function.UnaryOperator<PassengerNetwork.Settings> change) {
+		PassengerClient.request(change.apply(PassengerClient.settings()));
+	}
+
+	private static Text passengersLabel(boolean enabled) {
+		return Text.translatable("gui.aurelia.passengers.enabled", ScreenTexts.onOrOff(enabled));
 	}
 
 	private Text pantographAnimationLabel() {
@@ -412,6 +456,13 @@ public final class AureliaPanelScreen extends Screen {
 			}
 			if (renderingRows.size() > visibleRows()) {
 				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", firstRow + 1, Math.min(renderingRows.size(), firstRow + visibleRows()), renderingRows.size()), width / 2, height - 44, 0xAAAAAA);
+			}
+		} else if (tab == Tab.PASSENGERS) {
+			final PassengerService.Stats stats = PassengerClient.stats();
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.stats", stats.waiting(), stats.riding(), stats.boarded(), stats.alighted()), width / 2, TOP + ROW * 5 + 6, 0xFFFFFF);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.cost", String.format("%.2f", stats.costMicros() / 1000D)), width / 2, TOP + ROW * 5 + 18, 0xAAAAAA);
+			if (client.player != null && !client.player.hasPermissionLevel(2)) {
+				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), width / 2, TOP - 10, 0xFF5555);
 			}
 		} else if (tab == Tab.TOOLS && !MtrBridge.canEdit()) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), width / 2, TOP - 10, 0xFF5555);
