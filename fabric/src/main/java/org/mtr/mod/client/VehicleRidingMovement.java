@@ -232,37 +232,17 @@ public class VehicleRidingMovement {
 					ridingVehicleZ = thisCarGangwayMovementPositions2.getPercentageZ(ridingVehicleZ + movementZ);
 					ridingPositionCache = null;
 				} else {
-					// Calculate and store all the offsets that should be applied to the player to keep them in bounds of the floors
-					final ObjectArrayList<Vector3d> offsets = new ObjectArrayList<>();
-					clampPosition(floorsAndDoorways, ridingVehicleX + movementX - RenderVehicleHelper.HALF_PLAYER_WIDTH, ridingVehicleZ + movementZ - RenderVehicleHelper.HALF_PLAYER_WIDTH, offsets);
-					clampPosition(floorsAndDoorways, ridingVehicleX + movementX + RenderVehicleHelper.HALF_PLAYER_WIDTH, ridingVehicleZ + movementZ - RenderVehicleHelper.HALF_PLAYER_WIDTH, offsets);
-					clampPosition(floorsAndDoorways, ridingVehicleX + movementX + RenderVehicleHelper.HALF_PLAYER_WIDTH, ridingVehicleZ + movementZ + RenderVehicleHelper.HALF_PLAYER_WIDTH, offsets);
-					clampPosition(floorsAndDoorways, ridingVehicleX + movementX - RenderVehicleHelper.HALF_PLAYER_WIDTH, ridingVehicleZ + movementZ + RenderVehicleHelper.HALF_PLAYER_WIDTH, offsets);
-
-					if (offsets.isEmpty()) {
+					final RidingStep.Result step = RidingStep.step(floorsAndDoorways, ridingVehicleX, ridingVehicleY, ridingVehicleZ, movementX, movementZ);
+					if (step.dismounted()) {
 						// Player is not standing on any floor, dismount player
 						sendUpdate(true);
 						ridingDepotId = 0;
 						ridingSidingId = 0;
 						ridingVehicleId = 0;
-					} else {
-						// Find the highest amounts to clamp the player movement in both the X and Z direction and apply the clamps
-						double clampX = 0;
-						double maxY = -Double.MAX_VALUE;
-						double clampZ = 0;
-						for (final Vector3d offset : offsets) {
-							if (Math.abs(offset.getXMapped()) > Math.abs(clampX)) {
-								clampX = offset.getXMapped();
-							}
-							maxY = Math.max(maxY, offset.getYMapped());
-							if (Math.abs(offset.getZMapped()) > Math.abs(clampZ)) {
-								clampZ = offset.getZMapped();
-							}
-						}
-						ridingVehicleX += movementX + clampX;
-						ridingVehicleY = maxY;
-						ridingVehicleZ += movementZ + clampZ;
 					}
+					ridingVehicleX = step.x();
+					ridingVehicleY = step.y();
+					ridingVehicleZ = step.z();
 
 					ridingPositionCache = new Vector3d(ridingVehicleX, ridingVehicleY, ridingVehicleZ);
 					final Vector3d newPlayerPosition = positionAndRotation.transformForwards(ridingPositionCache, Vector3d::rotateX, Vector3d::rotateY, Vector3d::add);

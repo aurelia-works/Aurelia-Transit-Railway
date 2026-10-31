@@ -2,7 +2,6 @@ package com.aureliatransit.architecture.client.live;
 
 import com.mojang.text2speech.Narrator;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.sound.SoundCategory;
 
 /**
  * The computer's own text-to-speech (Windows SAPI, macOS speech, flite on Linux), through the library Minecraft's
@@ -18,9 +17,9 @@ final class SystemVoice {
 	private SystemVoice() {
 	}
 
-	/** Whether there is a voice to speak with and the player's Voice volume is not off. */
+	/** Whether there is a voice to speak with and the player's Master and Voice volumes are not off. */
 	static boolean available(MinecraftClient client) {
-		if (client.options != null && client.options.getSoundVolume(SoundCategory.VOICE) <= 0F) {
+		if (org.mtr.mod.client.TtsVolume.muted()) {
 			return false;
 		}
 		return narrator() != null;

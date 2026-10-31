@@ -46,7 +46,7 @@ public class AirportMtrGameTests implements FabricGameTest {
 
 	/** The simulator of this world: MTR's core runs in this JVM ({@code Init.main}, private). */
 	@SuppressWarnings("unchecked")
-	static Simulator simulator(ServerWorld world) {
+	public static Simulator simulator(ServerWorld world) {
 		try {
 			final Field mainField = org.mtr.mod.Init.class.getDeclaredField("main");
 			mainField.setAccessible(true);

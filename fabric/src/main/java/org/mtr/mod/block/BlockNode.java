@@ -60,10 +60,8 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 
 	@Override
 	public void onBreak2(World world, BlockPos pos, BlockState state, PlayerEntity player) {
+		// The rails are deleted in onStateReplaced2, which runs for a player break too; deleting here as well cost a second full sync
 		super.onBreak2(world, pos, state, player);
-		if (!world.isClient()) {
-			PacketDeleteData.sendDirectlyToServerRailNodePosition(ServerWorld.cast(world), Init.blockPosToPosition(pos));
-		}
 	}
 
 	@Nonnull
@@ -116,6 +114,18 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 				.with(new Property<>(IS_45.data), continuousMovement ? quadrant % 2 == 1 : quadrant % 4 >= 2)
 				.with(new Property<>(IS_22_5.data), !continuousMovement && quadrant % 2 == 1)
 				.with(new Property<>(IS_CONNECTED.data), false);
+	}
+
+	/**
+	 * A node that turns into any other block takes its rails with it: a player break, and also /setblock, /fill or another mod (MTR #924).
+	 * A node changing its own state, or swapped for another node, keeps them.
+	 */
+	@Override
+	public void onStateReplaced2(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
+		super.onStateReplaced2(state, world, pos, newState, moved);
+		if (!world.isClient() && !(newState.getBlock().data instanceof BlockNode)) {
+			PacketDeleteData.sendDirectlyToServerRailNodePosition(ServerWorld.cast(world), Init.blockPosToPosition(pos));
+		}
 	}
 
 	public static class BlockContinuousMovementNode extends BlockNode {
