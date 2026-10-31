@@ -12,6 +12,7 @@
 - Load and unload freight at a stopped train (#25).
 - Jet bridges that meet the plane, and a live departures board (#26).
 - Split or couple a stopped train at a station (#29).
+- Depot controls: instant deploy, clear vehicles, and per-depot all-doors and announcement switches (#35).
 
 ### Fixed
 - Coupled trains keep the rear train's freight (#32).
