@@ -62,7 +62,8 @@ public class VehicleExtension extends Vehicle implements Utilities {
 	public VehicleExtension(VehicleUpdate vehicleUpdate, Data data) {
 		super(vehicleUpdate.getVehicleExtraData(), null, new JsonReader(Utilities.getJsonObjectFromData(vehicleUpdate.getVehicle())), data);
 		final PersistentVehicleData tempPersistentVehicleData = MinecraftClientData.getInstance().vehicleIdToPersistentVehicleData.get(getId());
-		if (tempPersistentVehicleData == null) {
+		if (tempPersistentVehicleData == null || tempPersistentVehicleData.rayTracing.length != vehicleExtraData.immutableVehicleCars.size()) {
+			// a coupled or split train keeps its id, so the previous per-car arrays are the wrong length
 			persistentVehicleData = new PersistentVehicleData(vehicleExtraData.immutableVehicleCars, getTransportMode());
 			MinecraftClientData.getInstance().vehicleIdToPersistentVehicleData.put(getId(), persistentVehicleData);
 		} else {

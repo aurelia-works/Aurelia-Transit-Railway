@@ -1,0 +1,22 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		"I",
+		"M",
+		"R"
+	],
+	"key": {
+		"I": {
+			"item": "minecraft:iron_block"
+		},
+		"M": {
+			"item": "minecraft:minecart"
+		},
+		"R": {
+			"item": "minecraft:rail"
+		}
+	},
+	"result": {
+		"item": "mtr:train_coupler"
+	}
+}

@@ -29,6 +29,7 @@ import org.mtr.mixin.PlayerTeleportationStateAccessor;
 import org.mtr.mod.cargo.CargoPackets;
 import org.mtr.mod.cargo.CargoService;
 import org.mtr.mod.config.Config;
+import org.mtr.mod.coupling.CouplingService;
 import org.mtr.mod.data.ArrivalsCacheServer;
 import org.mtr.mod.data.RailActionModule;
 import org.mtr.mod.generated.lang.TranslationProvider;
@@ -191,6 +192,7 @@ public final class Init implements Utilities {
 			final Path mtrDirectory = minecraftServer.getSavePath(WorldSavePath.getRootMapped()).resolve("mtr");
 			main = new Main(mtrDirectory, serverPort, Config.getServer().getUseThreadedSimulation(), Config.getServer().getUseThreadedFileLoading(), Init::setupWebserver, WORLD_ID_LIST.toArray(new String[0]));
 			CargoService.attach(main, mtrDirectory);
+			CouplingService.attach(main, mtrDirectory);
 
 			serverTick = 0;
 			lastSavedMillis = System.currentTimeMillis();
@@ -229,6 +231,7 @@ public final class Init implements Utilities {
 
 		REGISTRY.eventRegistry.registerServerStopping(minecraftServer -> {
 			CargoService.stop();
+			CouplingService.stop();
 			if (main != null) {
 				main.stop();
 			}
@@ -251,6 +254,7 @@ public final class Init implements Utilities {
 
 				final long currentMillis = System.currentTimeMillis();
 				if (currentMillis - lastSavedMillis > AUTOSAVE_INTERVAL) {
+					CouplingService.onAutosave();
 					main.save();
 					CargoService.onAutosave();
 					lastSavedMillis = currentMillis;
@@ -270,6 +274,7 @@ public final class Init implements Utilities {
 				final String dimension = getWorldId(new World(serverWorld.data));
 				main.processMessagesS2C(WORLD_ID_LIST.indexOf(dimension), queueObject -> MinecraftOperationProcessor.process(queueObject, serverWorld, dimension));
 				CargoService.onWorldEnd(serverWorld.data, dimension);
+				CouplingService.onWorldEnd(dimension);
 			}
 		});
 
