@@ -22,6 +22,10 @@ public class BveVehicleSound extends VehicleSoundBase {
 	private boolean isCompressorActiveLastElapsed;
 
 	private final VehicleLoopingSoundHolder vehicleLoopingSoundHolder;
+	private boolean hasBogieSample;
+	private double lastBogieX;
+	private double lastBogieZ;
+	private double lastHeading;
 
 	public BveVehicleSound(BveVehicleSoundConfig config) {
 		this.config = config;
@@ -36,10 +40,16 @@ public class BveVehicleSound extends VehicleSoundBase {
 				soundLoopMotor[i] = new VehicleLoopingSoundInstance(config.config.motor[i]);
 			}
 		}
+		final VehicleLoopingSoundInstance[] soundLoopFlange = new VehicleLoopingSoundInstance[config.config.flange.length];
+		for (int i = 0; i < config.config.flange.length; i++) {
+			if (config.config.flange[i] != null) {
+				soundLoopFlange[i] = new VehicleLoopingSoundInstance(config.config.flange[i]);
+			}
+		}
 		vehicleLoopingSoundHolder = new VehicleLoopingSoundHolder(
 				soundLoopMotor,
 				config.config.run[0] == null ? null : new VehicleLoopingSoundInstance(config.config.run[0]),
-				config.config.flange[0] == null ? null : new VehicleLoopingSoundInstance(config.config.flange[0]),
+				soundLoopFlange,
 				config.config.noise == null ? null : new VehicleLoopingSoundInstance(config.config.noise),
 				config.config.shoe == null ? null : new VehicleLoopingSoundInstance(config.config.shoe),
 				config.config.compressorLoop == null ? null : new VehicleLoopingSoundInstance(config.config.compressorLoop)
@@ -115,11 +125,8 @@ public class BveVehicleSound extends VehicleSoundBase {
 			}
 		}
 
-		// TODO play flange sounds
-		// Flange noise
-		if (vehicleLoopingSoundHolder.soundLoopFlange != null) {
-			vehicleLoopingSoundHolder.soundLoopFlange.setData(0, 1, blockPos);
-		}
+		// Flange squeal from the bogie's change of heading and its speed. Only the chosen loaded clip is audible.
+		playFlange(blockPos, speedKilometersPerHour);
 
 		// Brake shoe rubbing noise (below regeneration brake cutoff limit)
 		if (vehicleLoopingSoundHolder.soundLoopShoe != null) {
@@ -178,6 +185,46 @@ public class BveVehicleSound extends VehicleSoundBase {
 		return config.config.doorCloseSoundLength;
 	}
 
+	private void playFlange(BlockPos blockPos, float speedKilometersPerHour) {
+		final VehicleLoopingSoundInstance[] flanges = vehicleLoopingSoundHolder.soundLoopFlange;
+		int loaded = 0;
+		for (final VehicleLoopingSoundInstance flange : flanges) {
+			if (flange != null) {
+				loaded++;
+			}
+		}
+		final double x = blockPos.getX();
+		final double z = blockPos.getZ();
+		double curvature = 0;
+		if (hasBogieSample) {
+			final double dx = x - lastBogieX;
+			final double dz = z - lastBogieZ;
+			final double distance = Math.hypot(dx, dz);
+			if (distance >= FlangeSqueal.MIN_STEP) {
+				final double heading = FlangeSqueal.heading(dx, dz);
+				curvature = FlangeSqueal.curvature(lastHeading, heading, distance);
+				lastHeading = heading;
+				lastBogieX = x;
+				lastBogieZ = z;
+			}
+		} else {
+			hasBogieSample = true;
+			lastBogieX = x;
+			lastBogieZ = z;
+		}
+		final float gain = loaded == 0 ? 0 : FlangeSqueal.gain(curvature, speedKilometersPerHour);
+		final float pitch = FlangeSqueal.pitch(speedKilometersPerHour);
+		final int slot = FlangeSqueal.slot(speedKilometersPerHour, loaded);
+		int seen = 0;
+		for (final VehicleLoopingSoundInstance flange : flanges) {
+			if (flange == null) {
+				continue;
+			}
+			flange.setData(seen == slot ? gain : 0, pitch, blockPos);
+			seen++;
+		}
+	}
+
 	private static void playSoundInWorld(@Nullable SoundEvent soundEvent, BlockPos blockPos) {
 		ScheduledSound.schedule(blockPos, soundEvent, 1, 1);
 	}
@@ -191,8 +238,7 @@ public class BveVehicleSound extends VehicleSoundBase {
 		private final VehicleLoopingSoundInstance[] soundLoopMotor;
 		@Nullable
 		private final VehicleLoopingSoundInstance soundLoopRun;
-		@Nullable
-		private final VehicleLoopingSoundInstance soundLoopFlange;
+		private final VehicleLoopingSoundInstance[] soundLoopFlange;
 		@Nullable
 		private final VehicleLoopingSoundInstance soundLoopNoise;
 		@Nullable
@@ -200,10 +246,23 @@ public class BveVehicleSound extends VehicleSoundBase {
 		@Nullable
 		private final VehicleLoopingSoundInstance soundLoopCompressor;
 
+		/** The MTR 4.0.5 constructor. Add-ons hook it by descriptor, so it stays even though new code passes the flange array. */
+		@SuppressWarnings("unused")
 		private VehicleLoopingSoundHolder(
 				VehicleLoopingSoundInstance[] soundLoopMotor,
 				@Nullable VehicleLoopingSoundInstance soundLoopRun,
 				@Nullable VehicleLoopingSoundInstance soundLoopFlange,
+				@Nullable VehicleLoopingSoundInstance soundLoopNoise,
+				@Nullable VehicleLoopingSoundInstance soundLoopShoe,
+				@Nullable VehicleLoopingSoundInstance soundLoopCompressor
+		) {
+			this(soundLoopMotor, soundLoopRun, soundLoopFlange == null ? new VehicleLoopingSoundInstance[0] : new VehicleLoopingSoundInstance[]{soundLoopFlange}, soundLoopNoise, soundLoopShoe, soundLoopCompressor);
+		}
+
+		private VehicleLoopingSoundHolder(
+				VehicleLoopingSoundInstance[] soundLoopMotor,
+				@Nullable VehicleLoopingSoundInstance soundLoopRun,
+				VehicleLoopingSoundInstance[] soundLoopFlange,
 				@Nullable VehicleLoopingSoundInstance soundLoopNoise,
 				@Nullable VehicleLoopingSoundInstance soundLoopShoe,
 				@Nullable VehicleLoopingSoundInstance soundLoopCompressor
@@ -225,8 +284,10 @@ public class BveVehicleSound extends VehicleSoundBase {
 			if (soundLoopRun != null) {
 				soundLoopRun.dispose();
 			}
-			if (soundLoopFlange != null) {
-				soundLoopFlange.dispose();
+			for (final VehicleLoopingSoundInstance flange : soundLoopFlange) {
+				if (flange != null) {
+					flange.dispose();
+				}
 			}
 			if (soundLoopNoise != null) {
 				soundLoopNoise.dispose();
