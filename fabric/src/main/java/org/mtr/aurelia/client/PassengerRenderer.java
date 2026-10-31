@@ -85,12 +85,13 @@ public final class PassengerRenderer {
 				continue;
 			}
 			final Position[] ends = ends(platform);
-			final double x1 = ends == null ? mid.getX() : ends[0].getX();
-			final double y1 = ends == null ? mid.getY() : ends[0].getY();
-			final double z1 = ends == null ? mid.getZ() : ends[0].getZ();
-			final double x2 = ends == null ? mid.getX() : ends[1].getX();
-			final double y2 = ends == null ? mid.getY() : ends[1].getY();
-			final double z2 = ends == null ? mid.getZ() : ends[1].getZ();
+			final boolean haveEnds = ends != null && ends[0] != null && ends[1] != null;
+			final double x1 = haveEnds ? ends[0].getX() : mid.getX();
+			final double y1 = haveEnds ? ends[0].getY() : mid.getY();
+			final double z1 = haveEnds ? ends[0].getZ() : mid.getZ();
+			final double x2 = haveEnds ? ends[1].getX() : mid.getX();
+			final double y2 = haveEnds ? ends[1].getY() : mid.getY();
+			final double z2 = haveEnds ? ends[1].getZ() : mid.getZ();
 			for (int i = 0; i < figures && drawn < FRAME_CAP; i++) {
 				PassengerFigures.place(x1, y1, z1, x2, y2, z2, i, figures, 0.9, point);
 				box(matrices, lines, camera, point[0], point[1], point[2], 0.35F, 0.65F, 1.0F);
