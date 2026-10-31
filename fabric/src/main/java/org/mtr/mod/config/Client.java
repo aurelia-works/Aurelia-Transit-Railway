@@ -16,6 +16,10 @@ public final class Client extends ClientSchema {
 	public static final int TRAIN_BOX_CHUNKS_MAX = 32;
 	public static final double PANTOGRAPH_RAISE_SECONDS_MAX = 10;
 	public static final double PANTOGRAPH_STAY_UP_KILOMETERS_PER_HOUR_MAX = 200;
+	public static final double SOUND_MAX_PITCH_MIN = 2;
+	public static final double SOUND_MAX_PITCH_MAX = 8;
+	public static final double MOTOR_PITCH_SMOOTHING_MAX = 0.4;
+	public static final int DOOR_CHIME_COUNT = 3;
 
 	public Client(ReaderBase readerBase) {
 		super(readerBase);
@@ -261,5 +265,56 @@ public final class Client extends ClientSchema {
 
 	public void setPantographStayUpKilometersPerHour(double pantographStayUpKilometersPerHour) {
 		this.pantographStayUpKilometersPerHour = Utilities.clamp(pantographStayUpKilometersPerHour, 0, PANTOGRAPH_STAY_UP_KILOMETERS_PER_HOUR_MAX);
+	}
+
+	public boolean getSoundWidePitch() {
+		return soundWidePitch;
+	}
+
+	public void toggleSoundWidePitch() {
+		soundWidePitch = !soundWidePitch;
+	}
+
+	public double getSoundMaxPitch() {
+		return Utilities.clamp(soundMaxPitch, SOUND_MAX_PITCH_MIN, SOUND_MAX_PITCH_MAX);
+	}
+
+	public void setSoundMaxPitch(double soundMaxPitch) {
+		this.soundMaxPitch = Utilities.clamp(soundMaxPitch, SOUND_MAX_PITCH_MIN, SOUND_MAX_PITCH_MAX);
+	}
+
+	public double getMotorPitchSmoothing() {
+		return Utilities.clamp(motorPitchSmoothing, 0, MOTOR_PITCH_SMOOTHING_MAX);
+	}
+
+	public void setMotorPitchSmoothing(double motorPitchSmoothing) {
+		this.motorPitchSmoothing = Utilities.clamp(motorPitchSmoothing, 0, MOTOR_PITCH_SMOOTHING_MAX);
+	}
+
+	/**
+	 * 0 is off, 1 two-tone, 2 three-tone.
+	 */
+	public int getDoorChime() {
+		return Utilities.clamp((int) doorChime, 0, DOOR_CHIME_COUNT - 1);
+	}
+
+	public void cycleDoorChime() {
+		doorChime = (getDoorChime() + 1) % DOOR_CHIME_COUNT;
+	}
+
+	public double getDoorChimeVolume() {
+		return Utilities.clamp(doorChimeVolume, 0, 1);
+	}
+
+	public void setDoorChimeVolume(double doorChimeVolume) {
+		this.doorChimeVolume = Utilities.clamp(doorChimeVolume, 0, 1);
+	}
+
+	public double getFlangeVolume() {
+		return Utilities.clamp(flangeVolume, 0, 1);
+	}
+
+	public void setFlangeVolume(double flangeVolume) {
+		this.flangeVolume = Utilities.clamp(flangeVolume, 0, 1);
 	}
 }

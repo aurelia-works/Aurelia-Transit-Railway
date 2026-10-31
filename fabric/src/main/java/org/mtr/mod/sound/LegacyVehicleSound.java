@@ -6,6 +6,7 @@ import org.mtr.mapping.holder.Identifier;
 import org.mtr.mapping.mapper.SoundHelper;
 import org.mtr.mod.Init;
 import org.mtr.mod.InitClient;
+import org.mtr.mod.config.Config;
 
 import javax.annotation.Nullable;
 import java.util.Random;
@@ -51,7 +52,8 @@ public class LegacyVehicleSound extends VehicleSoundBase {
 				final int index = Math.min(floorSpeed, legacySpeedSoundCount) - 1;
 				final boolean isAccelerating = speedChange == 0 ? legacyUseAccelerationSoundsWhenCoasting || random.nextBoolean() : speedChange > 0;
 				final String speedSoundId = legacySpeedSoundBaseResource + (isAccelerating ? SOUND_ACCELERATION : SOUND_DECELERATION) + index / SOUND_GROUP_SIZE + SOUND_GROUP_LETTERS[index % SOUND_GROUP_SIZE];
-				ScheduledSound.schedule(blockPos, SoundHelper.createSoundEvent(new Identifier(Init.MOD_ID, speedSoundId)), 1, 1);
+				final float pitch = SoundTuning.motorPitch(speed / referenceAcceleration / InitClient.MILLIS_PER_SPEED_SOUND, legacySpeedSoundCount, Config.getClient().getMotorPitchSmoothing());
+				ScheduledSound.schedule(blockPos, SoundHelper.createSoundEvent(new Identifier(Init.MOD_ID, speedSoundId)), 1, pitch);
 			}
 		}
 	}
