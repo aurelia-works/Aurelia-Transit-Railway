@@ -71,6 +71,7 @@ public final class AureliaClient implements ClientModInitializer {
 			client.execute(() -> org.mtr.mod.data.DepotSchedulesSync.setClient(read));
 		});
 		RideClient.register();
+		PassengerClient.register();
 		LOGGER.info("[ATR] Aurelia panel ready");
 	}
 
