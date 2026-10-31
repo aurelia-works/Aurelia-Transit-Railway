@@ -45,6 +45,26 @@ public final class TrainCargoStore {
 		dimensionOf.remove(id);
 	}
 
+	/**
+	 * Moves one train's hold into another's, for a coupler that joins two trains into one. The target grows by the
+	 * source's slots so every stack fits, and the source is removed so pruning cannot drop its items.
+	 */
+	public void moveInto(long fromId, long toId) {
+		final String dimension = dimensionOf.get(fromId);
+		final TrainCargo from = byId.get(fromId);
+		if (fromId == toId || dimension == null || from == null) {
+			return;
+		}
+		final TrainCargo existing = byId.get(toId);
+		final TrainCargo to = getOrCreate(dimension, toId, (existing == null ? 0 : existing.slots()) + from.slots());
+		for (final CargoStack stack : from.copyStacks()) {
+			to.insert(stack.itemId(), stack.nbt(), stack.maxCount(), stack.count());
+		}
+		remove(fromId);
+		markDirty(dimension, fromId);
+		markDirty(dimension, toId);
+	}
+
 	public int itemCount(long id) {
 		final TrainCargo cargo = byId.get(id);
 		return cargo == null ? 0 : cargo.itemCount();
