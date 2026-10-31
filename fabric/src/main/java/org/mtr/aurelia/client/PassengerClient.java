@@ -11,6 +11,7 @@ public final class PassengerClient {
 
 	private static volatile PassengerNetwork.Settings settings = PassengerNetwork.Settings.DEFAULT;
 	private static volatile PassengerService.Stats stats = PassengerService.Stats.NONE;
+	private static volatile PassengerService.Counts counts = PassengerService.Counts.NONE;
 
 	private PassengerClient() {
 	}
@@ -19,15 +20,21 @@ public final class PassengerClient {
 		ClientPlayNetworking.registerGlobalReceiver(PassengerService.SYNC, (client, handler, buf, response) -> {
 			final PassengerNetwork.Settings readSettings = PassengerService.read(buf);
 			final PassengerService.Stats readStats = new PassengerService.Stats(buf.readVarInt(), buf.readVarInt(), buf.readVarLong(), buf.readVarLong(), buf.readVarLong());
+			final PassengerService.Counts readCounts = new PassengerService.Counts(PassengerService.readCounts(buf), PassengerService.readCounts(buf));
 			client.execute(() -> {
 				settings = readSettings;
 				stats = readStats;
+				counts = readCounts;
 			});
 		});
 	}
 
 	public static PassengerNetwork.Settings settings() {
 		return settings;
+	}
+
+	public static PassengerService.Counts counts() {
+		return counts;
 	}
 
 	public static PassengerService.Stats stats() {

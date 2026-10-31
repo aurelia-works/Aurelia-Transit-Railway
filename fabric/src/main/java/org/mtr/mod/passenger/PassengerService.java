@@ -51,7 +51,13 @@ public final class PassengerService {
 		public static final Stats NONE = new Stats(0, 0, 0, 0, 0);
 	}
 
+	/** What clients draw: people waiting per platform and riding per train, for one dimension. */
+	public record Counts(Map<Long, Integer> waiting, Map<Long, Integer> riding) {
+		public static final Counts NONE = new Counts(Map.of(), Map.of());
+	}
+
 	private static final Map<String, PassengerNetwork> NETWORKS = new ConcurrentHashMap<>();
+	private static final Map<String, Counts> COUNTS = new ConcurrentHashMap<>();
 	private static final Map<String, Stats> STATS = new ConcurrentHashMap<>();
 	private static final Map<String, Long> LAST_MILLIS = new ConcurrentHashMap<>();
 	private static final Map<String, Double> COST = new ConcurrentHashMap<>();
@@ -69,6 +75,7 @@ public final class PassengerService {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			NETWORKS.clear();
 			STATS.clear();
+			COUNTS.clear();
 			LAST_MILLIS.clear();
 			COST.clear();
 		});
@@ -118,6 +125,7 @@ public final class PassengerService {
 							network.clear();
 						}
 						STATS.remove(simulator.dimension);
+						COUNTS.remove(simulator.dimension);
 					});
 				}
 			}
@@ -175,6 +183,7 @@ public final class PassengerService {
 			final double micros = (System.nanoTime() - start) / 1000D;
 			final double cost = COST.getOrDefault(dimension, micros) * 0.9 + micros * 0.1;
 			COST.put(dimension, cost);
+			COUNTS.put(dimension, new Counts(network.waitingCounts(), network.ridingCounts()));
 			STATS.put(dimension, new Stats(network.waitingTotal(), riding, network.boardedTotal(), network.alightedTotal(), Math.round(cost)));
 		} catch (Exception e) {
 			Init.LOGGER.error("Passengers could not update", e);
@@ -260,13 +269,34 @@ public final class PassengerService {
 	private static void send(ServerPlayerEntity player) {
 		final PacketByteBuf buf = PacketByteBufs.create();
 		write(buf, settings);
-		final Stats stats = STATS.getOrDefault(Init.getWorldId(new org.mtr.mapping.holder.World(player.getServerWorld())), Stats.NONE);
+		final String dimension = Init.getWorldId(new org.mtr.mapping.holder.World(player.getServerWorld()));
+		final Stats stats = STATS.getOrDefault(dimension, Stats.NONE);
 		buf.writeVarInt(stats.waiting());
 		buf.writeVarInt(stats.riding());
 		buf.writeVarLong(stats.boarded());
 		buf.writeVarLong(stats.alighted());
 		buf.writeVarLong(stats.costMicros());
+		final Counts counts = settings.enabled() ? COUNTS.getOrDefault(dimension, Counts.NONE) : Counts.NONE;
+		writeCounts(buf, counts.waiting());
+		writeCounts(buf, counts.riding());
 		ServerPlayNetworking.send(player, SYNC, buf);
+	}
+
+	private static void writeCounts(PacketByteBuf buf, Map<Long, Integer> counts) {
+		buf.writeVarInt(counts.size());
+		counts.forEach((id, count) -> {
+			buf.writeLong(id);
+			buf.writeVarInt(count);
+		});
+	}
+
+	public static Map<Long, Integer> readCounts(PacketByteBuf buf) {
+		final int size = buf.readVarInt();
+		final Map<Long, Integer> counts = new HashMap<>();
+		for (int i = 0; i < size; i++) {
+			counts.put(buf.readLong(), buf.readVarInt());
+		}
+		return counts;
 	}
 
 	@SuppressWarnings("unchecked")

@@ -168,6 +168,28 @@ public final class PassengerNetwork {
 		return onboard == null ? 0 : onboard.size();
 	}
 
+	/** Platform id to people waiting, for platforms with anyone. */
+	public Map<Long, Integer> waitingCounts() {
+		final Map<Long, Integer> counts = new HashMap<>();
+		waiting.forEach((platformId, queue) -> {
+			if (!queue.isEmpty()) {
+				counts.put(platformId, queue.size());
+			}
+		});
+		return counts;
+	}
+
+	/** Train id to people riding, for trains with anyone. */
+	public Map<Long, Integer> ridingCounts() {
+		final Map<Long, Integer> counts = new HashMap<>();
+		riding.forEach((vehicleId, onboard) -> {
+			if (!onboard.isEmpty()) {
+				counts.put(vehicleId, onboard.size());
+			}
+		});
+		return counts;
+	}
+
 	public int total() {
 		return total;
 	}
