@@ -13,6 +13,7 @@
 - Jet bridges that meet the plane, and a live departures board (#26).
 - Split or couple a stopped train at a station (#29).
 - Depot controls: instant deploy, clear vehicles, and per-depot all-doors and announcement switches (#35).
+- Train sound: a pitch range past vanilla's 0.5-2, smoother motor steps for old-style trains, door chimes, and a curve squeal volume, all on a new Train sound panel tab (#36).
 
 ### Fixed
 - Coupled trains keep the rear train's freight (#32).
