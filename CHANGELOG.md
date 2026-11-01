@@ -5,6 +5,7 @@
 ### Added
 - Rail nodes can be placed at 11.25° steps. Texture packs keep working because the node marker reuses the existing 22.5° models; the rail itself uses the finer angle.
 - Metallic steel panels: plain, dark, perforated, galvanised and brushed.
+- Custom bridge generator: `/atr_bridge capture` stores a bridge section as a template, `/atr_bridge preview` and `/atr_bridge build` stamp it along an MTR rail with quarter-turn rotation and height, and `/atr_bridge undo` restores the last build. See `docs/B1_CUSTOM_BRIDGE.md`.
 - On-train next-stop and arriving announcements can use voice packs, with the old AureliaEX clips kept as a fallback and the system voice for missing station names.
 - Voice-pack format documented in `docs/VOICE_PACKS.md`.
 
