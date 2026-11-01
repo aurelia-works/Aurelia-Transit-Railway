@@ -769,5 +769,22 @@
 	"item.mtr.rail_builder": "Rail Builder",
 	"tooltip.mtr.rail_builder_parts": "Deck: %s, Dig: %s, Walls: %s",
 	"tooltip.mtr.rail_builder_smart": "Walls where there is ground, a deck where there is none",
-	"tooltip.mtr.rail_builder_panel": "Width, height and parts: Aurelia panel, Builder tab"
+	"tooltip.mtr.rail_builder_panel": "Width, height and parts: Aurelia panel, Builder tab",
+	"block.mtr.zip_pole": "Zip Pole",
+	"item.mtr.zip_pole": "Zip Pole",
+	"item.mtr.zip_handle": "Zip Handle",
+	"item.mtr.zip_seat": "Zip Seat",
+	"message.mtr.zip.creative": "Zip lines are for creative mode and operators",
+	"message.mtr.zip.marked": "First pole marked. Use the pole item on the other pole",
+	"message.mtr.zip.linked": "Cable linked",
+	"message.mtr.zip.already": "That pole already has a cable",
+	"message.mtr.zip.span": "Poles must be between 4 and 96 blocks apart",
+	"message.mtr.zip.full": "This world already has 64 zip lines",
+	"message.mtr.zip.disabled": "Zip lines are turned off on the Aurelia panel",
+	"message.mtr.zip.none": "That pole is not on a cable",
+	"message.mtr.zip.use_seat": "This line has a hanging seat. Right-click the pole with an empty hand",
+	"message.mtr.zip.busy": "Someone is already on this line",
+	"message.mtr.zip.downhill": "The handle only rides downhill. Start at the upper pole",
+	"message.mtr.zip.seat": "Hanging seat added. Right-click this pole with an empty hand to ride",
+	"message.mtr.zip.seat_away": "The seat is at the other pole"
 }

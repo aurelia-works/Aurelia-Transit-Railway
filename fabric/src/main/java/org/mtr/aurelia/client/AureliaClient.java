@@ -75,6 +75,8 @@ public final class AureliaClient implements ClientModInitializer {
 		PassengerDrawSettings.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.client.ui.AureliaUiSettings.load(FabricLoader.getInstance().getConfigDir());
 		PassengerRenderer.register();
+		ZipClient.register();
+		ZipCableRenderer.register();
 		LOGGER.info("[ATR] Aurelia panel ready");
 	}
 
