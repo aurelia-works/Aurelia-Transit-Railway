@@ -326,5 +326,11 @@
 	"gui.aurelia.passengers.draw.tooltip": "Box figures for people waiting on platforms and riding in cars. Off by default, so shader packs and low-end PCs draw nothing until this is on. Blue is waiting, orange is riding.",
 	"gui.aurelia.passengers.draw_distance": "Draw distance: %s blocks",
 	"gui.aurelia.passengers.detail_distance": "Detail distance: %s blocks",
-	"gui.aurelia.passengers.max_drawn": "Most drawn in one place: %s"
+	"gui.aurelia.passengers.max_drawn": "Most drawn in one place: %s",
+	"gui.aurelia.panel.tab.zip": "Zip lines",
+	"gui.aurelia.zip.enabled": "Zip lines: %s",
+	"gui.aurelia.zip.speed": "Top speed: %s blocks/s",
+	"gui.aurelia.zip.brake": "Brake: %s",
+	"gui.aurelia.zip.sag": "Sag: %s%% of the span",
+	"gui.aurelia.zip.operators": "Only operators can change zip lines"
 }

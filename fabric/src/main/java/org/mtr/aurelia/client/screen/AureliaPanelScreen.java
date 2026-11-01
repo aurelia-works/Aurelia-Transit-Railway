@@ -16,6 +16,7 @@ import net.minecraft.util.Hand;
 import org.mtr.aurelia.client.Announcer;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.PassengerClient;
+import org.mtr.aurelia.client.ZipClient;
 import org.mtr.aurelia.client.PassengerDrawSettings;
 import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.ScriptingHandshake;
@@ -27,6 +28,7 @@ import org.mtr.mod.item.ItemRailBuilder;
 import org.mtr.mod.packet.PacketUpdateRailBuilder;
 import org.mtr.mod.passenger.PassengerNetwork;
 import org.mtr.mod.passenger.PassengerService;
+import org.mtr.mod.zip.ZipSettings;
 import org.mtr.mod.resource.PantographEnd;
 
 import javax.annotation.Nullable;
@@ -47,7 +49,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS}
+	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -142,6 +144,7 @@ public final class AureliaPanelScreen extends Screen {
 			case PANTOGRAPH -> initPantograph();
 			case TRAIN_SOUND -> initTrainSound();
 			case PASSENGERS -> initPassengers();
+			case ZIP -> initZip();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
@@ -292,6 +295,30 @@ public final class AureliaPanelScreen extends Screen {
 
 	private Text doorChimeLabel() {
 		return Text.translatable("gui.aurelia.train_sound.door_chime", Text.translatable("gui.aurelia.train_sound.door_chime." + config.getDoorChime()));
+	}
+
+	/** Zip lines: on/off, top speed, brake and how far the cable sags. Operators only; the ride is shared. */
+	private void initZip() {
+		final int left = (width - BUTTON_WIDTH) / 2;
+		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		final ZipSettings now = ZipClient.settings();
+		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.zip.enabled", ScreenTexts.onOrOff(now.enabled())), b -> {
+			final ZipSettings current = ZipClient.settings();
+			ZipClient.request(new ZipSettings(!current.enabled(), current.speed(), current.brake(), current.sag()));
+			b.setMessage(Text.translatable("gui.aurelia.zip.enabled", ScreenTexts.onOrOff(ZipClient.settings().enabled())));
+		}).dimensions(left, TOP, BUTTON_WIDTH, 20).build()).active = operator;
+		addDrawableChild(new RangeSlider(left, TOP + ROW, ZipSettings.SPEED_MIN, ZipSettings.SPEED_MAX, 1, () -> ZipClient.settings().speed(), speed -> {
+			final ZipSettings current = ZipClient.settings();
+			ZipClient.request(new ZipSettings(current.enabled(), speed, current.brake(), current.sag()));
+		}, speed -> Text.translatable("gui.aurelia.zip.speed", speed.intValue()))).active = operator;
+		addDrawableChild(new RangeSlider(left, TOP + ROW * 2, 0, ZipSettings.BRAKE_MAX, 0.1, () -> ZipClient.settings().brake(), brake -> {
+			final ZipSettings current = ZipClient.settings();
+			ZipClient.request(new ZipSettings(current.enabled(), current.speed(), brake, current.sag()));
+		}, brake -> Text.translatable("gui.aurelia.zip.brake", String.format("%.1f", brake)))).active = operator;
+		addDrawableChild(new RangeSlider(left, TOP + ROW * 3, 0, ZipSettings.SAG_MAX, 0.01, () -> ZipClient.settings().sag(), sag -> {
+			final ZipSettings current = ZipClient.settings();
+			ZipClient.request(new ZipSettings(current.enabled(), current.speed(), current.brake(), sag));
+		}, sag -> Text.translatable("gui.aurelia.zip.sag", String.format("%.0f", sag * 100)))).active = operator;
 	}
 
 	/**
@@ -529,6 +556,8 @@ public final class AureliaPanelScreen extends Screen {
 			if (client.player != null && !client.player.hasPermissionLevel(2)) {
 				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), width / 2, TOP - 10, 0xFF5555);
 			}
+		} else if (tab == Tab.ZIP && client.player != null && !client.player.hasPermissionLevel(2)) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), width / 2, TOP - 10, 0xFF5555);
 		} else if (tab == Tab.TOOLS && !MtrBridge.canEdit()) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), width / 2, TOP - 10, 0xFF5555);
 		} else if (tab == Tab.BUILDER && !isRailBuilder(client.player.getMainHandStack()) && !isRailBuilder(client.player.getOffHandStack())) {
