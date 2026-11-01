@@ -28,6 +28,9 @@ import org.mtr.mod.item.ItemRailBuilder;
 import org.mtr.mod.packet.PacketUpdateRailBuilder;
 import org.mtr.mod.passenger.PassengerNetwork;
 import org.mtr.mod.passenger.PassengerService;
+import org.mtr.aurelia.client.BuildClient;
+import org.mtr.mod.building.BuildMath;
+import org.mtr.mod.building.BuildSettings;
 import org.mtr.mod.zip.ZipSettings;
 import org.mtr.mod.resource.PantographEnd;
 
@@ -49,7 +52,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP}
+	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -111,6 +114,8 @@ public final class AureliaPanelScreen extends Screen {
 	private Tab tab;
 	private int firstRow;
 	private int passengerFirst;
+	private int buildFirst;
+	private static final int BUILD_ROWS = 10;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
 	private static final int PASSENGER_ROWS = 9;
 
@@ -145,6 +150,7 @@ public final class AureliaPanelScreen extends Screen {
 			case TRAIN_SOUND -> initTrainSound();
 			case PASSENGERS -> initPassengers();
 			case ZIP -> initZip();
+			case BUILD -> initBuild();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
@@ -319,6 +325,95 @@ public final class AureliaPanelScreen extends Screen {
 			final ZipSettings current = ZipClient.settings();
 			ZipClient.request(new ZipSettings(current.enabled(), current.speed(), current.brake(), sag));
 		}, sag -> Text.translatable("gui.aurelia.zip.sag", String.format("%.0f", sag * 100)))).active = operator;
+	}
+
+	/** Building tools: station guide, rail stylus and the box tunnel. Operators only; the dig is shared. */
+	private void initBuild() {
+		buildFirst = Math.max(0, Math.min(buildFirst, BUILD_ROWS - passengerVisible()));
+		final int left = (width - BUTTON_WIDTH) / 2;
+		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		final BuildSettings now = BuildClient.settings();
+		if (buildRow(0)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.station", ScreenTexts.onOrOff(now.stationEnabled())), b -> {
+				final BuildSettings current = BuildClient.settings();
+				sendBuild(new BuildSettings(!current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
+				b.setMessage(Text.translatable("gui.aurelia.build.station", ScreenTexts.onOrOff(BuildClient.settings().stationEnabled())));
+			}).dimensions(left, buildY(0), BUTTON_WIDTH, 20).build()).active = operator;
+		}
+		if (buildRow(1)) {
+			addDrawableChild(new RangeSlider(left, buildY(1), BuildSettings.SIDE_MIN, BuildSettings.SIDE_MAX, 8, () -> BuildClient.settings().stationSide(), side -> {
+				final BuildSettings current = BuildClient.settings();
+				sendBuild(new BuildSettings(current.stationEnabled(), (int) side, current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
+			}, side -> Text.translatable("gui.aurelia.build.side", side.intValue()))).active = operator;
+		}
+		if (buildRow(2)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.colour", Integer.toHexString(now.stationColour())), b -> {
+				final BuildSettings current = BuildClient.settings();
+				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.nextColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
+				b.setMessage(Text.translatable("gui.aurelia.build.colour", Integer.toHexString(BuildClient.settings().stationColour())));
+			}).dimensions(left, buildY(2), BUTTON_WIDTH, 20).build()).active = operator;
+		}
+		if (buildRow(3)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.rail", ScreenTexts.onOrOff(now.railEnabled())), b -> {
+				final BuildSettings current = BuildClient.settings();
+				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), !current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
+				b.setMessage(Text.translatable("gui.aurelia.build.rail", ScreenTexts.onOrOff(BuildClient.settings().railEnabled())));
+			}).dimensions(left, buildY(3), BUTTON_WIDTH, 20).build()).active = operator;
+		}
+		if (buildRow(4)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.snap", now.snapDegrees() == 0 ? Text.translatable("gui.aurelia.build.snap.off") : now.snapDegrees()), b -> {
+				final BuildSettings current = BuildClient.settings();
+				final int next = current.snapDegrees() == 0 ? 15 : current.snapDegrees() == 15 ? 45 : current.snapDegrees() == 45 ? 90 : 0;
+				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), next, current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
+				final int shown = BuildClient.settings().snapDegrees();
+				b.setMessage(Text.translatable("gui.aurelia.build.snap", shown == 0 ? Text.translatable("gui.aurelia.build.snap.off") : shown));
+			}).dimensions(left, buildY(4), BUTTON_WIDTH, 20).build()).active = operator;
+		}
+		if (buildRow(5)) {
+			addDrawableChild(new RangeSlider(left, buildY(5), BuildSettings.REACH_MIN, BuildSettings.REACH_MAX, 1, () -> BuildClient.settings().railReach(), reach -> {
+				final BuildSettings current = BuildClient.settings();
+				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), (int) reach, current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
+			}, reach -> Text.translatable("gui.aurelia.build.reach", reach.intValue()))).active = operator;
+		}
+		if (buildRow(6)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.tunnel", ScreenTexts.onOrOff(now.tunnelEnabled())), b -> {
+				final BuildSettings current = BuildClient.settings();
+				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), !current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
+				b.setMessage(Text.translatable("gui.aurelia.build.tunnel", ScreenTexts.onOrOff(BuildClient.settings().tunnelEnabled())));
+			}).dimensions(left, buildY(6), BUTTON_WIDTH, 20).build()).active = operator;
+		}
+		if (buildRow(7)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.mode", Text.translatable("gui.aurelia.build.mode." + now.tunnelMode().name().toLowerCase())), b -> {
+				final BuildSettings current = BuildClient.settings();
+				final BuildMath.Mode next = current.tunnelMode().next();
+				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), next, current.tunnelMaxBlocks(), current.blocksPerTick()));
+				b.setMessage(Text.translatable("gui.aurelia.build.mode", Text.translatable("gui.aurelia.build.mode." + BuildClient.settings().tunnelMode().name().toLowerCase())));
+			}).dimensions(left, buildY(7), BUTTON_WIDTH, 20).build()).active = operator;
+		}
+		if (buildRow(8)) {
+			addDrawableChild(new RangeSlider(left, buildY(8), BuildSettings.BLOCKS_MIN, BuildSettings.BLOCKS_MAX, 64, () -> BuildClient.settings().tunnelMaxBlocks(), max -> {
+				final BuildSettings current = BuildClient.settings();
+				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), (int) max, current.blocksPerTick()));
+			}, max -> Text.translatable("gui.aurelia.build.max", max.intValue()))).active = operator;
+		}
+		if (buildRow(9)) {
+			addDrawableChild(new RangeSlider(left, buildY(9), BuildSettings.TICK_MIN, BuildSettings.TICK_MAX, 1, () -> BuildClient.settings().blocksPerTick(), pace -> {
+				final BuildSettings current = BuildClient.settings();
+				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), (int) pace));
+			}, pace -> Text.translatable("gui.aurelia.build.pace", pace.intValue()))).active = operator;
+		}
+	}
+
+	private boolean buildRow(int row) {
+		return row >= buildFirst && row < buildFirst + passengerVisible();
+	}
+
+	private int buildY(int row) {
+		return TOP + (row - buildFirst) * ROW;
+	}
+
+	private void sendBuild(BuildSettings next) {
+		BuildClient.request(next);
 	}
 
 	/**
@@ -526,6 +621,14 @@ public final class AureliaPanelScreen extends Screen {
 			}
 			return true;
 		}
+		if (tab == Tab.BUILD) {
+			final int newFirstRow = Math.max(0, Math.min(BUILD_ROWS - passengerVisible(), buildFirst - (int) Math.signum(amount)));
+			if (newFirstRow != buildFirst) {
+				buildFirst = newFirstRow;
+				clearAndInit();
+			}
+			return true;
+		}
 		if (tab == Tab.PASSENGERS) {
 			final int newFirstRow = Math.max(0, Math.min(PASSENGER_ROWS - passengerVisible(), passengerFirst - (int) Math.signum(amount)));
 			if (newFirstRow != passengerFirst) {
@@ -556,6 +659,8 @@ public final class AureliaPanelScreen extends Screen {
 			if (client.player != null && !client.player.hasPermissionLevel(2)) {
 				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), width / 2, TOP - 10, 0xFF5555);
 			}
+		} else if (tab == Tab.BUILD && client.player != null && !client.player.hasPermissionLevel(2)) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), width / 2, TOP - 10, 0xFF5555);
 		} else if (tab == Tab.ZIP && client.player != null && !client.player.hasPermissionLevel(2)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), width / 2, TOP - 10, 0xFF5555);
 		} else if (tab == Tab.TOOLS && !MtrBridge.canEdit()) {
