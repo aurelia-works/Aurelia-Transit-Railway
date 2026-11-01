@@ -532,7 +532,7 @@ Decision: routes come from scanning blocks around each platform, so hand-built s
 
 | Phase | Goal | Done when | Estimate | Actual | Model | Needs | Status |
 |---|---|---|---|---|---|---|---|
-| P3.1 Walk map | Client scans a bounded area around a platform into a cached grid of standable cells, with A* over it | Test: path goes round a wall and up stairs; scan cost measured, off the frame | 60-90k tokens | | Sonnet, medium: plain algorithm | none | todo |
+| P3.1 Walk map | Client scans a bounded area around a platform into a cached grid of standable cells, with A* over it | Test: path goes round a wall and up stairs; scan cost measured, off the frame | 60-90k tokens | not measured | Sonnet, medium: plain algorithm | none | part done: world probe and real scan cost move to P3.2 |
 | P3.2 Platform paths | Boarding and alighting walkers follow grid paths to doors | Demo screenshots: walkers go round a pillar, none cross it; straight line only when no path | 60-90k tokens | | Sonnet, medium: wiring into PassengerRenderer | P3.1 | todo |
 | P3.3 Stairs, escalators, lifts | Walkers leave and arrive by real exits: stairs, MTR escalators and lifts | Demo with an upper level: people arrive from and leave by each kind | 90-130k tokens | | Opus, medium: lifts have the most surprises | P3.2 | todo |
 | P3.4 Panel and cost | On/off, range and max path sliders; frame cost at a busy station | Panel screenshot and measured frame cost; Jah signs off in game | 30-50k tokens | | Haiku or Sonnet, low: small panel work | P3.3 | todo |
