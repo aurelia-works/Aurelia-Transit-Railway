@@ -17,7 +17,16 @@
 		"SitCameraMixin",
 		"SitDropMixin",
 		"SitWhileRidingMixin",
-		"TrainSoundPitchMixin"
+		"TrainSoundPitchMixin",
+		"AureliaBackgroundMixin",
+		"AureliaButtonMixin",
+		"AureliaCheckboxMixin",
+		"AureliaDashboardMixin",
+		"AureliaFieldMixin",
+		"AureliaShortSliderMixin",
+		"AureliaSliderMixin",
+		"AureliaWidgetText",
+		"GraphicsHolderDrawContext"
 	],
 	"server": [],
 	"injectors": {

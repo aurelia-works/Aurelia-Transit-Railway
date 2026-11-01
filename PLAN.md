@@ -288,6 +288,34 @@ Style: match AureliaMap (dark, clean, modern; one Aurelia style for mod, map and
 | Z | Zip lines (handle + seats), creative/ops | 3-5 h | headline launch feature |
 New order: 3 (ATA blocks) -> 4 (bugs + spawn drop) -> O1 -> O3 -> Z -> O2 -> 1d.4 -> release. Total before launch roughly 30-50 h agent time. Each phase gets its own plan and Jah's yes.
 
+### O1. Aurelia UI kit and screens (plan)
+Goal: the dashboard, the station, route, depot and siding editors, the options screen and the Aurelia panel use one dark flat look, the same colours as AureliaMap's dark theme (`aureliamap/common/webapp/src/scss/variables.scss`: background `#181818`, control `#222222`, border `#444444`, text `#ffffff`, dim text `#aaaaaa`, accent `#00489d`). Minecraft's font stays. Trains, signs, blocks and the world are not part of this phase.
+
+The look is on by default, so a new install does not look like MTR. Each of the seven screens has its own switch on a new Look tab of the Aurelia panel. Off puts that screen back to MTR's widgets. The switches live in a new file, `config/aurelia/ui.json`. A missing file, a missing key, or a value that is not true or false keeps that screen on the Aurelia look. `config/mtr.json` is not read or written. Old worlds and old configs load unchanged.
+
+What changes on a screen while its switch is on:
+- Dashboard (`DashboardScreen`): the left panel fills `#181818` instead of `#121212`. Plain buttons become flat. The search box keeps MTR's cursor and gains an Aurelia border. Icon buttons (find, edit, map mode, the panel logo) and the route-colour squares stay as they are, because they draw their own textures.
+- Station editor (`EditStationScreen`), route editor (`EditRouteScreen`), depot editor (`EditDepotScreen`), siding editor (`SidingScreen`, including the platform fields it shares with `SavedRailScreenBase`): the dirt background becomes a flat `#181818` fill. Buttons, checkboxes and sliders are flat. Text fields keep MTR's cursor and selection; the border is repainted.
+- Options (`ConfigScreen`): same flat background, flat buttons and flat sliders. The logo, the row labels and the Patreon names stay.
+- Panel (`AureliaPanelScreen`): same flat background and flat buttons and sliders, plus the Look tab. The Look tab sits after the Zip tab from #42 and the Build tab from #44. The panel switch covers the zip and building controls as well.
+
+Drawing goes through `AureliaChrome` and uses `DrawContext.fill` plus the widget's existing text. No new `Text`, `String`, `Identifier` or `GuiDrawing` per frame. The label is the widget's `message` field. The mapping library's `getMessage()` builds a new holder on every call, so the mixins do not use it. The dwell slider's tick numbers use a static table of `"0"` to `"120"`. A number outside that table keeps the tick and skips the digits.
+
+Files:
+- `org.mtr.aurelia.client.ui.AureliaPalette`, `AureliaUiSettings`, `AureliaChrome`, `AureliaUi` (which screen is open, and whether its switch is on).
+- Client mixins in `org.mtr.atr.mixin`: button, slider, checkbox, text-field border, screen background, dashboard panel colour, the short slider (`WidgetShorterSlider` draws its own textures, so `SliderWidget` alone does not reach it), an accessor for `GraphicsHolder.drawContext`, and an accessor for the widget `message` field plus vanilla's scrollable-text draw.
+- `AureliaPanelScreen` grows the Look tab. `AureliaClient` loads the file on startup. Strings in `assets/aurelia/lang/en_us.json`. The mixins are registered in `atr.mixins.json`.
+
+No method in `org.mtr.mod` changes its name, descriptor or lambda list. The mixins add behaviour beside the existing methods. `DropInSignaturesTest` still compares the class files with the MTR 4.0.5 jar.
+
+Tests: `AureliaUiSettingsTest` only. One test checks that a missing key stays on, a non-boolean is ignored, and an unknown key is ignored. One test checks that a missing file and a broken file both leave every screen on the Aurelia look. No game test: the drawing needs a client, and this phase does not launch one.
+
+Risks:
+- A plain `ButtonWidget` that some other mod adds on top of one of these seven screens gets the flat look while that screen's switch is on. Textured buttons do not, because they override `renderButton`.
+- The list rows on the dashboard and the station editor stay MTR's (colour chip and name). Restyling them would mean editing `DashboardList.render`, which already allocates every frame.
+- The text-field border is painted after MTR's field, so the inner fill stays black. Cursor, selection and suggestion behaviour stay MTR's.
+- Nothing here has been looked at in a running game.
+
 ## After 1.0: new features (Jah, 2026-10-28)
 Picked so they don't compete with MTR, JCM, MAGIC, Tianjin, LU or ATA. Each gets its own phase plan when its turn comes. Not estimated yet.
 - **Zip lines (moved to launch, see Z above):** a handle item for one-way downhill lines (gravity, the cable sags, you drop off at the end pole), plus hanging seats for lines that go both ways. Creative and operators only at first; survival recipes later if wanted. Switches on the panel (speed, brake, sag).

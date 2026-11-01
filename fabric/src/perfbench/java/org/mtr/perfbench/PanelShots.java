@@ -13,10 +13,19 @@ import net.minecraft.world.GameMode;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.screen.*;
+import org.mtr.core.data.Depot;
 import org.mtr.core.data.Position;
 import org.mtr.core.data.Rail;
+import org.mtr.core.data.Route;
+import org.mtr.core.data.Siding;
+import org.mtr.core.data.Station;
 import org.mtr.core.data.TransportMode;
 import org.mtr.core.tool.Angle;
+import org.mtr.mod.client.MinecraftClientData;
+import org.mtr.mod.screen.EditDepotScreen;
+import org.mtr.mod.screen.EditRouteScreen;
+import org.mtr.mod.screen.EditStationScreen;
+import org.mtr.mod.screen.SidingScreen;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.mod.Init;
 import org.mtr.mod.Items;
@@ -90,6 +99,23 @@ public final class PanelShots implements ClientModInitializer {
 			return null;
 		}));
 		shots.add(new Shot("21-panel-architecture", parent -> new AureliaPanelScreen(null, AureliaPanelScreen.Tab.ARCHITECTURE)));
+		shots.add(new Shot("22-panel-look", parent -> new AureliaPanelScreen(null, AureliaPanelScreen.Tab.LOOK)));
+		shots.add(new Shot("23-station-editor", parent -> {
+			final Station station = MinecraftClientData.getInstance().stations.stream().findFirst().orElse(null);
+			return station == null ? null : new EditStationScreen(station, null);
+		}));
+		shots.add(new Shot("24-route-editor", parent -> {
+			final Route route = MinecraftClientData.getInstance().routes.stream().findFirst().orElse(null);
+			return route == null ? null : new EditRouteScreen(route, null);
+		}));
+		shots.add(new Shot("25-depot-editor", parent -> {
+			final Depot depot = MinecraftClientData.getInstance().depots.stream().findFirst().orElse(null);
+			return depot == null ? null : new EditDepotScreen(depot, TransportMode.TRAIN, null);
+		}));
+		shots.add(new Shot("26-siding-editor", parent -> {
+			final Siding siding = MinecraftClientData.getInstance().sidings.stream().findFirst().orElse(null);
+			return siding == null ? null : new SidingScreen(siding, TransportMode.TRAIN, null);
+		}));
 		ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 	}
 

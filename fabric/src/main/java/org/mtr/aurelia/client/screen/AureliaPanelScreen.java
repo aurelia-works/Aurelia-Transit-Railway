@@ -14,6 +14,7 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import org.mtr.aurelia.client.Announcer;
+import org.mtr.aurelia.client.ui.AureliaUiSettings;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.PassengerClient;
 import org.mtr.aurelia.client.ZipClient;
@@ -52,13 +53,15 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD}
+	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
 	private static final int VALUE_WIDTH = 80;
 	private static final int ROW = 24;
-	private static final int TOP = 56;
+	private static final int TAB_ROW = 20;
+	private static final int BASE_TOP = 56;
+	private int top = BASE_TOP;
 
 	private sealed interface Row permits Toggle, Distance {
 		String key();
@@ -114,6 +117,9 @@ public final class AureliaPanelScreen extends Screen {
 	private Tab tab;
 	private int firstRow;
 	private int passengerFirst;
+	private int lookFirst;
+	private static final AureliaUiSettings.ScreenId[] LOOK_IDS = AureliaUiSettings.ScreenId.values();
+	private static final Text LOOK_HINT = Text.translatable("gui.aurelia.look.hint");
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
@@ -128,15 +134,20 @@ public final class AureliaPanelScreen extends Screen {
 	@Override
 	protected void init() {
 		final Tab[] tabs = Tab.values();
-		final int tabWidth = Math.min(TAB_WIDTH, (width - 16 - (tabs.length - 1) * 4) / tabs.length);
-		final int tabsLeft = (width - tabs.length * tabWidth - (tabs.length - 1) * 4) / 2;
+		final int columns = Math.max(1, Math.min(tabs.length, (width - 16 + 4) / (TAB_WIDTH + 4)));
+		final int rows = (tabs.length + columns - 1) / columns;
+		final int tabWidth = Math.max(1, Math.min(TAB_WIDTH, (width - 16 - (columns - 1) * 4) / columns));
+		final int tabsLeft = (width - columns * tabWidth - (columns - 1) * 4) / 2;
+		top = 28 + rows * TAB_ROW + 6;
 		for (int i = 0; i < tabs.length; i++) {
 			final Tab target = tabs[i];
 			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.panel.tab." + target.name().toLowerCase()), b -> {
 				tab = target;
 				firstRow = 0;
+				lookFirst = 0;
+				buildFirst = 0;
 				clearAndInit();
-			}).dimensions(tabsLeft + i * (tabWidth + 4), 28, tabWidth, 20).build());
+			}).dimensions(tabsLeft + (i % columns) * (tabWidth + 4), 28 + (i / columns) * TAB_ROW, tabWidth, 18).build());
 			button.active = target != tab;
 		}
 		switch (tab) {
@@ -151,19 +162,20 @@ public final class AureliaPanelScreen extends Screen {
 			case PASSENGERS -> initPassengers();
 			case ZIP -> initZip();
 			case BUILD -> initBuild();
+			case LOOK -> initLook();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
 
 	private int visibleRows() {
-		return Math.max(1, (height - 36 - TOP) / ROW);
+		return Math.max(1, (height - 36 - top) / ROW);
 	}
 
 	private void initRendering() {
 		firstRow = Math.max(0, Math.min(firstRow, renderingRows.size() - visibleRows()));
 		final int valueX = width - 16 - VALUE_WIDTH;
 		for (int i = firstRow; i < Math.min(renderingRows.size(), firstRow + visibleRows()); i++) {
-			final int y = TOP + (i - firstRow) * ROW;
+			final int y = top + (i - firstRow) * ROW;
 			if (renderingRows.get(i) instanceof Toggle toggle) {
 				addDrawableChild(ButtonWidget.builder(ScreenTexts.onOrOff(toggle.get().getAsBoolean()), b -> {
 					toggle.toggle().run();
@@ -184,7 +196,7 @@ public final class AureliaPanelScreen extends Screen {
 		for (int i = 0; i < TOOLS.size(); i++) {
 			final Tool tool = TOOLS.get(i);
 			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.tools." + tool.key()), b -> client.setScreen(tool.open().apply(this)))
-					.dimensions(left + (i / rows) * (buttonWidth + 8), TOP + (i % rows) * ROW, buttonWidth, 20).build());
+					.dimensions(left + (i / rows) * (buttonWidth + 8), top + (i % rows) * ROW, buttonWidth, 20).build());
 			button.active = canEdit || !tool.needsEdit();
 		}
 	}
@@ -194,27 +206,27 @@ public final class AureliaPanelScreen extends Screen {
 		final ButtonWidget announcer = addDrawableChild(ButtonWidget.builder(announcerLabel(), b -> {
 			Announcer.setEnabled(!Announcer.enabled());
 			b.setMessage(announcerLabel());
-		}).dimensions(left, TOP, BUTTON_WIDTH, 20).build());
+		}).dimensions(left, top, BUTTON_WIDTH, 20).build());
 		announcer.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.announcer.tooltip")));
 		final ButtonWidget platform = addDrawableChild(ButtonWidget.builder(platformLabel(), b -> {
 			Announcer.setPlatformEnabled(!Announcer.platformEnabled());
 			b.setMessage(platformLabel());
-		}).dimensions(left, TOP + ROW, BUTTON_WIDTH, 20).build());
+		}).dimensions(left, top + ROW, BUTTON_WIDTH, 20).build());
 		platform.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.platform.tooltip")));
 		final ButtonWidget actionBar = addDrawableChild(ButtonWidget.builder(actionBarLabel(), b -> {
 			Announcer.setActionBar(!Announcer.actionBar());
 			b.setMessage(actionBarLabel());
-		}).dimensions(left, TOP + ROW * 3, BUTTON_WIDTH, 20).build());
+		}).dimensions(left, top + ROW * 3, BUTTON_WIDTH, 20).build());
 		actionBar.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.announcer.action_bar.tooltip")));
 		final ButtonWidget wording = addDrawableChild(ButtonWidget.builder(wordingLabel(), b -> {
 			Announcer.cycleWording();
 			b.setMessage(wordingLabel());
-		}).dimensions(left, TOP + ROW * 4, BUTTON_WIDTH, 20).build());
+		}).dimensions(left, top + ROW * 4, BUTTON_WIDTH, 20).build());
 		wording.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.announcer.wording.tooltip")));
 		final ButtonWidget melodies = addDrawableChild(ButtonWidget.builder(melodiesLabel(), b -> {
 			ScriptingHandshake.setMelodies(!ScriptingHandshake.melodiesEnabled());
 			b.setMessage(melodiesLabel());
-		}).dimensions(left, TOP + ROW * 2, BUTTON_WIDTH, 20).build());
+		}).dimensions(left, top + ROW * 2, BUTTON_WIDTH, 20).build());
 		melodies.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.melodies.tooltip")));
 	}
 
@@ -226,8 +238,8 @@ public final class AureliaPanelScreen extends Screen {
 		addDrawableChild(ButtonWidget.builder(sitLabel(), b -> {
 			RideClient.setSitWhenBoarding(!RideClient.sitWhenBoarding());
 			b.setMessage(sitLabel());
-		}).dimensions(left, TOP, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.riding.sit.tooltip")));
-		addDrawableChild(new SliderWidget(left, TOP + ROW, BUTTON_WIDTH, 20, Text.empty(), RideClient.sitDrop() / RideClient.MAX_SIT_DROP) {
+		}).dimensions(left, top, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.riding.sit.tooltip")));
+		addDrawableChild(new SliderWidget(left, top + ROW, BUTTON_WIDTH, 20, Text.empty(), RideClient.sitDrop() / RideClient.MAX_SIT_DROP) {
 			{
 				updateMessage();
 			}
@@ -259,14 +271,14 @@ public final class AureliaPanelScreen extends Screen {
 		addDrawableChild(ButtonWidget.builder(pantographAnimationLabel(), b -> {
 			config.togglePantographAnimation();
 			b.setMessage(pantographAnimationLabel());
-		}).dimensions(left, TOP, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.pantograph.animation.tooltip")));
-		addDrawableChild(new PantographSlider(left, TOP + ROW, Client.PANTOGRAPH_RAISE_SECONDS_MAX, 0.1, config::getPantographRaiseSeconds, config::setPantographRaiseSeconds,
+		}).dimensions(left, top, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.pantograph.animation.tooltip")));
+		addDrawableChild(new PantographSlider(left, top + ROW, Client.PANTOGRAPH_RAISE_SECONDS_MAX, 0.1, config::getPantographRaiseSeconds, config::setPantographRaiseSeconds,
 				seconds -> Text.translatable("gui.aurelia.pantograph.raise_time", String.format("%.1f", seconds))));
 		addDrawableChild(ButtonWidget.builder(pantographEndLabel(), b -> {
 			config.cyclePantographDefaultEnd();
 			b.setMessage(pantographEndLabel());
-		}).dimensions(left, TOP + ROW * 2, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.pantograph.end.tooltip")));
-		addDrawableChild(new PantographSlider(left, TOP + ROW * 3, Client.PANTOGRAPH_STAY_UP_KILOMETERS_PER_HOUR_MAX, 5, config::getPantographStayUpKilometersPerHour, config::setPantographStayUpKilometersPerHour,
+		}).dimensions(left, top + ROW * 2, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.pantograph.end.tooltip")));
+		addDrawableChild(new PantographSlider(left, top + ROW * 3, Client.PANTOGRAPH_STAY_UP_KILOMETERS_PER_HOUR_MAX, 5, config::getPantographStayUpKilometersPerHour, config::setPantographStayUpKilometersPerHour,
 				speed -> speed == 0 ? Text.translatable("gui.aurelia.pantograph.speed.off") : Text.translatable("gui.aurelia.pantograph.speed", speed.intValue())));
 	}
 
@@ -279,19 +291,19 @@ public final class AureliaPanelScreen extends Screen {
 		addDrawableChild(ButtonWidget.builder(widePitchLabel(), b -> {
 			config.toggleSoundWidePitch();
 			b.setMessage(widePitchLabel());
-		}).dimensions(left, TOP, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.wide_pitch.tooltip")));
-		addDrawableChild(new RangeSlider(left, TOP + ROW, Client.SOUND_MAX_PITCH_MIN, Client.SOUND_MAX_PITCH_MAX, 0.25, config::getSoundMaxPitch, config::setSoundMaxPitch,
+		}).dimensions(left, top, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.wide_pitch.tooltip")));
+		addDrawableChild(new RangeSlider(left, top + ROW, Client.SOUND_MAX_PITCH_MIN, Client.SOUND_MAX_PITCH_MAX, 0.25, config::getSoundMaxPitch, config::setSoundMaxPitch,
 				pitch -> Text.translatable("gui.aurelia.train_sound.max_pitch", String.format("%.2f", pitch))));
-		addDrawableChild(new RangeSlider(left, TOP + ROW * 2, 0, Client.MOTOR_PITCH_SMOOTHING_MAX, 0.05, config::getMotorPitchSmoothing, config::setMotorPitchSmoothing,
+		addDrawableChild(new RangeSlider(left, top + ROW * 2, 0, Client.MOTOR_PITCH_SMOOTHING_MAX, 0.05, config::getMotorPitchSmoothing, config::setMotorPitchSmoothing,
 				spread -> spread == 0 ? Text.translatable("gui.aurelia.train_sound.motor_smoothing.off") : Text.translatable("gui.aurelia.train_sound.motor_smoothing", Math.round(spread * 100))))
 				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.motor_smoothing.tooltip")));
 		addDrawableChild(ButtonWidget.builder(doorChimeLabel(), b -> {
 			config.cycleDoorChime();
 			b.setMessage(doorChimeLabel());
-		}).dimensions(left, TOP + ROW * 3, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.door_chime.tooltip")));
-		addDrawableChild(new RangeSlider(left, TOP + ROW * 4, 0, 1, 0.05, config::getDoorChimeVolume, config::setDoorChimeVolume,
+		}).dimensions(left, top + ROW * 3, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.door_chime.tooltip")));
+		addDrawableChild(new RangeSlider(left, top + ROW * 4, 0, 1, 0.05, config::getDoorChimeVolume, config::setDoorChimeVolume,
 				volume -> Text.translatable("gui.aurelia.train_sound.door_chime_volume", Math.round(volume * 100))));
-		addDrawableChild(new RangeSlider(left, TOP + ROW * 5, 0, 1, 0.05, config::getFlangeVolume, config::setFlangeVolume,
+		addDrawableChild(new RangeSlider(left, top + ROW * 5, 0, 1, 0.05, config::getFlangeVolume, config::setFlangeVolume,
 				volume -> volume == 0 ? Text.translatable("gui.aurelia.train_sound.flange_volume.off") : Text.translatable("gui.aurelia.train_sound.flange_volume", Math.round(volume * 100))));
 	}
 
@@ -312,19 +324,36 @@ public final class AureliaPanelScreen extends Screen {
 			final ZipSettings current = ZipClient.settings();
 			ZipClient.request(new ZipSettings(!current.enabled(), current.speed(), current.brake(), current.sag()));
 			b.setMessage(Text.translatable("gui.aurelia.zip.enabled", ScreenTexts.onOrOff(ZipClient.settings().enabled())));
-		}).dimensions(left, TOP, BUTTON_WIDTH, 20).build()).active = operator;
-		addDrawableChild(new RangeSlider(left, TOP + ROW, ZipSettings.SPEED_MIN, ZipSettings.SPEED_MAX, 1, () -> ZipClient.settings().speed(), speed -> {
+		}).dimensions(left, top, BUTTON_WIDTH, 20).build()).active = operator;
+		addDrawableChild(new RangeSlider(left, top + ROW, ZipSettings.SPEED_MIN, ZipSettings.SPEED_MAX, 1, () -> ZipClient.settings().speed(), speed -> {
 			final ZipSettings current = ZipClient.settings();
 			ZipClient.request(new ZipSettings(current.enabled(), speed, current.brake(), current.sag()));
 		}, speed -> Text.translatable("gui.aurelia.zip.speed", speed.intValue()))).active = operator;
-		addDrawableChild(new RangeSlider(left, TOP + ROW * 2, 0, ZipSettings.BRAKE_MAX, 0.1, () -> ZipClient.settings().brake(), brake -> {
+		addDrawableChild(new RangeSlider(left, top + ROW * 2, 0, ZipSettings.BRAKE_MAX, 0.1, () -> ZipClient.settings().brake(), brake -> {
 			final ZipSettings current = ZipClient.settings();
 			ZipClient.request(new ZipSettings(current.enabled(), current.speed(), brake, current.sag()));
 		}, brake -> Text.translatable("gui.aurelia.zip.brake", String.format("%.1f", brake)))).active = operator;
-		addDrawableChild(new RangeSlider(left, TOP + ROW * 3, 0, ZipSettings.SAG_MAX, 0.01, () -> ZipClient.settings().sag(), sag -> {
+		addDrawableChild(new RangeSlider(left, top + ROW * 3, 0, ZipSettings.SAG_MAX, 0.01, () -> ZipClient.settings().sag(), sag -> {
 			final ZipSettings current = ZipClient.settings();
 			ZipClient.request(new ZipSettings(current.enabled(), current.speed(), current.brake(), sag));
 		}, sag -> Text.translatable("gui.aurelia.zip.sag", String.format("%.0f", sag * 100)))).active = operator;
+	}
+
+	/** One switch per restyled screen. Off returns that screen to MTR's widgets. */
+	private void initLook() {
+		lookFirst = Math.max(0, Math.min(lookFirst, LOOK_IDS.length - visibleRows()));
+		final int left = (width - BUTTON_WIDTH) / 2;
+		for (int i = lookFirst; i < Math.min(LOOK_IDS.length, lookFirst + visibleRows()); i++) {
+			final AureliaUiSettings.ScreenId id = LOOK_IDS[i];
+			addDrawableChild(ButtonWidget.builder(lookLabel(id), b -> {
+				AureliaUiSettings.toggle(id);
+				b.setMessage(lookLabel(id));
+			}).dimensions(left, top + (i - lookFirst) * ROW, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(LOOK_HINT));
+		}
+	}
+
+	private static Text lookLabel(AureliaUiSettings.ScreenId id) {
+		return Text.translatable("gui.aurelia.look." + id.key, ScreenTexts.onOrOff(AureliaUiSettings.enabled(id)));
 	}
 
 	/** Building tools: station guide, rail stylus and the box tunnel. Operators only; the dig is shared. */
@@ -409,7 +438,7 @@ public final class AureliaPanelScreen extends Screen {
 	}
 
 	private int buildY(int row) {
-		return TOP + (row - buildFirst) * ROW;
+		return top + (row - buildFirst) * ROW;
 	}
 
 	private void sendBuild(BuildSettings next) {
@@ -488,7 +517,7 @@ public final class AureliaPanelScreen extends Screen {
 	}
 
 	private int passengerY(int row) {
-		return TOP + (row - passengerFirst) * ROW;
+		return top + (row - passengerFirst) * ROW;
 	}
 
 	private void addPassengerSlider(int left, int row, boolean active, double min, double max, double step, DoubleSupplier get, DoubleConsumer set, Function<Double, Text> label) {
@@ -537,15 +566,15 @@ public final class AureliaPanelScreen extends Screen {
 			InitClient.REGISTRY_CLIENT.sendPacketToServer(new PacketUpdateRailBuilder(offHand, newSettings));
 			return newSettings;
 		};
-		addDrawableChild(new BuilderSlider(left, TOP, "gui.aurelia.builder.width", ItemRailBuilder.MIN_WIDTH, ItemRailBuilder.MAX_WIDTH, 2, ItemRailBuilder.read(itemStack).width(),
+		addDrawableChild(new BuilderSlider(left, top, "gui.aurelia.builder.width", ItemRailBuilder.MIN_WIDTH, ItemRailBuilder.MAX_WIDTH, 2, ItemRailBuilder.read(itemStack).width(),
 				value -> update.apply(settings -> new ItemRailBuilder.Settings(value, settings.height(), settings.deck(), settings.clear(), settings.walls())).apply(ItemRailBuilder.read(itemStack))));
-		addDrawableChild(new BuilderSlider(left, TOP + ROW, "gui.aurelia.builder.height", ItemRailBuilder.MIN_HEIGHT, ItemRailBuilder.MAX_HEIGHT, 1, ItemRailBuilder.read(itemStack).height(),
+		addDrawableChild(new BuilderSlider(left, top + ROW, "gui.aurelia.builder.height", ItemRailBuilder.MIN_HEIGHT, ItemRailBuilder.MAX_HEIGHT, 1, ItemRailBuilder.read(itemStack).height(),
 				value -> update.apply(settings -> new ItemRailBuilder.Settings(settings.width(), value, settings.deck(), settings.clear(), settings.walls())).apply(ItemRailBuilder.read(itemStack))));
-		addBuilderToggle(left, TOP + ROW * 2, "gui.aurelia.builder.deck", itemStack, ItemRailBuilder.Settings::deck,
+		addBuilderToggle(left, top + ROW * 2, "gui.aurelia.builder.deck", itemStack, ItemRailBuilder.Settings::deck,
 				settings -> new ItemRailBuilder.Settings(settings.width(), settings.height(), !settings.deck(), settings.clear(), settings.walls()), update);
-		addBuilderToggle(left, TOP + ROW * 3, "gui.aurelia.builder.clear", itemStack, ItemRailBuilder.Settings::clear,
+		addBuilderToggle(left, top + ROW * 3, "gui.aurelia.builder.clear", itemStack, ItemRailBuilder.Settings::clear,
 				settings -> new ItemRailBuilder.Settings(settings.width(), settings.height(), settings.deck(), !settings.clear(), settings.walls()), update);
-		addBuilderToggle(left, TOP + ROW * 4, "gui.aurelia.builder.walls", itemStack, ItemRailBuilder.Settings::walls,
+		addBuilderToggle(left, top + ROW * 4, "gui.aurelia.builder.walls", itemStack, ItemRailBuilder.Settings::walls,
 				settings -> new ItemRailBuilder.Settings(settings.width(), settings.height(), settings.deck(), settings.clear(), !settings.walls()), update);
 	}
 
@@ -564,10 +593,10 @@ public final class AureliaPanelScreen extends Screen {
 	private void initArchitecture() {
 		final int left = (width - BUTTON_WIDTH) / 2;
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.studio"), b -> StationStudioClient.open())
-				.dimensions(left, TOP, BUTTON_WIDTH, 20).build())
+				.dimensions(left, top, BUTTON_WIDTH, 20).build())
 				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.studio.tooltip")));
-		addWrenchButton("station", ModItems.STATION_WRENCH, StationWrenchScreen::open, TOP + ROW);
-		addWrenchButton("airport", ModItems.AIRPORT_WRENCH, AirportWrenchScreen::open, TOP + ROW * 2);
+		addWrenchButton("station", ModItems.STATION_WRENCH, StationWrenchScreen::open, top + ROW);
+		addWrenchButton("airport", ModItems.AIRPORT_WRENCH, AirportWrenchScreen::open, top + ROW * 2);
 	}
 
 	private void addWrenchButton(String key, Item wrench, Consumer<Hand> open, int y) {
@@ -621,6 +650,14 @@ public final class AureliaPanelScreen extends Screen {
 			}
 			return true;
 		}
+		if (tab == Tab.LOOK) {
+			final int newFirst = Math.max(0, Math.min(LOOK_IDS.length - visibleRows(), lookFirst - (int) Math.signum(amount)));
+			if (newFirst != lookFirst) {
+				lookFirst = newFirst;
+				clearAndInit();
+			}
+			return true;
+		}
 		if (tab == Tab.BUILD) {
 			final int newFirstRow = Math.max(0, Math.min(BUILD_ROWS - passengerVisible(), buildFirst - (int) Math.signum(amount)));
 			if (newFirstRow != buildFirst) {
@@ -646,27 +683,27 @@ public final class AureliaPanelScreen extends Screen {
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
 		if (tab == Tab.RENDERING) {
 			for (int i = firstRow; i < Math.min(renderingRows.size(), firstRow + visibleRows()); i++) {
-				context.drawTextWithShadow(textRenderer, Text.translatable(renderingRows.get(i).key()), 16, TOP + (i - firstRow) * ROW + 6, 0xFFFFFF);
+				context.drawTextWithShadow(textRenderer, Text.translatable(renderingRows.get(i).key()), 16, top + (i - firstRow) * ROW + 6, 0xFFFFFF);
 			}
 			if (renderingRows.size() > visibleRows()) {
 				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", firstRow + 1, Math.min(renderingRows.size(), firstRow + visibleRows()), renderingRows.size()), width / 2, height - 44, 0xAAAAAA);
 			}
 		} else if (tab == Tab.PASSENGERS) {
 			final PassengerService.Stats stats = PassengerClient.stats();
-			final int statsY = TOP + passengerVisible() * ROW;
+			final int statsY = top + passengerVisible() * ROW;
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.stats", stats.waiting(), stats.riding(), stats.boarded(), stats.alighted()), width / 2, statsY + 6, 0xFFFFFF);
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.cost", String.format("%.2f", stats.costMicros() / 1000D)), width / 2, statsY + 18, 0xAAAAAA);
 			if (client.player != null && !client.player.hasPermissionLevel(2)) {
-				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), width / 2, TOP - 10, 0xFF5555);
+				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), width / 2, top - 10, 0xFF5555);
 			}
 		} else if (tab == Tab.BUILD && client.player != null && !client.player.hasPermissionLevel(2)) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), width / 2, TOP - 10, 0xFF5555);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), width / 2, top - 10, 0xFF5555);
 		} else if (tab == Tab.ZIP && client.player != null && !client.player.hasPermissionLevel(2)) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), width / 2, TOP - 10, 0xFF5555);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), width / 2, top - 10, 0xFF5555);
 		} else if (tab == Tab.TOOLS && !MtrBridge.canEdit()) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), width / 2, TOP - 10, 0xFF5555);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), width / 2, top - 10, 0xFF5555);
 		} else if (tab == Tab.BUILDER && !isRailBuilder(client.player.getMainHandStack()) && !isRailBuilder(client.player.getOffHandStack())) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), width / 2, TOP + 6, 0xAAAAAA);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), width / 2, top + 6, 0xAAAAAA);
 		}
 		super.render(context, mouseX, mouseY, delta);
 	}
