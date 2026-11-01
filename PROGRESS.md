@@ -28,7 +28,7 @@ Acceptance: all six are implemented or explicitly resolved, `./gradlew :fabric:t
 - General sound pitch: keep train-only, or add the 0.5–4× opt-in.
 
 ## Key facts
-- Active repo: `/Users/Boon/Downloads/PROJECTS/GITHUB REPOS/Aurelia Transit Railway/ATR-features`; branch `feat/batch-1-6`; local, 10 commits ahead of `origin/master`; not pushed.
+- Active repo: `/Users/Boon/Downloads/PROJECTS/GITHUB REPOS/Aurelia Transit Railway/ATR-features`; branch `feat/batch-1-6`; local commits ahead of `origin/master`; not pushed.
 - 1.1 release is paused in `/Users/Boon/Downloads/PROJECTS/GITHUB REPOS/Aurelia Transit Railway/ATR-rel`, branch `chore/release-1.1.0`; uncommitted `CHANGELOG.md`, `docs/release/*`, `gradle.properties`. Jar: `build/release/ATR-fabric-4.0.5+atr.1.1.0-mc1.20.1.jar`. Do not commit/push/tag it.
 - `HANDOFF.md` is stale (v1.0.0 era). `HANDOFF-2026-10-31-PHASES-4-Z.md` is closer but says 9b is next; 9b merged as #40.
 - Resource-pack compatibility: node marker models reuse existing `mtr:block/rail_node*`; old texture/blockstate packs still render. Three steel panels reuse `steel`, `steel_dark`, `steel_perforated`; two use new textures.
