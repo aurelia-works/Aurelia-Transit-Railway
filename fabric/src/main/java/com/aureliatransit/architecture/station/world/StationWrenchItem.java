@@ -144,11 +144,29 @@ public class StationWrenchItem extends Item {
 			case SAVE -> player.sendMessage(Text.literal("Station Studio design saved on the wrench.").formatted(Formatting.GRAY), true);
 			case PLAN -> StationActions.plan(player, text, null);
 			case PREVIEW -> StationActions.preview(player);
-			case CONFIRM -> StationActions.confirm(player, false);
-			case CONFIRM_REPLACE_TERRAIN -> StationActions.confirm(player, true);
+			case CONFIRM -> {
+				if (planIsCurrent(player, text)) {
+					StationActions.confirm(player, false);
+				}
+			}
+			case CONFIRM_REPLACE_TERRAIN -> {
+				if (planIsCurrent(player, text)) {
+					StationActions.confirm(player, true);
+				}
+			}
 			case CANCEL -> StationActions.cancel(player);
 			case UNDO -> StationActions.undo(player);
 		}
+	}
+
+	/** False, with a message, when the studio's design has changed since the plan that is waiting: a build must not put up the old one. */
+	private static boolean planIsCurrent(ServerPlayerEntity player, String description) {
+		final StationSessions.Pending pending = StationSessions.pending(player.getUuid());
+		if (pending == null || StudioDesign.matchesPlan(pending.parse(), description)) {
+			return true;
+		}
+		player.sendMessage(Text.literal("The design changed since it was planned. Press \"Plan in front of me\" first; nothing was built.").formatted(Formatting.YELLOW), false);
+		return false;
 	}
 
 	@Override
