@@ -40,13 +40,13 @@ Estimates are rough: tokens = files read + edits + build output, based on ATU se
 | 2a | Fold in ATU perf fixes | 400-700k | 3-5 h | not measured | Opus 5.5, high | merged 2026-10-28 as #6 (`1449c7fe`): draws = ATU on all 14 bench steps, timing vs ATU in docs/perfbench-2026-10-28.md; config screen scrolls to the last row (checked in the drop-in copy with the #6 jar); add-on hook regression from 2a fixed in PR #7 (`DropInSignaturesTest`) |
 | 2b | Fold in ATU tools and panel | 300-500k | 2-4 h | about 1.5 h | Opus 5.5 | done 2026-10-28: de0f0833 on feat/2b-tools-panel (not pushed); Jah: in-game check full pass in Metropolis |
 | 3 | Fold in ATA blocks | 300-500k | 2-4 h | | Sonnet 5.5, medium | merged 2026-10-29 as #10 (`d33f904b`); Station Studio and wrenches from the panel not tested in game |
-| 4 | 1.0 bug fixes | 300-600k | 3-5 h | | Opus 5.5, high | item 10 (lift rows) merged #15; items 1-9 need a game repro or a core change, not started |
-| 5 | Release 1.0 | 100-200k | 1-2 h | | Sonnet 5.5, medium | v1.0.0 tagged 2026-10-29 on `ec8bdd0ff`, GitHub release has the jar; Modrinth/CurseForge waiting for Jah's test |
-| 6 | Depot controls (1.1) | 300-500k | 2-4 h | | Sonnet 5.5, high | not started |
-| 7 | Schedules and cancellations (1.2) | 400-700k | 3-5 h | | Opus 5.5, high | not started |
-| 8 | Sound (1.3) | 300-500k | 2-4 h | | Sonnet 5.5, high | not started |
-| 9a | Passengers: simulation in core | 400-700k | 3-5 h | | Opus 5.5, high | not started |
-| 9b | Passengers: drawing and boarding | 400-700k | 3-5 h | | Opus 5.5, high | not started |
+| 4 | 1.0 bug fixes | 300-600k | 3-5 h | | Opus 5.5, high | shortlist merged as #34 (`07efa5a84`); results in docs/phase-4-bugs.md; item 10 (lift rows) was #15 |
+| 5 | Release 1.0 | 100-200k | 1-2 h | | Sonnet 5.5, medium | v1.0.0 tagged 2026-10-29 on `ec8bdd0ff`; v1.0.2 merged as #37 (`0ee679f`), tag v1.0.2 with the jar; #38 and #39 landed after the tag so they are not in that jar; Modrinth/CurseForge waiting for Jah's test |
+| 6 | Depot controls (1.1) | 300-500k | 2-4 h | | Sonnet 5.5, high | merged as #35 (`0193a14f5`) |
+| 7 | Schedules and cancellations (1.2) | 400-700k | 3-5 h | | Opus 5.5, high | merged as #38 (`992ba49`); weekday/weekend timetables and cancelled runs; not in the v1.0.2 jar |
+| 8 | Sound (1.3) | 300-500k | 2-4 h | | Sonnet 5.5, high | merged as #36 (`9b8435c0d`) |
+| 9a | Passengers: simulation in core | 400-700k | 3-5 h | | Opus 5.5, high | merged as #39 (`cd25a9e`); not in the v1.0.2 jar |
+| 9b | Passengers: drawing and boarding | 400-700k | 3-5 h | | Opus 5.5, high | merged as #40 (`129e53d`); drawing of waiting and riding passengers |
 | P1 | Moving pantographs (looks only) | 250-450k | 2-3 h | | Sonnet 5.5, high | merged 2026-10-29 as #16, 16 unit tests pass, not seen in game; `HANDOFF-2026-10-29-PANTOGRAPH.md` |
 
 Total, roughly: 3.5-6.5M tokens and 25-45 h of agent time across about 12 sessions. Phases 0-5 (through the 1.0 release) are about 10-20 h.
@@ -319,7 +319,7 @@ Headline launch feature. One-way downhill cables you ride with a handle, and han
 - Ids are new. Existing MTR ids, method signatures and the save format of `mtr` data are untouched.
 
 ### Networking
-- `mtr:atr_zip` server to client: enable, speed, brake, sag, every cable (ends, seat mode, seat position). Sent on join and after a change, and every second while seats are moving.
+- `mtr:atr_zip` server to client: enable, speed, brake, sag, every cable in that dimension (ends, seat mode, seat position). Sent on join, after a change, and every other tick while someone is moving.
 - `mtr:atr_zip_set` client to server: the four switches. The server applies them only for permission level 2.
 - Riding, linking and seat placement run on the server from item and block use. The server teleports the rider each tick.
 
