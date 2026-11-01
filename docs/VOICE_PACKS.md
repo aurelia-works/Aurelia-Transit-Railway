@@ -38,7 +38,9 @@ fragments per pack are read.
 
 Keys are lower-case, accents removed, and punctuation becomes `_`:
 
-- `phrase.<name>`: fixed wording, for example `phrase.calling_at`, `phrase.mind_the_gap`.
+- `phrase.<name>`: fixed wording, for example `phrase.calling_at`, `phrase.mind_the_gap`. On-train announcements add
+  `phrase.next_station_is`, `phrase.arriving_at`, `phrase.change_here_for`, `phrase.this_train_continues_as`,
+  `phrase.to`, and `phrase.this_is_the_last_stop`.
 - `number.<0-99>`: spoken numbers.
 - `station.<name>`: a station name, for example `station.central_station`.
 - `route.<name>`: a route name.
