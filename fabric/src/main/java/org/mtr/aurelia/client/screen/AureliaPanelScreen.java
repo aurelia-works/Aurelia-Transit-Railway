@@ -123,7 +123,7 @@ public final class AureliaPanelScreen extends Screen {
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
-	private static final int PASSENGER_ROWS = 9;
+	private static final int PASSENGER_ROWS = 13;
 
 	public AureliaPanelScreen(@Nullable Screen parent, Tab tab) {
 		super(Text.translatable("gui.aurelia.panel.title"));
@@ -505,6 +505,27 @@ public final class AureliaPanelScreen extends Screen {
 					value -> PassengerDrawSettings.setMaxPerPlace((int) value),
 					value -> Text.translatable("gui.aurelia.passengers.max_drawn", value.intValue()));
 		}
+		if (passengerRow(9)) {
+			addDrawableChild(ButtonWidget.builder(solidLabel(), b -> {
+				PassengerDrawSettings.setSolid(!PassengerDrawSettings.get().solid());
+				b.setMessage(solidLabel());
+			}).dimensions(left, passengerY(9), BUTTON_WIDTH, 20).build());
+		}
+		if (passengerRow(10)) {
+			addPassengerSlider(left, 10, true, PassengerDrawSettings.FIGURE_SIZE_MIN, PassengerDrawSettings.FIGURE_SIZE_MAX, 10, () -> PassengerDrawSettings.get().figureSize(),
+					value -> PassengerDrawSettings.setFigureSize((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.figure_size", value.intValue()));
+		}
+		if (passengerRow(11)) {
+			addPassengerSlider(left, 11, true, 0, PassengerDrawSettings.HUE_MAX, 10, () -> PassengerDrawSettings.get().waitingHue(),
+					value -> PassengerDrawSettings.setWaitingHue((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.waiting_hue", value.intValue()));
+		}
+		if (passengerRow(12)) {
+			addPassengerSlider(left, 12, true, 0, PassengerDrawSettings.HUE_MAX, 10, () -> PassengerDrawSettings.get().ridingHue(),
+					value -> PassengerDrawSettings.setRidingHue((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.riding_hue", value.intValue()));
+		}
 	}
 
 	/** Rows left after the waiting/riding line and the server-cost line. */
@@ -535,6 +556,10 @@ public final class AureliaPanelScreen extends Screen {
 
 	private static Text drawLabel() {
 		return Text.translatable("gui.aurelia.passengers.draw", ScreenTexts.onOrOff(PassengerDrawSettings.get().draw()));
+	}
+
+	private static Text solidLabel() {
+		return Text.translatable("gui.aurelia.passengers.solid", ScreenTexts.onOrOff(PassengerDrawSettings.get().solid()));
 	}
 
 	private Text pantographAnimationLabel() {

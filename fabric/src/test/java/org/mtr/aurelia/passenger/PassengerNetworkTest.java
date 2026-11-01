@@ -2,7 +2,15 @@ package org.mtr.aurelia.passenger;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mtr.core.data.Data;
+import org.mtr.core.data.Platform;
+import org.mtr.core.data.Position;
+import org.mtr.core.data.Rail;
+import org.mtr.core.data.TransportMode;
+import org.mtr.core.tool.Angle;
+import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.mod.passenger.PassengerNetwork;
+import org.mtr.mod.passenger.PassengerService;
 
 import java.util.Random;
 import java.util.Set;
@@ -72,5 +80,24 @@ public final class PassengerNetworkTest {
 
 		network.expire(PassengerNetwork.GIVE_UP_MILLIS + 1);
 		Assertions.assertEquals(0, network.total(), "waited too long and went home");
+	}
+
+	@Test
+	public void aPlatformWithNoRouteKeepsItsPeople() {
+		final Data data = new Data() {
+		};
+		final Position end1 = new Position(0, 64, 0);
+		final Position end2 = new Position(20, 64, 0);
+		data.rails.add(Rail.newPlatformRail(end1, Angle.E, end2, Angle.W, Rail.Shape.QUADRATIC, 0, new ObjectArrayList<>(), TransportMode.TRAIN));
+		final Platform platform = new Platform(end1, end2, TransportMode.TRAIN, data);
+		data.platforms.add(platform);
+		data.sync();
+
+		final PassengerNetwork network = new PassengerNetwork();
+		network.spawn(platform.getId(), new long[]{B}, 40 / 30D, SETTINGS, 0, new Random(1));
+		final int waiting = network.waitingAt(platform.getId());
+		Assertions.assertTrue(waiting > 0);
+		network.retain(Set.of(), PassengerService.platformsToKeep(data));
+		Assertions.assertEquals(waiting, network.waitingAt(platform.getId()));
 	}
 }

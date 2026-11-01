@@ -44,4 +44,24 @@ public final class PassengerFiguresTest {
 		Assertions.assertEquals(PassengerDrawSettings.DEFAULT.maxPerPlace(), clamped.maxPerPlace());
 		Assertions.assertTrue(clamped.detailDistance() <= clamped.drawDistance());
 	}
+
+	@Test
+	public void standingOnALongPlatformCountsAsNear() {
+		// 64 blocks long, camera at one end: 32 blocks from the middle, but on the platform
+		final double distance = PassengerFigures.distanceToPlatform(0, 66, 3, 0, 64, 0, 64, 64, 0);
+		Assertions.assertEquals(3.6, distance, 0.1);
+		Assertions.assertEquals(8, PassengerFigures.toDraw(40, 8, distance, 32, 12));
+	}
+
+	@Test
+	public void figuresStandOnThePlatformNotInTheTrain() {
+		// Rail at y 64 along x. The only platform is on the +z side, its top at 65, from 2 blocks out. Ground at 64 elsewhere.
+		final PassengerFigures.Ground ground = (x, z, railY) -> z >= 2 && z < 6 ? 65 : 64;
+		final double[] spots = new double[8 * 3];
+		PassengerFigures.spots(0, 64, 0, 32, 64, 0, 8, ground, spots);
+		for (int i = 0; i < 8; i++) {
+			Assertions.assertTrue(spots[i * 3 + 2] >= 2 && spots[i * 3 + 2] < 6, "figure " + i + " z " + spots[i * 3 + 2]);
+			Assertions.assertEquals(65, spots[i * 3 + 1], 0.01, "figure " + i);
+		}
+	}
 }

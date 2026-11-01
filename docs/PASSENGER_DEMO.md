@@ -20,64 +20,43 @@ Client-side switch for the figures:
 /atr_passenger_draw            # toggle
 ```
 
-`demo` turns the passenger service on, finds the nearest MTR platform within 128 blocks, and adds waiting people through
-`PassengerNetwork.spawn`. The next service tick keeps them alive and boards them when a train stops. The blue boxes are
-waiting passengers; orange boxes are passengers inside a train.
+`demo` turns the passenger service on, finds the nearest MTR platform within 128 blocks, and adds waiting people. Chat
+says how many, how far away the platform is, and whether a route stops there. A platform with no route keeps its people,
+but nobody can board. `demo` and `clear` change only the on switch; the caps on the panel stay as they were.
+
+Passengers show as simple solid people on the floor beside the rail, clear of the train. Size, colours, outlines and
+distances are on the Aurelia panel's **Passengers** tab. Figures count distance to the nearest point of the platform: up
+to 16 inside 32 blocks, one past that, none past 64 (all on the panel).
 
 ## Ready-to-test instance
-
-For a one-command morning test, run:
 
 ```bash
 ./gradlew :fabric:runPassengerDemo
 ```
 
-That boots `run/perf/saves/ATU Test`, sets daylight and clear weather, puts the camera above the platform at
-`276 -58 8`, turns passenger drawing on, and runs `/atr_passengers demo 40`. The game stays open so you can walk around
-and watch. Open the Aurelia panel's **Passengers** tab to see the counts.
+The bench world `ATU Test` is bare track with a manual train, so this copies it once to `run/perf/saves/ATR Passenger
+Demo` and sets the copy up: daylight running, a platform beside the rail, the train switched to automatic, the depot
+regenerated, and `/atr_passengers demo 40`. The game stays open. Wait about two minutes for the first train.
 
-To stop the demo: `/atr_passengers clear`.
-
-## Bench-world tour
-
-The `ATU Test` bench world has MTR platforms around `x=276, y=-58, z=0`.
-
-1. Launch the client with the bench world:
-   ```bash
-   ./gradlew :fabric:runPerfbench -Patr.world="ATU Test"
-   ```
-2. Teleport to the platform:
-   ```mcfunction
-   /tp @s 276 -58 8 facing 276 -59 0
-   ```
-3. Run:
-   ```mcfunction
-   /atr_passengers demo 40
-   /atr_passenger_draw on
-   ```
-4. Look along the platform. You should see up to eight blue wireframe figures at the platform ends, with more waiting
-   than that when the draw cap allows.
-5. Run `/atr_passengers clear` when done.
-
-The automated proof is `PassengerShots` (`src/perfbench`):
+## Automated proof
 
 ```bash
-JAVA_TOOL_OPTIONS="-Datr.passengershots=true" \
-  ./gradlew :fabric:runPerfbench -Patr.world="ATU Test" --offline
+JAVA_TOOL_OPTIONS="-Datr.passengershots=true" ./gradlew :fabric:runPassengerDemo --offline
 ```
 
-It saves `fabric/run/perf/screenshots/passenger-demo-1.png` through `-3.png` and writes `passengershots.txt`.
+`PassengerShots` saves `fabric/run/perf/screenshots/passenger-demo-1.png` to `-3.png` (middle of the platform, far end,
+train boarding), writes the counts to `passengershots.txt`, and closes the game.
 
 ## What this proves, and what it does not
 
 Proves:
-- the server spawns passengers from the real network;
-- the counts reach the client;
-- the client renderer draws them at the real platform;
-- the service can board and alight them when a train stops.
+- the server fills a real platform and the counts reach the client;
+- figures stand on the platform, and show from its far end;
+- a real automatic train stops and people board it (48 boarded, 1.5 ms per update, 2026-11-01).
 
 Does not prove:
+- people getting off: the proof run ended before the train reached their stations;
 - individual pathfinding or walking animation;
 - passengers using lifts, stairs or escalators.
 
-Passengers are aggregate counts per platform/train, drawn as figures. The station graph and walkers are P3 work.
+Passengers are counts per platform and train, drawn as figures. The station graph and walkers are P3 work.

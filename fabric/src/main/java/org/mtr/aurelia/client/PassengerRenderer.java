@@ -6,7 +6,12 @@ import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.World;
 import org.mtr.core.data.Platform;
 import org.mtr.core.data.Position;
 import org.mtr.core.data.Vehicle;
@@ -20,19 +25,23 @@ import org.mtr.mod.passenger.PassengerService;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Draws the server's waiting and riding counts as box figures along platforms and inside cars.
+ * Draws the server's waiting and riding counts as simple people on platforms and inside cars.
  * Platform ends are {@code SavedRailBaseSchema.position1} and {@code position2}. Car positions come from
  * {@link Vehicle#getVehicleCarsAndPositions()}.
  */
 public final class PassengerRenderer {
 
-	private static final double BOX = 0.22;
-	private static final double HEIGHT = 1.5;
-	/** A hard stop so a long draw distance cannot fill the frame with boxes. */
+	/** Above the rail, where people stand in a car. */
+	private static final double CAR_FLOOR = 1;
+	/** A hard stop so a long draw distance cannot fill the frame. */
 	private static final int FRAME_CAP = 256;
+	/** Floors are read from the world this often, not every frame. */
+	private static final long SPOT_REFRESH_MILLIS = 2000;
+	private static final int SPOT_CACHE_SIZE = 64;
 
 	@Nullable
 	private static final Field POSITION_1 = field("position1");
@@ -40,7 +49,12 @@ public final class PassengerRenderer {
 	private static final Field POSITION_2 = field("position2");
 	private static boolean loggedEnds;
 
+	private record Spots(int count, long millis, double[] at) {
+	}
+
 	private final double[] point = new double[3];
+	private final BlockPos.Mutable mutable = new BlockPos.Mutable();
+	private final Map<Long, Spots> spotCache = new HashMap<>();
 	private int drawn;
 
 	private PassengerRenderer() {
@@ -53,7 +67,7 @@ public final class PassengerRenderer {
 
 	private void render(WorldRenderContext context) {
 		final PassengerDrawSettings.Values settings = PassengerDrawSettings.get();
-		if (!settings.draw() || context.consumers() == null || context.camera() == null || context.matrixStack() == null) {
+		if (!settings.draw() || context.consumers() == null || context.camera() == null || context.matrixStack() == null || context.world() == null) {
 			return;
 		}
 		final PassengerService.Counts counts = PassengerClient.counts();
@@ -62,14 +76,15 @@ public final class PassengerRenderer {
 		}
 		final Vec3d camera = context.camera().getPos();
 		final MatrixStack matrices = context.matrixStack();
-		final VertexConsumer lines = context.consumers().getBuffer(RenderLayer.getLines());
+		final VertexConsumer consumer = context.consumers().getBuffer(settings.solid() ? RenderLayer.getDebugFilledBox() : RenderLayer.getLines());
 		drawn = 0;
-		platforms(counts.waiting(), settings, camera, matrices, lines);
-		trains(counts.riding(), settings, camera, matrices, lines);
+		platforms(counts.waiting(), settings, camera, matrices, consumer, context.world());
+		trains(counts.riding(), settings, camera, matrices, consumer);
 	}
 
-	private void platforms(Map<Long, Integer> waiting, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, VertexConsumer lines) {
+	private void platforms(Map<Long, Integer> waiting, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, VertexConsumer consumer, World world) {
 		final MinecraftClientData data = MinecraftClientData.getInstance();
+		final long now = System.currentTimeMillis();
 		for (final Map.Entry<Long, Integer> entry : waiting.entrySet()) {
 			if (drawn >= FRAME_CAP) {
 				return;
@@ -79,27 +94,55 @@ public final class PassengerRenderer {
 				continue;
 			}
 			final Position mid = platform.getMidPosition();
-			final double distance = distance(camera, mid.getX(), mid.getY(), mid.getZ());
+			final Position[] ends = ends(platform);
+			final boolean haveEnds = ends != null && ends[0] != null && ends[1] != null;
+			// Rails run through block centres
+			final double x1 = (haveEnds ? ends[0].getX() : mid.getX()) + 0.5;
+			final double y1 = haveEnds ? ends[0].getY() : mid.getY();
+			final double z1 = (haveEnds ? ends[0].getZ() : mid.getZ()) + 0.5;
+			final double x2 = (haveEnds ? ends[1].getX() : mid.getX()) + 0.5;
+			final double y2 = haveEnds ? ends[1].getY() : mid.getY();
+			final double z2 = (haveEnds ? ends[1].getZ() : mid.getZ()) + 0.5;
+			final double distance = PassengerFigures.distanceToPlatform(camera.x, camera.y, camera.z, x1, y1, z1, x2, y2, z2);
 			final int figures = PassengerFigures.toDraw(entry.getValue(), settings.maxPerPlace(), distance, settings.drawDistance(), settings.detailDistance());
 			if (figures <= 0) {
 				continue;
 			}
-			final Position[] ends = ends(platform);
-			final boolean haveEnds = ends != null && ends[0] != null && ends[1] != null;
-			final double x1 = haveEnds ? ends[0].getX() : mid.getX();
-			final double y1 = haveEnds ? ends[0].getY() : mid.getY();
-			final double z1 = haveEnds ? ends[0].getZ() : mid.getZ();
-			final double x2 = haveEnds ? ends[1].getX() : mid.getX();
-			final double y2 = haveEnds ? ends[1].getY() : mid.getY();
-			final double z2 = haveEnds ? ends[1].getZ() : mid.getZ();
+			Spots spots = spotCache.get(entry.getKey());
+			if (spots == null || spots.count != figures || now - spots.millis > SPOT_REFRESH_MILLIS) {
+				if (spotCache.size() > SPOT_CACHE_SIZE) {
+					spotCache.clear();
+				}
+				final double[] found = new double[figures * 3];
+				PassengerFigures.spots(x1, y1, z1, x2, y2, z2, figures, (x, z, railY) -> floor(world, x, z, railY), found);
+				spots = new Spots(figures, now, found);
+				spotCache.put(entry.getKey(), spots);
+			}
 			for (int i = 0; i < figures && drawn < FRAME_CAP; i++) {
-				PassengerFigures.place(x1, y1, z1, x2, y2, z2, i, figures, 0.9, point);
-				box(matrices, lines, camera, point[0], point[1], point[2], 0.35F, 0.65F, 1.0F);
+				figure(matrices, consumer, camera, settings, spots.at[i * 3], spots.at[i * 3 + 1], spots.at[i * 3 + 2], i, settings.waitingHue());
 			}
 		}
 	}
 
-	private void trains(Map<Long, Integer> riding, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, VertexConsumer lines) {
+	/** The lowest place near the rail with something to stand on and room for a person above it. */
+	private double floor(World world, double x, double z, int railY) {
+		final int blockX = MathHelper.floor(x);
+		final int blockZ = MathHelper.floor(z);
+		for (int y = railY - 2; y <= railY + 2; y++) {
+			final VoxelShape shape = world.getBlockState(mutable.set(blockX, y, blockZ)).getCollisionShape(world, mutable);
+			if (shape.isEmpty()) {
+				continue;
+			}
+			final boolean room = world.getBlockState(mutable.set(blockX, y + 1, blockZ)).getCollisionShape(world, mutable).isEmpty()
+					&& world.getBlockState(mutable.set(blockX, y + 2, blockZ)).getCollisionShape(world, mutable).isEmpty();
+			if (room) {
+				return y + shape.getMax(Direction.Axis.Y);
+			}
+		}
+		return Double.NaN;
+	}
+
+	private void trains(Map<Long, Integer> riding, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, VertexConsumer consumer) {
 		for (final VehicleExtension vehicle : MinecraftClientData.getInstance().vehicles) {
 			if (drawn >= FRAME_CAP) {
 				return;
@@ -108,79 +151,78 @@ public final class PassengerRenderer {
 			if (people == null || people <= 0) {
 				continue;
 			}
-			final Vector head = head(vehicle);
-			if (head == null) {
+			final ObjectArrayList<ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>>> cars = cars(vehicle);
+			if (cars == null || cars.isEmpty()) {
 				continue;
 			}
-			final double distance = distance(camera, head.x, head.y, head.z);
+			double distance = Double.MAX_VALUE;
+			for (final ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>> car : cars) {
+				for (final ObjectObjectImmutablePair<Vector, Vector> bogie : car.right()) {
+					if (bogie.left() != null) {
+						distance = Math.min(distance, distance(camera, bogie.left().x, bogie.left().y, bogie.left().z));
+					}
+					if (bogie.right() != null) {
+						distance = Math.min(distance, distance(camera, bogie.right().x, bogie.right().y, bogie.right().z));
+					}
+				}
+			}
 			final int figures = PassengerFigures.toDraw(people, settings.maxPerPlace(), distance, settings.drawDistance(), settings.detailDistance());
-			if (figures <= 0) {
-				continue;
+			if (figures > 0) {
+				drawInCars(cars, figures, settings, camera, matrices, consumer);
 			}
-			if (distance > settings.detailDistance()) {
-				box(matrices, lines, camera, head.x, head.y, head.z, 1.0F, 0.65F, 0.25F);
-				continue;
-			}
-			drawInCars(vehicle, figures, camera, matrices, lines, head);
 		}
 	}
 
-	private void drawInCars(Vehicle vehicle, int figures, Vec3d camera, MatrixStack matrices, VertexConsumer lines, Vector head) {
-		ObjectArrayList<ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>>> cars = null;
-		try {
-			cars = vehicle.getVehicleCarsAndPositions();
-		} catch (Exception ignored) {
-			cars = null;
-		}
-		if (cars == null || cars.isEmpty()) {
-			box(matrices, lines, camera, head.x, head.y, head.z, 1.0F, 0.65F, 0.25F);
-			return;
-		}
+	private void drawInCars(ObjectArrayList<ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>>> cars, int figures, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, VertexConsumer consumer) {
 		int remaining = figures;
 		for (int car = 0; car < cars.size() && remaining > 0 && drawn < FRAME_CAP; car++) {
-			final int share = remaining / (cars.size() - car);
+			final int share = (int) Math.ceil(remaining / (double) (cars.size() - car));
 			final ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>> bogies = cars.get(car).right();
-			double x1 = head.x;
-			double y1 = head.y;
-			double z1 = head.z;
-			double x2 = head.x;
-			double y2 = head.y;
-			double z2 = head.z;
-			if (bogies != null && !bogies.isEmpty()) {
-				final Vector start = bogies.get(0).left() != null ? bogies.get(0).left() : bogies.get(0).right();
-				final ObjectObjectImmutablePair<Vector, Vector> last = bogies.get(bogies.size() - 1);
-				final Vector end = last.right() != null ? last.right() : last.left();
-				if (start != null) {
-					x1 = start.x;
-					y1 = start.y;
-					z1 = start.z;
-				}
-				if (end != null) {
-					x2 = end.x;
-					y2 = end.y;
-					z2 = end.z;
-				}
+			remaining -= share;
+			if (bogies == null || bogies.isEmpty()) {
+				continue;
+			}
+			final Vector start = bogies.get(0).left() != null ? bogies.get(0).left() : bogies.get(0).right();
+			final ObjectObjectImmutablePair<Vector, Vector> last = bogies.get(bogies.size() - 1);
+			final Vector end = last.right() != null ? last.right() : last.left();
+			if (start == null || end == null) {
+				continue;
 			}
 			for (int i = 0; i < share && drawn < FRAME_CAP; i++) {
-				PassengerFigures.place(x1, y1, z1, x2, y2, z2, i, share, 0, point);
-				box(matrices, lines, camera, point[0], point[1] + 0.2, point[2], 1.0F, 0.65F, 0.25F);
+				PassengerFigures.place(start.x, start.y, start.z, end.x, end.y, end.z, i, share, 0, point);
+				figure(matrices, consumer, camera, settings, point[0], point[1] + CAR_FLOOR, point[2], i, settings.ridingHue());
 			}
-			remaining -= share;
 		}
 	}
 
-	private void box(MatrixStack matrices, VertexConsumer lines, Vec3d camera, double x, double y, double z, float r, float g, float b) {
-		WorldRenderer.drawBox(matrices, lines,
-				x - camera.x - BOX, y - camera.y, z - camera.z - BOX,
-				x - camera.x + BOX, y - camera.y + HEIGHT, z - camera.z + BOX,
-				r, g, b, 1.0F);
+	/** A simple person: legs, a body in the place's colour and a head. Outlines draw one tall box instead. */
+	private void figure(MatrixStack matrices, VertexConsumer consumer, Vec3d camera, PassengerDrawSettings.Values settings, double x, double y, double z, int index, int hue) {
+		final double size = settings.figureSize() / 100D;
+		final int rgb = MathHelper.hsvToRgb(hue / (float) PassengerDrawSettings.HUE_MAX, 0.65F, 1);
+		final float shade = 0.75F + (index % 3) * 0.125F;
+		final float r = (rgb >> 16 & 0xFF) / 255F * shade;
+		final float g = (rgb >> 8 & 0xFF) / 255F * shade;
+		final float b = (rgb & 0xFF) / 255F * shade;
+		final double cx = x - camera.x;
+		final double cy = y - camera.y;
+		final double cz = z - camera.z;
+		if (settings.solid()) {
+			final double half = 0.2 * size;
+			WorldRenderer.renderFilledBox(matrices, consumer, cx - half * 0.8, cy, cz - half * 0.8, cx + half * 0.8, cy + 0.75 * size, cz + half * 0.8, 0.16F, 0.18F, 0.24F, 1);
+			WorldRenderer.renderFilledBox(matrices, consumer, cx - half, cy + 0.75 * size, cz - half, cx + half, cy + 1.35 * size, cz + half, r, g, b, 1);
+			final double head = half * 0.75;
+			WorldRenderer.renderFilledBox(matrices, consumer, cx - head, cy + 1.37 * size, cz - head, cx + head, cy + 1.72 * size, cz + head, 0.86F, 0.68F, 0.55F, 1);
+		} else {
+			final double half = 0.22 * size;
+			WorldRenderer.drawBox(matrices, consumer, cx - half, cy, cz - half, cx + half, cy + 1.7 * size, cz + half, r, g, b, 1);
+		}
 		drawn++;
 	}
 
 	@Nullable
-	private static Vector head(Vehicle vehicle) {
+	private static ObjectArrayList<ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>>> cars(Vehicle vehicle) {
 		try {
-			return vehicle.getHeadPosition();
+			return vehicle.getVehicleCarsAndPositions();
 		} catch (Exception e) {
 			return null;
 		}

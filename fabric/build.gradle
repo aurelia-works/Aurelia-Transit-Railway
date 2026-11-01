@@ -45,9 +45,25 @@ loom {
 			name = "ATR passenger demo"
 			source sourceSets.perfbench
 			runDir = "run/perf"
-			programArgs "--quickPlaySingleplayer", "ATU Test"
+			programArgs "--quickPlaySingleplayer", "ATR Passenger Demo"
 			vmArg "-Dsodium.checks.issue2561=false"
 			vmArg "-Datr.passengerdemo=true"
+		}
+	}
+}
+
+// The passenger demo builds a platform and switches the train to automatic, so it works on a copy: the bench world stays as the perf numbers expect
+afterEvaluate {
+	tasks.named("runPassengerDemo") {
+		doFirst {
+			final demoWorld = file("run/perf/saves/ATR Passenger Demo")
+			if (!demoWorld.exists()) {
+				copy {
+					from "run/perf/saves/ATU Test"
+					into demoWorld
+					exclude "session.lock", "data/atr_passengers.dat"
+				}
+			}
 		}
 	}
 }

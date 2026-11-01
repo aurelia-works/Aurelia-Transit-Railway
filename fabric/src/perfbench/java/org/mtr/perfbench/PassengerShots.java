@@ -4,7 +4,8 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.ScreenshotRecorder;
-import org.mtr.aurelia.client.PassengerDrawSettings;
+import org.mtr.aurelia.client.PassengerClient;
+import org.mtr.mod.passenger.PassengerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,18 +17,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Dev-only proof for the passenger demo: boots the bench world, puts the camera above a platform, runs
- * {@code /atr_passengers demo 40}, turns passenger drawing on, and saves three screenshots while the network runs.
- * Run with {@code JAVA_TOOL_OPTIONS="-Datr.passengershots=true" ./gradlew :fabric:runPerfbench -Patr.world="ATU Test"}.
+ * Dev-only proof, run on top of {@link PassengerDemoClient}: a screenshot from the middle of the platform, one from its
+ * far end, then it waits for a real train to board people, photographs that and writes the counts.
+ * Run with {@code JAVA_TOOL_OPTIONS="-Datr.passengershots=true" ./gradlew :fabric:runPassengerDemo}.
  * Never part of the release jar.
  */
 public final class PassengerShots implements ClientModInitializer {
 
 	static final boolean ACTIVE = Boolean.getBoolean("atr.passengershots");
 	private static final Logger LOGGER = LoggerFactory.getLogger("ATR passenger shots");
-	private static final int START_TICKS = 100;
-	private static final int FIRST_WAIT = 40;
-	private static final int NEXT_WAIT = 100;
+	private static final int SETTLE_TICKS = 60;
+	private static final int TRAIN_TIMEOUT_TICKS = 20 * 240;
 
 	private final List<String> results = new ArrayList<>();
 	private int ticks;
@@ -43,40 +43,41 @@ public final class PassengerShots implements ClientModInitializer {
 	}
 
 	private void tick(MinecraftClient client) {
-		if (client.player == null || client.world == null) {
+		if (client.player == null || client.world == null || !PassengerDemoClient.ready) {
 			return;
 		}
 		ticks++;
-		if (ticks < START_TICKS) {
-			return;
-		}
+		final PassengerService.Stats stats = PassengerClient.stats();
 		switch (stage) {
 			case 0 -> {
-				PassengerDrawSettings.setDraw(true);
-				client.player.networkHandler.sendCommand("tp @s 276 -58 8 facing 276 -59 0");
-				client.player.networkHandler.sendCommand("atr_passengers demo 40");
-				results.add("demo started above the bench platform");
-				stage = 1;
-				waitUntil = ticks + FIRST_WAIT;
+				if (ticks >= SETTLE_TICKS) {
+					screenshot(client, "passenger-demo-1", stats);
+					client.player.networkHandler.sendCommand("tp @s 293 -59 8 facing 276 -58 3");
+					waitUntil = ticks + SETTLE_TICKS;
+					stage = 1;
+				}
 			}
 			case 1 -> {
 				if (ticks >= waitUntil) {
-					screenshot(client, "passenger-demo-1");
+					screenshot(client, "passenger-demo-2", stats);
+					client.player.networkHandler.sendCommand("tp @s 276 -59 8 facing 276 -58 0");
+					waitUntil = ticks + TRAIN_TIMEOUT_TICKS;
 					stage = 2;
-					waitUntil = ticks + NEXT_WAIT;
 				}
 			}
 			case 2 -> {
-				if (ticks >= waitUntil) {
-					screenshot(client, "passenger-demo-2");
+				if (stats.boarded() > 0) {
+					screenshot(client, "passenger-demo-3", stats);
+					waitUntil = ticks + TRAIN_TIMEOUT_TICKS;
 					stage = 3;
-					waitUntil = ticks + NEXT_WAIT;
+				} else if (ticks >= waitUntil) {
+					results.add("no boarding within the timeout");
+					finish(client, stats);
 				}
 			}
 			case 3 -> {
-				if (ticks >= waitUntil) {
-					screenshot(client, "passenger-demo-3");
-					finish(client);
+				if (stats.alighted() > 0 || ticks >= waitUntil) {
+					finish(client, stats);
 				}
 			}
 			default -> {
@@ -84,19 +85,21 @@ public final class PassengerShots implements ClientModInitializer {
 		}
 	}
 
-	private void screenshot(MinecraftClient client, String name) {
+	private void screenshot(MinecraftClient client, String name, PassengerService.Stats stats) {
 		ScreenshotRecorder.saveScreenshot(client.runDirectory, name + ".png", client.getFramebuffer(), message -> {
 		});
-		results.add(name + ".png");
+		results.add(name + ".png waiting=" + stats.waiting() + " riding=" + stats.riding() + " boarded=" + stats.boarded());
 	}
 
-	private void finish(MinecraftClient client) {
+	private void finish(MinecraftClient client, PassengerService.Stats stats) {
+		results.add("final " + stats);
 		try {
 			Files.write(Path.of("passengershots.txt"), results, StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			LOGGER.error("Could not write passengershots.txt", e);
 		}
 		LOGGER.info("Passenger shots done: {}", results);
+		stage = 4;
 		client.scheduleStop();
 	}
 }
