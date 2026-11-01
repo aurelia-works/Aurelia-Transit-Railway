@@ -80,8 +80,11 @@ A box is limited to 32,768 blocks and 128 blocks on each axis. A build is limite
 - `BridgeTemplateTest` checks rotation, the capture frame inverse and JSON round-trip.
 - `BridgeStampPlanTest` checks rail sampling, height and quarter-turn choice.
 - `BridgeStateCodecTest` (ATA tests, inside Fabric Loader) checks block-state property round-trip and rotation.
+- `BridgeGameTests` (headless server game test) captures a section, saves/loads it, samples a real MTR rail, places the
+  blocks and undoes them in a world.
 
 ```
 ./gradlew :fabric:test -x runGameTest --offline
 ./gradlew :fabric:ataTest --offline --tests 'com.aureliatransit.architecture.bridge.world.BridgeStateCodecTest'
+./gradlew :fabric:runGameTest -Pata.gametests=BridgeGameTests --offline
 ```
