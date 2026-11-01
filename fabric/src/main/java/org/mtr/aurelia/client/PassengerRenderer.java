@@ -13,6 +13,7 @@ import net.minecraft.client.render.entity.model.EntityModelLayers;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.client.util.DefaultSkinHelper;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
@@ -33,7 +34,10 @@ import org.mtr.mod.passenger.PassengerService;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -46,6 +50,18 @@ public final class PassengerRenderer {
 
 	/** Above the rail, where people stand in a car. */
 	private static final double CAR_FLOOR = 1;
+	/** Walkers started by one change of a train's riders; a bigger change still counts, it just does not all walk. */
+	private static final int WALKS_PER_TRAIN = 12;
+	private static final int WALKS_MAX = 64;
+	/** Leg swing, in radians a second. */
+	private static final double WALK_STRIDES = 8;
+	private static final long WALK_STAGGER_MILLIS = 220;
+	/** A train this close to a platform's rail is at it. */
+	private static final double AT_PLATFORM = 12;
+	/** Those who get off keep walking along the platform this far, fading out. */
+	private static final double WALK_AWAY = 9;
+	/** Walkers started since the game opened: the dev run reports it. */
+	public static int walksStarted;
 	/** A hard stop so a long draw distance cannot fill the frame. */
 	private static final int FRAME_CAP = 256;
 	/** Floors are read from the world this often, not every frame. */
@@ -65,6 +81,9 @@ public final class PassengerRenderer {
 	private final BlockPos.Mutable mutable = new BlockPos.Mutable();
 	private final Map<Long, Spots> spotCache = new HashMap<>();
 	private int drawn;
+	private final List<PassengerWalk> walks = new ArrayList<>();
+	@Nullable
+	private PassengerService.Counts lastCounts;
 	private VertexConsumerProvider provider;
 	private World world;
 	@Nullable
@@ -86,16 +105,24 @@ public final class PassengerRenderer {
 			return;
 		}
 		final PassengerService.Counts counts = PassengerClient.counts();
-		if (counts.waiting().isEmpty() && counts.riding().isEmpty()) {
+		final Vec3d camera = context.camera().getPos();
+		final long now = System.currentTimeMillis();
+		if (counts != lastCounts) {
+			if (lastCounts != null && settings.people()) {
+				startWalks(lastCounts, counts, settings, camera, context.world(), now);
+			}
+			lastCounts = counts;
+		}
+		if (counts.waiting().isEmpty() && counts.riding().isEmpty() && walks.isEmpty()) {
 			return;
 		}
-		final Vec3d camera = context.camera().getPos();
 		final MatrixStack matrices = context.matrixStack();
 		provider = context.consumers();
 		world = context.world();
 		drawn = 0;
 		platforms(counts.waiting(), settings, camera, matrices, context.world());
-		trains(counts.riding(), settings, camera, matrices);
+		trains(counts.riding(), settings, camera, matrices, now);
+		walks(settings, camera, matrices, now);
 		if (provider instanceof VertexConsumerProvider.Immediate immediate) {
 			immediate.draw();
 		}
@@ -166,13 +193,14 @@ public final class PassengerRenderer {
 		return Double.NaN;
 	}
 
-	private void trains(Map<Long, Integer> riding, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices) {
+	private void trains(Map<Long, Integer> riding, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, long now) {
 		for (final VehicleExtension vehicle : MinecraftClientData.getInstance().vehicles) {
 			if (drawn >= FRAME_CAP) {
 				return;
 			}
-			final Integer people = riding.get(vehicle.getId());
-			if (people == null || people <= 0) {
+			final Integer counted = riding.get(vehicle.getId());
+			final int people = counted == null ? 0 : counted - walkingIn(vehicle.getId(), now);
+			if (people <= 0) {
 				continue;
 			}
 			final ObjectArrayList<ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>>> cars = cars(vehicle);
@@ -219,13 +247,155 @@ public final class PassengerRenderer {
 		}
 	}
 
+	private int walkingIn(long vehicle, long now) {
+		int count = 0;
+		for (final PassengerWalk walk : walks) {
+			if (walk.boarding() && walk.vehicle() == vehicle && !walk.finished(now)) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	/** A change in a train's riders at a platform is people crossing the gap: draw them doing it. */
+	private void startWalks(PassengerService.Counts before, PassengerService.Counts after, PassengerDrawSettings.Values settings, Vec3d camera, World world, long now) {
+		for (final VehicleExtension vehicle : MinecraftClientData.getInstance().vehicles) {
+			final int change = after.riding().getOrDefault(vehicle.getId(), 0) - before.riding().getOrDefault(vehicle.getId(), 0);
+			if (change == 0) {
+				continue;
+			}
+			final var cars = cars(vehicle);
+			if (cars == null || cars.isEmpty()) {
+				continue;
+			}
+			final double[] doors = doors(cars);
+			if (doors.length == 0) {
+				continue;
+			}
+			final Platform platform = platformAt(doors);
+			if (platform == null) {
+				continue;
+			}
+			final double[] line = line(platform);
+			if (PassengerFigures.distanceToPlatform(camera.x, camera.y, camera.z, line[0], line[1], line[2], line[3], line[4], line[5]) > settings.drawDistance()) {
+				continue;
+			}
+			final int people = Math.min(WALKS_PER_TRAIN, Math.abs(change));
+			final int shown = Math.max(people, Math.min(settings.maxPerPlace(), before.waiting().getOrDefault(platform.getId(), 0)));
+			final double[] spots = new double[shown * 3];
+			PassengerFigures.spots(line[0], line[1], line[2], line[3], line[4], line[5], shown, (x, z, railY) -> floor(world, x, z, railY), spots);
+			for (int i = 0; i < people && walks.size() < WALKS_MAX; i++) {
+				final int spot = shown - 1 - i;
+				final double x = spots[spot * 3];
+				final double y = spots[spot * 3 + 1];
+				final double z = spots[spot * 3 + 2];
+				final double[] door = nearestDoor(doors, x, z);
+				final long start = now + i * WALK_STAGGER_MILLIS;
+				if (change > 0) {
+					walks.add(PassengerWalk.of(x, y, z, door[0], y, door[1], start, platform.getId(), spot, vehicle.getId(), true));
+				} else {
+					final double dx = line[3] - line[0];
+					final double dz = line[5] - line[2];
+					final double length = Math.max(1.0E-4, Math.hypot(dx, dz));
+					final double sign = i % 2 == 0 ? 1 : -1;
+					walks.add(PassengerWalk.of(door[0], y, door[1], x + dx / length * WALK_AWAY * sign, y, z + dz / length * WALK_AWAY * sign, start, vehicle.getId() + 1, spot, vehicle.getId(), false));
+				}
+				walksStarted++;
+			}
+		}
+	}
+
+	/** Trains' door layouts are in their models, so people use the usual two doors a car: a quarter from each end. */
+	private static double[] doors(ObjectArrayList<ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>>> cars) {
+		final double[] doors = new double[cars.size() * 4];
+		int count = 0;
+		for (final ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>> car : cars) {
+			final ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>> bogies = car.right();
+			if (bogies == null || bogies.isEmpty()) {
+				continue;
+			}
+			final Vector start = bogies.get(0).left() != null ? bogies.get(0).left() : bogies.get(0).right();
+			final ObjectObjectImmutablePair<Vector, Vector> last = bogies.get(bogies.size() - 1);
+			final Vector end = last.right() != null ? last.right() : last.left();
+			if (start == null || end == null) {
+				continue;
+			}
+			doors[count++] = start.x + (end.x - start.x) * 0.25;
+			doors[count++] = start.z + (end.z - start.z) * 0.25;
+			doors[count++] = start.x + (end.x - start.x) * 0.75;
+			doors[count++] = start.z + (end.z - start.z) * 0.75;
+		}
+		return java.util.Arrays.copyOf(doors, count);
+	}
+
+	private static double[] nearestDoor(double[] doors, double x, double z) {
+		int best = 0;
+		double bestDistance = Double.MAX_VALUE;
+		for (int i = 0; i < doors.length; i += 2) {
+			final double distance = Math.hypot(doors[i] - x, doors[i + 1] - z);
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				best = i;
+			}
+		}
+		return new double[]{doors[best], doors[best + 1]};
+	}
+
+	@Nullable
+	private Platform platformAt(double[] doors) {
+		final double x = doors[doors.length / 4 * 2];
+		final double z = doors[doors.length / 4 * 2 + 1];
+		Platform best = null;
+		double bestDistance = AT_PLATFORM;
+		for (final Platform platform : MinecraftClientData.getInstance().platforms) {
+			final double[] line = line(platform);
+			final double distance = PassengerFigures.distanceToPlatform(x, line[1], z, line[0], line[1], line[2], line[3], line[1], line[5]);
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				best = platform;
+			}
+		}
+		return best;
+	}
+
+	/** The platform's rail from end to end, x, y, z twice; rails run through block centres. */
+	private double[] line(Platform platform) {
+		final Position mid = platform.getMidPosition();
+		final Position[] ends = ends(platform);
+		final boolean haveEnds = ends != null && ends[0] != null && ends[1] != null;
+		return new double[]{
+				(haveEnds ? ends[0].getX() : mid.getX()) + 0.5, haveEnds ? ends[0].getY() : mid.getY(), (haveEnds ? ends[0].getZ() : mid.getZ()) + 0.5,
+				(haveEnds ? ends[1].getX() : mid.getX()) + 0.5, haveEnds ? ends[1].getY() : mid.getY(), (haveEnds ? ends[1].getZ() : mid.getZ()) + 0.5
+		};
+	}
+
+	private void walks(PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, long now) {
+		final Iterator<PassengerWalk> iterator = walks.iterator();
+		while (iterator.hasNext()) {
+			final PassengerWalk walk = iterator.next();
+			if (walk.finished(now)) {
+				iterator.remove();
+			} else if (settings.people() && drawn < FRAME_CAP) {
+				final double t = walk.progress(now);
+				final double x = walk.x1() + (walk.x2() - walk.x1()) * t;
+				final double y = walk.y1() + (walk.y2() - walk.y1()) * t;
+				final double z = walk.z1() + (walk.z2() - walk.z1()) * t;
+				final float fade = walk.boarding() ? 1 : (float) Math.min(1, (1 - t) * 4);
+				final float stride = t <= 0 ? -1 : (float) (walk.durationMillis() * t / 1000 * WALK_STRIDES);
+				person(matrices, settings, x - camera.x, y - camera.y, z - camera.z, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)),
+						PassengerLook.of(walk.place(), walk.index()), PassengerLook.yawToward(walk.x2() - walk.x1(), walk.z2() - walk.z1()), stride, fade);
+				drawn++;
+			}
+		}
+	}
+
 	/** One person: a real player model with one of the game's own skins, or the plain boxes when the panel asks for them. */
 	private void figure(MatrixStack matrices, Vec3d camera, PassengerDrawSettings.Values settings, double x, double y, double z, int index, int hue, long place, float yaw) {
 		final double cx = x - camera.x;
 		final double cy = y - camera.y;
 		final double cz = z - camera.z;
 		if (settings.people()) {
-			person(matrices, settings, cx, cy, cz, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)), PassengerLook.of(place, index), yaw);
+			person(matrices, settings, cx, cy, cz, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)), PassengerLook.of(place, index), yaw, -1, 1);
 			drawn++;
 			return;
 		}
@@ -249,7 +419,7 @@ public final class PassengerRenderer {
 		drawn++;
 	}
 
-	private void person(MatrixStack matrices, PassengerDrawSettings.Values settings, double cx, double cy, double cz, BlockPos lightAt, PassengerLook look, float yaw) {
+	private void person(MatrixStack matrices, PassengerDrawSettings.Values settings, double cx, double cy, double cz, BlockPos lightAt, PassengerLook look, float yaw, float stride, float alpha) {
 		if (wide == null) {
 			final MinecraftClient client = MinecraftClient.getInstance();
 			wide = new PlayerEntityModel<>(client.getEntityModelLoader().getModelPart(EntityModelLayers.PLAYER), false);
@@ -258,24 +428,27 @@ public final class PassengerRenderer {
 		final UUID skin = new UUID(look.skinSeed(), look.skinSeed() * 31);
 		final PlayerEntityModel<AbstractClientPlayerEntity> model = "slim".equals(DefaultSkinHelper.getModel(skin)) ? slim : wide;
 		final float time = (System.currentTimeMillis() % 628_318L) / 1000F + look.phase();
-		pose(model, look, time);
+		pose(model, look, time, stride);
 		final int light = WorldRenderer.getLightmapCoordinates(world, lightAt);
 		final float scale = settings.figureSize() / 100F * look.height() * 0.9375F;
 
 		matrices.push();
 		matrices.translate(cx, cy, cz);
-		matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180 - yaw - look.turn()));
+		matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180 - yaw - (stride < 0 ? look.turn() : 0)));
 		matrices.push();
 		matrices.scale(-scale, -scale, scale);
 		matrices.translate(0, -1.501, 0);
-		model.render(matrices, provider.getBuffer(RenderLayer.getEntityCutoutNoCull(DefaultSkinHelper.getTexture(skin))), light, OverlayTexture.DEFAULT_UV, 1, 1, 1, 1);
+		final Identifier texture = DefaultSkinHelper.getTexture(skin);
+		model.render(matrices, provider.getBuffer(alpha < 1 ? RenderLayer.getEntityTranslucent(texture) : RenderLayer.getEntityCutoutNoCull(texture)), light, OverlayTexture.DEFAULT_UV, 1, 1, 1, alpha);
 		matrices.pop();
-		carried(matrices, look, scale);
+		if (alpha >= 1) {
+			carried(matrices, look, scale);
+		}
 		matrices.pop();
 	}
 
 	/** Standing still is not frozen: people breathe, shift their arms and look around slowly. */
-	private static void pose(PlayerEntityModel<AbstractClientPlayerEntity> model, PassengerLook look, float time) {
+	private static void pose(PlayerEntityModel<AbstractClientPlayerEntity> model, PassengerLook look, float time, float stride) {
 		model.child = false;
 		model.sneaking = false;
 		model.riding = false;
@@ -307,6 +480,20 @@ public final class PassengerRenderer {
 			}
 			case SUITCASE -> model.leftArm.roll = -0.12F;
 			default -> {
+			}
+		}
+		if (stride >= 0) {
+			final float swing = MathHelper.sin(stride) * 0.75F;
+			model.rightLeg.pitch = swing;
+			model.leftLeg.pitch = -swing;
+			model.rightLeg.yaw = 0;
+			model.leftLeg.yaw = 0;
+			model.head.yaw = 0;
+			if (look.pose() != PassengerLook.Pose.PHONE) {
+				model.rightArm.pitch = -swing * 0.7F;
+			}
+			if (look.pose() == PassengerLook.Pose.RELAXED || look.pose() == PassengerLook.Pose.PHONE || look.pose() == PassengerLook.Pose.BACKPACK) {
+				model.leftArm.pitch = swing * 0.7F;
 			}
 		}
 		model.hat.copyTransform(model.head);

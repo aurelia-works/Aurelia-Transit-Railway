@@ -68,8 +68,8 @@ public final class PassengerShots implements ClientModInitializer {
 			case 2 -> {
 				if (stats.boarded() > 0) {
 					screenshot(client, "passenger-demo-3", stats);
-					waitUntil = ticks + TRAIN_TIMEOUT_TICKS;
-					stage = 3;
+					waitUntil = ticks + 30;
+					stage = 5;
 				} else if (ticks >= waitUntil) {
 					results.add("no boarding within the timeout");
 					finish(client, stats);
@@ -78,6 +78,14 @@ public final class PassengerShots implements ClientModInitializer {
 			case 3 -> {
 				if (stats.alighted() > 0 || ticks >= waitUntil) {
 					finish(client, stats);
+				}
+			}
+			case 5 -> {
+				if (ticks >= waitUntil) {
+					screenshot(client, "passenger-demo-walking", stats);
+					results.add("walkers started " + org.mtr.aurelia.client.PassengerRenderer.walksStarted);
+					waitUntil = ticks + TRAIN_TIMEOUT_TICKS;
+					stage = 3;
 				}
 			}
 			default -> {
@@ -92,7 +100,7 @@ public final class PassengerShots implements ClientModInitializer {
 	}
 
 	private void finish(MinecraftClient client, PassengerService.Stats stats) {
-		results.add("final " + stats);
+		results.add("final " + stats + " walkers started " + org.mtr.aurelia.client.PassengerRenderer.walksStarted);
 		try {
 			Files.write(Path.of("passengershots.txt"), results, StandardCharsets.UTF_8);
 		} catch (IOException e) {
