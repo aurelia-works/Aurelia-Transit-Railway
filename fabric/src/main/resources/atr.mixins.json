@@ -25,6 +25,7 @@
 		"AureliaFieldMixin",
 		"AureliaShortSliderMixin",
 		"AureliaSliderMixin",
+		"AureliaWidgetText",
 		"GraphicsHolderDrawContext"
 	],
 	"server": [],

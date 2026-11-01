@@ -4,6 +4,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
+import net.minecraft.text.Text;
 import org.mtr.aurelia.client.ui.AureliaChrome;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.client.ui.AureliaUi;
@@ -31,9 +32,14 @@ public abstract class AureliaSliderMixin {
 		if (!widget.visible || w <= 0 || h <= 0) {
 			return;
 		}
-		AureliaChrome.slider(context, widget.getX(), widget.getY(), w, h, this.value, widget.isHovered());
-		final int color = widget.active ? AureliaPalette.FG : AureliaPalette.FG_LIGHT;
-		context.drawCenteredTextWithShadow(MinecraftClient.getInstance().textRenderer, widget.getMessage(), widget.getX() + w / 2, widget.getY() + (h - 8) / 2, color);
+		final int x = widget.getX();
+		final int y = widget.getY();
+		AureliaChrome.slider(context, x, y, w, h, this.value, widget.isHovered());
+		final Text message = ((AureliaWidgetText) (Object) this).atr$message();
+		if (message != null) {
+			final int color = widget.active ? AureliaPalette.FG : AureliaPalette.FG_LIGHT;
+			context.drawCenteredTextWithShadow(MinecraftClient.getInstance().textRenderer, message, x + w / 2, y + (h - 8) / 2, color);
+		}
 		ci.cancel();
 	}
 }

@@ -48,7 +48,7 @@ public abstract class AureliaShortSliderMixin {
 		if (w <= 0 || h <= 0) {
 			return;
 		}
-		final Text message = widget.getMessage();
+		final Text message = ((AureliaWidgetText) (Object) this).atr$message();
 		AureliaChrome.shortSlider(context, MinecraftClient.getInstance().textRenderer, widget.getX(), widget.getY(), w, h, this.getIntValue(), this.maxValue, this.markerFrequency, this.markerDisplayedRatio, widget.isHovered(), message);
 		ci.cancel();
 	}

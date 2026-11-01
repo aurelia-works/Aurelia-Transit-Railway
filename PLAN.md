@@ -299,11 +299,11 @@ What changes on a screen while its switch is on:
 - Options (`ConfigScreen`): same flat background, flat buttons and flat sliders. The logo, the row labels and the Patreon names stay.
 - Panel (`AureliaPanelScreen`): same flat background and flat buttons and sliders, plus the Look tab. The Look tab sits after the Zip tab from #42. The panel switch covers the zip controls as well.
 
-Drawing goes through `AureliaChrome` and uses `DrawContext.fill` plus the widget's existing text. No new `Text`, `String`, `Identifier` or `GuiDrawing` per frame. The dwell slider's tick numbers use a static table of `"0"` to `"120"`. A number outside that table is skipped rather than allocated.
+Drawing goes through `AureliaChrome` and uses `DrawContext.fill` plus the widget's existing text. No new `Text`, `String`, `Identifier` or `GuiDrawing` per frame. The label is the widget's `message` field. The mapping library's `getMessage()` builds a new holder on every call, so the mixins do not use it. The dwell slider's tick numbers use a static table of `"0"` to `"120"`. A number outside that table keeps the tick and skips the digits.
 
 Files:
 - `org.mtr.aurelia.client.ui.AureliaPalette`, `AureliaUiSettings`, `AureliaChrome`, `AureliaUi` (which screen is open, and whether its switch is on).
-- Client mixins in `org.mtr.atr.mixin`: button, slider, checkbox, text-field border, screen background, dashboard panel colour, the short slider (`WidgetShorterSlider` draws its own textures, so `SliderWidget` alone does not reach it), and an accessor for `GraphicsHolder.drawContext`.
+- Client mixins in `org.mtr.atr.mixin`: button, slider, checkbox, text-field border, screen background, dashboard panel colour, the short slider (`WidgetShorterSlider` draws its own textures, so `SliderWidget` alone does not reach it), an accessor for `GraphicsHolder.drawContext`, and an accessor for the widget `message` field plus vanilla's scrollable-text draw.
 - `AureliaPanelScreen` grows the Look tab. `AureliaClient` loads the file on startup. Strings in `assets/aurelia/lang/en_us.json`. The mixins are registered in `atr.mixins.json`.
 
 No method in `org.mtr.mod` changes its name, descriptor or lambda list. The mixins add behaviour beside the existing methods. `DropInSignaturesTest` still compares the class files with the MTR 4.0.5 jar.
