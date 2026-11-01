@@ -123,7 +123,7 @@ public final class AureliaPanelScreen extends Screen {
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
-	private static final int PASSENGER_ROWS = 13;
+	private static final int PASSENGER_ROWS = 14;
 
 	public AureliaPanelScreen(@Nullable Screen parent, Tab tab) {
 		super(Text.translatable("gui.aurelia.panel.title"));
@@ -525,6 +525,11 @@ public final class AureliaPanelScreen extends Screen {
 			addPassengerSlider(left, 12, true, 0, PassengerDrawSettings.HUE_MAX, 10, () -> PassengerDrawSettings.get().ridingHue(),
 					value -> PassengerDrawSettings.setRidingHue((int) value),
 					value -> Text.translatable("gui.aurelia.passengers.riding_hue", value.intValue()));
+		}
+		if (passengerRow(13)) {
+			addPassengerSlider(left, 13, true, 0, PassengerDrawSettings.MAX_WALKERS_MAX, 4, () -> PassengerDrawSettings.get().maxWalkers(),
+					value -> PassengerDrawSettings.setMaxWalkers((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.max_walkers", value.intValue()));
 		}
 	}
 

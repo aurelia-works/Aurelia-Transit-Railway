@@ -4,7 +4,10 @@ package org.mtr.aurelia.client;
  * Who one drawn passenger is: picked from where they are and their place in the queue, so the same person keeps the same
  * look from frame to frame. No Minecraft types, so it can be tested without a client.
  */
-public record PassengerLook(long skinSeed, float height, float turn, float headTurn, float phase, Pose pose, int bagColor) {
+public record PassengerLook(long skinSeed, int skin, float height, float turn, float headTurn, float phase, Pose pose, int bagColor) {
+
+	/** Painted by {@code tools/passenger_skins.py}: even numbers are wide models, odd are slim. */
+	public static final int SKINS = 24;
 
 	public enum Pose {RELAXED, PHONE, SHOULDER_BAG, BACKPACK, SUITCASE}
 
@@ -21,7 +24,7 @@ public record PassengerLook(long skinSeed, float height, float turn, float headT
 		final float phase = (bits >>> 24 & 0xFF) / 255F * 6.2831855F;
 		final Pose pose = POSES[(int) ((bits >>> 32 & 0xFFFF) % POSES.length)];
 		final int bagColor = BAG_COLORS[(int) ((bits >>> 48 & 0xFFFF) % BAG_COLORS.length)];
-		return new PassengerLook(skinSeed, height, turn, headTurn, phase, pose, bagColor);
+		return new PassengerLook(skinSeed, (int) Long.remainderUnsigned(skinSeed, SKINS), height, turn, headTurn, phase, pose, bagColor);
 	}
 
 	/** The degrees of Minecraft yaw that face along {@code dx, dz}. */

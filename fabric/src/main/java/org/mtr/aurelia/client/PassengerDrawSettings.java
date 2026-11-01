@@ -20,9 +20,10 @@ public final class PassengerDrawSettings {
 	public static final int FIGURE_SIZE_MIN = 50;
 	public static final int FIGURE_SIZE_MAX = 200;
 	public static final int HUE_MAX = 360;
+	public static final int MAX_WALKERS_MAX = 128;
 
 	/** Off, figures out to 64 blocks, a single figure past 32, at most 16 in one place, life size, drawn as people. Boxes, if chosen, are solid, blue waiting and orange riding. */
-	public static final Values DEFAULT = new Values(false, 64, 32, 16, true, 100, 210, 30, true);
+	public static final Values DEFAULT = new Values(false, 64, 32, 16, true, 100, 210, 30, true, 64);
 
 	private static Values values = DEFAULT;
 
@@ -53,17 +54,17 @@ public final class PassengerDrawSettings {
 	}
 
 	public static void setDrawDistance(int drawDistance) {
-		values = new Values(values.draw(), clamp(drawDistance, 0, DRAW_DISTANCE_MAX), values.detailDistance(), values.maxPerPlace(), values.solid(), values.figureSize(), values.waitingHue(), values.ridingHue(), values.people()).detailInsideDraw();
+		values = new Values(values.draw(), clamp(drawDistance, 0, DRAW_DISTANCE_MAX), values.detailDistance(), values.maxPerPlace(), values.solid(), values.figureSize(), values.waitingHue(), values.ridingHue(), values.people(), values.maxWalkers()).detailInsideDraw();
 		save();
 	}
 
 	public static void setDetailDistance(int detailDistance) {
-		values = new Values(values.draw(), values.drawDistance(), clamp(detailDistance, 0, Math.min(DETAIL_DISTANCE_MAX, values.drawDistance())), values.maxPerPlace(), values.solid(), values.figureSize(), values.waitingHue(), values.ridingHue(), values.people());
+		values = new Values(values.draw(), values.drawDistance(), clamp(detailDistance, 0, Math.min(DETAIL_DISTANCE_MAX, values.drawDistance())), values.maxPerPlace(), values.solid(), values.figureSize(), values.waitingHue(), values.ridingHue(), values.people(), values.maxWalkers());
 		save();
 	}
 
 	public static void setMaxPerPlace(int maxPerPlace) {
-		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), clamp(maxPerPlace, 0, MAX_PER_PLACE_MAX), values.solid(), values.figureSize(), values.waitingHue(), values.ridingHue(), values.people());
+		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), clamp(maxPerPlace, 0, MAX_PER_PLACE_MAX), values.solid(), values.figureSize(), values.waitingHue(), values.ridingHue(), values.people(), values.maxWalkers());
 		save();
 	}
 
@@ -71,22 +72,27 @@ public final class PassengerDrawSettings {
 	public static void cycleLook() {
 		final boolean people = !values.people() && !values.solid();
 		final boolean solid = values.people();
-		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), values.maxPerPlace(), solid, values.figureSize(), values.waitingHue(), values.ridingHue(), people);
+		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), values.maxPerPlace(), solid, values.figureSize(), values.waitingHue(), values.ridingHue(), people, values.maxWalkers());
+		save();
+	}
+
+	public static void setMaxWalkers(int maxWalkers) {
+		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), values.maxPerPlace(), values.solid(), values.figureSize(), values.waitingHue(), values.ridingHue(), values.people(), clamp(maxWalkers, 0, MAX_WALKERS_MAX));
 		save();
 	}
 
 	public static void setFigureSize(int figureSize) {
-		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), values.maxPerPlace(), values.solid(), clamp(figureSize, FIGURE_SIZE_MIN, FIGURE_SIZE_MAX), values.waitingHue(), values.ridingHue(), values.people());
+		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), values.maxPerPlace(), values.solid(), clamp(figureSize, FIGURE_SIZE_MIN, FIGURE_SIZE_MAX), values.waitingHue(), values.ridingHue(), values.people(), values.maxWalkers());
 		save();
 	}
 
 	public static void setWaitingHue(int waitingHue) {
-		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), values.maxPerPlace(), values.solid(), values.figureSize(), clamp(waitingHue, 0, HUE_MAX), values.ridingHue(), values.people());
+		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), values.maxPerPlace(), values.solid(), values.figureSize(), clamp(waitingHue, 0, HUE_MAX), values.ridingHue(), values.people(), values.maxWalkers());
 		save();
 	}
 
 	public static void setRidingHue(int ridingHue) {
-		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), values.maxPerPlace(), values.solid(), values.figureSize(), values.waitingHue(), clamp(ridingHue, 0, HUE_MAX), values.people());
+		values = new Values(values.draw(), values.drawDistance(), values.detailDistance(), values.maxPerPlace(), values.solid(), values.figureSize(), values.waitingHue(), clamp(ridingHue, 0, HUE_MAX), values.people(), values.maxWalkers());
 		save();
 	}
 
@@ -101,7 +107,8 @@ public final class PassengerDrawSettings {
 				json.has("figureSize") ? clamp(json.get("figureSize").getAsInt(), FIGURE_SIZE_MIN, FIGURE_SIZE_MAX) : DEFAULT.figureSize(),
 				json.has("waitingHue") ? clamp(json.get("waitingHue").getAsInt(), 0, HUE_MAX) : DEFAULT.waitingHue(),
 				json.has("ridingHue") ? clamp(json.get("ridingHue").getAsInt(), 0, HUE_MAX) : DEFAULT.ridingHue(),
-				json.has("people") ? json.get("people").getAsBoolean() : DEFAULT.people()
+				json.has("people") ? json.get("people").getAsBoolean() : DEFAULT.people(),
+				json.has("maxWalkers") ? clamp(json.get("maxWalkers").getAsInt(), 0, MAX_WALKERS_MAX) : DEFAULT.maxWalkers()
 		).detailInsideDraw();
 	}
 
@@ -119,6 +126,7 @@ public final class PassengerDrawSettings {
 			json.addProperty("waitingHue", values.waitingHue());
 			json.addProperty("ridingHue", values.ridingHue());
 			json.addProperty("people", values.people());
+			json.addProperty("maxWalkers", values.maxWalkers());
 			Files.writeString(file, json.toString());
 		} catch (Exception e) {
 			AureliaClient.LOGGER.error("[ATR] passenger-draw.json could not be written", e);
@@ -133,14 +141,14 @@ public final class PassengerDrawSettings {
 		return Math.max(min, Math.min(max, value));
 	}
 
-	public record Values(boolean draw, int drawDistance, int detailDistance, int maxPerPlace, boolean solid, int figureSize, int waitingHue, int ridingHue, boolean people) {
+	public record Values(boolean draw, int drawDistance, int detailDistance, int maxPerPlace, boolean solid, int figureSize, int waitingHue, int ridingHue, boolean people, int maxWalkers) {
 		public Values withDraw(boolean draw) {
-			return new Values(draw, drawDistance, detailDistance, maxPerPlace, solid, figureSize, waitingHue, ridingHue, people);
+			return new Values(draw, drawDistance, detailDistance, maxPerPlace, solid, figureSize, waitingHue, ridingHue, people, maxWalkers);
 		}
 
 		/** Detail never reaches farther than the draw distance. */
 		public Values detailInsideDraw() {
-			return detailDistance <= drawDistance ? this : new Values(draw, drawDistance, drawDistance, maxPerPlace, solid, figureSize, waitingHue, ridingHue, people);
+			return detailDistance <= drawDistance ? this : new Values(draw, drawDistance, drawDistance, maxPerPlace, solid, figureSize, waitingHue, ridingHue, people, maxWalkers);
 		}
 	}
 }

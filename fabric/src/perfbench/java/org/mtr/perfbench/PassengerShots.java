@@ -5,6 +5,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.ScreenshotRecorder;
 import org.mtr.aurelia.client.PassengerClient;
+import org.mtr.aurelia.client.PassengerDrawSettings;
+import org.mtr.aurelia.client.PassengerRenderer;
 import org.mtr.mod.passenger.PassengerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,9 +62,9 @@ public final class PassengerShots implements ClientModInitializer {
 			case 1 -> {
 				if (ticks >= waitUntil) {
 					screenshot(client, "passenger-demo-2", stats);
-					client.player.networkHandler.sendCommand("tp @s 276 -59 8 facing 276 -58 0");
-					waitUntil = ticks + TRAIN_TIMEOUT_TICKS;
-					stage = 2;
+					PassengerDrawSettings.setMaxPerPlace(PassengerDrawSettings.MAX_PER_PLACE_MAX);
+					waitUntil = ticks + 100;
+					stage = 6;
 				}
 			}
 			case 2 -> {
@@ -80,12 +82,36 @@ public final class PassengerShots implements ClientModInitializer {
 					finish(client, stats);
 				}
 			}
+			case 6 -> {
+				if (ticks >= waitUntil) {
+					results.add("frame with " + PassengerRenderer.lastFigures + " people: fps=" + client.getCurrentFps() + " renderMicros=" + Math.round(PassengerRenderer.renderMicros));
+					PassengerDrawSettings.setDraw(false);
+					waitUntil = ticks + 100;
+					stage = 7;
+				}
+			}
+			case 7 -> {
+				if (ticks >= waitUntil) {
+					results.add("figures off: fps=" + client.getCurrentFps());
+					PassengerDrawSettings.setDraw(true);
+					client.player.networkHandler.sendCommand("tp @s 276 -59 8 facing 276 -58 0");
+					waitUntil = ticks + TRAIN_TIMEOUT_TICKS;
+					stage = 2;
+				}
+			}
+			case 8 -> {
+				if (ticks >= waitUntil) {
+					screenshot(client, "passenger-demo-riders", stats);
+					waitUntil = ticks + TRAIN_TIMEOUT_TICKS;
+					stage = 3;
+				}
+			}
 			case 5 -> {
 				if (ticks >= waitUntil) {
 					screenshot(client, "passenger-demo-walking", stats);
-					results.add("walkers started " + org.mtr.aurelia.client.PassengerRenderer.walksStarted);
-					waitUntil = ticks + TRAIN_TIMEOUT_TICKS;
-					stage = 3;
+					results.add("walkers started " + PassengerRenderer.walksStarted);
+					waitUntil = ticks + 80;
+					stage = 8;
 				}
 			}
 			default -> {
@@ -100,7 +126,7 @@ public final class PassengerShots implements ClientModInitializer {
 	}
 
 	private void finish(MinecraftClient client, PassengerService.Stats stats) {
-		results.add("final " + stats + " walkers started " + org.mtr.aurelia.client.PassengerRenderer.walksStarted);
+		results.add("final " + stats + " walkers started " + PassengerRenderer.walksStarted);
 		try {
 			Files.write(Path.of("passengershots.txt"), results, StandardCharsets.UTF_8);
 		} catch (IOException e) {

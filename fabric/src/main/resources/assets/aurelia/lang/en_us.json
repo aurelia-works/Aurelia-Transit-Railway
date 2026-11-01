@@ -337,6 +337,7 @@
 	"gui.aurelia.passengers.detail_distance": "Detail distance: %s blocks",
 	"gui.aurelia.passengers.max_drawn": "Most drawn in one place: %s",
 	"gui.aurelia.passengers.look": "Figures: %s",
+	"gui.aurelia.passengers.max_walkers": "Walking per train: %s",
 	"gui.aurelia.passengers.look.people": "People",
 	"gui.aurelia.passengers.look.solid": "Solid boxes",
 	"gui.aurelia.passengers.look.outlines": "Outlines",

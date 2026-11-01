@@ -11,7 +11,6 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.entity.model.EntityModelLayers;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
-import net.minecraft.client.util.DefaultSkinHelper;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -26,11 +25,15 @@ import org.mtr.core.data.Position;
 import org.mtr.core.data.Vehicle;
 import org.mtr.core.generated.data.SavedRailBaseSchema;
 import org.mtr.core.tool.Vector;
+import org.mtr.libraries.it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
+import org.mtr.mapping.holder.Box;
+import org.mtr.mod.client.CustomResourceLoader;
 import org.mtr.mod.client.MinecraftClientData;
 import org.mtr.mod.data.VehicleExtension;
 import org.mtr.mod.passenger.PassengerService;
+import org.mtr.mod.resource.VehicleResourceCache;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
@@ -39,7 +42,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Draws the server's waiting and riding counts as varied people (see {@link PassengerLook}) on platforms and inside cars.
@@ -50,9 +52,10 @@ public final class PassengerRenderer {
 
 	/** Above the rail, where people stand in a car. */
 	private static final double CAR_FLOOR = 1;
-	/** Walkers started by one change of a train's riders; a bigger change still counts, it just does not all walk. */
-	private static final int WALKS_PER_TRAIN = 12;
-	private static final int WALKS_MAX = 64;
+	private static final int WALKS_MAX = 256;
+	/** How far outside a door someone lines up before stepping through it. */
+	private static final double STEP_OUT = 0.9;
+	private static final double FALLBACK_DOOR_SIDE = 1.5;
 	/** Leg swing, in radians a second. */
 	private static final double WALK_STRIDES = 8;
 	private static final long WALK_STAGGER_MILLIS = 220;
@@ -62,6 +65,9 @@ public final class PassengerRenderer {
 	private static final double WALK_AWAY = 9;
 	/** Walkers started since the game opened: the dev run reports it. */
 	public static int walksStarted;
+	/** Render-thread time for all figures, averaged, and how many the last frame drew: the dev run reports them. */
+	public static double renderMicros;
+	public static int lastFigures;
 	/** A hard stop so a long draw distance cannot fill the frame. */
 	private static final int FRAME_CAP = 256;
 	/** Floors are read from the world this often, not every frame. */
@@ -75,6 +81,14 @@ public final class PassengerRenderer {
 	private static boolean loggedEnds;
 
 	private record Spots(int count, long millis, double[] at) {
+	}
+
+	private static final Identifier[] SKINS = new Identifier[PassengerLook.SKINS];
+
+	static {
+		for (int i = 0; i < SKINS.length; i++) {
+			SKINS[i] = new Identifier("aurelia", String.format("textures/entity/passenger/p%02d.png", i));
+		}
 	}
 
 	private final double[] point = new double[3];
@@ -105,6 +119,7 @@ public final class PassengerRenderer {
 			return;
 		}
 		final PassengerService.Counts counts = PassengerClient.counts();
+		final long frameStart = System.nanoTime();
 		final Vec3d camera = context.camera().getPos();
 		final long now = System.currentTimeMillis();
 		if (counts != lastCounts) {
@@ -126,6 +141,8 @@ public final class PassengerRenderer {
 		if (provider instanceof VertexConsumerProvider.Immediate immediate) {
 			immediate.draw();
 		}
+		lastFigures = drawn;
+		renderMicros = renderMicros * 0.95 + (System.nanoTime() - frameStart) / 1000D * 0.05;
 	}
 
 	private void platforms(Map<Long, Integer> waiting, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, World world) {
@@ -268,7 +285,7 @@ public final class PassengerRenderer {
 			if (cars == null || cars.isEmpty()) {
 				continue;
 			}
-			final double[] doors = doors(cars);
+			final double[] doors = doors(vehicle, cars);
 			if (doors.length == 0) {
 				continue;
 			}
@@ -280,7 +297,10 @@ public final class PassengerRenderer {
 			if (PassengerFigures.distanceToPlatform(camera.x, camera.y, camera.z, line[0], line[1], line[2], line[3], line[4], line[5]) > settings.drawDistance()) {
 				continue;
 			}
-			final int people = Math.min(WALKS_PER_TRAIN, Math.abs(change));
+			final int people = Math.min(settings.maxWalkers(), Math.abs(change));
+			if (people == 0) {
+				continue;
+			}
 			final int shown = Math.max(people, Math.min(settings.maxPerPlace(), before.waiting().getOrDefault(platform.getId(), 0)));
 			final double[] spots = new double[shown * 3];
 			PassengerFigures.spots(line[0], line[1], line[2], line[3], line[4], line[5], shown, (x, z, railY) -> floor(world, x, z, railY), spots);
@@ -289,28 +309,33 @@ public final class PassengerRenderer {
 				final double x = spots[spot * 3];
 				final double y = spots[spot * 3 + 1];
 				final double z = spots[spot * 3 + 2];
-				final double[] door = nearestDoor(doors, x, z);
 				final long start = now + i * WALK_STAGGER_MILLIS;
 				if (change > 0) {
-					walks.add(PassengerWalk.of(x, y, z, door[0], y, door[1], start, platform.getId(), spot, vehicle.getId(), true));
+					final int door = nearestDoor(doors, x, z);
+					walks.add(PassengerWalk.of(toCar(doors, door, x, y, z), start, platform.getId(), spot, vehicle.getId(), true));
 				} else {
 					final double dx = line[3] - line[0];
 					final double dz = line[5] - line[2];
 					final double length = Math.max(1.0E-4, Math.hypot(dx, dz));
 					final double sign = i % 2 == 0 ? 1 : -1;
-					walks.add(PassengerWalk.of(door[0], y, door[1], x + dx / length * WALK_AWAY * sign, y, z + dz / length * WALK_AWAY * sign, start, vehicle.getId() + 1, spot, vehicle.getId(), false));
+					final double awayX = x + dx / length * WALK_AWAY * sign;
+					final double awayZ = z + dz / length * WALK_AWAY * sign;
+					final int door = nearestDoor(doors, awayX, awayZ);
+					walks.add(PassengerWalk.of(reversed(toCar(doors, door, awayX, y, awayZ)), start, vehicle.getId() + 1, spot, vehicle.getId(), false));
 				}
 				walksStarted++;
 			}
 		}
 	}
 
-	/** Trains' door layouts are in their models, so people use the usual two doors a car: a quarter from each end. */
-	private static double[] doors(ObjectArrayList<ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>>> cars) {
-		final double[] doors = new double[cars.size() * 4];
-		int count = 0;
-		for (final ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>> car : cars) {
-			final ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>> bogies = car.right();
+	/**
+	 * Every door of the train as door x, z then the car's middle behind it x, z. The doorways are the ones MTR lets players walk
+	 * through; a train whose resource has none uses a door each side a quarter from each end of the car.
+	 */
+	private static double[] doors(VehicleExtension vehicle, ObjectArrayList<ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>>> cars) {
+		final DoubleArrayList doors = new DoubleArrayList();
+		for (int car = 0; car < cars.size(); car++) {
+			final ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>> bogies = cars.get(car).right();
 			if (bogies == null || bogies.isEmpty()) {
 				continue;
 			}
@@ -320,31 +345,81 @@ public final class PassengerRenderer {
 			if (start == null || end == null) {
 				continue;
 			}
-			doors[count++] = start.x + (end.x - start.x) * 0.25;
-			doors[count++] = start.z + (end.z - start.z) * 0.25;
-			doors[count++] = start.x + (end.x - start.x) * 0.75;
-			doors[count++] = start.z + (end.z - start.z) * 0.75;
+			final double middleX = (start.x + end.x) / 2;
+			final double middleZ = (start.z + end.z) / 2;
+			final double length = Math.max(1.0E-4, Math.hypot(end.x - start.x, end.z - start.z));
+			final double forwardX = (end.x - start.x) / length;
+			final double forwardZ = (end.z - start.z) / length;
+			final int doorsBefore = doors.size();
+			final int carNumber = car;
+			final int total = cars.size();
+			CustomResourceLoader.getVehicleById(vehicle.getTransportMode(), cars.get(car).left().getVehicleId(), details -> {
+				final VehicleResourceCache cache = details.left().getCachedVehicleResource(carNumber, total, false);
+				if (cache != null) {
+					for (final Box doorway : cache.doorways) {
+						addDoor(doors, middleX, middleZ, forwardX, forwardZ, (doorway.getMinZMapped() + doorway.getMaxZMapped()) / 2, (doorway.getMinXMapped() + doorway.getMaxXMapped()) / 2);
+					}
+				}
+			});
+			if (doors.size() == doorsBefore) {
+				final double quarter = length / 4;
+				for (final double along : new double[]{-quarter, quarter}) {
+					addDoor(doors, middleX, middleZ, forwardX, forwardZ, along, FALLBACK_DOOR_SIDE);
+					addDoor(doors, middleX, middleZ, forwardX, forwardZ, along, -FALLBACK_DOOR_SIDE);
+				}
+			}
 		}
-		return java.util.Arrays.copyOf(doors, count);
+		return doors.toDoubleArray();
 	}
 
-	private static double[] nearestDoor(double[] doors, double x, double z) {
+	private static void addDoor(DoubleArrayList doors, double middleX, double middleZ, double forwardX, double forwardZ, double along, double across) {
+		final double insideX = middleX + forwardX * along;
+		final double insideZ = middleZ + forwardZ * along;
+		doors.add(insideX - forwardZ * across);
+		doors.add(insideZ + forwardX * across);
+		doors.add(insideX);
+		doors.add(insideZ);
+	}
+
+	/** The index of the door nearest the point. */
+	private static int nearestDoor(double[] doors, double x, double z) {
 		int best = 0;
 		double bestDistance = Double.MAX_VALUE;
-		for (int i = 0; i < doors.length; i += 2) {
+		for (int i = 0; i < doors.length; i += 4) {
 			final double distance = Math.hypot(doors[i] - x, doors[i + 1] - z);
 			if (distance < bestDistance) {
 				bestDistance = distance;
 				best = i;
 			}
 		}
-		return new double[]{doors[best], doors[best + 1]};
+		return best;
+	}
+
+	/** From a spot on the platform: up to the door, through it, and into the car. */
+	private static double[] toCar(double[] doors, int door, double x, double y, double z) {
+		final double doorX = doors[door];
+		final double doorZ = doors[door + 1];
+		final double insideX = doors[door + 2];
+		final double insideZ = doors[door + 3];
+		final double across = Math.max(1.0E-4, Math.hypot(doorX - insideX, doorZ - insideZ));
+		final double outsideX = doorX + (doorX - insideX) / across * STEP_OUT;
+		final double outsideZ = doorZ + (doorZ - insideZ) / across * STEP_OUT;
+		return new double[]{x, y, z, outsideX, y, outsideZ, doorX, y, doorZ, insideX, y, insideZ};
+	}
+
+	private static double[] reversed(double[] points) {
+		final double[] result = new double[points.length];
+		for (int i = 0; i < points.length; i += 3) {
+			System.arraycopy(points, points.length - 3 - i, result, i, 3);
+		}
+		return result;
 	}
 
 	@Nullable
 	private Platform platformAt(double[] doors) {
-		final double x = doors[doors.length / 4 * 2];
-		final double z = doors[doors.length / 4 * 2 + 1];
+		final int middle = doors.length / 8 * 4;
+		final double x = doors[middle];
+		final double z = doors[middle + 1];
 		Platform best = null;
 		double bestDistance = AT_PLATFORM;
 		for (final Platform platform : MinecraftClientData.getInstance().platforms) {
@@ -377,13 +452,15 @@ public final class PassengerRenderer {
 				iterator.remove();
 			} else if (settings.people() && drawn < FRAME_CAP) {
 				final double t = walk.progress(now);
-				final double x = walk.x1() + (walk.x2() - walk.x1()) * t;
-				final double y = walk.y1() + (walk.y2() - walk.y1()) * t;
-				final double z = walk.z1() + (walk.z2() - walk.z1()) * t;
+				final double[] at = new double[5];
+				walk.at(t, at);
+				final double x = at[0];
+				final double y = at[1];
+				final double z = at[2];
 				final float fade = walk.boarding() ? 1 : (float) Math.min(1, (1 - t) * 4);
 				final float stride = t <= 0 ? -1 : (float) (walk.durationMillis() * t / 1000 * WALK_STRIDES);
 				person(matrices, settings, x - camera.x, y - camera.y, z - camera.z, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)),
-						PassengerLook.of(walk.place(), walk.index()), PassengerLook.yawToward(walk.x2() - walk.x1(), walk.z2() - walk.z1()), stride, fade);
+						PassengerLook.of(walk.place(), walk.index()), PassengerLook.yawToward(at[3], at[4]), stride, fade);
 				drawn++;
 			}
 		}
@@ -425,8 +502,7 @@ public final class PassengerRenderer {
 			wide = new PlayerEntityModel<>(client.getEntityModelLoader().getModelPart(EntityModelLayers.PLAYER), false);
 			slim = new PlayerEntityModel<>(client.getEntityModelLoader().getModelPart(EntityModelLayers.PLAYER_SLIM), true);
 		}
-		final UUID skin = new UUID(look.skinSeed(), look.skinSeed() * 31);
-		final PlayerEntityModel<AbstractClientPlayerEntity> model = "slim".equals(DefaultSkinHelper.getModel(skin)) ? slim : wide;
+		final PlayerEntityModel<AbstractClientPlayerEntity> model = look.skin() % 2 == 1 ? slim : wide;
 		final float time = (System.currentTimeMillis() % 628_318L) / 1000F + look.phase();
 		pose(model, look, time, stride);
 		final int light = WorldRenderer.getLightmapCoordinates(world, lightAt);
@@ -438,7 +514,7 @@ public final class PassengerRenderer {
 		matrices.push();
 		matrices.scale(-scale, -scale, scale);
 		matrices.translate(0, -1.501, 0);
-		final Identifier texture = DefaultSkinHelper.getTexture(skin);
+		final Identifier texture = SKINS[look.skin()];
 		model.render(matrices, provider.getBuffer(alpha < 1 ? RenderLayer.getEntityTranslucent(texture) : RenderLayer.getEntityCutoutNoCull(texture)), light, OverlayTexture.DEFAULT_UV, 1, 1, 1, alpha);
 		matrices.pop();
 		if (alpha >= 1) {
