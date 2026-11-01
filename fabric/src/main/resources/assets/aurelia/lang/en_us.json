@@ -332,5 +332,21 @@
 	"gui.aurelia.zip.speed": "Top speed: %s blocks/s",
 	"gui.aurelia.zip.brake": "Brake: %s",
 	"gui.aurelia.zip.sag": "Sag: %s%% of the span",
-	"gui.aurelia.zip.operators": "Only operators can change zip lines"
+	"gui.aurelia.zip.operators": "Only operators can change zip lines",
+	"gui.aurelia.panel.tab.build": "Building",
+	"gui.aurelia.build.station": "Station guide: %s",
+	"gui.aurelia.build.side": "Station side: %s blocks",
+	"gui.aurelia.build.colour": "Station colour: #%s",
+	"gui.aurelia.build.rail": "Rail stylus: %s",
+	"gui.aurelia.build.snap": "Rail snap: %s",
+	"gui.aurelia.build.snap.off": "off",
+	"gui.aurelia.build.reach": "Rail reach: %s blocks",
+	"gui.aurelia.build.tunnel": "Box tunnel: %s",
+	"gui.aurelia.build.mode": "Tunnel mode: %s",
+	"gui.aurelia.build.mode.full": "Dig the box",
+	"gui.aurelia.build.mode.above": "Cut above the floor",
+	"gui.aurelia.build.mode.shell": "Stone brick shell",
+	"gui.aurelia.build.max": "Tunnel cap: %s blocks",
+	"gui.aurelia.build.pace": "Tunnel speed: %s blocks/tick",
+	"gui.aurelia.build.operators": "Only operators can change the building tools"
 }
