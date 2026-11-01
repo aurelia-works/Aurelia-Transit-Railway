@@ -273,6 +273,10 @@ public final class ModBlocks {
 		return AbstractBlock.Settings.create().mapColor(MapColor.IRON_GRAY).strength(2.0F, 6.0F).sounds(BlockSoundGroup.METAL).nonOpaque();
 	}
 
+	static AbstractBlock.Settings metalSolid() {
+		return AbstractBlock.Settings.create().mapColor(MapColor.IRON_GRAY).strength(2.0F, 6.0F).sounds(BlockSoundGroup.METAL);
+	}
+
 	static AbstractBlock.Settings glass() {
 		return AbstractBlock.Settings.create().mapColor(MapColor.CLEAR).strength(0.8F, 3.0F).sounds(BlockSoundGroup.GLASS).nonOpaque()
 				.allowsSpawning((state, world, pos, type) -> false)

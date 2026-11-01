@@ -24,6 +24,7 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 	public final TransportMode transportMode;
 
 	public static final BooleanProperty FACING = BooleanProperty.of("facing");
+	public static final BooleanProperty IS_11_25 = BooleanProperty.of("is_11_25");
 	public static final BooleanProperty IS_22_5 = BooleanProperty.of("is_22_5");
 	public static final BooleanProperty IS_45 = BooleanProperty.of("is_45");
 	public static final BooleanProperty IS_CONNECTED = BooleanProperty.of("is_connected");
@@ -80,6 +81,7 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 	public void addBlockProperties(List<HolderBase<?>> properties) {
 		super.addBlockProperties(properties);
 		properties.add(FACING);
+		properties.add(IS_11_25);
 		properties.add(IS_22_5);
 		properties.add(IS_45);
 		properties.add(IS_CONNECTED);
@@ -101,7 +103,7 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 	}
 
 	public static float getAngle(BlockState state) {
-		return (IBlock.getStatePropertySafe(state, BlockNode.FACING) ? 0 : 90) + (IBlock.getStatePropertySafe(state, BlockNode.IS_22_5) ? 22.5F : 0) + (IBlock.getStatePropertySafe(state, BlockNode.IS_45) ? 45 : 0);
+		return (IBlock.getStatePropertySafe(state, BlockNode.FACING) ? 0 : 90) + (IBlock.getStatePropertySafe(state, BlockNode.IS_22_5) ? 22.5F : 0) + (IBlock.getStatePropertySafe(state, BlockNode.IS_45) ? 45 : 0) + (IBlock.getStatePropertySafe(state, BlockNode.IS_11_25) ? 11.25F : 0);
 	}
 
 	public static BlockState getStateWithAngle(BlockState state, float angle) {
@@ -110,9 +112,17 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 	}
 
 	private static BlockState getStateWithAngle(BlockState state, int quadrant, boolean continuousMovement) {
-		return state.with(new Property<>(FACING.data), continuousMovement ? quadrant % 4 >= 2 : quadrant % 8 >= 4)
-				.with(new Property<>(IS_45.data), continuousMovement ? quadrant % 2 == 1 : quadrant % 4 >= 2)
-				.with(new Property<>(IS_22_5.data), !continuousMovement && quadrant % 2 == 1)
+		if (continuousMovement) {
+			return state.with(new Property<>(FACING.data), quadrant % 4 >= 2)
+					.with(new Property<>(IS_11_25.data), false)
+					.with(new Property<>(IS_45.data), quadrant % 2 == 1)
+					.with(new Property<>(IS_22_5.data), false)
+					.with(new Property<>(IS_CONNECTED.data), false);
+		}
+		return state.with(new Property<>(FACING.data), quadrant % 16 >= 8)
+				.with(new Property<>(IS_45.data), quadrant % 8 >= 4)
+				.with(new Property<>(IS_22_5.data), quadrant % 4 >= 2)
+				.with(new Property<>(IS_11_25.data), quadrant % 2 == 1)
 				.with(new Property<>(IS_CONNECTED.data), false);
 	}
 

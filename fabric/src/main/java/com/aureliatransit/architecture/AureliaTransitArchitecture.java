@@ -21,6 +21,7 @@ import com.aureliatransit.architecture.registry.StationBlocksUk;
 import com.aureliatransit.architecture.registry.AirportBlocks;
 import com.aureliatransit.architecture.registry.StationBlocksOperators;
 import com.aureliatransit.architecture.registry.StationFittingBlocks;
+import com.aureliatransit.architecture.registry.MetalBlocks;
 import com.aureliatransit.architecture.registry.MetroBlocks;
 import com.aureliatransit.architecture.registry.WayfindingBlocks;
 import com.aureliatransit.architecture.station.world.StationSystems;
@@ -56,6 +57,7 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		StationBlocksOperators.init();
 		StationFittingBlocks.init();
 		MetroBlocks.init();
+		MetalBlocks.init();
 		AirportBlocks.init();
 		ModBlockEntities.init();
 		ModItems.init();

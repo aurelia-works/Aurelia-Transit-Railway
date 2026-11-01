@@ -1,0 +1,6 @@
+{
+  "parent": "block/cube_all",
+  "textures": {
+    "all": "aurelia_transit_architecture:block/steel_panel_brushed"
+  }
+}

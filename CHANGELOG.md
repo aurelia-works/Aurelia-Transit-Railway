@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+- Rail nodes can be placed at 11.25° steps. Texture packs keep working because the node marker reuses the existing 22.5° models; the rail itself uses the finer angle.
+- Metallic steel panels: plain, dark, perforated, galvanised and brushed.
+- Voice-pack format documented in `docs/VOICE_PACKS.md`.
+
 ### Fixed
 - The Aurelia panel's twelve tabs wrap into rows on narrow windows, so their labels stay readable (#43).
 
