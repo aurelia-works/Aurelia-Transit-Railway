@@ -391,16 +391,35 @@
 		$("building").value = "1";
 		$("size").value = "AUTO";
 		$("name").value = p.name;
+		// A preset is the station its words describe, not the previous design plus a few changed buttons. Clear every
+		// control the words do not carry, including the hidden stairs/track-bed/gate choices and the advanced platform
+		// list, or a leftover setting from the last station would be prepended to the preset and change it.
+		$("class").value = "auto";
+		$("era").value = "auto";
+		$("facing").value = "auto";
+		$("operator").value = "";
+		$("platforms").value = "";
+		$("bed").value = "";
+		$("esc").value = "";
+		$("walls").value = "";
+		$("trav").value = "";
+		$("gates").value = "";
+		$("door").value = "";
+		$("swaps").value = "";
+		$("listOn").checked = false;
+		plats = [];
+		renderPlats();
 		// the preset's words already carry its look, type, tracks and length, so only its name (which they leave out)
 		// is pinned: the words stay authoritative and nothing is said twice
 		touched.clear();
 		rolled.clear();
 		touched.add("name");
-		// the preset replaced the rolled settings: the seed alone no longer makes this station
-		if (!seeds.edited) {
-			seeds.edited = true;
-			showSeed();
-		}
+		// A preset is canonical: do not append the page's current planner seed, and drop any locks that would pin the
+		// previous design's shape. The seed alone no longer makes this station.
+		seeds.locks = {};
+		seeds.detail = "";
+		seeds.edited = true;
+		showSeed();
 		changed();
 	}
 

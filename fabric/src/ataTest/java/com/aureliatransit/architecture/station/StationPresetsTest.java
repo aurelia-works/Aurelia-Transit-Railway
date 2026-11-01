@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Every preset is a clean description: understood in full, the look it promises, no rule breaks, every check passes. */
@@ -32,6 +33,12 @@ class StationPresetsTest {
 			final StationAudit.Result audit = StationAudit.audit(plan);
 			// every platform is step-free, by a lift where the footbridge serves it; nothing may warn
 			assertTrue(audit.buildable() && audit.problems().isEmpty(), preset.key() + " checks: " + audit.problems());
+			// a shipped preset has a name on its platforms and builds every facility its words promise
+			assertFalse(parse.spec().name().isBlank(), preset.key() + " has no name");
+			assertTrue(plan.blocks().stream().anyMatch(block -> block.role() == Role.NAME_SIGN), preset.key() + " has no name signs");
+			if (parse.spec().escalators()) {
+				assertTrue(plan.blocks().stream().anyMatch(block -> block.role() == Role.ESCALATOR), preset.key() + " asks for escalators but builds none");
+			}
 		}
 		for (final BuildingStyle look : BuildingStyle.values()) {
 			// clinker lost its preset with Hamburg Dammtor (Jah, 10-21: Hamburg is the Hbf); it is still asked for by name
