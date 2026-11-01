@@ -90,6 +90,7 @@ public final class PanelShots implements ClientModInitializer {
 			return null;
 		}));
 		shots.add(new Shot("21-panel-architecture", parent -> new AureliaPanelScreen(null, AureliaPanelScreen.Tab.ARCHITECTURE)));
+		shots.add(new Shot("22-panel-look", parent -> new AureliaPanelScreen(null, AureliaPanelScreen.Tab.LOOK)));
 		ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 	}
 

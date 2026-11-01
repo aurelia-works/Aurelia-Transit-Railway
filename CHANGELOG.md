@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- The Aurelia panel's twelve tabs wrap into rows on narrow windows, so their labels stay readable (#43).
+
 ## 1.0.2 (4.0.5+atr.1.0.2), Minecraft 1.20.1, Fabric
 
 ### Added
