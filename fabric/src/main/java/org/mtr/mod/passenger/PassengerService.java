@@ -1,5 +1,6 @@
 package org.mtr.mod.passenger;
 
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -9,9 +10,14 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
 import org.mtr.core.data.Platform;
+import org.mtr.core.data.Position;
 import org.mtr.core.data.Route;
 import org.mtr.core.data.RoutePlatformData;
 import org.mtr.core.data.Siding;
@@ -71,6 +77,7 @@ public final class PassengerService {
 	}
 
 	public static void registerServer() {
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> PassengerCommand.register(dispatcher));
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> settings = state(server).settings);
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			NETWORKS.clear();
@@ -264,6 +271,115 @@ public final class PassengerService {
 			Init.LOGGER.error("Passengers cannot read trains", e);
 		}
 		return result;
+	}
+
+	/**
+	 * Turns passengers on, finds the nearest MTR platform to {@code near}, and fills it with waiting people through the
+	 * normal network. The service's next second keeps them alive, boards them if a train stops, and sends new counts.
+	 */
+	public static void demo(MinecraftServer server, ServerWorld world, BlockPos near, int count, ServerPlayerEntity player) {
+		final ObjectImmutableList<Simulator> simulators = simulators();
+		if (simulators == null) {
+			tell(player, "MTR is not ready yet; try again in a moment.", Formatting.RED);
+			return;
+		}
+		final String dimension = Init.getWorldId(new org.mtr.mapping.holder.World(world));
+		for (final Simulator simulator : simulators) {
+			if (!simulator.dimension.equals(dimension)) {
+				continue;
+			}
+			final PassengerNetwork.Settings demo = new PassengerNetwork.Settings(true, 60, 200, 20000, 40);
+			final State state = state(server);
+			state.settings = demo;
+			state.markDirty();
+			settings = demo;
+			simulator.run(() -> {
+				final Platform platform = nearestPlatform(simulator, near);
+				if (platform == null) {
+					server.execute(() -> tell(player, "No MTR platform within 128 blocks; stand on or beside a platform.", Formatting.RED));
+					return;
+				}
+				final PassengerNetwork network = NETWORKS.computeIfAbsent(dimension, key -> new PassengerNetwork());
+				long[] destinations = destinationsByPlatform(simulator).get(platform.getId());
+				if (destinations == null || destinations.length == 0) {
+					final long station = platform.area == null ? platform.getId() : platform.area.getId();
+					destinations = new long[]{station == Long.MAX_VALUE ? station - 1 : station + 1};
+				}
+				network.spawn(platform.getId(), destinations, count / 60D, demo, System.currentTimeMillis(), new Random());
+				final int waiting = network.waitingTotal();
+				final int riding = network.ridingCounts().values().stream().mapToInt(Integer::intValue).sum();
+				COUNTS.put(dimension, new Counts(network.waitingCounts(), network.ridingCounts()));
+				STATS.put(dimension, new Stats(waiting, riding, network.boardedTotal(), network.alightedTotal(), 0));
+				server.execute(() -> {
+					server.getPlayerManager().getPlayerList().forEach(PassengerService::send);
+					final String station = platform.getStationName().isBlank() ? platform.getName() : platform.getStationName();
+					tell(player, "Passenger demo: " + count + " waiting at "
+							+ (station.isBlank() ? "the nearest platform" : station)
+							+ ". Run /atr_passenger_draw on to see the figures.", Formatting.GREEN);
+				});
+			});
+			return;
+		}
+		tell(player, "No MTR simulator for this dimension.", Formatting.RED);
+	}
+
+	/** Clears the demo network, removes the counts and turns passengers off again. */
+	public static void clearDemo(MinecraftServer server, ServerWorld world, ServerPlayerEntity player) {
+		final ObjectImmutableList<Simulator> simulators = simulators();
+		if (simulators == null) {
+			tell(player, "MTR is not ready yet.", Formatting.RED);
+			return;
+		}
+		final String dimension = Init.getWorldId(new org.mtr.mapping.holder.World(world));
+		for (final Simulator simulator : simulators) {
+			if (!simulator.dimension.equals(dimension)) {
+				continue;
+			}
+			final State state = state(server);
+			state.settings = PassengerNetwork.Settings.DEFAULT;
+			state.markDirty();
+			settings = PassengerNetwork.Settings.DEFAULT;
+			simulator.run(() -> {
+				final PassengerNetwork network = NETWORKS.get(dimension);
+				if (network != null) {
+					network.clear();
+				}
+				COUNTS.remove(dimension);
+				STATS.remove(dimension);
+				server.execute(() -> {
+					server.getPlayerManager().getPlayerList().forEach(PassengerService::send);
+					tell(player, "Passenger demo cleared; passengers are off.", Formatting.GRAY);
+				});
+			});
+			return;
+		}
+		tell(player, "No MTR simulator for this dimension.", Formatting.RED);
+	}
+
+	private static Platform nearestPlatform(Simulator simulator, BlockPos near) {
+		Platform best = null;
+		double bestDistance = 128 * 128;
+		for (final Platform platform : simulator.platforms) {
+			final Position mid = platform.getMidPosition();
+			if (mid == null) {
+				continue;
+			}
+			final double dx = mid.getX() - near.getX() - 0.5;
+			final double dy = mid.getY() - near.getY();
+			final double dz = mid.getZ() - near.getZ() - 0.5;
+			final double distance = dx * dx + dy * dy + dz * dz;
+			if (distance < bestDistance) {
+				best = platform;
+				bestDistance = distance;
+			}
+		}
+		return best;
+	}
+
+	private static void tell(ServerPlayerEntity player, String message, Formatting formatting) {
+		if (!player.isRemoved()) {
+			player.sendMessage(Text.literal(message).formatted(formatting), false);
+		}
 	}
 
 	private static void send(ServerPlayerEntity player) {

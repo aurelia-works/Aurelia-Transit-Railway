@@ -7,7 +7,8 @@
 	"entrypoints": {
 		"client": [
 			"org.mtr.perfbench.PerfBench",
-			"org.mtr.perfbench.PanelShots"
+			"org.mtr.perfbench.PanelShots",
+			"org.mtr.perfbench.PassengerShots"
 		]
 	},
 	"depends": {
