@@ -75,6 +75,8 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		org.mtr.mod.passenger.PassengerService.registerServer();
 		org.mtr.mod.zip.ZipContent.register();
 		org.mtr.mod.zip.ZipLines.registerServer();
+		org.mtr.mod.building.BuildContent.register();
+		org.mtr.mod.building.BuildTools.registerServer();
 		FareSystems.init();
 		PocketTimetableNetworking.registerServer();
 		StationSystems.init();

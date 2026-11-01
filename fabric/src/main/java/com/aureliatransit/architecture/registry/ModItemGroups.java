@@ -55,6 +55,9 @@ public final class ModItemGroups {
 								entries.add(org.mtr.mod.zip.ZipContent.POLE_ITEM);
 								entries.add(org.mtr.mod.zip.ZipContent.HANDLE);
 								entries.add(org.mtr.mod.zip.ZipContent.SEAT);
+								entries.add(org.mtr.mod.building.BuildContent.STATION);
+								entries.add(org.mtr.mod.building.BuildContent.RAIL);
+								entries.add(org.mtr.mod.building.BuildContent.TUNNEL);
 							}
 						})
 						.build()));

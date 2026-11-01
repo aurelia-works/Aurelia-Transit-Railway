@@ -297,7 +297,7 @@ What changes on a screen while its switch is on:
 - Dashboard (`DashboardScreen`): the left panel fills `#181818` instead of `#121212`. Plain buttons become flat. The search box keeps MTR's cursor and gains an Aurelia border. Icon buttons (find, edit, map mode, the panel logo) and the route-colour squares stay as they are, because they draw their own textures.
 - Station editor (`EditStationScreen`), route editor (`EditRouteScreen`), depot editor (`EditDepotScreen`), siding editor (`SidingScreen`, including the platform fields it shares with `SavedRailScreenBase`): the dirt background becomes a flat `#181818` fill. Buttons, checkboxes and sliders are flat. Text fields keep MTR's cursor and selection; the border is repainted.
 - Options (`ConfigScreen`): same flat background, flat buttons and flat sliders. The logo, the row labels and the Patreon names stay.
-- Panel (`AureliaPanelScreen`): same flat background and flat buttons and sliders, plus the Look tab. The Look tab sits after the Zip tab from #42. The panel switch covers the zip controls as well.
+- Panel (`AureliaPanelScreen`): same flat background and flat buttons and sliders, plus the Look tab. The Look tab sits after the Zip tab from #42 and the Build tab from #44. The panel switch covers the zip and building controls as well.
 
 Drawing goes through `AureliaChrome` and uses `DrawContext.fill` plus the widget's existing text. No new `Text`, `String`, `Identifier` or `GuiDrawing` per frame. The label is the widget's `message` field. The mapping library's `getMessage()` builds a new holder on every call, so the mixins do not use it. The dwell slider's tick numbers use a static table of `"0"` to `"120"`. A number outside that table keeps the tick and skips the digits.
 
@@ -367,4 +367,40 @@ Headline launch feature. One-way downhill cables you ride with a handle, and han
 - Teleporting the rider fights latency and tight terrain. The cable does not check blocks in between.
 - One rider per cable. A second player is told the line is in use.
 - Panel sliders are operator-only because speed, brake and sag change the ride for everyone.
+- Not checked in a running game in this phase.
+
+## O3. Building tools (concrete plan)
+
+Creative mode and operators (permission level 2). Three new items, one new Aurelia panel tab, no changes to MTR 4.0.5 method signatures, block ids, or the `mtr` save. Existing tunnel-creator items and the rail connectors stay as they are. Screens are not restyled (O1 owns that); the panel only gains a tab and rows.
+
+### Scope
+- **Guided station** (`mtr:station_guide`): right-click one corner, right-click the opposite corner, sneak-right-click to confirm. The server creates an MTR station column (every height, same as the dashboard) through the existing `update_data` path. A station that already covers the footprint is left alone. The footprint side is capped by the panel.
+- **Rail stylus** (`mtr:rail_stylus`): right-click a train rail node to start. The next right-click places another node of the same block along the player's snapped heading and connects an 80 km/h two-way quadratic rail. Sneak-right-click starts again. Flat or gently sloped (at most 8 blocks). Reach is a panel slider.
+- **Box tunnel** (`mtr:box_tunnel`): two corners, then sneak-right-click to confirm. The panel mode is full dig, cut above the floor, or a stone-brick shell with air inside. One job at a time, a few blocks per tick. Sneak-use in the air undoes the last job, including one that is still running. Bedrock and barriers are skipped. Each side is at most 48 blocks, and the block count must be within the panel maximum (default 512, at most 4096).
+- Each tool refuses to run when its panel switch is off.
+
+### New items and the panel
+- Items only, stack size 1. No new blocks. Listed on the Aurelia passenger-equipment tab, next to the zip items.
+- New panel tab **Building**. Switches, all operator-only: station on/off, station side, station colour, rail on/off, snap (off, 15°, 45°, 90°), rail reach, tunnel on/off, tunnel mode, max blocks, blocks per tick.
+
+### Networking
+- `mtr:atr_build` server to client: the switches, plus that player's marked corners and rail start, so the preview matches the server. Sent on join and after a mark or a switch change.
+- `mtr:atr_build_set` client to server: the switches. Applied only for permission level 2.
+- Station creation, rail placement and digging run on the server from item use.
+
+### Config and saves
+- New world file only: overworld persistent state `atr_build` (the switches, and the last tunnel undo as block positions and previous states). Defaults: all three tools on, snap 15°, reach 16, side 64, colour blue, full dig, 512 blocks, 16 per tick.
+- Nothing new is written into `config/mtr.json`. An old world with no `atr_build` file loads as it does today.
+- The in-progress corner marks are not saved. A restart clears them. Undo entries already written are saved, capped at the max block count.
+
+### Rendering
+- Client draws the station footprint, the tunnel box and the rail curve with the line render layer. Eight samples on the curve. One reused point buffer. Nothing is drawn past 96 blocks. Shaders see ordinary lines.
+
+### Tests
+- `BuildMathTest` only: box volume and the side cap, index 0 and the last index land on the corners, yaw snap, aim along south and west, and the quadratic sample stays on a straight chord and bows on a turn.
+
+### Risks
+- The stylus copies the clicked node and sends one rail. It does not open the rail style screen, and it only accepts train nodes.
+- A tunnel undo stores every block it changed. A 4096-block job is the ceiling so the world file stays bounded.
+- One tunnel job server-wide. A second confirm is told to wait.
 - Not checked in a running game in this phase.
