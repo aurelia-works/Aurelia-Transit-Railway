@@ -301,3 +301,42 @@ Order: 3 -> 4 -> 1d.4 -> 1.0 release, then these.
 - Passengers with destinations and ridership stats per route.
 - Ride HUD, modern PIDS, open default font, modern station blocks, customisable default trains and buses (from MTR+, above).
 - Fixing Nemo's resource pack updater fork. It's a separate project.
+
+## Z. Zip lines (concrete plan)
+
+Headline launch feature. One-way downhill cables you ride with a handle, and hanging seats on cables that run both ways. Creative mode and operators (permission level 2) only. Survival recipes are out of this phase.
+
+### Scope
+- Two poles and a sagging cable between them. The cable is not a block.
+- **Handle** (`mtr:zip_handle`): use it on the upper pole of a gravity line. You slide down the sag curve under gravity, capped by the panel speed, slowed by the panel brake, and you are set down beside the lower pole. Sneak lets go early. A flat or uphill start is refused.
+- **Hanging seat** (`mtr:zip_seat`): use it on a pole of an existing line to turn that line into a two-way seat line. Right-click the pole the seat is waiting at to ride to the other pole. The seat speeds up to the panel speed and brakes on the way in so it stops at the pole instead of overshooting. It waits there until someone rides it back.
+- **Pole** (`mtr:zip_pole`): place two, then use the pole item on the first and the second to link them. One cable per pole. Span 4 to 96 blocks. Breaking either pole removes the cable and drops anyone on it.
+- Disabled from the panel: cables stay saved, nobody can board, current riders are let go, cables are not drawn.
+
+### New blocks, items, entities
+- Block and block item `mtr:zip_pole`. Items `mtr:zip_handle` and `mtr:zip_seat` (stack size 1). Listed on the Aurelia passenger-equipment tab.
+- No new entity type. The seat is a saved point on the cable and the rider is teleported along it. That keeps the entity list and the render path small.
+- Ids are new. Existing MTR ids, method signatures and the save format of `mtr` data are untouched.
+
+### Networking
+- `mtr:atr_zip` server to client: enable, speed, brake, sag, every cable in that dimension (ends, seat mode, seat position). Sent on join, after a change, and every other tick while someone is moving.
+- `mtr:atr_zip_set` client to server: the four switches. The server applies them only for permission level 2.
+- Riding, linking and seat placement run on the server from item and block use. The server teleports the rider each tick.
+
+### Config and saves
+- New world file only: overworld persistent state `atr_zip` (cables, seat positions, the four switches). Defaults: enabled, 12 blocks/s, brake 0.4, sag 0.06 (mid-span drop is 6% of the horizontal span).
+- Nothing new is written into `config/mtr.json`. An old world with no `atr_zip` file loads as it does today and simply has no cables.
+- Riders are not saved. A restart lets them go.
+
+### Rendering
+- Client draws the cable with the line render layer after the world, in segments from the sag curve.
+- LOD: not drawn past 96 blocks; 4 segments from 48 to 96; 12 segments inside 48. One reused point buffer, no per-frame allocations in that loop. Seats are one debug box hanging under the cable. Shaders see ordinary lines, not a custom shader.
+
+### Tests
+- `ZipMathTest` only: the sag curve (ends stay on the poles, the middle drops by sag times the span) and travel (downhill speeds up and releases at the far pole; a seat step never passes the end pole).
+
+### Risks
+- Teleporting the rider fights latency and tight terrain. The cable does not check blocks in between.
+- One rider per cable. A second player is told the line is in use.
+- Panel sliders are operator-only because speed, brake and sag change the ride for everyone.
+- Not checked in a running game in this phase.

@@ -52,6 +52,9 @@ public final class ModItemGroups {
 								entries.add(ModItems.STATION_WRENCH);
 								entries.add(ModItems.AIRPORT_WRENCH);
 								entries.add(ModItems.STATION_CODEX);
+								entries.add(org.mtr.mod.zip.ZipContent.POLE_ITEM);
+								entries.add(org.mtr.mod.zip.ZipContent.HANDLE);
+								entries.add(org.mtr.mod.zip.ZipContent.SEAT);
 							}
 						})
 						.build()));
