@@ -24,6 +24,20 @@ Client-side switch for the figures:
 `PassengerNetwork.spawn`. The next service tick keeps them alive and boards them when a train stops. The blue boxes are
 waiting passengers; orange boxes are passengers inside a train.
 
+## Ready-to-test instance
+
+For a one-command morning test, run:
+
+```bash
+./gradlew :fabric:runPassengerDemo
+```
+
+That boots `run/perf/saves/ATU Test`, sets daylight and clear weather, puts the camera above the platform at
+`276 -58 8`, turns passenger drawing on, and runs `/atr_passengers demo 40`. The game stays open so you can walk around
+and watch. Open the Aurelia panel's **Passengers** tab to see the counts.
+
+To stop the demo: `/atr_passengers clear`.
+
 ## Bench-world tour
 
 The `ATU Test` bench world has MTR platforms around `x=276, y=-58, z=0`.
