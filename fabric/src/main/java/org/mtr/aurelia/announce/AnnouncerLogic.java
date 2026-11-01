@@ -1,5 +1,7 @@
 package org.mtr.aurelia.announce;
 
+import com.aureliatransit.architecture.live.announce.FragmentKeys;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -85,27 +87,66 @@ public final class AnnouncerLogic {
 		final StationName station = StationName.of(ride.nextStation());
 		final List<String> lines = new ArrayList<>();
 		final List<String> clips = new ArrayList<>();
+		final List<Announcement.VoiceFragment> voice = new ArrayList<>();
 		lines.add("The next station is " + station.english() + ".");
+		voice.add(new Announcement.VoiceFragment("phrase.next_station_is", "The next station is"));
+		if (!station.slug().isEmpty()) {
+			voice.add(new Announcement.VoiceFragment("station." + station.slug(), station.english()));
+		}
 		final String nextClip = "next_" + station.slug();
 		clips.add(!station.slug().isEmpty() && hasClip.test(nextClip) ? nextClip : "chime");
 		addInterchangeLines(ride, lines);
+		addInterchangeFragments(ride, voice);
 		if (lastStop(ride)) {
 			lines.add("This is the last stop.");
+			voice.add(new Announcement.VoiceFragment("phrase.this_is_the_last_stop", "This is the last stop."));
 			if (hasClip.test("terminus")) {
 				clips.add("terminus");
 			}
 		}
-		return new Announcement(Announcement.Kind.NEXT, lines, clips);
+		return new Announcement(Announcement.Kind.NEXT, lines, clips, voice);
 	}
 
 	static Announcement arriving(RideSnapshot ride) {
+		final StationName station = StationName.of(ride.nextStation());
 		final List<String> lines = new ArrayList<>();
-		lines.add("Arriving at " + StationName.of(ride.nextStation()).english() + ".");
+		final List<Announcement.VoiceFragment> voice = new ArrayList<>();
+		lines.add("Arriving at " + station.english() + ".");
+		voice.add(new Announcement.VoiceFragment("phrase.arriving_at", "Arriving at"));
+		if (!station.slug().isEmpty()) {
+			voice.add(new Announcement.VoiceFragment("station." + station.slug(), station.english()));
+		}
 		addInterchangeLines(ride, lines);
+		addInterchangeFragments(ride, voice);
 		if (lastStop(ride)) {
 			lines.add("This is the last stop. Please take all your belongings.");
+			voice.add(new Announcement.VoiceFragment("phrase.this_is_the_last_stop", "This is the last stop."));
+			voice.add(new Announcement.VoiceFragment("phrase.take_belongings", "Please take all of your belongings with you."));
 		}
-		return new Announcement(Announcement.Kind.ARRIVING, lines, List.of("chime"));
+		return new Announcement(Announcement.Kind.ARRIVING, lines, List.of("chime"), voice);
+	}
+
+	/** Voice-pack fragments for the interchange and through-service lines added by {@link #addInterchangeLines}. */
+	private static void addInterchangeFragments(RideSnapshot ride, List<Announcement.VoiceFragment> voice) {
+		final List<String> changeHere = changeHere(ride);
+		if (!changeHere.isEmpty()) {
+			voice.add(new Announcement.VoiceFragment("phrase.change_here_for", "Change here for"));
+			for (final String name : changeHere) {
+				voice.add(new Announcement.VoiceFragment("route." + FragmentKeys.normalise(name), name));
+			}
+		}
+		if (continues(ride)) {
+			final String route = StationName.routeName(ride.nextRoute());
+			final String destination = StationName.of(ride.nextRouteDestination()).english();
+			voice.add(new Announcement.VoiceFragment("phrase.this_train_continues_as", "This train continues as"));
+			if (!route.isBlank()) {
+				voice.add(new Announcement.VoiceFragment("route." + FragmentKeys.normalise(route), route));
+			}
+			if (!destination.isBlank()) {
+				voice.add(new Announcement.VoiceFragment("phrase.to", "to"));
+				voice.add(new Announcement.VoiceFragment("station." + StationName.of(destination).slug(), destination));
+			}
+		}
 	}
 
 	private static void addInterchangeLines(RideSnapshot ride, List<String> lines) {
