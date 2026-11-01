@@ -50,6 +50,23 @@ Reviewed by `opencode-go/muse-spark-1.3-contributor#low` on commit `9cc19b548`.
 The reviewer measured plans with the real parser/planner/audit and checked role counts for lifts, escalators and name
 signs. No cosmetic-only edits passed.
 
+## Reference images
+
+These are reference material only; no third-party images are shipped in the mod. Licences are on each file page.
+
+- Teddington: [Wikimedia Commons category](https://commons.wikimedia.org/wiki/Category:Teddington_railway_station) and
+  [Wikipedia](https://en.wikipedia.org/wiki/Teddington_railway_station) (two platforms joined by a footbridge).
+- Frankford: [Wikipedia](https://en.wikipedia.org/wiki/Frankford_Transit_Center) (at-grade SEPTA terminus with an island
+  platform and a canopy).
+- 69th Street: [Wikimedia Commons category](https://commons.wikimedia.org/wiki/Category:69th_Street_Transportation_Center)
+  and [Wikipedia](https://en.wikipedia.org/wiki/69th_Street_Transit_Center) (island and side platforms in front of the
+  brick hall).
+- Rosenthaler Platz: [Wikimedia Commons file](https://commons.wikimedia.org/wiki/File:Ubahn-Rosenthalerplatz.JPG) and
+  [Wikipedia](https://en.wikipedia.org/wiki/Rosenthaler_Platz_(Berlin_U-Bahn)) (U8 island platform, stairs and escalators).
+- West Kowloon: [Wikimedia Commons ceiling category](https://commons.wikimedia.org/wiki/Category:Ceiling_of_Hong_Kong_West_Kowloon_Station)
+  (the large covered hall).
+- Modern/Riverside is a style preset, not a claim about one real station.
+
 ## Residual issues
 
 - `frankford` is at grade with no lift or escalator. That is defensible for a ground-level terminus, but it is the
