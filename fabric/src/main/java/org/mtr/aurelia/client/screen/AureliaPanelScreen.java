@@ -14,6 +14,7 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import org.mtr.aurelia.client.Announcer;
+import org.mtr.aurelia.client.ui.AureliaUiSettings;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.PassengerClient;
 import org.mtr.aurelia.client.PassengerDrawSettings;
@@ -47,7 +48,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS}
+	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, LOOK}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -109,6 +110,9 @@ public final class AureliaPanelScreen extends Screen {
 	private Tab tab;
 	private int firstRow;
 	private int passengerFirst;
+	private int lookFirst;
+	private static final AureliaUiSettings.ScreenId[] LOOK_IDS = AureliaUiSettings.ScreenId.values();
+	private static final Text LOOK_HINT = Text.translatable("gui.aurelia.look.hint");
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
 	private static final int PASSENGER_ROWS = 9;
 
@@ -128,6 +132,7 @@ public final class AureliaPanelScreen extends Screen {
 			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.panel.tab." + target.name().toLowerCase()), b -> {
 				tab = target;
 				firstRow = 0;
+				lookFirst = 0;
 				clearAndInit();
 			}).dimensions(tabsLeft + i * (tabWidth + 4), 28, tabWidth, 20).build());
 			button.active = target != tab;
@@ -142,6 +147,7 @@ public final class AureliaPanelScreen extends Screen {
 			case PANTOGRAPH -> initPantograph();
 			case TRAIN_SOUND -> initTrainSound();
 			case PASSENGERS -> initPassengers();
+			case LOOK -> initLook();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
@@ -292,6 +298,23 @@ public final class AureliaPanelScreen extends Screen {
 
 	private Text doorChimeLabel() {
 		return Text.translatable("gui.aurelia.train_sound.door_chime", Text.translatable("gui.aurelia.train_sound.door_chime." + config.getDoorChime()));
+	}
+
+	/** One switch per restyled screen. Off returns that screen to MTR's widgets. */
+	private void initLook() {
+		lookFirst = Math.max(0, Math.min(lookFirst, LOOK_IDS.length - visibleRows()));
+		final int left = (width - BUTTON_WIDTH) / 2;
+		for (int i = lookFirst; i < Math.min(LOOK_IDS.length, lookFirst + visibleRows()); i++) {
+			final AureliaUiSettings.ScreenId id = LOOK_IDS[i];
+			addDrawableChild(ButtonWidget.builder(lookLabel(id), b -> {
+				AureliaUiSettings.toggle(id);
+				b.setMessage(lookLabel(id));
+			}).dimensions(left, TOP + (i - lookFirst) * ROW, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(LOOK_HINT));
+		}
+	}
+
+	private static Text lookLabel(AureliaUiSettings.ScreenId id) {
+		return Text.translatable("gui.aurelia.look." + id.key, ScreenTexts.onOrOff(AureliaUiSettings.enabled(id)));
 	}
 
 	/**
@@ -495,6 +518,14 @@ public final class AureliaPanelScreen extends Screen {
 			final int newFirstRow = Math.max(0, Math.min(renderingRows.size() - visibleRows(), firstRow - (int) Math.signum(amount)));
 			if (newFirstRow != firstRow) {
 				firstRow = newFirstRow;
+				clearAndInit();
+			}
+			return true;
+		}
+		if (tab == Tab.LOOK) {
+			final int newFirst = Math.max(0, Math.min(LOOK_IDS.length - visibleRows(), lookFirst - (int) Math.signum(amount)));
+			if (newFirst != lookFirst) {
+				lookFirst = newFirst;
 				clearAndInit();
 			}
 			return true;

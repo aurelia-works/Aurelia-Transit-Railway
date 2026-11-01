@@ -1,0 +1,39 @@
+package org.mtr.atr.mixin;
+
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.client.gui.widget.SliderWidget;
+import org.mtr.aurelia.client.ui.AureliaChrome;
+import org.mtr.aurelia.client.ui.AureliaPalette;
+import org.mtr.aurelia.client.ui.AureliaUi;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+/** Flat track and handle for sliders that use {@link SliderWidget#renderButton}. The label stays the widget's own text. */
+@Mixin(SliderWidget.class)
+public abstract class AureliaSliderMixin {
+
+	@Shadow
+	protected double value;
+
+	@Inject(method = "renderButton(Lnet/minecraft/client/gui/DrawContext;IIF)V", at = @At("HEAD"), cancellable = true)
+	private void atr$flatSlider(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+		if (!AureliaUi.active()) {
+			return;
+		}
+		final ClickableWidget widget = (ClickableWidget) (Object) this;
+		final int w = widget.getWidth();
+		final int h = widget.getHeight();
+		if (!widget.visible || w <= 0 || h <= 0) {
+			return;
+		}
+		AureliaChrome.slider(context, widget.getX(), widget.getY(), w, h, this.value, widget.isHovered());
+		final int color = widget.active ? AureliaPalette.FG : AureliaPalette.FG_LIGHT;
+		context.drawCenteredTextWithShadow(MinecraftClient.getInstance().textRenderer, widget.getMessage(), widget.getX() + w / 2, widget.getY() + (h - 8) / 2, color);
+		ci.cancel();
+	}
+}
