@@ -404,3 +404,124 @@ Creative mode and operators (permission level 2). Three new items, one new Aurel
 - A tunnel undo stores every block it changed. A 4096-block job is the ceiling so the world file stays bounded.
 - One tunnel job server-wide. A second confirm is told to wait.
 - Not checked in a running game in this phase.
+
+## O2. Blocks, items, rails and signals (concrete plan)
+
+Public launch must not look like MTR. Ids stay `mtr:<same>`. Saves, block states and the methods add-ons hook stay as they are. This section is the plan and the inventory. No new textures or models are in this change. Art stops at **Jah reviews art**.
+
+Counted on `master` `345586cca` under `fabric/src/main/resources/assets/mtr/`. Trains, gangways, sounds and fonts are listed so they are not mistaken for O2 work. They stay MTR.
+
+### Style guide
+
+Match AureliaMap's black theme (`aureliamap/common/webapp/src/scss/variables.scss`, mixin `black-theme`): true black, few lit pixels, one blue accent.
+
+| Role | Hex | Use |
+|---|---|---|
+| Ground / sleeper | `#000000`, `#111111` | Darkest faces, sleeper bodies, under-platform shadow |
+| Panel | `#1a1a1a`, `#262626` | Walls, PSD frames, signal housings, lift shafts |
+| Metal | `#3a3a3e` body, `#8a9098` crown | Rail head, handrails, a one-pixel highlight on the top face only |
+| Text | `#dddddd` on `#000000` | Station names and icons that must read at a distance |
+| Muted | `#888888` | Secondary labels, unlit aspects |
+| Accent | `#00489d` | Aurelia mark only. Route colour still comes from the line. Signal red, yellow and green stay the gameplay colours, drawn flat and saturated enough to read on a dark housing |
+
+Pixel density:
+
+- Full cubes, slabs and inventory icons: 16×16. That is already the size of most station cubes (196 of the 561 `mtr` pngs are 64×64, 47 are 32×32, 28 are 16×16; the 128 and above files are train liveries and stay out).
+- PSD doors, APG glass, signal heads and lift doors: 32×32. No 64×64 or larger block texture in the Aurelia pack.
+- Rails stay a tiled OBJ texture. Keep the current repeat (`repeatInterval` 0.5 in `mtr_custom_resources_template.json`). Paint the crown as a thin light line, not a broad highlight.
+
+Lighting: Minecraft's own shade. Paint a lighter top and a darker underside. Do not bake ambient occlusion. Jah plays with shader packs, and baked shadows fight them. Animated PIDS and escalator belts keep their `.mcmeta` frame counts (7 block `.mcmeta` files today: five `pids_*`, `escalator_up`, `escalator_down`). A new strip that changes the frame count is a new mcmeta, shipped in the pack next to the png.
+
+Out of this look: MTR yellow plastic, sandy marble as a default wall, and the bright silver `metal.png` pole.
+
+### How the new art ships
+
+The MTR files under `assets/mtr/` stay byte-for-byte. The Aurelia look is a built-in resource pack that overrides the same paths (`mtr:block/...`, `mtr:item/...`, `mtr:models/rail/rail.obj`). Same ids, so an old world loads the same blocks and just shows whichever pack is on.
+
+- Pack id `aurelia_look`, path `fabric/src/main/resources/resourcepacks/aurelia_look/`, `pack.mcmeta` pack format 15 (Fabric 1.20.1). Registered with Fabric's builtin pack API, position TOP, off until the art exists.
+- Client key `aureliaLook` (boolean) on the generated client schema `buildSrc/src/main/resources/schema/config/client.json`, then the usual schema generate. Missing key on an old `config/mtr.json` means false, so today's installs keep MTR's look. After **Jah reviews art** and accepts the pack, the default flips to true for new installs. The world save is not touched.
+- Aurelia panel, Rendering tab: one toggle, "Aurelia block look". It enables or disables that builtin pack and reloads resources. Client only. Operators and players can turn it off and keep MTR's look.
+- This run does not add the key, the pack or the toggle. The client schema is generated, and a pack reload is not a small change to land without launching the game. Scaffolding waits until the first accepted art, so an empty pack is never what players see.
+
+### Inventory by priority
+
+Paths are relative to `fabric/src/main/resources/assets/mtr/`. Columns are blockstates, block models, item models, block pngs, item pngs.
+
+| Priority | What a player sees | bs | block models | item models | block png | item png | Also |
+|---|---|---:|---:|---:|---:|---:|---|
+| P1 rails | The rail under every train, and the rail tools in the hand | 1 | 4 | 57 | 2 | 31 | `models/rail/`: `rail.obj`, `rail_siding.obj`, `rail.png`, `rail_siding.png`. Item `.mcmeta` ×3 (`rail_connector_selected`, `rail_remover_selected`, `rail_action_selected`) |
+| P1 signals | Signal heads, semaphores, poles, coloured connectors | 11 | 30 | 75 | 0 | 11 | Shared pngs used by these models: `textures/block/light_on.png`, `light_off.png`, `semaphore.png`, `metal.png` |
+| P2 platforms | Platform edge, the thing in every station photo | 12 | 36 | 12 | 6 | 0 | `platform_rail.json` is counted with rails |
+| P2 PSD | Platform screen doors | 7 | 80 | 6 | 61 | 6 | Largest single texture pile |
+| P2 APG | Automatic platform gates | 3 | 15 | 3 | 13 | 3 | |
+| P2 tickets | Barriers, machines, processors | 8 | 25 | 9 | 3 | 8 | Plus driver-key item models (4) and `advanced_driver_key` / `basic_driver_key` / `creative_driver_key` / `guard_key` |
+| P2 escalators | Steps and sides | 2 | 34 | 1 | 4 | 1 | 2 `.mcmeta` |
+| P2 lifts | Doors, tracks, panels | 11 | 24 | 16 | 10 | 9 | |
+| P2 ceilings | Ceiling, light, no-light | 3 | 2 | 3 | 0 | 3 | Block model reuses other textures |
+| P2 PIDS and clocks | Boards, pole, arrival projectors, announcer, tactile map | 13 | 14 | 13 | 9 | 11 | 5 PIDS `.mcmeta` |
+| P2 sign frames | Railway signs, route signs, station names, station pole | 27 | 36 | 26 | 4 | 25 | Frames only. Glyphs are P3 |
+| P3 sign glyphs | Icons on the signs | 0 | 0 | 0 | 63 | 0 | `textures/block/sign/`. Launch line "signs stay MTR" means these stay until a later pass |
+| P3 glass flowers | Per-station flower bands on glass fences | 0 | 0 | 0 | 56 | 0 | `textures/block/flowers/`. Models are the glass row below |
+| P3 materials | `station_color_*`, metal, marble, mosaic, slabs | 74 | 115 | 74 | 7 | 0 | Mostly recolors. Do these last, from the palette, not one drawing each |
+| P3 glass | Glass fence blockstates and models, plus `leaves_column.json` | 10 | 121 | 10 | 0 | 10 | |
+| P4 nodes | Airplane, boat and cable-car nodes, logo, rubbish bin, train sensors and cargo blocks | 12 | 38 | 12 | 7 | 3 | `cargo_loader.png`, `train.png` |
+| P4 hand tools | Tunnel, tunnel wall and bridge creators, dashboards, brush, resource-pack creator | 0 | 0 | 64 | 0 | 34 | Seen in the hotbar, not in the world |
+| P4 Aurelia items | `zip_pole` plus item models for the pole, handle, seat, station guide, rail stylus, box tunnel | 1 | 1 | 5 | 0 | 0 | New ids from Z and O3. Restyle with the poles. No png of their own yet (they borrow item models) |
+| Shared | Overlay bases and flat colours | 0 | 3 | 0 | 4 | 0 | `block_overlay_base.json`, `block_overlay_glowing_base.json`, `quarter_slab_bottom_base.json`, `white.png`, `black.png`, `transparent.png`, `dark_blue.png` |
+
+Totals in those folders: 195 blockstates, 578 block models, 390 item models, 258 block pngs, 157 item pngs, 4 rail files, 7 block `.mcmeta`, 3 item `.mcmeta`. Also used by signals and signs but not in the table rows: `station_circle.png`, `station_circle_passed.png`, `interchange.png`, `rock_1.png`, `rock_2.png`, `wheel.png`.
+
+Blockstates, one id each (the model and texture files sit beside them under `models/block/`, `models/item/`, `textures/block/`, `textures/item/`):
+
+- P1 rails: `rail`. The mesh players ride on is not a blockstate. It is `models/rail/rail.obj` and `rail_siding.obj`, referenced from `fabric/src/main/mtr_custom_resources_template.json` (`default_3d`, `default_3d_siding`). Node models: `models/block/rail_node.json`, `rail_node_22_5.json`, `rail_node_45.json`, `rail_node_67_5.json`. Node textures: `textures/block/one_way_rail_arrow.png`, `rail_preview.png`.
+- P1 signals: `signal_light_1`, `signal_light_2`, `signal_light_3`, `signal_light_3_aspect_1`, `signal_light_3_aspect_2`, `signal_light_4`, `signal_light_4_aspect_1`, `signal_light_4_aspect_2`, `signal_pole`, `signal_semaphore_1`, `signal_semaphore_2`. The 75 item models are the heads plus `signal_connector_<dye>` and `signal_remover_<dye>` (layer 0 is the vanilla dye, layer 1 is `mtr:item/signal_connector`).
+- P2: `platform` and the `_indented` / `_slab` / `_na_*` / `_uk_*` variants (12), `psd_door`, `psd_door_2`, `psd_glass`, `psd_glass_2`, `psd_glass_end`, `psd_glass_end_2`, `psd_top`, `apg_door`, `apg_glass`, `apg_glass_end`, the seven ticket blocks plus `driver_key_dispenser`, `escalator_side`, `escalator_step`, the eleven `lift_*` blocks, `ceiling`, `ceiling_light`, `ceiling_no_light`, the six `pids_*` plus `arrival_projector_1_small`, `_medium`, `_large`, `clock`, `clock_pole`, `train_announcer`, `tactile_map`, the fourteen `railway_sign_*`, four `route_sign_*`, eight `station_name_*`, `station_pole`.
+- P3: ten `glass_fence_*`, `metal`, `metal_slab`, `marble_blue`, `marble_blue_slab`, `marble_sandy`, `marble_sandy_slab`, `mosaic_tile`, `mosaic_tile_slab`, and 66 `station_color_*` blockstates (33 materials, each with a slab except the ones that have no slab in the list: concrete powder is present with a slab; count is 74 including metal, marble and mosaic).
+- P4 nodes: `airplane_node`, `boat_node`, `cable_car_node_lower`, `cable_car_node_station`, `cable_car_node_upper`, `logo`, `rubbish_bin_1`, `train_cargo_loader`, `train_cargo_unloader`, `train_coupler`, `train_schedule_sensor`, `train_sensor`, plus `zip_pole`.
+
+Not in O2, leave the files alone: `textures/vehicle/` 62 png, `textures/gangway/` 44 png, `models/vehicle/` 43 bbmodel, `properties/vehicle/` 213 json, `sounds/` 1703 ogg, `font/` 2 ttf, `textures/overlay/` 32 png (train door overlays), `textures/barrier/` 3, `textures/gui/` 3, `models/object/teapot.obj`. Default trains stay MTR, as the launch note already says.
+
+### Tooling (Jah, on his machine)
+
+Blockbench and Blender are not available in the agent environment. The owner draws. The agent only copies accepted exports into `resourcepacks/aurelia_look/` and wires the toggle after the stop point below.
+
+Blockbench (blocks, items, signals, PSD, platforms):
+
+1. Open the current json from `models/block/` or `models/item/`. File, Import, Minecraft Java Block/Item.
+2. Reskin first. Remodel only when the silhouette is the MTR look (signal housing, platform edge, PSD top). Keep the same texture path keys (`mtr:block/...`) so the pack override is a drop-in.
+3. Do not change blockstate property names (`facing`, `is_22_5`, `is_45`, `is_connected` on `rail`, and the multipart when-clauses). Collision and outline shapes live in Java. A prettier model that sticks out of the collision box is a bug, not a style choice. Check the block class before moving an element past the current bounds.
+4. Export as a Minecraft Java block model into the pack at the same relative path. Pngs go to the same relative path under the pack. Inventory models that are `"parent": "mtr:block/..."` need no new item json.
+5. Signal connectors: edit `textures/item/signal_connector.png` only. The dye layer stays vanilla, so the 16 colours keep working.
+
+Blender (rails only):
+
+1. Import `models/rail/rail.obj` and `rail_siding.obj`. They were authored in Metasequoia. Note the axis before moving anything.
+2. Keep the mesh length that `repeatInterval` 0.5 expects. A longer sleeper tiles with a gap or an overlap.
+3. Paint `rail.png` and `rail_siding.png` in place, or replace them at the same size and the same UV layout. A new unwrap means the OBJ changes, and both files ship together.
+4. Export OBJ with the same texture filename. Put both the obj and the png in the pack under `assets/mtr/models/rail/`. Do not edit `mtr_custom_resources_template.json` unless the model path itself changes, which it should not.
+
+P3 materials are a recolor of the seven source pngs (`metal`, the marbles, mosaic, and the station-color sources), then the 74 blockstates pick them up. No per-variant drawing.
+
+### Review checkpoints
+
+1. Style board, before bulk export: the eight swatches above, plus one mock that contains a rail crown, a platform edge, a PSD door and a three-aspect signal. **Jah reviews art** on that board. No further drawing until he accepts it.
+2. P1 only, in the pack, still default-off: rails and signals. Screenshots from the dev world (flat, no shaders, then with the shader pack he actually uses).
+3. P2 station shell: platform, PSD, APG, a lift, an escalator, a ceiling, one PIDS. Same two lighting setups.
+4. P3 and P4 only after the station photo looks like AureliaMap. Glyphs and flowers stay MTR unless he asks for them on that review.
+5. Default flips to on only after checkpoint 3 is accepted.
+
+Stop point: **Jah reviews art.** Nothing in this phase is done until he says the pack matches the map. The agent does not invent textures, does not run Blockbench, and does not turn the pack on.
+
+### Risks
+
+- An OBJ axis or scale change makes the rail float, sink, or gap every half block. Keep a copy of the current obj beside the new one until checkpoint 2.
+- PIDS and escalator animations break if the strip height changes and the mcmeta does not. Copy the mcmeta into the pack with the png.
+- `station_color_*` samples a source texture and tints it. Repainting the source changes every colour variant at once, which is what we want, and it also changes add-on stations that relied on the MTR marble. The pack toggle is how those worlds get MTR back.
+- A resource pack that an add-on or the player already has can override `aurelia_look` or be overridden by it, depending on pack order. Builtin TOP plus a panel note is the rule. Document it on the toggle.
+- Signal item models point layer 0 at `item/<colour>_dye` in the minecraft namespace. Replacing those dyes is out of scope.
+- Shader packs will flatten a painted highlight. If the crown disappears under his shader pack, thicken the highlight by one pixel, do not add a custom render path.
+- No method on the MTR 4.0.5 surface changes. `DropInSignaturesTest` stays as it is. No new save key. The only later config key is the client boolean `aureliaLook`.
+
+### What this run deliberately did not do
+
+No png, json model, obj, pack.mcmeta, config key, or panel row. An empty pack with a live toggle would be a switch that does nothing, and wiring the reload means touching generated config and the client resource manager, which needs a game launch this task forbids.
