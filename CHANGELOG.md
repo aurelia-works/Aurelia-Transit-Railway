@@ -9,6 +9,7 @@
 - On-train next-stop and arriving announcements can use voice packs, with the old AureliaEX clips kept as a fallback and the system voice for missing station names.
 - Voice-pack format documented in `docs/VOICE_PACKS.md`.
 - Passenger demo: `/atr_passengers demo [count]` fills the nearest MTR platform with waiting passengers and `/atr_passenger_draw on` shows the figures in game. See `docs/PASSENGER_DEMO.md`.
+- Passengers are drawn as varied people: the game's 18 player skins, different heights, phones, bags, suitcases and idle movement. The panel's Figures button switches between People, Solid boxes and Outlines.
 - Passengers now show as solid people standing on the platform, with size, colour and outline switches on the panel, and people on a platform with no route no longer disappear.
 
 ### Changed

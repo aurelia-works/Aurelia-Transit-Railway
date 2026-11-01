@@ -507,7 +507,7 @@ public final class AureliaPanelScreen extends Screen {
 		}
 		if (passengerRow(9)) {
 			addDrawableChild(ButtonWidget.builder(solidLabel(), b -> {
-				PassengerDrawSettings.setSolid(!PassengerDrawSettings.get().solid());
+				PassengerDrawSettings.cycleLook();
 				b.setMessage(solidLabel());
 			}).dimensions(left, passengerY(9), BUTTON_WIDTH, 20).build());
 		}
@@ -559,7 +559,8 @@ public final class AureliaPanelScreen extends Screen {
 	}
 
 	private static Text solidLabel() {
-		return Text.translatable("gui.aurelia.passengers.solid", ScreenTexts.onOrOff(PassengerDrawSettings.get().solid()));
+		final PassengerDrawSettings.Values values = PassengerDrawSettings.get();
+		return Text.translatable("gui.aurelia.passengers.look", Text.translatable(values.people() ? "gui.aurelia.passengers.look.people" : values.solid() ? "gui.aurelia.passengers.look.solid" : "gui.aurelia.passengers.look.outlines"));
 	}
 
 	private Text pantographAnimationLabel() {
