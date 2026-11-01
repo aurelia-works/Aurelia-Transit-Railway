@@ -9,6 +9,9 @@
 - On-train next-stop and arriving announcements can use voice packs, with the old AureliaEX clips kept as a fallback and the system voice for missing station names.
 - Voice-pack format documented in `docs/VOICE_PACKS.md`.
 
+### Changed
+- Station preset realism pass: Teddington is 6 blocks wide with lifts, Modern is named and has escalators, Frankford and 69th Street no longer promise escalators they did not build, Rosenthaler Platz has escalators, and West Kowloon has a glass hall roof. Station Studio presets no longer inherit stale controls, locks or the previous planner seed. See `docs/STATION_PRESETS.md`.
+
 ### Fixed
 - The Aurelia panel's twelve tabs wrap into rows on narrow windows, so their labels stay readable (#43).
 
