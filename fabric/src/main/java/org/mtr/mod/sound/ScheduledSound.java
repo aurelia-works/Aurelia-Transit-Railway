@@ -24,7 +24,12 @@ public final class ScheduledSound {
 	private void play() {
 		final ClientWorld clientWorld = MinecraftClient.getInstance().getWorldMapped();
 		if (clientWorld != null) {
-			SCHEDULED_SOUNDS.values().forEach(scheduledSound -> clientWorld.playSoundAtBlockCenter(blockPos, soundEvent, SoundCategory.getBlocksMapped(), gain, pitch, false));
+			// Keeps MTR's lambda for add-ons; only the entry for this sound plays, so a sound is not repeated once per scheduled entry
+			SCHEDULED_SOUNDS.values().forEach(scheduledSound -> {
+				if (scheduledSound == this) {
+					clientWorld.playSoundAtBlockCenter(blockPos, soundEvent, SoundCategory.getBlocksMapped(), gain, pitch, false);
+				}
+			});
 		}
 	}
 
