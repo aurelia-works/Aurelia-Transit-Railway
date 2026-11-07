@@ -1,4 +1,28 @@
 {
+	"aws_horn": {
+		"sounds": [
+			{
+				"name": "aurelia:aws_horn",
+				"stream": false
+			}
+		]
+	},
+	"aws_bell": {
+		"sounds": [
+			{
+				"name": "aurelia:aws_bell",
+				"stream": false
+			}
+		]
+	},
+	"tpws_trip": {
+		"sounds": [
+			{
+				"name": "aurelia:tpws_trip",
+				"stream": false
+			}
+		]
+	},
 	"train_profiles/dmu/brake_release": {
 		"sounds": [
 			{
