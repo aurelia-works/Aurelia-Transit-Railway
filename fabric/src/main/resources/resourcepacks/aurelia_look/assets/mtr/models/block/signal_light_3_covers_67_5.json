@@ -5,6 +5,9 @@
 		"plate": "mtr:block/aurelia/signal_backplate",
 		"hood": "mtr:block/aurelia/signal_hood",
 		"lens": "mtr:block/aurelia/signal_lens",
+		"lens_red": "mtr:block/aurelia/signal_lens_red",
+		"lens_yellow": "mtr:block/aurelia/signal_lens_yellow",
+		"lens_green": "mtr:block/aurelia/signal_lens_green",
 		"particle": "mtr:block/aurelia/signal_housing"
 	},
 	"elements": [
@@ -296,7 +299,7 @@
 			],
 			"faces": {
 				"south": {
-					"texture": "#lens",
+					"texture": "#lens_red",
 					"uv": [
 						0,
 						0,
@@ -550,7 +553,7 @@
 			],
 			"faces": {
 				"south": {
-					"texture": "#lens",
+					"texture": "#lens_yellow",
 					"uv": [
 						0,
 						0,
@@ -804,7 +807,7 @@
 			],
 			"faces": {
 				"south": {
-					"texture": "#lens",
+					"texture": "#lens_green",
 					"uv": [
 						0,
 						0,

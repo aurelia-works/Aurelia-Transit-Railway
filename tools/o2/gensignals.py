@@ -28,13 +28,30 @@ for y in range(16):
     for x in range(16): hood.putpixel((x, y), jit(hx('17181a'), 3))
 ImageDraw.Draw(hood).line([0, 0, 15, 0], fill=hx('303134'))
 hood.save(os.path.join(TB, 'signal_hood.png'))
-lens = Image.new('RGBA', (16, 16), hx('050506'))
-for y in range(16):
-    for x in range(16):
-        r = math.hypot(x + 0.5 - 8, y + 0.5 - 8)
-        if r < 7.6: lens.putpixel((x, y), hx('5d6166') if r > 6.4 else jit(hx('16191d'), 2))
-for p in ((5, 5), (6, 5), (5, 6)): lens.putpixel(p, hx('4a5560'))
-lens.save(os.path.join(TB, 'signal_lens.png'))
+def make_lens(name, tint):
+    # Unlit coloured glass: dark tint at the rim, a little brighter in the middle, a soft highlight top-left, thin steel rim
+    img = Image.new('RGBA', (16, 16), hx('050506'))
+    t = hx(tint)
+    for y in range(16):
+        for x in range(16):
+            r = math.hypot(x + 0.5 - 8, y + 0.5 - 8)
+            if r >= 7.6:
+                continue
+            if r > 6.6:
+                img.putpixel((x, y), hx('3a3d41'))
+                continue
+            k = 0.55 - 0.35 * (r / 6.6)
+            c = tuple(int(t[i] * k) for i in range(3)) + (255,)
+            h = math.hypot(x + 0.5 - 5.5, y + 0.5 - 5.0)
+            if h < 2.2:
+                a = 0.45 * (1 - h / 2.2)
+                c = tuple(int(c[i] + (235 - c[i]) * a) for i in range(3)) + (255,)
+            img.putpixel((x, y), jit(c, 2))
+    img.save(os.path.join(TB, name + '.png'))
+make_lens('signal_lens', '7a838c')
+make_lens('signal_lens_red', 'e0201a')
+make_lens('signal_lens_yellow', 'f0a020')
+make_lens('signal_lens_green', '20d070')
 lamp = Image.new('RGBA', (16, 16), hx('000000'))
 for y in range(16):
     for x in range(16):
@@ -52,7 +69,7 @@ for y in range(16):
 pole.save(os.path.join(TB, 'signal_pole.png'))
 # models
 TEX = {'housing': 'mtr:block/aurelia/signal_housing', 'plate': 'mtr:block/aurelia/signal_backplate',
-       'hood': 'mtr:block/aurelia/signal_hood', 'lens': 'mtr:block/aurelia/signal_lens', 'particle': 'mtr:block/aurelia/signal_housing'}
+       'hood': 'mtr:block/aurelia/signal_hood', 'lens': 'mtr:block/aurelia/signal_lens', 'lens_red': 'mtr:block/aurelia/signal_lens_red', 'lens_yellow': 'mtr:block/aurelia/signal_lens_yellow', 'lens_green': 'mtr:block/aurelia/signal_lens_green', 'particle': 'mtr:block/aurelia/signal_housing'}
 def box(f, t, faces):
     return {'from': f, 'to': t, 'faces': faces}
 def all_faces(tex, skip=()):
@@ -64,7 +81,12 @@ def covers(orig):
     pf, pt = plate['from'], plate['to']
     faces = all_faces('hood'); faces['south'] = {'texture': '#plate', 'uv': [0, 0, 16, 16]}; faces['north'] = {'texture': '#plate', 'uv': [16, 0, 0, 16]}
     out.append(box(pf, pt, faces))
+    # MTR's lit order, bottom to top: red, yellow, green, then a second yellow on 4-aspect heads. 2-aspect heads can put
+    # red on top at runtime, so their lenses stay neutral.
+    order = sorted(lenses, key=lambda e: e['from'][1])
+    tints = ['lens'] * len(order) if len(order) == 2 else ['lens_red', 'lens_yellow', 'lens_green', 'lens_yellow'][:len(order)]
     for L in lenses:
+        lens_tex = tints[order.index(L)]
         (x0, y0, _), (x1, y1, _) = L['from'], L['to']
         cy = (y0 + y1) / 2
         # lens ring
@@ -75,7 +97,7 @@ def covers(orig):
         out.append(box([x0 - 0.5, y1, 10.5], [x1 + 0.5, y1 + 0.5, 14.5], all_faces('hood', ('north',))))
         out.append(box([x0 - 0.5, cy, 11.1], [x0, y1, 14], all_faces('hood', ('north', 'up'))))
         out.append(box([x1, cy, 11.1], [x1 + 0.5, y1, 14], all_faces('hood', ('north', 'up'))))
-        out.append(box([x0, y0, 11.05], [x1, y1, 11.05], {'south': {'texture': '#lens', 'uv': [0, 0, 16, 16]}}))
+        out.append(box([x0, y0, 11.05], [x1, y1, 11.05], {'south': {'texture': '#' + lens_tex, 'uv': [0, 0, 16, 16]}}))
     return out
 def base(orig):
     (f, t) = orig['elements'][0]['from'], orig['elements'][0]['to']
