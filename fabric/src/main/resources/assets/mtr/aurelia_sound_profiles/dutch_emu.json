@@ -1,0 +1,27 @@
+{
+	"name": "Dutch double-deck EMU",
+	"motor": {
+		"sounds": ["aurelia:train_profiles/dutch_emu/motor"],
+		"volume": 0.95,
+		"pitch_curve": [
+			{"speed": 0, "pitch": 0.85},
+			{"speed": 50, "pitch": 1.1},
+			{"speed": 120, "pitch": 1.4},
+			{"speed": 160, "pitch": 1.55}
+		],
+		"volume_curve": [
+			{"speed": 0, "volume": 0.14},
+			{"speed": 18, "volume": 0.62},
+			{"speed": 70, "volume": 1},
+			{"speed": 160, "volume": 0.9}
+		]
+	},
+	"door_chime": "aurelia:train_profiles/dutch_emu/chime",
+	"door_open": "aurelia:train_profiles/dutch_emu/door_open",
+	"door_close": "aurelia:train_profiles/dutch_emu/door_close",
+	"brake_release": "aurelia:train_profiles/dutch_emu/brake_release",
+	"compressor_loop": "aurelia:train_profiles/dutch_emu/compressor",
+	"compressor_attack": "aurelia:train_profiles/dutch_emu/compressor_attack",
+	"compressor_release": "aurelia:train_profiles/dutch_emu/compressor_release",
+	"flange": ["aurelia:train_profiles/dutch_emu/flange"]
+}

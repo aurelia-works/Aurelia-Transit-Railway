@@ -1,0 +1,27 @@
+{
+	"name": "Tube",
+	"motor": {
+		"sounds": ["aurelia:train_profiles/tube/motor"],
+		"volume": 1,
+		"pitch_curve": [
+			{"speed": 0, "pitch": 0.7},
+			{"speed": 30, "pitch": 1.1},
+			{"speed": 70, "pitch": 1.42},
+			{"speed": 100, "pitch": 1.6}
+		],
+		"volume_curve": [
+			{"speed": 0, "volume": 0.12},
+			{"speed": 12, "volume": 0.7},
+			{"speed": 50, "volume": 1},
+			{"speed": 100, "volume": 0.9}
+		]
+	},
+	"door_chime": "aurelia:train_profiles/tube/chime",
+	"door_open": "aurelia:train_profiles/tube/door_open",
+	"door_close": "aurelia:train_profiles/tube/door_close",
+	"brake_release": "aurelia:train_profiles/tube/brake_release",
+	"compressor_loop": "aurelia:train_profiles/tube/compressor",
+	"compressor_attack": "aurelia:train_profiles/tube/compressor_attack",
+	"compressor_release": "aurelia:train_profiles/tube/compressor_release",
+	"flange": ["aurelia:train_profiles/tube/flange"]
+}

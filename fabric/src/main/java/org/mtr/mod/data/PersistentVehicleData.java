@@ -1,5 +1,9 @@
 package org.mtr.mod.data;
 
+import org.mtr.aurelia.sound.ProfileSounds;
+import org.mtr.aurelia.sound.SoundProfile;
+import org.mtr.aurelia.sound.SoundProfileRegistry;
+import org.mtr.aurelia.sound.SoundProfileStore;
 import org.mtr.core.data.TransportMode;
 import org.mtr.core.data.Vehicle;
 import org.mtr.core.data.VehicleCar;
@@ -16,6 +20,7 @@ import org.mtr.mod.resource.Interpolation;
 import org.mtr.mod.resource.VehicleResource;
 import org.mtr.mod.sound.VehicleSoundBase;
 
+import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 public final class PersistentVehicleData {
@@ -32,6 +37,10 @@ public final class PersistentVehicleData {
 	public final double[] longestDimensions;
 	private final TransportMode transportMode;
 	private final ObjectArrayList<VehicleSoundBase> vehicleSoundBaseList = new ObjectArrayList<>();
+	private SoundProfileStore.Settings appliedSoundSettings = SoundProfileStore.Settings.DEFAULT;
+	private int appliedProfileVersion = -1;
+	@Nullable
+	private ProfileSounds appliedProfileSounds;
 	private final ObjectArrayList<ObjectArrayList<ScrollingText>> scrollingTexts = new ObjectArrayList<>();
 	private final ObjectArrayList<Oscillation> oscillations = new ObjectArrayList<>();
 	private final Object2ObjectOpenHashMap<String, DoorMovementInterpolation> doorMovementInterpolations = new Object2ObjectOpenHashMap<>();
@@ -145,7 +154,9 @@ public final class PersistentVehicleData {
 	}
 
 	private VehicleSoundBase getVehicleSoundBase(VehicleResource vehicleResource, int carNumber) {
-		return getElement(vehicleSoundBaseList, carNumber, vehicleResource.createVehicleSoundBase);
+		final VehicleSoundBase soundBase = getElement(vehicleSoundBaseList, carNumber, vehicleResource.createVehicleSoundBase);
+		soundBase.setSoundProfile(appliedProfileSounds);
+		return soundBase;
 	}
 
 	public void dispose() {
@@ -174,6 +185,25 @@ public final class PersistentVehicleData {
 			interpolation.setValue(value, this.opening != opening);
 			this.opening = opening;
 			return (float) interpolation.getValue();
+		}
+	}
+
+	/**
+	 * Applies this train's sound profile (chosen on the Aurelia panel) to every car. Only runs when the choice or a
+	 * volume slider changed; a train with no profile is never touched.
+	 */
+	public void updateSoundProfile(long vehicleId) {
+		final SoundProfileStore.Settings settings = SoundProfileStore.settings(vehicleId);
+		final int version = SoundProfileRegistry.version();
+		if (settings.equals(appliedSoundSettings) && version == appliedProfileVersion) {
+			return;
+		}
+		appliedSoundSettings = settings;
+		appliedProfileVersion = version;
+		final SoundProfile profile = SoundProfileStore.resolve(settings);
+		appliedProfileSounds = profile == null ? null : ProfileSounds.resolve(profile, settings);
+		for (final VehicleSoundBase soundBase : vehicleSoundBaseList) {
+			soundBase.setSoundProfile(appliedProfileSounds);
 		}
 	}
 }
