@@ -3,10 +3,12 @@ package org.mtr.test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mtr.aurelia.sound.SoundProfile;
+import org.mtr.aurelia.sound.SoundProfileDefaults;
 import org.mtr.aurelia.sound.SoundProfileJson;
 import org.mtr.aurelia.sound.SoundProfileRegistry;
 import org.mtr.aurelia.sound.SoundProfileStore;
 
+import java.util.List;
 import java.util.Map;
 
 public final class SoundProfileTest {
@@ -72,5 +74,62 @@ public final class SoundProfileTest {
 
 		// A broken file is skipped rather than taking the loaded profiles down
 		Assertions.assertNull(SoundProfileJson.parse("test:broken", "{not json"));
+	}
+
+	@Test
+	public void tagNamesTheDefaultProfile() {
+		Assertions.assertEquals("mtr:uk_emu", SoundProfileDefaults.fromTags(List.of("colour:red", "aurelia_sound:mtr:uk_emu")));
+		Assertions.assertEquals("test:two", SoundProfileDefaults.fromTags(List.of("aurelia_sound:test:one", "aurelia_sound:test:two")));
+		Assertions.assertEquals("", SoundProfileDefaults.fromTags(List.of("colour:red", "doors:2")));
+		Assertions.assertEquals("", SoundProfileDefaults.fromTags(List.of("aurelia_sound:")));
+		Assertions.assertEquals("", SoundProfileDefaults.fromTags(List.of("aurelia_sound:  ")));
+		Assertions.assertEquals("test:one", SoundProfileDefaults.fromTags(List.of("aurelia_sound: test:one ")));
+		Assertions.assertEquals("", SoundProfileDefaults.fromTags(null));
+	}
+
+	@Test
+	public void tagResolvesWhenNothingChosen() {
+		SoundProfileRegistry.replace(Map.of("test:one", profile("test:one")));
+		Assertions.assertEquals("test:one", SoundProfileStore.resolveWithDefault(SoundProfileStore.Settings.DEFAULT, "test:one").id);
+	}
+
+	@Test
+	public void playerChoiceBeatsTheTag() {
+		SoundProfileRegistry.replace(Map.of("test:one", profile("test:one"), "test:two", profile("test:two")));
+		final SoundProfileStore.Settings chosen = SoundProfileStore.Settings.DEFAULT.withProfile("test:two");
+		Assertions.assertEquals("test:two", SoundProfileStore.resolveWithDefault(chosen, "test:one").id);
+		// A choice that names a profile that is gone keeps the train's own sound; the tag is not a fallback
+		Assertions.assertNull(SoundProfileStore.resolveWithDefault(SoundProfileStore.Settings.DEFAULT.withProfile("test:gone"), "test:one"));
+	}
+
+	@Test
+	public void unknownTagIsIgnored() {
+		SoundProfileRegistry.replace(Map.of("test:one", profile("test:one")));
+		Assertions.assertNull(SoundProfileStore.resolveWithDefault(SoundProfileStore.Settings.DEFAULT, "test:gone"));
+	}
+
+	@Test
+	public void noTagMeansNoChange() {
+		SoundProfileRegistry.replace(Map.of("test:one", profile("test:one")));
+		Assertions.assertNull(SoundProfileStore.resolveWithDefault(SoundProfileStore.Settings.DEFAULT, ""));
+		Assertions.assertNull(SoundProfileStore.resolveWithDefault(SoundProfileStore.Settings.DEFAULT, null));
+	}
+
+	@Test
+	public void toggleOffIgnoresTheTag() {
+		SoundProfileRegistry.replace(Map.of("test:one", profile("test:one")));
+		SoundProfileStore.setUseTrainDefaults(false);
+		try {
+			Assertions.assertNull(SoundProfileStore.resolveWithDefault(SoundProfileStore.Settings.DEFAULT, "test:one"));
+		} finally {
+			SoundProfileStore.setUseTrainDefaults(true);
+		}
+		Assertions.assertEquals("test:one", SoundProfileStore.resolveWithDefault(SoundProfileStore.Settings.DEFAULT, "test:one").id);
+	}
+
+	private static SoundProfile profile(String id) {
+		final SoundProfile parsed = SoundProfileJson.parse(id, SAMPLE);
+		Assertions.assertNotNull(parsed);
+		return parsed;
 	}
 }

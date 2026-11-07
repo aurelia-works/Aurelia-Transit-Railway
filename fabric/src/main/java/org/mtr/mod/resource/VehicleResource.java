@@ -9,6 +9,7 @@ import org.mtr.mapping.holder.Box;
 import org.mtr.mapping.holder.MutableText;
 import org.mtr.mapping.mapper.GraphicsHolder;
 import org.mtr.mapping.mapper.TextHelper;
+import org.mtr.aurelia.sound.SoundProfileDefaults;
 import org.mtr.mod.Init;
 import org.mtr.mod.client.CustomResourceLoader;
 import org.mtr.mod.config.Config;
@@ -617,5 +618,13 @@ public final class VehicleResource extends VehicleResourceSchema {
 		if (!force) {
 			modelsToInitialize.forEach(VehicleModel::requestBackgroundLoad);
 		}
+	}
+
+	/**
+	 * This vehicle's default sound profile from its {@code aurelia_sound:<profile id>} tag, or empty when it names
+	 * none. Plain tags: no new MTR field, so MTR and old packs load as before. No lambdas: this stays after MTR's.
+	 */
+	public String getAureliaDefaultSoundProfile() {
+		return SoundProfileDefaults.fromTags(tags);
 	}
 }

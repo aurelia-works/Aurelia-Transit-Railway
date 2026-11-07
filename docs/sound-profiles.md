@@ -19,6 +19,7 @@ Open the Aurelia panel, then the **Train sound** tab.
 
 ```json
 {
+  "use_train_defaults": true,
   "vehicles": {
     "123456789": {
       "profile": "mtr:uk_emu",
@@ -28,7 +29,7 @@ Open the Aurelia panel, then the **Train sound** tab.
 }
 ```
 
-Deleting the file or a train's entry puts that train back on its own sound. If a profile id in the file no longer
+`use_train_defaults` is the panel's **Use train defaults** switch, on for everyone until they turn it off. Deleting the file or a train's entry puts that train back on its own sound. If a profile id in the file no longer
 exists, the train also keeps its own sound; nothing breaks.
 
 ## Built-in profiles
@@ -129,6 +130,35 @@ python3 tools/sounds/generate_profile_sounds.py --check
 
 It decodes every file whose name contains `motor`, `compressor` or `flange` and fails when the wrap step is more than
 1.2 times the clip's own 99th-percentile sample step. The same table is printed after a normal generation run.
+
+## Train defaults from the pack
+
+A vehicle entry in `mtr_custom_resources.json` can name the profile its trains use before anyone picks one, with a tag:
+
+```json
+{
+  "id": "my_pack_city_train",
+  "name": "City Train",
+  "tags": ["aurelia_sound:mtr:uk_emu"]
+}
+```
+
+The tag is `aurelia_sound:` followed by the profile id. It is a plain tag, not a new MTR field, and the extra colon
+keeps MTR's own tag filter ignoring it, so MTR and old packs load as before. The last matching tag wins; a blank
+suffix (`aurelia_sound:` alone) is ignored, and so is a tag on a train whose cars have different types beyond the
+first car (the first car's type decides).
+
+Precedence for each train:
+
+1. Your pick in `config/aurelia/sound-profiles.json` always wins, even when it names a profile whose pack is gone
+   (then the train keeps its own sound; the tag is not used as a fallback).
+2. With no pick and **Use train defaults** on (the default), the tag's profile plays. The panel's Train sound tab
+   shows it as `Default from train: <name>`.
+3. Otherwise the train keeps its own sound, exactly as before this feature existed.
+
+An unknown id in the tag is ignored with a warning in `logs/latest.log` (`Unknown sound profile in aurelia_sound
+tag`), so a missing pack never silences a train. Turning **Use train defaults** off puts every train with no pick
+back on its own sound; the volume sliders still scale whichever profile plays.
 
 ## How profiles apply
 

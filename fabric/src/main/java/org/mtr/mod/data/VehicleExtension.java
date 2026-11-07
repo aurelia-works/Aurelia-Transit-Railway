@@ -84,7 +84,7 @@ public class VehicleExtension extends Vehicle implements Utilities {
 		oldSpeed = speed;
 		simulate(millisElapsed, null, null);
 		persistentVehicleData.tick(railProgress, millisElapsed, vehicleExtraData);
-		persistentVehicleData.updateSoundProfile(getId());
+		persistentVehicleData.updateSoundProfile(getId(), aureliaDefaultSoundProfile());
 		final MinecraftClient minecraftClient = MinecraftClient.getInstance();
 		final ClientWorld clientWorld = minecraftClient.getWorldMapped();
 		final ClientPlayerEntity clientPlayerEntity = minecraftClient.getPlayerMapped();
@@ -391,5 +391,16 @@ public class VehicleExtension extends Vehicle implements Utilities {
 	 */
 	public void dispose() {
 		persistentVehicleData.dispose();
+	}
+
+	/**
+	 * This train's default sound profile from its first car's {@code aurelia_sound:} tag. A plain method call, no
+	 * lambdas, so MTR's existing ones keep their order. Last in the class.
+	 */
+	private String aureliaDefaultSoundProfile() {
+		if (vehicleExtraData.immutableVehicleCars.isEmpty()) {
+			return "";
+		}
+		return org.mtr.aurelia.sound.SoundProfileDefaults.forVehicleType(getTransportMode(), vehicleExtraData.immutableVehicleCars.get(0).getVehicleId());
 	}
 }
