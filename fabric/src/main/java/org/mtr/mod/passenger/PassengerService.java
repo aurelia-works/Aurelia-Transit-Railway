@@ -181,7 +181,8 @@ public final class PassengerService {
 					final Route route = simulator.routeIdMap.get(vehicle.vehicleExtraData.getThisRouteId());
 					if (platform != null && platform.area != null && route != null) {
 						final int cars = Math.max(1, vehicle.vehicleExtraData.immutableVehicleCars.size());
-						network.exchange(vehicle.getId(), platformId, platform.area.getId(), upcomingStations(route, platformId, vehicle.vehicleExtraData.getStopIndex()), cars, current);
+						// MTR keeps the door target open while a train is dwelling with its doors released
+						network.exchange(vehicle.getId(), platformId, platform.area.getId(), upcomingStations(route, platformId, vehicle.vehicleExtraData.getStopIndex()), cars, current, vehicle.vehicleExtraData.getDoorMultiplier() > 0);
 					}
 				}
 				riding += network.ridingOn(vehicle.getId());

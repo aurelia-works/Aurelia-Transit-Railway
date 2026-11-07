@@ -19,6 +19,7 @@ import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.PassengerClient;
 import org.mtr.aurelia.client.ZipClient;
 import org.mtr.aurelia.client.PassengerDrawSettings;
+import org.mtr.aurelia.client.PassengerRenderer;
 import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.ScriptingHandshake;
 import org.mtr.aurelia.client.TrainView;
@@ -58,7 +59,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK}
+	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -135,6 +136,8 @@ public final class AureliaPanelScreen extends Screen {
 	private static final int TRAIN_SOUND_ROWS = 13;
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
+	private int drivingFirst;
+	private static final int DRIVING_ROWS = 6;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
 	private static final int PASSENGER_ROWS = 17;
 
@@ -178,6 +181,7 @@ public final class AureliaPanelScreen extends Screen {
 			case ZIP -> initZip();
 			case BUILD -> initBuild();
 			case LOOK -> initLook();
+			case DRIVING -> initDriving();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
@@ -596,17 +600,20 @@ public final class AureliaPanelScreen extends Screen {
 		if (passengerRow(6)) {
 			addPassengerSlider(left, 6, true, 0, PassengerDrawSettings.DRAW_DISTANCE_MAX, 8, () -> PassengerDrawSettings.get().drawDistance(),
 					value -> PassengerDrawSettings.setDrawDistance((int) value),
-					value -> Text.translatable("gui.aurelia.passengers.draw_distance", value.intValue()));
+					value -> Text.translatable("gui.aurelia.passengers.draw_distance", value.intValue()))
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.passengers.draw_distance.tooltip")));
 		}
 		if (passengerRow(7)) {
 			addPassengerSlider(left, 7, true, 0, PassengerDrawSettings.DETAIL_DISTANCE_MAX, 4, () -> PassengerDrawSettings.get().detailDistance(),
 					value -> PassengerDrawSettings.setDetailDistance((int) value),
-					value -> Text.translatable("gui.aurelia.passengers.detail_distance", value.intValue()));
+					value -> Text.translatable("gui.aurelia.passengers.detail_distance", value.intValue()))
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.passengers.detail_distance.tooltip")));
 		}
 		if (passengerRow(8)) {
 			addPassengerSlider(left, 8, true, 0, PassengerDrawSettings.MAX_PER_PLACE_MAX, 1, () -> PassengerDrawSettings.get().maxPerPlace(),
 					value -> PassengerDrawSettings.setMaxPerPlace((int) value),
-					value -> Text.translatable("gui.aurelia.passengers.max_drawn", value.intValue()));
+					value -> Text.translatable("gui.aurelia.passengers.max_drawn", value.intValue()))
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.passengers.max_drawn.tooltip")));
 		}
 		if (passengerRow(9)) {
 			addDrawableChild(ButtonWidget.builder(solidLabel(), b -> {
@@ -632,7 +639,8 @@ public final class AureliaPanelScreen extends Screen {
 		if (passengerRow(13)) {
 			addPassengerSlider(left, 13, true, 0, PassengerDrawSettings.MAX_WALKERS_MAX, 4, () -> PassengerDrawSettings.get().maxWalkers(),
 					value -> PassengerDrawSettings.setMaxWalkers((int) value),
-					value -> Text.translatable("gui.aurelia.passengers.max_walkers", value.intValue()));
+					value -> Text.translatable("gui.aurelia.passengers.max_walkers", value.intValue()))
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.passengers.max_walkers.tooltip")));
 		}
 		if (passengerRow(14)) {
 			final ButtonWidget routes = addDrawableChild(ButtonWidget.builder(routesLabel(), b -> {
@@ -666,9 +674,10 @@ public final class AureliaPanelScreen extends Screen {
 		return top + (row - passengerFirst) * ROW;
 	}
 
-	private void addPassengerSlider(int left, int row, boolean active, double min, double max, double step, DoubleSupplier get, DoubleConsumer set, Function<Double, Text> label) {
+	private RangeSlider addPassengerSlider(int left, int row, boolean active, double min, double max, double step, DoubleSupplier get, DoubleConsumer set, Function<Double, Text> label) {
 		final RangeSlider slider = addDrawableChild(new RangeSlider(left, passengerY(row), min, max, step, get, set, label));
 		slider.active = active;
+		return slider;
 	}
 
 	private static void sendPassengers(UnaryOperator<PassengerNetwork.Settings> change) {
@@ -829,6 +838,14 @@ public final class AureliaPanelScreen extends Screen {
 			}
 			return true;
 		}
+		if (tab == Tab.DRIVING) {
+			final int newFirstRow = Math.max(0, Math.min(DRIVING_ROWS - visibleRows(), drivingFirst - (int) Math.signum(amount)));
+			if (newFirstRow != drivingFirst) {
+				drivingFirst = newFirstRow;
+				clearAndInit();
+			}
+			return true;
+		}
 		if (tab == Tab.TRAIN_SOUND) {
 			final int newFirstRow = Math.max(0, Math.min(TRAIN_SOUND_ROWS - visibleRows(), trainSoundFirst - (int) Math.signum(amount)));
 			if (newFirstRow != trainSoundFirst) {
@@ -857,6 +874,10 @@ public final class AureliaPanelScreen extends Screen {
 			final int statsY = top + passengerVisible() * ROW;
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.stats", stats.waiting(), stats.riding(), stats.boarded(), stats.alighted()), width / 2, statsY + 6, 0xFFFFFF);
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.cost", String.format("%.2f", stats.costMicros() / 1000D)), width / 2, statsY + 18, 0xAAAAAA);
+			final Text drawCost = PassengerDrawSettings.get().draw()
+					? Text.translatable("gui.aurelia.passengers.draw_cost", String.format("%.2f", PassengerRenderer.renderMicros / 1000D), PassengerRenderer.lastWalkers, PassengerRenderer.lastFigures)
+					: Text.translatable("gui.aurelia.passengers.draw_cost.off");
+			context.drawCenteredTextWithShadow(textRenderer, drawCost, width / 2, statsY + 30, 0xAAAAAA);
 			if (client.player != null && !client.player.hasPermissionLevel(2)) {
 				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), width / 2, top - 10, 0xFF5555);
 			}
@@ -868,6 +889,8 @@ public final class AureliaPanelScreen extends Screen {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", trainSoundFirst + 1, Math.min(TRAIN_SOUND_ROWS, trainSoundFirst + visibleRows()), TRAIN_SOUND_ROWS), width / 2, height - 44, 0xAAAAAA);
 		} else if (tab == Tab.TOOLS && !MtrBridge.canEdit()) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), width / 2, top - 10, 0xFF5555);
+		} else if (tab == Tab.DRIVING && DRIVING_ROWS > visibleRows()) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", drivingFirst + 1, Math.min(DRIVING_ROWS, drivingFirst + visibleRows()), DRIVING_ROWS), width / 2, height - 44, 0xAAAAAA);
 		} else if (tab == Tab.BUILDER && !isRailBuilder(client.player.getMainHandStack()) && !isRailBuilder(client.player.getOffHandStack())) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), width / 2, top + 6, 0xAAAAAA);
 		}
@@ -887,6 +910,59 @@ public final class AureliaPanelScreen extends Screen {
 		Config.save();
 		SoundProfileStore.save();
 		client.setScreen(parent);
+	}
+
+	/**
+	 * Driver aids: AWS, TPWS, the score line, the stop board, how long AWS waits for an acknowledgement, and the cab
+	 * HUD size. Rows read the same client config as the other tabs, so old configs keep their defaults.
+	 */
+	private void initDriving() {
+		drivingFirst = Math.max(0, Math.min(drivingFirst, DRIVING_ROWS - visibleRows()));
+		final int left = (width - BUTTON_WIDTH) / 2;
+		if (drivingRow(0)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.driving.aws", ScreenTexts.onOrOff(config.getDrivingAws())), b -> {
+				config.toggleDrivingAws();
+				b.setMessage(Text.translatable("gui.aurelia.driving.aws", ScreenTexts.onOrOff(config.getDrivingAws())));
+			}).dimensions(left, drivingY(0), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.aws.tooltip")));
+		}
+		if (drivingRow(1)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.driving.tpws", ScreenTexts.onOrOff(config.getDrivingTpws())), b -> {
+				config.toggleDrivingTpws();
+				b.setMessage(Text.translatable("gui.aurelia.driving.tpws", ScreenTexts.onOrOff(config.getDrivingTpws())));
+			}).dimensions(left, drivingY(1), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.tpws.tooltip")));
+		}
+		if (drivingRow(2)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.driving.score", ScreenTexts.onOrOff(config.getDrivingScoreHud())), b -> {
+				config.toggleDrivingScoreHud();
+				b.setMessage(Text.translatable("gui.aurelia.driving.score", ScreenTexts.onOrOff(config.getDrivingScoreHud())));
+			}).dimensions(left, drivingY(2), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.score.tooltip")));
+		}
+		if (drivingRow(3)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.driving.stop_marker", ScreenTexts.onOrOff(config.getDrivingStopMarker())), b -> {
+				config.toggleDrivingStopMarker();
+				b.setMessage(Text.translatable("gui.aurelia.driving.stop_marker", ScreenTexts.onOrOff(config.getDrivingStopMarker())));
+			}).dimensions(left, drivingY(3), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.stop_marker.tooltip")));
+		}
+		if (drivingRow(4)) {
+			addDrawableChild(new RangeSlider(left, drivingY(4), Client.DRIVING_AWS_SECONDS_MIN, Client.DRIVING_AWS_SECONDS_MAX, 0.5,
+					config::getDrivingAwsSeconds, config::setDrivingAwsSeconds,
+					seconds -> Text.translatable("gui.aurelia.driving.aws_time", String.format("%.1f", seconds))))
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.aws_time.tooltip")));
+		}
+		if (drivingRow(5)) {
+			addDrawableChild(new RangeSlider(left, drivingY(5), Client.DRIVING_HUD_SCALE_MIN * 100, Client.DRIVING_HUD_SCALE_MAX * 100, 5,
+					() -> config.getDrivingHudScale() * 100, percent -> config.setDrivingHudScale(percent / 100),
+					percent -> Text.translatable("gui.aurelia.driving.hud_size", percent.intValue())))
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.hud_size.tooltip")));
+		}
+	}
+
+	private boolean drivingRow(int row) {
+		return row >= drivingFirst && row < drivingFirst + visibleRows();
+	}
+
+	private int drivingY(int row) {
+		return top + (row - drivingFirst) * ROW;
 	}
 
 	/** A Rail Builder number from {@code min} to {@code max} in steps of {@code step}. */
