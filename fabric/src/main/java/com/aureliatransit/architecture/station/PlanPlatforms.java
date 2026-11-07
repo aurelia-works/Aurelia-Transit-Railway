@@ -66,6 +66,7 @@ abstract class PlanPlatforms extends PlanState {
 	boolean numberSign(int u, int y, int v, LocalDir front, String number) {
 		final Cell cell = new Cell(u, y, v);
 		if (cells.containsKey(cell) || air.contains(cell)) {
+			skip(Role.FIXTURE, NUMBER_SIGN, cell);
 			return false;
 		}
 		cells.put(cell, new PlannedBlock(u, y, v, Role.FIXTURE, NUMBER_SIGN, front, number, ""));
@@ -87,12 +88,16 @@ abstract class PlanPlatforms extends PlanState {
 			}
 		}
 		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			// a high platform carries its tactile warning in the edge cell; a low or standard one keeps the same edge layout and
+			// the tactile warning is part of the edge texture
+			final boolean tactileEdge = spec.tactile();
+			final String edgeId = spec.features().edgeLines() ? palette.edgeId(tactileEdge) : palette.surfaceId();
 			for (int v = band.vFrom(); v <= band.vTo(); v++) {
 				for (int u = band.uMin(); u <= band.uMax(); u++) {
 					if (u == band.uMin() && band.trackLeft()) {
-						put(Role.PLATFORM_EDGE, u, StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U);
+						put(Role.PLATFORM_EDGE, u, StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U, edgeId);
 					} else if (u == band.uMax() && band.trackRight()) {
-						put(Role.PLATFORM_EDGE, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_U);
+						put(Role.PLATFORM_EDGE, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_U, edgeId);
 					} else {
 						put(Role.PLATFORM_SURFACE, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V);
 					}

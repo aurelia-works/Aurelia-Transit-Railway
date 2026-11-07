@@ -150,6 +150,23 @@ public final class StationGeometry {
 		return (int) Math.round(metres * BLOCKS_PER_METRE);
 	}
 
+	/** A typical MTR car in blocks: real cars of the stock MTR models are about 20-25 m, and one block is one car metre in
+	 * the vehicle models. Used only to report how many cars a platform holds. */
+	public static final int CAR_LENGTH = 24;
+
+	/** The cars of the formation whose length is nearest a platform of {@code blocks} between its rail nodes, at least one. */
+	public static int cars(int blocks) {
+		return Math.max(1, Math.round(blocks / (float) CAR_LENGTH));
+	}
+
+	/** The spare blocks a formation of {@code cars} leaves at the end of a platform {@code blocks} long (negative when short). */
+	public static int trainSpare(int blocks, int cars) {
+		return blocks - cars * CAR_LENGTH;
+	}
+
+	/** The shortest platform the generator draws: two cars. */
+	public static final int MIN_TRAIN_PLATFORM = 2 * CAR_LENGTH;
+
 	/**
 	 * Depth of a station building beside the tracks at {@code scale}: the block's walls included, at roughly a block a
 	 * metre. {@link #BUILDING_DEPTH} is the compact block; a city or grand building is deeper, so a bigger station gets a

@@ -356,4 +356,54 @@ public final class StylePalette {
 	private static String ata(String id) {
 		return ATA + id;
 	}
+
+	/** The platform surface block the style uses (for an edge drawn without a coping line). */
+	public String surfaceId() {
+		return surface;
+	}
+
+	/**
+	 * The block for a platform edge: the style's tactile edge when the tactile strip sits in the edge cell (a high platform),
+	 * else the same style's plain coping, so the white edge line is not muddled with the strip.
+	 */
+	public String edgeId(boolean tactileOnEdge) {
+		if (tactileOnEdge) {
+			return edge;
+		}
+		return switch (edge) {
+			case "aurelia_transit_architecture:platform_edge_warning" -> ata("platform_edge");
+			case "aurelia_transit_architecture:sbahn_platform_edge_tactile" -> ata("sbahn_platform_edge");
+			case "aurelia_transit_architecture:uk_platform_coping_tactile" -> ata("uk_platform_coping");
+			case "aurelia_transit_architecture:metro_tactile_edge" -> ata("platform_edge");
+			default -> edge;
+		};
+	}
+
+	/** The block a tactile strip one cell in from a platform edge is laid with: the style's own tactile paving, a full platform
+	 * surface so MTR doors still open over it. Yellow warning paving where the style has no paving of its own. */
+	public String tactileId() {
+		if (specBuildingStyle()) {
+			return switch (buildingStyle) {
+				case VICTORIAN, ART_DECO, MODERNIST -> ata("uk_platform_coping_tactile");
+				default -> switch (style) {
+					case GERMAN_SBAHN -> ata("sbahn_platform_edge_tactile");
+					case METRO -> ata("metro_tactile_edge");
+					default -> ata("tactile_warning_paving");
+				};
+			};
+		}
+		return switch (style) {
+			case GERMAN_SBAHN -> ata("sbahn_platform_edge_tactile");
+			case METRO -> ata("metro_tactile_edge");
+			default -> ata("tactile_warning_paving");
+		};
+	}
+
+	/** True when the station has a British building look whose platforms have their own coping. */
+	private boolean specBuildingStyle() {
+		return switch (buildingStyle) {
+			case VICTORIAN, ART_DECO, MODERNIST -> true;
+			default -> false;
+		};
+	}
 }

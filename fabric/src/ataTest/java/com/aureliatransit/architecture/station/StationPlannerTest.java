@@ -606,10 +606,10 @@ class StationPlannerTest {
 		expected.put(Role.BENCH, 12);
 		expected.put(Role.BIN, 6);
 		// per platform: two departure screens fixed to a column, two blocks wide on both faces of it (8), a help point and two
-		// speakers (one every 32 blocks)
-		expected.put(Role.FIXTURE, 22);
+		// speakers (one every 32 blocks), plus a CCTV camera every 20 rows (2 a platform)
+		expected.put(Role.FIXTURE, 26);
 		assertEquals(expected, counts);
-		assertEquals(1278, plan(spec).blocks().size());
+		assertEquals(1282, plan(spec).blocks().size());
 	}
 
 	@Test

@@ -20,6 +20,8 @@ public final class StationPlanner {
 	static final String HELP_POINT = "aurelia_transit_architecture:help_point";
 	static final String CEILING_SPEAKER = "aurelia_transit_architecture:ceiling_speaker";
 	static final String WALL_SPEAKER = "aurelia_transit_architecture:wall_speaker";
+	/** A security camera under a canopy or concourse ceiling; its kind state is pendant, wall or dome. */
+	static final String CCTV = "aurelia_transit_architecture:cctv_camera";
 	static final String GIRDER = "aurelia_transit_architecture:station_girder";
 	/** A shed's frame: the girder's states and joins with a lattice model. */
 	static final String ROOF_TRUSS = "aurelia_transit_architecture:roof_truss";
@@ -104,6 +106,7 @@ public final class StationPlanner {
 		planning.mezzanine();
 		planning.speakers();
 		planning.hallLamps();
+		planning.cameras();
 		planning.liftButtons();
 		planning.entrances();
 		planning.concourseFit();
@@ -222,7 +225,7 @@ public final class StationPlanner {
 		return positions;
 	}
 
-	record Cell(int u, int y, int v) {
+	public record Cell(int u, int y, int v) {
 	}
 
 	/** Platforms at least this long (rows, both ends included) get travelators along them. */

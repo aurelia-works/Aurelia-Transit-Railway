@@ -62,6 +62,15 @@ abstract class PlanState {
 	/** Cells that must stay empty: doorways, stair headroom, landings, the space in front of entrances. */
 	final Set<Cell> air = new HashSet<>();
 
+	/** Blocks every rule asked for but an earlier rule had already taken, in planning order (the first few thousand). */
+	final List<SkippedBlock> skipped = new ArrayList<>();
+
+	/** How many times each block id lost its cell to an earlier rule; every loss is counted, even past the list's cap. */
+	final Map<String, Integer> skippedByBlock = new HashMap<>();
+
+	/** The most lost blocks the plan keeps for the studio and the audit; the per-block counts keep counting. */
+	static final int MAX_SKIPS = 20_000;
+
 	/** Lift call buttons, placed once everything else has its cells. */
 	final List<LiftButton> buttons = new ArrayList<>();
 
@@ -285,6 +294,7 @@ abstract class PlanState {
 	boolean put(Role role, int u, int y, int v, LocalDir front, String blockId, String state) {
 		final Cell cell = new Cell(u, y, v);
 		if (cells.containsKey(cell) || air.contains(cell)) {
+			skip(role, blockId, cell);
 			return false;
 		}
 		// a screen carries the display style it is set to when built
@@ -293,10 +303,19 @@ abstract class PlanState {
 		return true;
 	}
 
+	/** Records a rule's block losing its cell to an earlier rule. */
+	void skip(Role role, String blockId, Cell cell) {
+		skippedByBlock.merge(blockId, 1, Integer::sum);
+		if (skipped.size() < MAX_SKIPS) {
+			skipped.add(new SkippedBlock(role, blockId, cell.u(), cell.y(), cell.v(), air.contains(cell)));
+		}
+	}
+
 	/** A block carrying its own text (a wayfinding sign's "ARROW:destination", see {@link #wayfinding}). */
 	boolean putText(Role role, int u, int y, int v, LocalDir front, String blockId, String text) {
 		final Cell cell = new Cell(u, y, v);
 		if (cells.containsKey(cell) || air.contains(cell)) {
+			skip(role, blockId, cell);
 			return false;
 		}
 		cells.put(cell, new PlannedBlock(u, y, v, role, blockId, front, text, ""));

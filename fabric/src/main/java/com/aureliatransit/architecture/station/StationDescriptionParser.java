@@ -285,6 +285,8 @@ public final class StationDescriptionParser {
 		private SurfaceMaterial surface;
 		private Boolean stepFree;
 		private Boolean tactile;
+		/** The visible fittings the words turned on or off (cameras, edge lines, tactile rows, platform height). */
+		private StationFeatures features = StationFeatures.DEFAULTS;
 		private TrackBed trackBed;
 		private Operator operator;
 		/** The real station named ("utrecht centraal"), or null. */
@@ -1098,6 +1100,12 @@ public final class StationDescriptionParser {
 				} else if (word.equals("tactile")) {
 					tactile = false;
 					note(i, "no tactile paving");
+				} else if (word.equals("cctv") || word.equals("cameras") || word.equals("camera")) {
+					features = features.withCctv(false);
+					note(i, "no CCTV cameras");
+				} else if (word.equals("lines") || word.equals("line") && at(j + 1).equals("lines")) {
+					features = features.withEdgeLines(false);
+					note(i, "no white platform edge lines");
 				} else if (word.equals("furniture") || word.equals("benches")) {
 					furniture = false;
 					note(i, "no furniture");
@@ -1540,6 +1548,21 @@ public final class StationDescriptionParser {
 				if (tactile == null) {
 					tactile = true;
 					note(i, "tactile paving");
+				}
+			} else if (token.equals("cctv") || token.equals("cameras") || token.equals("camera")) {
+				features = features.withCctv(true);
+				note(i, "CCTV cameras under the canopies and in the hall");
+			} else if (token.equals("edge") && (at(i + 1).equals("line") || at(i + 1).equals("lines"))) {
+				features = features.withEdgeLines(true);
+				use(i + 1, i + 1);
+				note(i, "white platform edge lines");
+			} else if (token.equals("low") || token.equals("high") || token.equals("standard")) {
+				if (at(i + 1).equals("platform") || at(i + 1).equals("platforms")) {
+					final StationFeatures.PlatformHeight height = token.equals("low") ? StationFeatures.PlatformHeight.LOW
+							: token.equals("high") ? StationFeatures.PlatformHeight.HIGH : StationFeatures.PlatformHeight.STANDARD;
+					features = features.withHeight(height);
+					use(i + 1, i + 1);
+					note(i, height.label() + " platform height");
 				}
 			} else if (token.equals("benches") || token.equals("furniture") || token.equals("furnished")) {
 				if (furniture == null) {
@@ -2668,7 +2691,7 @@ public final class StationDescriptionParser {
 				builder.operator(operator);
 			}
 			builder.escalators(escalators).stairsBothWays(bothWays).enclosedStairs(enclosedStairs).travelators(travelators).parking(parking).underpass(underpass).tram(tram).mezzanine(mezzanine)
-					.options(options);
+					.options(options).features(features);
 			if (travelators) {
 				final List<TrackLayout.PlatformBand> built = StationGeometry.layout(builder.build()).platforms();
 				if (built.stream().noneMatch(b -> b.length() >= StationPlanner.TRAVELATOR_PLATFORM)) {

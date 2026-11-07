@@ -736,7 +736,7 @@ final class Planning extends PlanAirport {
 		supports.addAll(extraSupport);
 		headroom.addAll(extraHeadroom);
 		return new StationPlan(spec, layout, swapped(blocks), envelopes, headroom, holes.isEmpty() ? supports : without(supports, holes),
-				spec.options().swapped(palette.blockId(Role.FOUNDATION)));
+				spec.options().swapped(palette.blockId(Role.FOUNDATION)), skipped, skippedByBlock);
 	}
 
 	/**
@@ -754,7 +754,8 @@ final class Planning extends PlanAirport {
 			supports.addAll(railHoles.isEmpty() || !overRail(box) ? List.of(box) : without(List.of(box), railHoles));
 		}
 		supports.addAll(railSupports);
-		return new StationPlan(spec, layout, swapped(blocks), railEnvelopes, headroom, supports, spec.options().swapped("minecraft:stone_bricks"));
+		return new StationPlan(spec, layout, swapped(blocks), railEnvelopes, headroom, supports, spec.options().swapped("minecraft:stone_bricks"),
+				skipped, skippedByBlock);
 	}
 
 	/** True when a box reaches over the railway station's footprint at its support row. */
@@ -777,6 +778,59 @@ final class Planning extends PlanAirport {
 		}
 		return out;
 	}
+
+	/**
+	 * Security cameras under the platform canopies and the concourse ceiling, every {@link #CAMERA_PITCH} rows, hung from the
+	 * structure above so they never float. Plain blocks: a prop, like the real housing. Their kind is a pendant under a canopy
+	 * and a dome in the building. Planned after the roofs, so they hang under a girder or slab rather than replace it.
+	 */
+	void cameras() {
+		if (!spec.features().cctv() || spec.isAirport()) {
+			return;
+		}
+		final String kind = spec.options().underground() ? "kind=wall" : "kind=pendant";
+		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			final int middle = (band.uMin() + band.uMax()) / 2;
+			for (int v = band.vFrom() + CAMERA_PITCH / 2; v <= band.vTo() - 2; v += CAMERA_PITCH) {
+				final LocalDir front = band.trackLeft() ? LocalDir.MINUS_U : LocalDir.PLUS_U;
+				for (int d = 0; d <= 2; d++) {
+					final int u = middle + (d % 2 == 0 ? d / 2 : -(d + 1) / 2);
+					if (u <= band.uMin() || u >= band.uMax() || taken(u, StationGeometry.WALK_Y, v)) {
+						continue;
+					}
+					final int top = ceilingAbove(u, StationGeometry.WALK_Y + StationGeometry.HEADROOM, v);
+					if (top < 0) {
+						continue;
+					}
+					final int y = top - 1;
+					if (y < StationGeometry.WALK_Y + StationGeometry.HEADROOM || taken(u, y, v)) {
+						continue;
+					}
+					if (put(Role.FIXTURE, u, y, v, front, CCTV, kind)) {
+						break;
+					}
+				}
+			}
+		}
+		// the ticket hall: domes under the first-floor slab, along the back of the hall
+		if (site.building()) {
+			final int y = StationGeometry.UPPER_FLOOR_Y - 1;
+			for (int v = site.vStart() + 3; v <= site.vEnd() - 3; v += CAMERA_PITCH) {
+				for (final int u : new int[]{2, Math.max(3, layout.buildingWidth() - 3)}) {
+					final PlannedBlock above = at(u, y + 1, v);
+					if (above == null || !above.role().covers() || taken(u, y, v) || taken(u, y - 1, v)) {
+						continue;
+					}
+					if (put(Role.FIXTURE, u, y, v, u < layout.buildingWidth() / 2 ? LocalDir.PLUS_U : LocalDir.MINUS_U, CCTV, "kind=dome")) {
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	/** Rows between security cameras along a platform or hall. */
+	static final int CAMERA_PITCH = 20;
 
 	/** {@code boxes} with the {@code holes} taken out: a box holding a hole is cut into runs along u that miss it. */
 	static List<Box> without(List<Box> boxes, Set<Cell> holes) {

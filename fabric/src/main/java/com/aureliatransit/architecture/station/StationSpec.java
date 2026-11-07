@@ -44,7 +44,7 @@ public record StationSpec(int trackCount, PlatformLayout platformLayout, int pla
 		boolean railNodes, String name, BuildingStyle building, boolean footbridge, boolean terminus, ShedShape shed, CanopyShape canopy, StationScale scale, boolean hub,
 		List<PlatformSpec> platforms, TrackBed trackBed, boolean escalators,
 		boolean stairsBothWays, boolean enclosedStairs, boolean travelators, boolean parking, boolean underpass, boolean tram, boolean mezzanine, long seed, StationClass stationClass, StationEra era,
-		Facing facing, Operator operator, RealStation real, StationOptions options) {
+		Facing facing, Operator operator, RealStation real, StationOptions options, StationFeatures features) {
 
 	public static final int MIN_TRACKS = 1;
 	public static final int MAX_TRACKS = 10;
@@ -88,6 +88,7 @@ public record StationSpec(int trackCount, PlatformLayout platformLayout, int pla
 		Objects.requireNonNull(era, "era");
 		Objects.requireNonNull(facing, "facing");
 		Objects.requireNonNull(options, "options");
+		Objects.requireNonNull(features, "features");
 		platforms = List.copyOf(platforms);
 		check(trackCount, MIN_TRACKS, platforms.isEmpty() ? MAX_TRACKS : MAX_LISTED_TRACKS, "trackCount");
 		if (platforms.size() > PlatformSpec.MAX_PLATFORMS) {
@@ -155,7 +156,7 @@ public record StationSpec(int trackCount, PlatformLayout platformLayout, int pla
 				.style(style).roof(roof).surface(surface).roofMaterial(roofMaterial).stepFree(stepFree).tactile(tactile).furniture(furniture)
 				.railNodes(railNodes).name(name).building(building).footbridge(footbridge).terminus(terminus).shed(shed).canopy(canopy).scale(scale).hub(hub).platforms(platforms).trackBed(trackBed)
 				.escalators(escalators).stairsBothWays(stairsBothWays).enclosedStairs(enclosedStairs).travelators(travelators).parking(parking).underpass(underpass).tram(tram).mezzanine(mezzanine).seed(seed)
-				.stationClass(stationClass).era(era).facing(facing).operator(operator).real(real).options(options);
+				.stationClass(stationClass).era(era).facing(facing).operator(operator).real(real).options(options).features(features);
 	}
 
 	/** The airport the words describe, or {@link AirportSpec#NONE} for a railway station. */
@@ -222,6 +223,7 @@ public record StationSpec(int trackCount, PlatformLayout platformLayout, int pla
 		private StationEra era = StationEra.AUTO;
 		private Facing facing = Facing.AUTO;
 		private StationOptions options = StationOptions.DEFAULTS;
+		private StationFeatures features = StationFeatures.DEFAULTS;
 
 		private Builder() {
 		}
@@ -396,6 +398,11 @@ public record StationSpec(int trackCount, PlatformLayout platformLayout, int pla
 			return this;
 		}
 
+		public Builder features(StationFeatures value) {
+			features = value;
+			return this;
+		}
+
 		public StationOptions options() {
 			return options;
 		}
@@ -418,7 +425,7 @@ public record StationSpec(int trackCount, PlatformLayout platformLayout, int pla
 		public StationSpec build() {
 			return new StationSpec(trackCount, platformLayout, platformLength, platformWidth, style, roof, surface, roofMaterial, stepFree,
 					tactile, furniture, railNodes, name, building, footbridge, terminus, shed, canopy, scale, hub, platforms, trackBed, escalators,
-					stairsBothWays, enclosedStairs, travelators, parking, underpass, tram, mezzanine, seed, stationClass, era, facing, operator, real, options);
+					stairsBothWays, enclosedStairs, travelators, parking, underpass, tram, mezzanine, seed, stationClass, era, facing, operator, real, options, features);
 		}
 	}
 }

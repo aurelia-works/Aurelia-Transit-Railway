@@ -27,7 +27,8 @@ public final class StationAudit {
 	public enum Topic {
 		TRACKS("Tracks"), FACES("Boarding edges"), RAIL_NODES("Rail nodes"), ROOF("Roof cover"), HEADROOM("Headroom"), ACCESS("Step-free access"),
 		NAME_SIGNS("Name signs"), GROUNDED("Nothing floating"), FALLS("No falls"), SIZE("Size"), LIGHTING("Lighting"), FURNISHING("Furnishing"),
-		RUNWAYS("Runways"), TAXIWAYS("Taxiways"), GATES("Gates"), TERMINAL("Terminal");
+		RUNWAYS("Runways"), TAXIWAYS("Taxiways"), GATES("Gates"), TERMINAL("Terminal"), SKIPPED("Skipped blocks"),
+		TRAIN_LENGTH("Train fit"), PLATFORM_HEIGHT("Platform height");
 
 		private final String title;
 
@@ -215,6 +216,9 @@ public final class StationAudit {
 			falls();
 			lighting();
 			furnishing();
+			skippedBlocks();
+			trainFit();
+			platformHeight();
 			return size();
 		}
 
@@ -1529,6 +1533,74 @@ public final class StationAudit {
 			} else {
 				fail(Topic.FURNISHING, "The station building is missing " + String.join(", ", missing), "Choose a bigger building (city or grand) so the ticket office, gates, boards and benches have room.");
 			}
+		}
+
+		/**
+		 * The blocks planning rules asked for but an earlier rule had already taken. These used to vanish silently; the audit
+		 * names the most frequent so a player (or the generator's author) can see what the plan lost and where.
+		 */
+		private void skippedBlocks() {
+			final List<Map.Entry<String, Integer>> top = new ArrayList<>(plan.skippedByBlock().entrySet());
+			if (top.isEmpty()) {
+				pass(Topic.SKIPPED, "Every block a rule placed found its cell; nothing was skipped");
+				return;
+			}
+			top.sort(Map.Entry.<String, Integer>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()));
+			final StringBuilder names = new StringBuilder();
+			for (int i = 0; i < Math.min(5, top.size()); i++) {
+				final Map.Entry<String, Integer> entry = top.get(i);
+				names.append(i == 0 ? "" : ", ").append(shortId(entry.getKey())).append(" ×").append(entry.getValue());
+			}
+			int total = 0;
+			for (final int count : plan.skippedByBlock().values()) {
+				total += count;
+			}
+			pass(Topic.SKIPPED, total + (total == 1 ? " block was" : " blocks were") + " skipped where an earlier rule had taken the cell: " + names
+					+ " (the earlier block stays; nothing is broken)");
+		}
+
+		/** A block id without its namespace, for a compact audit line. */
+		private static String shortId(String blockId) {
+			final int colon = blockId.indexOf(':');
+			return colon < 0 ? blockId : blockId.substring(colon + 1);
+		}
+
+		/**
+		 * Whether a platform holds a whole formation of about {@link StationGeometry#CAR_LENGTH}-block cars, the way a real
+		 * platform is dimensioned for its trains. A platform between formations is a warning, not a failure: MTR accepts it,
+		 * but trains will not stop with every door on the platform.
+		 */
+		private void trainFit() {
+			if (faces.isEmpty()) {
+				return;
+			}
+			int shortest = Integer.MAX_VALUE;
+			for (final Face face : faces) {
+				shortest = Math.min(shortest, face.length());
+			}
+			final int cars = StationGeometry.cars(shortest);
+			final int spare = StationGeometry.trainSpare(shortest, cars);
+			if (shortest < StationGeometry.MIN_TRAIN_PLATFORM) {
+				pass(Topic.TRAIN_LENGTH, "The shortest platform is " + shortest + " blocks, shorter than a 2-car train ("
+						+ StationGeometry.MIN_TRAIN_PLATFORM + "): only a short train stops here");
+			} else if (Math.abs(spare) > StationGeometry.CAR_LENGTH / 2) {
+				pass(Topic.TRAIN_LENGTH, "The shortest platform is " + shortest + " blocks, between a " + cars + "-car formation ("
+						+ cars * StationGeometry.CAR_LENGTH + " blocks) and a " + (cars + 1) + "-car one ("
+						+ (cars + 1) * StationGeometry.CAR_LENGTH + "): aim for a whole number of cars so every door opens");
+			} else {
+				pass(Topic.TRAIN_LENGTH, "Platforms of " + shortest + " blocks hold a " + cars + "-car formation ("
+						+ cars * StationGeometry.CAR_LENGTH + " blocks, " + (spare >= 0 ? spare + " to spare" : Math.abs(spare) + " short") + ")");
+			}
+		}
+
+		/** The country's platform height and the layout the plan uses for it; MTR fixes the boarding level itself. */
+		private void platformHeight() {
+			final StationFeatures.PlatformHeight height = StationFeatures.PlatformHeight.of(spec);
+			final boolean tactileEdge = spec.tactile() && height == StationFeatures.PlatformHeight.HIGH;
+			final double built = 1.0 / StationGeometry.BLOCKS_PER_METRE;
+			pass(Topic.PLATFORM_HEIGHT, height.label() + " platforms (" + String.format(java.util.Locale.ROOT, "%.2f m", height.metres())
+					+ " above the rail); the plan boards at MTR's fixed one-block level (" + String.format(java.util.Locale.ROOT, "%.2f m", built)
+					+ ") and " + (tactileEdge ? "sets the tactile strip in the edge cell" : "sets the tactile strip one block in"));
 		}
 
 		private Result size() {

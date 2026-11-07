@@ -16,6 +16,7 @@ import com.aureliatransit.architecture.station.Facing;
 import com.aureliatransit.architecture.station.StationAudit;
 import com.aureliatransit.architecture.station.StationClass;
 import com.aureliatransit.architecture.station.StationEra;
+import com.aureliatransit.architecture.station.StationFeatures;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
 import com.aureliatransit.architecture.station.StationLayout;
 import com.aureliatransit.architecture.station.StationGeometry;
@@ -288,8 +289,26 @@ public final class StudioApi {
 		if (operator != null && operator != Operator.NONE) {
 			text = (text.isEmpty() ? "" : text + ", ") + operator.key() + " operator";
 		}
+		final StationFeatures features = features(q);
+		if (!features.cctv()) {
+			text = (text.isEmpty() ? "" : text + ", ") + "no cctv";
+		}
+		if (!features.edgeLines()) {
+			text = (text.isEmpty() ? "" : text + ", ") + "no edge lines";
+		}
+		if (features.height() != StationFeatures.PlatformHeight.AUTO) {
+			text = (text.isEmpty() ? "" : text + ", ") + features.height().key() + " platforms";
+		}
 		final String seed = q.getOrDefault("seed", "").strip().toLowerCase(Locale.ROOT);
 		return StationSeed.valid(seed) ? text + ", seed " + seed : text;
+	}
+
+	/** The visible-fitting switches a request carries; anything missing or unreadable keeps the default (on). */
+	public static StationFeatures features(Map<String, String> q) {
+		StationFeatures features = StationFeatures.DEFAULTS;
+		features = features.withCctv(!"0".equals(q.get("cctv")));
+		features = features.withEdgeLines(!"0".equals(q.get("edgeLines")));
+		return features.withHeight(StationFeatures.PlatformHeight.of(q.get("height")));
 	}
 
 	/**
@@ -352,6 +371,17 @@ public final class StudioApi {
 		return out.append(']').toString();
 	}
 
+	/** The blocks the one-block-per-cell rule skipped, most often first: [{"id","count"}]. */
+	static String skippedCounts(StationPlan plan) {
+		final List<Map.Entry<String, Integer>> sorted = new ArrayList<>(plan.skippedByBlock().entrySet());
+		sorted.sort(Map.Entry.<String, Integer>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()));
+		final StringBuilder out = new StringBuilder("[");
+		for (int i = 0; i < sorted.size(); i++) {
+			out.append(i == 0 ? "" : ",").append("{\"id\":").append(Json.quote(sorted.get(i).getKey())).append(",\"count\":").append(sorted.get(i).getValue()).append('}');
+		}
+		return out.append(']').toString();
+	}
+
 	/** The choices the page offers and their limits. */
 	public String options() {
 		final StringBuilder out = new StringBuilder("{");
@@ -364,6 +394,7 @@ public final class StudioApi {
 				.append(StationRecipe.DEFAULT_LENGTH).append(']');
 		out.append(",\"classes\":").append(keys(StationClass.values(), StationClass::key, StationClass::label));
 		out.append(",\"eras\":").append(keys(StationEra.values(), StationEra::key, StationEra::label));
+		out.append(",\"heights\":").append(keys(StationFeatures.PlatformHeight.values(), StationFeatures.PlatformHeight::key, StationFeatures.PlatformHeight::label));
 		out.append(",\"facings\":").append(keys(Facing.values(), Facing::key, f -> f == Facing.AUTO ? "Auto" : f.key().substring(0, 1).toUpperCase(Locale.ROOT) + f.key().substring(1)));
 		out.append(",\"blocks\":").append(Json.strings(BlockFamilies.suggestions()));
 		out.append(",\"maxTyped\":").append(MAX_TYPED).append(",\"maxName\":").append(StationSpec.MAX_NAME);
@@ -597,6 +628,7 @@ public final class StudioApi {
 		}
 		out.append(",\"warnings\":").append(Json.strings(warnings));
 		out.append(",\"materials\":").append(materials(plan));
+		out.append(",\"skipped\":").append(skippedCounts(plan));
 		out.append(",\"swaps\":[");
 		int swapIndex = 0;
 		for (final Map.Entry<String, String> swap : spec.options().swaps().entrySet()) {
