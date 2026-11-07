@@ -167,12 +167,14 @@ class StationRealismTest {
 	@Test
 	void hamburgsClockTowerIsATowerNotAChimney() {
 		final StationPlan hamburg = plan("hamburg hauptbahnhof");
-		assertEquals(1, streetClocks(hamburg).size());
+		assertEquals(2, streetClocks(hamburg).size());
 		// the side faces hang one cell outside the shaft: 5 cells (3.3 m) for 45 m read as a chimney
 		final int street = streetClocks(hamburg).get(0).u();
-		final java.util.IntSummaryStatistics side = clocks(hamburg).stream().filter(b -> b.u() > street).mapToInt(PlannedBlock::v).summaryStatistics();
-		assertEquals(2, side.getCount());
-		assertEquals(9, side.getMax() - side.getMin() - 1);
+		final int[] side = clocks(hamburg).stream().filter(b -> b.u() > street).mapToInt(PlannedBlock::v).distinct().sorted().toArray();
+		// the two towers: two side clock faces each, both as wide as the real tower
+		assertEquals(4, side.length);
+		assertEquals(9, side[1] - side[0] - 1);
+		assertEquals(9, side[3] - side[2] - 1);
 		// the pyramid's point at the real 45 m, the lightning rod on it
 		final int top = hamburg.blocks().stream().filter(b -> !b.blockId().endsWith("lightning_rod")).mapToInt(PlannedBlock::y).max().orElseThrow();
 		assertEquals(StationGeometry.metres(45), top);
@@ -300,8 +302,8 @@ class StationRealismTest {
 		final java.util.IntSummaryStatistics walls = hamburg.blocks().stream().filter(b -> b.u() < bw - 1 && b.role() == Role.WALL)
 				.mapToInt(PlannedBlock::v).summaryStatistics();
 		assertTrue(walls.getMax() - walls.getMin() + 1 <= hamburg.layout().platformLength() / 3, "building " + walls.getMin() + ".." + walls.getMax());
-		// its clock tower still stands over the entrance
-		assertEquals(1, streetClocks(hamburg).size());
+		// its two clock towers still stand over the entrance
+		assertEquals(2, streetClocks(hamburg).size());
 		// Amsterdam's long front is a look of its own: not a real train shed, its wings stay
 		final StationPlan amsterdam = plan(preset("amsterdam"));
 		final java.util.IntSummaryStatistics front = amsterdam.blocks().stream().filter(b -> b.u() < amsterdam.layout().buildingWidth() - 1 && b.role() == Role.WALL)

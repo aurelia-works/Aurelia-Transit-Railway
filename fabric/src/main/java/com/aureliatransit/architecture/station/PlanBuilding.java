@@ -236,9 +236,11 @@ abstract class PlanBuilding extends PlanPlatforms {
 		final int top = roofY();
 		if (scale == StationScale.GRAND && !sheet && !domedPavilions()) {
 			// the Amsterdam look has two towers flanking the entrance, as its head building does (Amsterdam Centraal's
-			// clock on the right one, a wind dial on the left); one over the entrance when the block is too short for both
+			// clock on the right one, a wind dial on the left), and so does Hamburg Hbf, which RealStation gives two 45 m
+			// towers; one over the entrance when the block is too short for both
+			final boolean twoTowers = spec.building() == BuildingStyle.AMSTERDAM || spec.real() == RealStation.HAMBURG_HBF;
 			final int flank = door + 5;
-			if (spec.building() == BuildingStyle.AMSTERDAM && vEntr - flank - 2 > vS && vEntr + flank + 2 < vE) {
+			if (twoTowers && vEntr - flank - 2 > vS && vEntr + flank + 2 < vE) {
 				clockTower(top, uS, uP, vEntr - flank, LocalDir.PLUS_U);
 				clockTower(top, uS, uP, vEntr + flank, LocalDir.PLUS_U);
 			} else {

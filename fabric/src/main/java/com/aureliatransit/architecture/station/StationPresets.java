@@ -24,7 +24,7 @@ public final class StationPresets {
 	public static final List<Preset> ALL = List.of(
 			// the real stations: their halls, platforms and operators (see RealStation), not looks after them
 			new Preset("utrecht", BuildingStyle.NONE, "utrecht centraal"),
-			new Preset("hamburg_hbf", BuildingStyle.SANDSTONE, "hamburg hauptbahnhof"),
+			new Preset("hamburg_hbf", BuildingStyle.CLINKER, "hamburg hauptbahnhof"),
 			new Preset("amsterdam", BuildingStyle.AMSTERDAM,
 					"eight track amsterdam station, four island platforms, 240 long, train shed, grand station building with footbridge, 9 wide entrance, named Amsterdam Centraal"),
 			new Preset("st_pancras", BuildingStyle.GOTHIC_BRICK,
