@@ -785,7 +785,8 @@ final class Planning extends PlanAirport {
 	 * and a dome in the building. Planned after the roofs, so they hang under a girder or slab rather than replace it.
 	 */
 	void cameras() {
-		if (!spec.features().cctv() || spec.isAirport()) {
+		// cameras are station equipment: a bare station (furniture off) keeps its platform clear
+		if (!spec.features().cctv() || !spec.furniture() || spec.isAirport()) {
 			return;
 		}
 		for (final TrackLayout.PlatformBand band : layout.platforms()) {
