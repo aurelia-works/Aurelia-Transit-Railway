@@ -66,6 +66,22 @@ public final class RouteControl {
 		return waypoints.isEmpty() && platformChoices.isEmpty() && !fallback;
 	}
 
+	@Override
+	public boolean equals(Object other) {
+		if (this == other) {
+			return true;
+		}
+		if (!(other instanceof RouteControl control)) {
+			return false;
+		}
+		return fallback == control.fallback && waypoints.equals(control.waypoints) && platformChoices.equals(control.platformChoices);
+	}
+
+	@Override
+	public int hashCode() {
+		return waypoints.hashCode() * 31 + platformChoices.hashCode() * 31 + (fallback ? 1 : 0);
+	}
+
 	/** The platform a stop uses: its choice, or the route's planned platform when it has none. */
 	public long platformForStop(int stop, long plannedPlatformId) {
 		return platformChoices.getOrDefault(stop, plannedPlatformId);
