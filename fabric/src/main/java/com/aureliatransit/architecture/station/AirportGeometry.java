@@ -64,12 +64,12 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 	public static final int REAL_WIDTH = 30;
 	public static final Dims COMPACT = new Dims(24, 6, 6, 18, 30, 28, 9, 14, 30, 8, 2, 8, 12, 6, 5, 3, 8, 11, 4, 6, 8, 6, 0);
 	/**
-	 * Real dimensions at 1.5 blocks a metre (ICAO Annex 14, code C, the A320's class): the parallel taxiway's centreline at least
-	 * 158 m (237 blocks) from an instrument runway's on a 30-block runway, more on a wider one; parallel runways at least 210 m
-	 * (315 blocks) apart; threshold stripes 30 m long, the runway number 12 m past them. Until 10-27 the taxiway stood 54 m off the
-	 * runway and two runways 110 m apart.
+	 * Real dimensions at 1.5 blocks a metre (ICAO Annex 14 for a code C/E runway): the parallel taxiway's centreline 182.5 m (274
+	 * blocks) or more from the runway's, parallel runways at least 210 m (315 blocks) apart, a 23 m (35-block) taxiway, threshold
+	 * stripes 30 m long and the runway number 12 m past them. Until 11-07 the taxiway was 14 m wide, the terminal 6.7 m tall, and
+	 * the runway's centreline dashes 9 m/7 m instead of ICAO's 30 m/20 m.
 	 */
-	public static final Dims REAL = new Dims(60, 24, 12, 40, 84, 66, 21, 212, 285, 16, 6, 22, 24, 10, 7, 5, 45, 65, 8, 10, 14, 10, 6);
+	public static final Dims REAL = new Dims(120, 60, 18, 60, 84, 66, 35, 235, 285, 16, 30, 34, 36, 18, 9, 7, 45, 65, 90, 90, 45, 30, 11);
 	/** A runway longer than this gets a link in the middle as well. */
 	public static final int MID_LINK_LENGTH = 480;
 
@@ -164,11 +164,12 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 	}
 
 	/**
-	 * The control tower's footprint: a 5 by 5 cab on a 3 by 3 shaft, on the apron's far margin past its last stand line, by the taxiway.
-	 * It is apron only, so it stays out of the runway strip.
+	 * The control tower's footprint: an 11 by 11 cab on a 5 by 5 shaft (5 by 5 on a compact airport), on the apron's far margin past
+	 * its last stand line, by the taxiway. It is apron only, so it stays out of the runway strip.
 	 */
 	public Area tower() {
-		return new Area(Kind.APRON, apronU1 - 5, apronU1 - 1, apronV1 - 4, apronV1, 0);
+		final int size = dims.wallTop() >= 16 ? 11 : 5;
+		return new Area(Kind.APRON, apronU1 - size + 1, apronU1, apronV1 - size + 1, apronV1, 0);
 	}
 
 	/** Last column of runway {@code i}. */

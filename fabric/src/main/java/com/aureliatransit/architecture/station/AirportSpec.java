@@ -15,11 +15,20 @@ package com.aureliatransit.architecture.station;
  * @param rail          a railway station under the terminal ("airport with a train station"), planned by {@link AirportStation}
  * @param heading       the number painted at the runways' low end, 1..18 ("runway 05/23" is 5); the high end has it plus 18. The
  *                      numbers only: the runway lies the way the player faces when building, whatever its number says
+ * @param runwayMarkings paint the runway's white markings (threshold stripes, numbers, centreline, touchdown bars); off keeps the
+ *                      pavement and the lights, so a plain runway still works
+ * @param taxiwayLights  light the taxiways (blue edge lights and green centreline lights)
+ * @param apronMarkings  paint the apron's stand lead-ins, stop bars, numbers and equipment-area lines
+ * @param controlTower   build the control tower on the apron
+ * @param forecourt      build the landside forecourt: pavement, kerbs, canopy, lane paint and street lamps
  */
-public record AirportSpec(int runways, int runwayLength, int runwayWidth, int gates, boolean terminal, boolean rail, int heading) {
+public record AirportSpec(int runways, int runwayLength, int runwayWidth, int gates, boolean terminal, boolean rail, int heading,
+		boolean runwayMarkings, boolean taxiwayLights, boolean apronMarkings, boolean controlTower, boolean forecourt) {
 
 	/** The runway numbers when the words give none: 09 at the low end, 27 at the high. */
 	public static final int DEFAULT_HEADING = 9;
+	/** Every feature on: what old saves and old words mean, and what a newly typed airport gets. */
+	public static final boolean FEATURE_ON = true;
 
 	public AirportSpec(int runways, int runwayLength, int runwayWidth, int gates, boolean terminal) {
 		this(runways, runwayLength, runwayWidth, gates, terminal, false);
@@ -27,6 +36,10 @@ public record AirportSpec(int runways, int runwayLength, int runwayWidth, int ga
 
 	public AirportSpec(int runways, int runwayLength, int runwayWidth, int gates, boolean terminal, boolean rail) {
 		this(runways, runwayLength, runwayWidth, gates, terminal, rail, runways == 0 ? 0 : DEFAULT_HEADING);
+	}
+
+	public AirportSpec(int runways, int runwayLength, int runwayWidth, int gates, boolean terminal, boolean rail, int heading) {
+		this(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, FEATURE_ON, FEATURE_ON, FEATURE_ON, FEATURE_ON, FEATURE_ON);
 	}
 
 	/** Real airports are built at this many blocks to the metre. */
@@ -38,7 +51,10 @@ public record AirportSpec(int runways, int runwayLength, int runwayWidth, int ga
 	/** A regional airport's runway, 1,700 m at 1.5 blocks a metre. */
 	public static final int DEFAULT_RUNWAY_LENGTH = 2550;
 	public static final int MIN_RUNWAY_WIDTH = 11;
-	public static final int MAX_RUNWAY_WIDTH = 45;
+	/** 45 m at 1.5 blocks a metre: ICAO code E, the widest runway the plan holds. The default is 45 blocks (30 m, code C). */
+	public static final int MAX_RUNWAY_WIDTH = 68;
+	/** ICAO code E's 45 m runway in blocks. */
+	public static final int CODE_E_WIDTH = 68;
 	/** 30 m at 1.5 blocks a metre. */
 	public static final int DEFAULT_RUNWAY_WIDTH = 45;
 	public static final int MIN_GATES = 1;
@@ -68,12 +84,44 @@ public record AirportSpec(int runways, int runwayLength, int runwayWidth, int ga
 
 	/** The same airport with or without a railway station under its terminal. */
 	public AirportSpec withRail(boolean value) {
-		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, value, heading);
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, value, heading, runwayMarkings, taxiwayLights,
+				apronMarkings, controlTower, forecourt);
 	}
 
 	/** The same airport with its runways numbered {@code value} (1..18) at the low end and {@code value + 18} at the high end. */
 	public AirportSpec withHeading(int value) {
-		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, value);
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, value, runwayMarkings, taxiwayLights,
+				apronMarkings, controlTower, forecourt);
+	}
+
+	/** The same airport with the runway's painted markings on or off ({@link AirportFeatures}). */
+	public AirportSpec withRunwayMarkings(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, value, taxiwayLights, apronMarkings,
+				controlTower, forecourt);
+	}
+
+	/** The same airport with the taxiway lights on or off. */
+	public AirportSpec withTaxiwayLights(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, value, apronMarkings,
+				controlTower, forecourt);
+	}
+
+	/** The same airport with the apron's markings on or off. */
+	public AirportSpec withApronMarkings(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights, value,
+				controlTower, forecourt);
+	}
+
+	/** The same airport with or without its control tower. */
+	public AirportSpec withControlTower(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
+				apronMarkings, value, forecourt);
+	}
+
+	/** The same airport with or without its landside forecourt. */
+	public AirportSpec withForecourt(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
+				apronMarkings, controlTower, value);
 	}
 
 	/** The two-digit number painted at the runways' low end ("05"), or with {@code high} at the high end ("23"). */
