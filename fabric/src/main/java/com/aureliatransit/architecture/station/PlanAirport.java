@@ -407,7 +407,10 @@ abstract class PlanAirport extends PlanFitOut {
 		for (final int[] link : air.links()) {
 			final int middle = (link[0] + link[1]) / 2;
 			for (int u = gapFrom; u <= gapTo; u++) {
-				// a link is an ordinary taxiway: yellow centre and edges, blue edge lights
+				// a link is an ordinary taxiway: yellow centre and edges, green lead-on lights and blue edge lights
+				if (spec.airport().taxiwayLights() && u % greenEvery == 0) {
+					light(u, middle, THRESHOLD_LIGHT);
+				}
 				paint(u, middle, PAINT_YELLOW);
 				if (spec.airport().taxiwayLights() && u % air.dims().taxiLightEvery() == 0) {
 					light(u, link[0], TAXI_LIGHT);
@@ -520,6 +523,12 @@ abstract class PlanAirport extends PlanFitOut {
 			// the number, upright for someone on the terminal side of the stand facing out over the apron: up is +u, the near edge is the terminal side
 			final int scale = numberScale() > 1 ? 2 : 1;
 			paintText(List.of(Integer.toString(i + 1)), scale, stop + 4, c + air.dims().standPitch() / 4, 1, 0, PAINT_WHITE);
+			// the docking guidance post beside the nose, one per stand
+			final int postV = c + air.dims().bridgeWidth() / 2 + 2;
+			for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + 4; y++) {
+				put(Role.FIXTURE, stop - 2, y, postV, LocalDir.MINUS_U, LAMP_POLE);
+			}
+			put(Role.LAMP, stop - 2, StationGeometry.WALK_Y + 4, postV, LocalDir.MINUS_U, TOWER_BEACON);
 		}
 	}
 
@@ -581,7 +590,8 @@ abstract class PlanAirport extends PlanFitOut {
 					}
 					final boolean corner = (u == cu - shaft || u == cu + shaft) && (v == cv - shaft || v == cv + shaft);
 					final boolean band = u == cu - shaft && v == cv && Math.floorMod(y - StationGeometry.WALK_Y, 12) == 0;
-					put(Role.WALL, u, y, v, LocalDir.PLUS_V, corner || band ? TOWER_FLOOR : TOWER_SHAFT);
+					final boolean marking = Math.floorMod(y - StationGeometry.WALK_Y, 16) == 0;
+					put(Role.WALL, u, y, v, LocalDir.PLUS_V, marking ? PAINT_RED : corner || band ? TOWER_FLOOR : TOWER_SHAFT);
 				}
 			}
 		}
@@ -592,7 +602,7 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 		// the glazed cab: a wide glass drum, its rings 7, 9 and 11 wide and five blocks tall
 		final int maxHalf = (t.u1() - t.u0()) / 2;
-		final int base = maxHalf >= 5 ? 3 : 2;
+		final int base = maxHalf >= 6 ? 4 : maxHalf >= 5 ? 3 : 2;
 		for (int y = top - 5; y <= top - 1; y++) {
 			final int ring = y >= top - 1 ? 2 : y >= top - 3 ? 1 : 0;
 			final int half = Math.min(base + ring, maxHalf);
@@ -614,6 +624,13 @@ abstract class PlanAirport extends PlanFitOut {
 			}
 		}
 		put(Role.LAMP, cu, top, cv, LocalDir.PLUS_V, TOWER_BEACON);
+		for (int u = cu - 2; u <= cu + 2; u++) {
+			for (int v = cv - 2; v <= cv + 2; v++) {
+				if (Math.abs(u - cu) == 2 || Math.abs(v - cv) == 2) {
+					put(Role.BUILDING_ROOF, u, top, v, LocalDir.PLUS_V, PAINT_RED);
+				}
+			}
+		}
 		for (int u = t.u0(); u <= t.u1(); u++) {
 			for (int v = t.v0(); v <= t.v1(); v++) {
 				if (u != cu || v != cv) {
@@ -955,7 +972,8 @@ abstract class PlanAirport extends PlanFitOut {
 					put(Role.FLOOR, u, u == from + 3 ? StationGeometry.WALK_Y : floorY, v, LocalDir.PLUS_V, b.floor());
 				}
 				if (u == to) {
-					// the cab at the aircraft door: the jet bridge block, glass either side, a metal roof
+					// the cab at the aircraft door: a docking light, the jet bridge block, glass either side, a metal roof
+					put(Role.LIGHT_PANEL, u, floorY + 2, c, LocalDir.PLUS_U, TOWER_BEACON);
 					for (int y = floorY + 1; y <= floorY + 2; y++) {
 						for (int v = c - half; v <= c + half; v++) {
 							final boolean cab = v == c && y == floorY + 1;
@@ -1030,8 +1048,20 @@ abstract class PlanAirport extends PlanFitOut {
 			put(Role.FIXTURE, u0 + 2, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, KERB, "type=bottom");
 			put(Role.FIXTURE, u1 - 2, StationGeometry.WALK_Y, v, LocalDir.MINUS_U, KERB, "type=bottom");
 		}
-		// the centre line: 4 m of paint and 8 m of gap
+		// two drop-off islands between the through lanes, clear of the crossing
 		final int centre = (u0 + u1) / 2;
+		for (final int side : new int[]{-1, 1}) {
+			final int islandFrom = door + side * 12;
+			final int islandTo = door + side * 28;
+			for (int v = Math.min(islandFrom, islandTo); v <= Math.max(islandFrom, islandTo); v++) {
+				for (int u = centre - 1; u <= centre + 1; u++) {
+					paint(u, v, SIDEWALK);
+				}
+				put(Role.FIXTURE, centre - 2, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, KERB, "type=bottom");
+				put(Role.FIXTURE, centre + 2, StationGeometry.WALK_Y, v, LocalDir.MINUS_U, KERB, "type=bottom");
+			}
+		}
+		// the centre line: 4 m of paint and 8 m of gap
 		for (int v = v0; v <= v1; v++) {
 			if (Math.floorMod(v - v0, 12) < 4) {
 				paint(centre, v, PAINT_WHITE);
@@ -1045,31 +1075,31 @@ abstract class PlanAirport extends PlanFitOut {
 				}
 			}
 		}
-		// the canopy over the door, on two columns at the kerb, with a fascia over the entrance
-		final int from = u1 - 3;
+		// the canopy over the door: six blocks deep over the drop-off lane, on two columns at the kerb
+		final int from = Math.max(u0, u1 - 6);
 		final int to = u1;
-		for (final int v : new int[]{door - half - 4, door + half + 4}) {
+		for (final int v : new int[]{door - half - 6, door + half + 6}) {
 			for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + 5; y++) {
 				put(Role.COLUMN, u1 - 1, y, v, LocalDir.MINUS_U);
 			}
 			put(Role.COLUMN_CAP, u1 - 1, StationGeometry.WALK_Y + 5, v, LocalDir.MINUS_U);
 		}
 		for (int u = from; u <= to; u++) {
-			for (int v = door - half - 4; v <= door + half + 4; v++) {
+			for (int v = door - half - 6; v <= door + half + 6; v++) {
 				put(Role.BUILDING_ROOF, u, StationGeometry.WALK_Y + 6, v, LocalDir.PLUS_V, b.window());
 			}
 		}
 		// the canopy's metal fascia: a frame round the glass, heaviest at the kerb edge
-		for (int v = door - half - 5; v <= door + half + 5; v++) {
+		for (int v = door - half - 7; v <= door + half + 7; v++) {
 			put(Role.BUILDING_ROOF, from, StationGeometry.WALK_Y + 7, v, LocalDir.MINUS_U, b.trim());
 			put(Role.BUILDING_ROOF, to, StationGeometry.WALK_Y + 7, v, LocalDir.PLUS_U, b.trim());
 		}
 		for (int u = from; u <= to; u++) {
-			put(Role.BUILDING_ROOF, u, StationGeometry.WALK_Y + 7, door - half - 5, LocalDir.MINUS_V, b.trim());
-			put(Role.BUILDING_ROOF, u, StationGeometry.WALK_Y + 7, door + half + 5, LocalDir.PLUS_V, b.trim());
+			put(Role.BUILDING_ROOF, u, StationGeometry.WALK_Y + 7, door - half - 7, LocalDir.MINUS_V, b.trim());
+			put(Role.BUILDING_ROOF, u, StationGeometry.WALK_Y + 7, door + half + 7, LocalDir.PLUS_V, b.trim());
 		}
 		for (int u = from; u <= to; u += 4) {
-			for (int v = door - half - 4; v <= door + half + 4; v++) {
+			for (int v = door - half - 6; v <= door + half + 6; v++) {
 				put(Role.BUILDING_ROOF, u, StationGeometry.WALK_Y + 7, v, LocalDir.PLUS_V, b.trim());
 			}
 		}
@@ -1082,6 +1112,13 @@ abstract class PlanAirport extends PlanFitOut {
 				put(Role.FIXTURE, u0 + 1, y, v, LocalDir.PLUS_U, LAMP_POLE);
 			}
 			put(Role.LAMP, u0 + 1, StationGeometry.WALK_Y + 6, v, LocalDir.PLUS_U, TOWER_BEACON);
+		}
+		// low bollard lights along the kerb, eight blocks apart, so the footway reads at night from the airside too
+		for (int v = door - 24; v <= door + 24; v += 8) {
+			if (v < v0 || v > v1) {
+				continue;
+			}
+			put(Role.LAMP, u0 + 1, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, TOWER_BEACON);
 		}
 	}
 

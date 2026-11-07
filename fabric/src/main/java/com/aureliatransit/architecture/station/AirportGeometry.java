@@ -164,11 +164,11 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 	}
 
 	/**
-	 * The control tower's footprint: an 11 by 11 cab on a 5 by 5 shaft (5 by 5 on a compact airport), on the apron's far margin past
+	 * The control tower's footprint: a 13 by 13 cab on a 5 by 5 shaft (5 by 5 on a compact airport), on the apron's far margin past
 	 * its last stand line, by the taxiway. It is apron only, so it stays out of the runway strip.
 	 */
 	public Area tower() {
-		final int size = dims.wallTop() >= 16 ? 11 : 5;
+		final int size = dims.wallTop() >= 16 ? 13 : 5;
 		return new Area(Kind.APRON, apronU1 - size + 1, apronU1, apronV1 - size + 1, apronV1, 0);
 	}
 
