@@ -1,0 +1,94 @@
+{
+	"parent": "block/block",
+	"textures": {
+		"housing": "mtr:block/aurelia/signal_housing",
+		"plate": "mtr:block/aurelia/signal_backplate",
+		"hood": "mtr:block/aurelia/signal_hood",
+		"lens": "mtr:block/aurelia/signal_lens",
+		"particle": "mtr:block/aurelia/signal_housing"
+	},
+	"elements": [
+		{
+			"from": [
+				5,
+				0,
+				5
+			],
+			"to": [
+				11,
+				16,
+				11
+			],
+			"faces": {
+				"north": {
+					"texture": "#housing"
+				},
+				"east": {
+					"texture": "#housing"
+				},
+				"south": {
+					"texture": "#housing"
+				},
+				"west": {
+					"texture": "#housing"
+				},
+				"up": {
+					"texture": "#housing"
+				},
+				"down": {
+					"texture": "#housing"
+				}
+			},
+			"rotation": {
+				"angle": -22.5,
+				"axis": "y",
+				"origin": [
+					8,
+					0,
+					8
+				]
+			}
+		},
+		{
+			"from": [
+				4.5,
+				16,
+				4.5
+			],
+			"to": [
+				11.5,
+				16.5,
+				11.5
+			],
+			"faces": {
+				"north": {
+					"texture": "#hood"
+				},
+				"east": {
+					"texture": "#hood"
+				},
+				"south": {
+					"texture": "#hood"
+				},
+				"west": {
+					"texture": "#hood"
+				},
+				"up": {
+					"texture": "#hood"
+				},
+				"down": {
+					"texture": "#hood"
+				}
+			},
+			"rotation": {
+				"angle": -22.5,
+				"axis": "y",
+				"origin": [
+					8,
+					0,
+					8
+				]
+			}
+		}
+	]
+}

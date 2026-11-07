@@ -111,7 +111,8 @@ public final class AureliaPanelScreen extends Screen {
 			new Distance("options.mtr.train_box_chunks", Client.TRAIN_BOX_CHUNKS_MAX, config::getTrainBoxChunks, config::setTrainBoxChunks),
 			new Toggle("options.mtr.faster_model_loading", config::getFasterModelLoading, config::toggleFasterModelLoading),
 			new Toggle("options.mtr.background_model_loading", config::getBackgroundModelLoading, config::toggleBackgroundModelLoading),
-			new Toggle("options.mtr.free_unused_models", config::getFreeUnusedModels, config::toggleFreeUnusedModels)
+			new Toggle("options.mtr.free_unused_models", config::getFreeUnusedModels, config::toggleFreeUnusedModels),
+			new Toggle("options.mtr.aurelia_block_look", org.mtr.aurelia.client.AureliaLookPack::enabled, org.mtr.aurelia.client.AureliaLookPack::toggle)
 	);
 
 	private Tab tab;
