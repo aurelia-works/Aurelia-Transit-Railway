@@ -116,7 +116,8 @@ public final class AureliaPanelScreen extends Screen {
 			new Distance("options.mtr.rail_view_chunks", Client.RAIL_VIEW_CHUNKS_MAX, config::getRailViewChunks, config::setRailViewChunks),
 			new Distance("options.mtr.train_view_chunks", Client.TRAIN_VIEW_CHUNKS_MAX, config::getTrainViewChunks, config::setTrainViewChunks),
 			new Toggle("options.mtr.far_detail", config::getFarDetail, config::toggleFarDetail),
-			new Distance("options.mtr.block_entity_warn", Client.BLOCK_ENTITY_WARN_MAX, config::getBlockEntityWarn, config::setBlockEntityWarn)
+			new Distance("options.mtr.block_entity_warn", Client.BLOCK_ENTITY_WARN_MAX, config::getBlockEntityWarn, config::setBlockEntityWarn),
+			new Toggle("options.mtr.aurelia_block_look", org.mtr.aurelia.client.AureliaLookPack::enabled, org.mtr.aurelia.client.AureliaLookPack::toggle)
 	);
 
 	private Tab tab;

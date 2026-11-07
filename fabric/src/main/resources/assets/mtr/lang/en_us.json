@@ -541,6 +541,8 @@
 	"options.mtr.anonymous": "Anonymous",
 	"options.mtr.background_model_loading": "Load train models in the background",
 	"options.mtr.default_rail_3d": "Render default rails in 3D",
+	"options.mtr.aurelia_block_look": "Aurelia block look (new art for rails, signals and station blocks)",
+	"options.mtr.aurelia_block_look.pack": "Aurelia block look",
 	"options.mtr.cheap_shadows": "Cheaper shader shadows (skip window glass, displays and text)",
 	"options.mtr.faster_door_checks": "Faster door checks (remember platform search for 0.5 s)",
 	"options.mtr.rail_lod": "Simplify distant 3D rails",
