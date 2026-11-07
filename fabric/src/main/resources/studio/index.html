@@ -53,13 +53,19 @@
 				<section class="group" aria-labelledby="g-words">
 					<h2 class="label" id="g-words">What do you want to build?</h2>
 					<div id="words">
-						<p class="help st-only">Type it like you would say it, for example: <i>six-track Amsterdam station</i>.</p>
+						<p class="help st-only">Pick a preset, then tune it with the settings below. The words box is under Advanced.</p>
 						<div class="chips presets" id="presets" role="group" aria-label="Presets"></div>
 						<p class="help ap-only">Pick one, or say it: <i>airport with 2 runways, 6 gates and a terminal</i>. Sizes in blocks or metres (1.5 blocks a metre).</p>
 						<div class="chips airports ap-only" id="airports" role="group" aria-label="Airports"></div>
-						<textarea id="text" rows="3" aria-label="Station description" placeholder="e.g. six-track Amsterdam station with a big glass roof"></textarea>
-						<div class="clash" id="clash" hidden role="status"><span id="clashText"></span></div>
-						<div class="field-foot"><span id="count"></span></div>
+						<details class="adv" id="wordsAdvanced">
+							<summary class="st-only">Advanced: describe it in words</summary>
+							<div class="adv-body">
+								<p class="help st-only">Type it like you would say it, for example: <i>six-track Amsterdam station</i>.</p>
+								<textarea id="text" rows="3" aria-label="Station description" placeholder="e.g. six-track Amsterdam station with a big glass roof"></textarea>
+								<div class="clash" id="clash" hidden role="status"><span id="clashText"></span></div>
+								<div class="field-foot"><span id="count"></span></div>
+							</div>
+						</details>
 						<div class="photo-row st-only">
 							<button type="button" class="chip-btn" id="photoBtn" title="Claude looks at a photo of a station and writes the description for you">From a photo</button>
 							<input type="file" id="photoFile" accept="image/jpeg,image/png,image/webp" hidden>

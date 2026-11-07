@@ -95,7 +95,11 @@ public final class StationPresets {
 			new Preset("westminster", BuildingStyle.NONE,
 					"2 track stacked deep tube station, 58 blocks deep, 100 long, step-free, grey tiles, tfl signs, named Westminster"),
 			new Preset("modern", BuildingStyle.MODERN,
-					"four track modern station, two island platforms, 96 long, glass canopy, station building with footbridge"));
+					"four track modern station, two island platforms, 96 long, glass canopy, station building with footbridge"),
+			// a small unstaffed halt: one track, one short open platform, a shelter and no building or hall
+			new Preset("halt", BuildingStyle.NONE, "halt class station, named Halt"),
+			// a kerb-side tram (or bus) stop: one street track, an open platform with a shelter and stop signs
+			new Preset("bus_tram_stop", BuildingStyle.NONE, "single track tram stop, named Bus or Tram Stop"));
 
 	private StationPresets() {
 	}

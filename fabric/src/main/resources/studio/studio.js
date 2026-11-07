@@ -952,6 +952,10 @@
 
 	async function init() {
 		options = await (await fetch("api/options")).json();
+		if (PAGE === "airport") {
+			// the airport's words are its main input, not an advanced fold
+			$("wordsAdvanced").open = true;
+		}
 		fillSelect($("layout"), options.layouts);
 		// "Custom", as on the wrench: no city look, the plain station or whatever the words describe
 		options.looks = options.looks.map(([v, l]) => [v, v === "AUTO" ? "Custom" : l]);

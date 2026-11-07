@@ -470,3 +470,7 @@ body[data-page="airport"] .st-only, body:not([data-page="airport"]) .ap-only { d
 .photo-prompt[hidden] { display: none; }
 .photo-prompt textarea { font: 11.5px var(--mono); }
 .photo-prompt .chip-btn { justify-self: start; }
+
+/* The airport page has no pickers for its shape, so its words box is the main input: no advanced fold. */
+body[data-page="airport"] #wordsAdvanced > summary { display: none; }
+body[data-page="airport"] #wordsAdvanced { border: 0; background: transparent; }
