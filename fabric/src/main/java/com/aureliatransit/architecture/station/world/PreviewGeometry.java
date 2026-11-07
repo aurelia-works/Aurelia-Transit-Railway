@@ -26,6 +26,12 @@ final class PreviewGeometry {
 		TRACK(160),
 		/** Platform edge cells. */
 		EDGE(160),
+		/** Platform walking surface, sampled across wide platforms. */
+		PLATFORM(120),
+		/** Roof and canopy cells, so the volume reads before anything is built. */
+		ROOF(140),
+		/** Building and footbridge walls. */
+		WALL(100),
 		/** Rail node cells. */
 		NODE(48),
 		/** Site issues. */
@@ -45,8 +51,8 @@ final class PreviewGeometry {
 	record Point(double x, double y, double z) {
 	}
 
-	/** Particles per refresh at most. */
-	static final int MAX_PER_REFRESH = 592;
+	/** Particles per refresh at most: the layer budgets add up to this. */
+	static final int MAX_PER_REFRESH = 960;
 	/** Spacing of track and edge markers along the track. */
 	private static final int STEP = 2;
 
@@ -72,6 +78,12 @@ final class PreviewGeometry {
 		for (final PlannedBlock block : plan.blocks()) {
 			if (block.role() == Role.PLATFORM_EDGE && Math.floorMod(block.v(), STEP) == 0) {
 				add(Layer.EDGE, frame, block.u(), block.y(), block.v(), 1.1);
+			} else if (block.role() == Role.PLATFORM_SURFACE && Math.floorMod(block.u() + block.v(), 3) == 0) {
+				add(Layer.PLATFORM, frame, block.u(), block.y(), block.v(), 1.1);
+			} else if (block.role().roofPart() && Math.floorMod(block.u() + block.v(), 4) == 0) {
+				add(Layer.ROOF, frame, block.u(), block.y(), block.v(), 0.2);
+			} else if ((block.role() == Role.WALL || block.role() == Role.WINDOW) && Math.floorMod(block.u() + block.v(), 4) == 0) {
+				add(Layer.WALL, frame, block.u(), block.y(), block.v(), 0.5);
 			} else if (block.role() == Role.RAIL_NODE) {
 				add(Layer.NODE, frame, block.u(), block.y(), block.v(), 0.5);
 			}

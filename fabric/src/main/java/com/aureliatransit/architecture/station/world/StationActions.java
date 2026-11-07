@@ -201,7 +201,7 @@ public final class StationActions {
 			return false;
 		}
 		StationSessions.startPreview(new StationPreview(player.getUuid(), pending.dimension(), pending.plan(), pending.frame(), pending.report()));
-		player.sendMessage(Text.literal("Showing the plan outline for " + StationPreview.DURATION_TICKS / 20 + " s.").formatted(Formatting.GRAY), false);
+		player.sendMessage(Text.literal("Showing the blueprint for " + StationPreview.DURATION_TICKS / 20 + " s.").formatted(Formatting.GRAY), false);
 		return true;
 	}
 
@@ -231,7 +231,7 @@ public final class StationActions {
 			}
 			StationSessions.setBuilt(id, edited);
 			StationSessions.discard(id);
-			out.accept(Text.literal("Building " + job.total() + " changes, " + StationBuildJob.OPS_PER_TICK + " per tick. Cancel stops it.")
+			out.accept(Text.literal("Building " + job.total() + " changes in tick-sized batches. Cancel stops it.")
 					.formatted(Formatting.GREEN));
 		});
 		if (StationSessions.task(id) != null) {
