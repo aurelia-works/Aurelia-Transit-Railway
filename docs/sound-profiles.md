@@ -115,8 +115,20 @@ rises steadily over a much wider speed range, and a diesel barely changes pitch 
 | `compressor_attack` / `compressor_release` | When the compressor starts or stops. |
 | `flange` | One or more looping clips for curve squeal. The first/slot rules are the same as BVE flange arrays. |
 
-Sound ids must be registered in a `sounds.json` in the same resource pack. Sound files are normal mono OGG Vorbis, short
-loops for anything that repeats. Keep them small.
+Sound ids must be registered in a `sounds.json` in the same resource pack. Sound files are normal mono OGG Vorbis. A
+looping motor or compressor clip works best at 6-8 s: a 2 s loop is easy to pick out on a long ride. Keep one-shots
+short and the whole set small.
+
+The generator in this repository makes long motor and compressor loops with slow load wobble and a slight pitch drift.
+Every loop is rendered with an extra tail, crossfaded back into its head, rotated to a quiet Vorbis block boundary and
+checked for a click-free wrap. Run the check after regenerating or after changing a loop:
+
+```
+python3 tools/sounds/generate_profile_sounds.py --check
+```
+
+It decodes every file whose name contains `motor`, `compressor` or `flange` and fails when the wrap step is more than
+1.2 times the clip's own 99th-percentile sample step. The same table is printed after a normal generation run.
 
 ## How profiles apply
 

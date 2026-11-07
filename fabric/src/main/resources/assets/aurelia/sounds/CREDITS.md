@@ -59,4 +59,4 @@ Every audio file in this folder was synthesised for Aurelia Transit Railway by `
 | `train_profiles/uk_emu/flange.ogg` | Aurelia Transit Railway contributors | Generated in-repo by `tools/sounds/generate_profile_sounds.py`; no external source | CC0 1.0 Universal (public domain dedication) |
 | `train_profiles/uk_emu/motor.ogg` | Aurelia Transit Railway contributors | Generated in-repo by `tools/sounds/generate_profile_sounds.py`; no external source | CC0 1.0 Universal (public domain dedication) |
 
-The generated files are mono 44.1 kHz Vorbis, 0.55-3.3 s each. Loops are exactly periodic, so the game can repeat them without a splice click. The CC0 dedication covers these generated files only; the rest of the mod keeps its own licence.
+The generated files are mono 44.1 kHz Vorbis, 0.55-7.0 s each. Loops are crossfaded, rotated to a quiet block boundary and checked for a click-free wrap; the seam table is printed by `python3 tools/sounds/generate_profile_sounds.py --check`. The CC0 dedication covers these generated files only; the rest of the mod keeps its own licence.

@@ -2,31 +2,40 @@
 """Generates ATR's train profile sounds.
 
 Every file is synthesised here from sine partials, shaped noise and envelopes; no third-party recording is used, so the
-whole set is dedicated to the public domain (CC0). Mono 44.1 kHz Vorbis, loops are exactly periodic so they splice
-without a click.
+whole set is dedicated to the public domain (CC0). Mono 44.1 kHz Vorbis.
+
+Loops (motor, compressor, flange) are rendered with an extra tail and crossfaded back into their head, so the wrap is
+seam-free. Motor and compressor loops are long and carry slow load wobble and a slight pitch drift, so a ride does not
+repeat a short phrase every couple of seconds. The script ends by decoding every loop and checking the wrap step.
 
 Run from the repository root:
 
-    python3 tools/sounds/generate_profile_sounds.py
+    python3 tools/sounds/generate_profile_sounds.py          # generate, then check
+    python3 tools/sounds/generate_profile_sounds.py --check  # check the files already in place
 
-Requires numpy and ffmpeg (libvorbis).
+Requires numpy and ffmpeg. oggenc is used when present; otherwise the fallback uses ffmpeg's Vorbis encoder.
 """
 
+import glob
 import math
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 
 import numpy as np
 
 SAMPLE_RATE = 44100
 OUT_DIR = os.path.join("fabric", "src", "main", "resources", "assets", "aurelia", "sounds", "train_profiles")
-LOOP_SECONDS = 2.0
+MOTOR_LOOP_SECONDS = 7.0
+COMPRESSOR_LOOP_SECONDS = 6.5
+FLANGE_LOOP_SECONDS = 2.5
+CROSSFADE_SECONDS = 0.09
+SEAM_LIMIT = 1.2
 
 
-def write_ogg(relative_path, samples, peak=0.9, loop=False):
-    """Normalises to `peak`, fades a one-shot's last milliseconds, and encodes mono Vorbis."""
+def normalise(samples, peak=0.9, loop=False):
     samples = np.asarray(samples, dtype=np.float64)
     if not loop and len(samples) > 0:
         fade = min(len(samples), int(0.015 * SAMPLE_RATE))
@@ -34,11 +43,16 @@ def write_ogg(relative_path, samples, peak=0.9, loop=False):
     maximum = np.max(np.abs(samples))
     if maximum > 0:
         samples = samples / maximum * peak
-    directory = os.path.join(OUT_DIR, os.path.dirname(relative_path))
-    os.makedirs(directory, exist_ok=True)
+    return samples
+
+
+def encode_ogg(ogg_path, samples, peak=0.9, loop=False):
+    samples = normalise(samples, peak, loop)
+    directory = os.path.dirname(ogg_path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
     with tempfile.TemporaryDirectory() as temporary:
         wav_path = os.path.join(temporary, "sound.wav")
-        ogg_path = os.path.join(OUT_DIR, relative_path)
         import wave
         with wave.open(wav_path, "wb") as handle:
             handle.setnchannels(1)
@@ -51,63 +65,133 @@ def write_ogg(relative_path, samples, peak=0.9, loop=False):
             subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", wav_path, "-ac", "1", "-c:a", "vorbis", "-strict", "experimental", "-q:a", "4", ogg_path], check=True)
 
 
+def write_ogg(relative_path, samples, peak=0.9, loop=False):
+    """Writes a one-shot. Loops go through write_loop, which searches for a click-free block boundary."""
+    encode_ogg(os.path.join(OUT_DIR, relative_path), samples, peak, loop)
+
+
+def sample_count(seconds):
+    return int(round(seconds * SAMPLE_RATE))
+
+
 def time_axis(seconds):
-    return np.arange(int(seconds * SAMPLE_RATE)) / SAMPLE_RATE
+    return np.arange(sample_count(seconds)) / SAMPLE_RATE
 
 
-def snap(frequency, seconds):
-    """The nearest frequency that completes a whole number of cycles in `seconds`, for a seamless loop."""
-    return max(1, round(frequency * seconds)) / seconds
+def snap(frequency, loop_seconds):
+    """The nearest frequency that completes a whole number of cycles in the loop, for a seamless wrap."""
+    return max(1, round(frequency * loop_seconds)) / loop_seconds
 
 
-def periodic_noise(seconds, low, high, count, seed, amplitude=1.0):
+def crossfade_loop(rendered, loop_seconds):
+    """Blends the extra rendered tail into the loop head, so the last sample leads into the first."""
+    loop_samples = sample_count(loop_seconds)
+    fade_samples = sample_count(CROSSFADE_SECONDS)
+    if len(rendered) < loop_samples + fade_samples:
+        raise ValueError("rendered loop is too short for the crossfade")
+    out = np.array(rendered[:loop_samples], dtype=np.float64)
+    tail = rendered[loop_samples:loop_samples + fade_samples]
+    # Complementary weights: correlated content (the loop is mostly periodic) keeps its amplitude through the fade.
+    weights = np.linspace(0.0, 1.0, fade_samples)
+    out[:fade_samples] = out[:fade_samples] * weights + tail * (1.0 - weights)
+    return out
+
+
+def rotate_to_zero(loop):
+    """Starts the loop at a zero crossing, so the encoder's first/last block fades land on near-silence.
+
+    Rotating a loop does not change its wrap: the sample before the new start is still the sample that followed the
+    old last one, so the loop stays smooth. It only moves the block boundary, which Vorbis attenuates, to a quiet point.
+    """
+    magnitudes = np.abs(loop)
+    score = magnitudes + np.roll(magnitudes, 1)
+    index = int(np.argmin(score))
+    return np.roll(loop, -index)
+
+
+def periodic_noise(loop_seconds, low, high, count, seed, amplitude=1.0, render_seconds=None):
     rng = np.random.default_rng(seed)
-    t = time_axis(seconds)
+    t = time_axis(render_seconds if render_seconds is not None else loop_seconds)
     out = np.zeros_like(t)
     frequencies = np.exp(rng.uniform(math.log(low), math.log(high), count))
     for frequency in frequencies:
-        snapped = snap(frequency, seconds)
+        snapped = snap(frequency, loop_seconds)
         out += np.sin(2 * math.pi * snapped * t + rng.uniform(0, 2 * math.pi)) * rng.uniform(0.3, 1.0)
     return out / max(1e-9, np.max(np.abs(out))) * amplitude
 
 
-def periodic_am(seconds, hertz, depth, phase=0.0):
-    t = time_axis(seconds)
-    return 1.0 - depth + depth * (0.5 + 0.5 * np.sin(2 * math.pi * snap(hertz, seconds) * t + phase))
+def periodic_am(loop_seconds, hertz, depth, phase=0.0, render_seconds=None):
+    t = time_axis(render_seconds if render_seconds is not None else loop_seconds)
+    return 1.0 - depth + depth * (0.5 + 0.5 * np.sin(2 * math.pi * snap(hertz, loop_seconds) * t + phase))
 
 
-def motor_loop(seconds, base, partials, extras, noise_band, noise_level, seed, wobble=0.0, diesel=False):
-    """A periodic motor or engine loop. `partials` are (harmonic, amplitude); `extras` are (Hz, amplitude, AM Hz)."""
-    t = time_axis(seconds)
+def slow_wobble(loop_seconds, render_seconds, seed, depth):
+    """A slow, periodic load wobble between 1 - depth and 1 + depth."""
+    t = time_axis(render_seconds)
+    rng = np.random.default_rng(seed)
+    signal = np.zeros_like(t)
+    for cycles in (1, 2, 4):
+        frequency = snap(cycles / loop_seconds, loop_seconds)
+        signal += np.sin(2 * math.pi * frequency * t + rng.uniform(0, 2 * math.pi))
+    signal /= max(1e-9, np.max(np.abs(signal)))
+    return 1.0 + depth * signal
+
+
+def slow_warp(loop_seconds, render_seconds, seed, depth):
+    """A periodic phase warp in seconds, giving a slight pitch drift that returns to its start at the loop wrap."""
+    if depth <= 0:
+        return np.zeros(sample_count(render_seconds))
+    t = time_axis(render_seconds)
+    rng = np.random.default_rng(seed)
+    warp = np.zeros_like(t)
+    for cycles in (1, 2, 3):
+        frequency = snap(cycles / loop_seconds, loop_seconds)
+        phase = rng.uniform(0, 2 * math.pi)
+        # Integral of sin(2*pi*f*t + phase); exactly zero at t=0 and t=loop_seconds.
+        warp += -(np.cos(2 * math.pi * frequency * t + phase) - math.cos(phase)) / (2 * math.pi * frequency)
+    return depth * warp / 3
+
+
+def motor_loop(loop_seconds, base, partials, extras, noise_band, noise_level, seed, wobble=0.0, diesel=False):
+    """A long periodic motor or engine loop with load wobble and a slight pitch drift."""
+    render_seconds = loop_seconds + CROSSFADE_SECONDS
+    t = time_axis(render_seconds)
+    phase_time = t + slow_warp(loop_seconds, render_seconds, seed + 7, 0.0009)
+    load = slow_wobble(loop_seconds, render_seconds, seed + 11, 0.045)
     out = np.zeros_like(t)
-    fundamental = snap(base, seconds)
+    fundamental = snap(base, loop_seconds)
+
     if diesel:
-        # Firing pulses: short combustion knocks at the firing frequency, each with its own strength.
         rng = np.random.default_rng(seed)
-        cycle_count = int(round(seconds * fundamental))
+        cycle_count = max(1, int(round(loop_seconds * fundamental)))
+        strengths = rng.uniform(0.65, 1.0, cycle_count)
         pulse_length = max(1, int(0.018 * SAMPLE_RATE))
         pulse_time = np.arange(pulse_length) / SAMPLE_RATE
         band = bandpass(rng.standard_normal(pulse_length), 80, 2200)
         band /= max(1e-9, np.max(np.abs(band)))
         exhaust = bandpass(rng.standard_normal(pulse_length), 35, 320)
         exhaust /= max(1e-9, np.max(np.abs(exhaust)))
-        for cycle in range(cycle_count):
-            strength = rng.uniform(0.65, 1.0)
-            pulse = (0.6 * np.sin(2 * math.pi * fundamental * 3 * pulse_time) + 0.45 * band + 0.4 * exhaust) * np.exp(-pulse_time / 0.006) * strength
+        attack = np.minimum(1.0, pulse_time / 0.0015)
+        for cycle in range(int(math.ceil(render_seconds * fundamental))):
+            strength = strengths[cycle % cycle_count]
+            pulse = (0.6 * np.sin(2 * math.pi * fundamental * 3 * pulse_time) + 0.45 * band + 0.4 * exhaust) * np.exp(-pulse_time / 0.006) * strength * attack
             start = int(cycle / fundamental * SAMPLE_RATE)
-            for index, value in enumerate(pulse):
-                out[(start + index) % len(out)] += value * 0.55
+            if start >= len(out):
+                break
+            end = min(len(out), start + len(pulse))
+            out[start:end] += pulse[:end - start] * 0.55
+
     for harmonic, amplitude in partials:
-        frequency = snap(fundamental * harmonic, seconds)
-        out += amplitude * np.sin(2 * math.pi * frequency * t + rng_phase(seed, harmonic))
+        frequency = snap(fundamental * harmonic, loop_seconds)
+        out += amplitude * np.sin(2 * math.pi * frequency * phase_time + rng_phase(seed, harmonic))
         # A slightly detuned partner gives the slow beating a real gear train has.
-        out += amplitude * 0.12 * np.sin(2 * math.pi * snap(frequency * 1.004, seconds) * t + rng_phase(seed, harmonic + 100))
+        out += amplitude * 0.12 * np.sin(2 * math.pi * snap(frequency * 1.004, loop_seconds) * phase_time + rng_phase(seed, harmonic + 100))
     for frequency, amplitude, am in extras:
-        tone = np.sin(2 * math.pi * snap(frequency, seconds) * t)
-        out += amplitude * tone * periodic_am(seconds, am, 0.35 if wobble == 0 else wobble)
+        tone = np.sin(2 * math.pi * snap(frequency, loop_seconds) * phase_time)
+        out += amplitude * tone * periodic_am(loop_seconds, am, 0.35 if wobble == 0 else wobble, render_seconds=render_seconds)
     if noise_level > 0:
-        out += periodic_noise(seconds, noise_band[0], noise_band[1], 300, seed, noise_level)
-    return out
+        out += periodic_noise(loop_seconds, noise_band[0], noise_band[1], 300, seed, noise_level, render_seconds)
+    return out * load
 
 
 def rng_phase(seed, index):
@@ -205,22 +289,28 @@ def brake_release(tone):
     return out
 
 
-def compressor_loop(tone, seed):
-    out = motor_loop(LOOP_SECONDS, tone["compressor_hz"], [
+def compressor_loop(tone, seed, loop_seconds):
+    out = motor_loop(loop_seconds, tone["compressor_hz"], [
         (1, 0.55), (2, 0.35), (3, 0.2), (4, 0.12), (5, 0.07)
     ], [(tone["compressor_hz"] * 6.1, 0.05, 3.0)], (250, 1400), 0.035, seed)
-    # Piston knocks at five per second, wrapped so the loop stays seamless.
+    render_seconds = loop_seconds + CROSSFADE_SECONDS
     rng = np.random.default_rng(seed + 1)
     pulse_length = int(0.04 * SAMPLE_RATE)
     pulse_time = np.arange(pulse_length) / SAMPLE_RATE
     band = bandpass(rng.standard_normal(pulse_length), 200, 1800)
     band /= max(1e-9, np.max(np.abs(band)))
-    pulses = 10
-    for index in range(pulses):
-        start = int(index / (pulses / LOOP_SECONDS) * SAMPLE_RATE)
-        pulse = (band + 0.5 * np.sin(2 * math.pi * tone["compressor_hz"] * pulse_time)) * np.exp(-pulse_time / 0.012) * 0.16
-        for offset, value in enumerate(pulse):
-            out[(start + offset) % len(out)] += value
+    pulse_frequency = max(1, round(5.0 * loop_seconds)) / loop_seconds
+    pulse_count = max(1, int(round(loop_seconds * pulse_frequency)))
+    strengths = rng.uniform(0.75, 1.0, pulse_count)
+    attack = np.minimum(1.0, pulse_time / 0.002)
+    for index in range(int(math.ceil(render_seconds * pulse_frequency))):
+        strength = strengths[index % pulse_count]
+        pulse = (band + 0.5 * np.sin(2 * math.pi * tone["compressor_hz"] * pulse_time)) * np.exp(-pulse_time / 0.012) * 0.16 * strength * attack
+        start = int(index / pulse_frequency * SAMPLE_RATE)
+        if start >= len(out):
+            break
+        end = min(len(out), start + len(pulse))
+        out[start:end] += pulse[:end - start]
     return out
 
 
@@ -240,14 +330,16 @@ def compressor_release(tone):
     return out
 
 
-def flange_loop(tone, seed):
-    t = time_axis(LOOP_SECONDS)
-    frequency = snap(tone["flange_hz"], LOOP_SECONDS)
-    wobble = np.sin(2 * math.pi * snap(4.3, LOOP_SECONDS) * t + 0.7) * tone["flange_wobble"]
-    tone_signal = np.sin(2 * math.pi * frequency * t + wobble) * (0.75 + 0.25 * np.sin(2 * math.pi * snap(3.1, LOOP_SECONDS) * t))
-    second = 0.35 * np.sin(2 * math.pi * snap(frequency * 1.5, LOOP_SECONDS) * t + 1.1)
-    noise = periodic_noise(LOOP_SECONDS, frequency * 0.8, frequency * 1.25, 120, seed, 0.25)
-    return tone_signal + second + noise
+def flange_loop(tone, seed, loop_seconds):
+    render_seconds = loop_seconds + CROSSFADE_SECONDS
+    t = time_axis(render_seconds)
+    phase_time = t + slow_warp(loop_seconds, render_seconds, seed + 3, 0.0006)
+    frequency = snap(tone["flange_hz"], loop_seconds)
+    wobble = np.sin(2 * math.pi * snap(4.3, loop_seconds) * phase_time + 0.7) * tone["flange_wobble"]
+    tone_signal = np.sin(2 * math.pi * frequency * phase_time + wobble) * (0.75 + 0.25 * np.sin(2 * math.pi * snap(3.1, loop_seconds) * phase_time))
+    second = 0.35 * np.sin(2 * math.pi * snap(frequency * 1.5, loop_seconds) * phase_time + 1.1)
+    noise = periodic_noise(loop_seconds, frequency * 0.8, frequency * 1.25, 120, seed, 0.25, render_seconds)
+    return (tone_signal + second + noise) * slow_wobble(loop_seconds, render_seconds, seed + 5, 0.03)
 
 
 TYPES = {
@@ -302,25 +394,88 @@ TYPES = {
 }
 
 
+def write_loop(relative_path, rendered, loop_seconds, peak):
+    """Crossfades a loop, then rotates it a few samples at a time until the encoded wrap has no click."""
+    loop = rotate_to_zero(crossfade_loop(rendered, loop_seconds))
+    target = os.path.join(OUT_DIR, relative_path)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    with tempfile.TemporaryDirectory() as temporary:
+        candidate = os.path.join(temporary, "candidate.ogg")
+        best_path = os.path.join(temporary, "best.ogg")
+        best_ratio = float("inf")
+        chosen = 0
+        for offset in range(0, 121):
+            encode_ogg(candidate, np.roll(loop, -offset), peak, loop=True)
+            ratio = seam_ratio(decode_ogg(candidate))
+            if ratio < best_ratio:
+                best_ratio = ratio
+                chosen = offset
+                shutil.copyfile(candidate, best_path)
+            if ratio <= 0.8:
+                best_ratio = ratio
+                chosen = offset
+                shutil.copyfile(candidate, best_path)
+                break
+        shutil.copyfile(best_path, target)
+        print("  %-42s offset %3d, seam %.2fx" % (relative_path, chosen, best_ratio))
+
+
+def seam_ratio(samples):
+    return abs(float(samples[-1] - samples[0])) / max(1e-9, float(np.percentile(np.abs(np.diff(samples)), 99)))
+
+
 def generate_profile(name, tone):
     motor = tone["motor"]
-    write_ogg(os.path.join(name, "motor.ogg"), motor_loop(LOOP_SECONDS, **motor), 0.8, loop=True)
+    write_loop(os.path.join(name, "motor.ogg"), motor_loop(MOTOR_LOOP_SECONDS, **motor), MOTOR_LOOP_SECONDS, 0.8)
     write_ogg(os.path.join(name, "chime.ogg"), chime(*tone["chime"]), 0.85)
     write_ogg(os.path.join(name, "door_open.ogg"), door_open(tone["door"]), 0.8)
     write_ogg(os.path.join(name, "door_close.ogg"), door_close(tone["door"]), 0.8)
     write_ogg(os.path.join(name, "brake_release.ogg"), brake_release(tone["door"]), 0.75)
-    write_ogg(os.path.join(name, "compressor.ogg"), compressor_loop(tone, 700 + len(name)), 0.38, loop=True)
+    write_loop(os.path.join(name, "compressor.ogg"), compressor_loop(tone, 700 + len(name), COMPRESSOR_LOOP_SECONDS), COMPRESSOR_LOOP_SECONDS, 0.38)
     write_ogg(os.path.join(name, "compressor_attack.ogg"), compressor_attack(tone), 0.45)
     write_ogg(os.path.join(name, "compressor_release.ogg"), compressor_release(tone), 0.42)
-    write_ogg(os.path.join(name, "flange.ogg"), flange_loop(tone, 800 + len(name)), 0.6, loop=True)
+    write_loop(os.path.join(name, "flange.ogg"), flange_loop(tone, 800 + len(name), FLANGE_LOOP_SECONDS), FLANGE_LOOP_SECONDS, 0.6)
+
+
+def decode_ogg(path):
+    result = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-f", "f32le", "-ac", "1", "-ar", str(SAMPLE_RATE), "-"], capture_output=True, check=True)
+    return np.frombuffer(result.stdout, dtype="<f4")
+
+
+def check_loops():
+    """Decodes every loop and fails when the wrap step is out of line with the clip's own sample-to-sample steps."""
+    rows = []
+    failed = False
+    for path in sorted(glob.glob(os.path.join(OUT_DIR, "**", "*.ogg"), recursive=True)):
+        name = os.path.basename(path)
+        if not any(key in name for key in ("motor", "compressor", "flange")):
+            continue
+        samples = decode_ogg(path)
+        if len(samples) < 3:
+            continue
+        seam = abs(float(samples[-1] - samples[0]))
+        percentile = float(np.percentile(np.abs(np.diff(samples)), 99))
+        ratio = seam / max(1e-9, percentile)
+        passed = ratio <= SEAM_LIMIT
+        failed |= not passed
+        rows.append((os.path.relpath(path, OUT_DIR), seam, percentile, ratio, passed))
+    print("Loop seam check (wrap step / p99 sample step, limit %.1f)" % SEAM_LIMIT)
+    print("%-38s %9s %9s %7s  %s" % ("file", "seam", "p99", "ratio", "result"))
+    for relative_path, seam, percentile, ratio, passed in rows:
+        print("%-38s %9.4f %9.4f %7.2f  %s" % (relative_path, seam, percentile, ratio, "OK" if passed else "FAIL"))
+    if failed:
+        raise SystemExit("one or more loops click at the wrap")
+    print("%d files checked, all at or below %.1fx" % (len(rows), SEAM_LIMIT))
 
 
 def main():
-    if not shutil.which("ffmpeg"):
-        raise SystemExit("ffmpeg is required")
-    for name, tone in TYPES.items():
-        generate_profile(name, tone)
-        print("generated", name)
+    if not shutil.which("ffmpeg") or not (shutil.which("oggenc") or shutil.which("ffmpeg")):
+        raise SystemExit("ffmpeg and oggenc (or ffmpeg with the vorbis encoder) are required")
+    if "--check" not in sys.argv:
+        for name, tone in TYPES.items():
+            generate_profile(name, tone)
+            print("generated", name)
+    check_loops()
 
 
 if __name__ == "__main__":
