@@ -28,7 +28,7 @@ public final class StationAudit {
 		TRACKS("Tracks"), FACES("Boarding edges"), RAIL_NODES("Rail nodes"), ROOF("Roof cover"), HEADROOM("Headroom"), ACCESS("Step-free access"),
 		NAME_SIGNS("Name signs"), GROUNDED("Nothing floating"), FALLS("No falls"), SIZE("Size"), LIGHTING("Lighting"), FURNISHING("Furnishing"),
 		RUNWAYS("Runways"), TAXIWAYS("Taxiways"), GATES("Gates"), TERMINAL("Terminal"), SKIPPED("Skipped blocks"),
-		TRAIN_LENGTH("Train fit"), PLATFORM_HEIGHT("Platform height");
+		TRAIN_LENGTH("Train fit"), PLATFORM_HEIGHT("Platform height"), REAL("Real station fit");
 
 		private final String title;
 
@@ -219,6 +219,7 @@ public final class StationAudit {
 			skippedBlocks();
 			trainFit();
 			platformHeight();
+			realFit();
 			return size();
 		}
 
@@ -1601,6 +1602,50 @@ public final class StationAudit {
 			pass(Topic.PLATFORM_HEIGHT, height.label() + " platforms (" + String.format(java.util.Locale.ROOT, "%.2f m", height.metres())
 					+ " above the rail); the plan boards at MTR's fixed one-block level (" + String.format(java.util.Locale.ROOT, "%.2f m", built)
 					+ ") and " + (tactileEdge ? "sets the tactile strip in the edge cell" : "sets the tactile strip one block in"));
+		}
+
+		/**
+		 * How far the plan is from the real station its name matches, in the numbers the research sheets measured: tracks, platform
+		 * length and platform width. Reported as a pass with signed deviations; the source of truth is the ATA-research sheet, so
+		 * a generated station scaled down or capped is shown as the deviation it is, not hidden.
+		 */
+		private void realFit() {
+			final MeasuredStation real = MeasuredStation.of(spec.name());
+			if (real == null) {
+				return;
+			}
+			final StringBuilder message = new StringBuilder(real.label()).append(" measured: ");
+			final StringBuilder built = new StringBuilder("built: ");
+			boolean any = false;
+			if (real.tracks() > 0) {
+				message.append(any ? ", " : "").append(real.tracks()).append(" tracks");
+				built.append(any ? ", " : "").append(spec.trackCount()).append(" tracks (").append(deviation(spec.trackCount(), real.tracks())).append(')');
+				any = true;
+			}
+			if (real.lengthMetres() > 0) {
+				final double metres = spec.platformLength() / StationGeometry.BLOCKS_PER_METRE;
+				message.append(any ? ", " : "").append(real.lengthMetres()).append(" m platform");
+				built.append(any ? ", " : "").append(Math.round(metres)).append(" m (").append(deviation(metres, real.lengthMetres())).append(')');
+				any = true;
+			}
+			if (real.widthMetres() > 0) {
+				final double metres = spec.platformWidth() / StationGeometry.BLOCKS_PER_METRE;
+				message.append(any ? ", " : "").append(String.format(java.util.Locale.ROOT, "%.1f m", real.widthMetres())).append(" platform width");
+				built.append(any ? ", " : "").append(String.format(java.util.Locale.ROOT, "%.1f m", metres)).append(" (")
+						.append(deviation(metres, real.widthMetres())).append(')');
+				any = true;
+			}
+			if (!any) {
+				pass(Topic.REAL, real.label() + " has a research sheet, but its sources give no track or platform dimensions to compare");
+				return;
+			}
+			pass(Topic.REAL, message.append("; ").append(built).toString());
+		}
+
+		/** A signed percentage deviation from a measured value, or "0%" when it matches. */
+		private static String deviation(double built, double measured) {
+			final int percent = (int) Math.round((built - measured) * 100 / measured);
+			return percent > 0 ? "+" + percent + "%" : percent == 0 ? "0%" : percent + "%";
 		}
 
 		private Result size() {
