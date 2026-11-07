@@ -67,10 +67,10 @@ layout and 330 blocks (220 m) on the code C one, above the 210 m used for non-in
 | Airside facade | full-height glass curtain wall with mullions | glass from the floor to the wall top, a mullion every 5 blocks (7.5 m), one-block roof overhang |
 | Landside | glazed band over a plinth, entrance canopy | plinth, glass band, 9-block entrance, canopy over the door |
 | Gate doors | one per stand, in the airside wall | 7 blocks wide, one per stand |
-| Boarding bridge | 20–35 m telescoping tube, rotunda, drive column with wheels, cab at the door | 34-block (23 m) glass tube, 7 wide, metal bands every 4 blocks, widened 9-block rotunda at the wall, two drive columns with black wheels, cab block at the aircraft door |
-| Forecourt road | 2–3 lanes plus kerbs | 18 blocks (12 m): two 2-block footways, kerbs, 12-block carriageway |
+| Boarding bridge | 20–35 m telescoping tube, rotunda, drive column with wheels, cab at the door | 34-block (23 m) raised tube at 3 m, 7 wide, metal collars every 8 blocks, widened rotunda at the wall, two drive columns with black wheels, a docking light and the cab block at the aircraft door |
+| Forecourt road | 2–3 lanes plus kerbs and drop-off islands | 18 blocks (12 m): two 2-block footways, kerbs, 12-block carriageway, two raised drop-off islands |
 | Kerb | 0.15–0.3 m above the road | bottom slab at y = 1 (half a block) |
-| Canopy | over the drop-off door | flat roof on two columns, 5 blocks above the footway |
+| Canopy | over the drop-off door | six-block glass canopy on two columns, with a metal fascia and downlights |
 | Street furniture | lamps, crossings, lane lines | lamps every 24 blocks (16 m), zebra crossing, dashed centre line |
 
 ## Control tower
@@ -79,9 +79,10 @@ layout and 330 blocks (220 m) on the code C one, above the 210 m used for non-in
 |---|---|---|
 | Height | 30–70 m | 72 blocks (48 m) to the roof |
 | Shaft | 4–8 m across, concrete | 5 by 5 blocks (3.3 m) of white concrete, darker corner pilasters and window bands |
-| Cab | 8–15 m across, glazed, leaning outward | 11 by 11 blocks (7.3 m), three rings that step from 7 to 9 to 11 blocks |
-| Cab floor and roof | concrete slabs | light grey concrete floor and roof |
+| Cab | 8–15 m across, glazed, leaning outward | 13 by 13 blocks (8.7 m), a glass drum five blocks tall stepping from 9 to 11 to 13 blocks |
+| Cab floor and roof | concrete slabs | light grey concrete floor and roof, red beacon collar |
 | Beacon | white or red obstacle light on the roof | sea lantern beacon on a short pole at the roof centre |
+| Shaft markings | plain concrete or aviation red/white | white concrete with a red obstruction band every 16 blocks and darker corner pilasters |
 
 ## Decorations are plain blocks
 
