@@ -1,0 +1,404 @@
+{
+	"aws_horn": {
+		"sounds": [
+			{
+				"name": "aurelia:aws_horn",
+				"stream": false
+			}
+		]
+	},
+	"aws_bell": {
+		"sounds": [
+			{
+				"name": "aurelia:aws_bell",
+				"stream": false
+			}
+		]
+	},
+	"tpws_trip": {
+		"sounds": [
+			{
+				"name": "aurelia:tpws_trip",
+				"stream": false
+			}
+		]
+	},
+	"train_profiles/dmu/brake_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dmu/brake_release"
+			}
+		]
+	},
+	"train_profiles/dmu/chime": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dmu/chime"
+			}
+		]
+	},
+	"train_profiles/dmu/compressor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dmu/compressor"
+			}
+		]
+	},
+	"train_profiles/dmu/compressor_attack": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dmu/compressor_attack"
+			}
+		]
+	},
+	"train_profiles/dmu/compressor_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dmu/compressor_release"
+			}
+		]
+	},
+	"train_profiles/dmu/door_close": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dmu/door_close"
+			}
+		]
+	},
+	"train_profiles/dmu/door_open": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dmu/door_open"
+			}
+		]
+	},
+	"train_profiles/dmu/flange": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dmu/flange"
+			}
+		]
+	},
+	"train_profiles/dmu/motor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dmu/motor"
+			}
+		]
+	},
+	"train_profiles/dutch_emu/brake_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dutch_emu/brake_release"
+			}
+		]
+	},
+	"train_profiles/dutch_emu/chime": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dutch_emu/chime"
+			}
+		]
+	},
+	"train_profiles/dutch_emu/compressor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dutch_emu/compressor"
+			}
+		]
+	},
+	"train_profiles/dutch_emu/compressor_attack": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dutch_emu/compressor_attack"
+			}
+		]
+	},
+	"train_profiles/dutch_emu/compressor_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dutch_emu/compressor_release"
+			}
+		]
+	},
+	"train_profiles/dutch_emu/door_close": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dutch_emu/door_close"
+			}
+		]
+	},
+	"train_profiles/dutch_emu/door_open": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dutch_emu/door_open"
+			}
+		]
+	},
+	"train_profiles/dutch_emu/flange": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dutch_emu/flange"
+			}
+		]
+	},
+	"train_profiles/dutch_emu/motor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/dutch_emu/motor"
+			}
+		]
+	},
+	"train_profiles/metro/brake_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/metro/brake_release"
+			}
+		]
+	},
+	"train_profiles/metro/chime": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/metro/chime"
+			}
+		]
+	},
+	"train_profiles/metro/compressor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/metro/compressor"
+			}
+		]
+	},
+	"train_profiles/metro/compressor_attack": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/metro/compressor_attack"
+			}
+		]
+	},
+	"train_profiles/metro/compressor_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/metro/compressor_release"
+			}
+		]
+	},
+	"train_profiles/metro/door_close": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/metro/door_close"
+			}
+		]
+	},
+	"train_profiles/metro/door_open": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/metro/door_open"
+			}
+		]
+	},
+	"train_profiles/metro/flange": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/metro/flange"
+			}
+		]
+	},
+	"train_profiles/metro/motor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/metro/motor"
+			}
+		]
+	},
+	"train_profiles/tram/brake_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tram/brake_release"
+			}
+		]
+	},
+	"train_profiles/tram/chime": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tram/chime"
+			}
+		]
+	},
+	"train_profiles/tram/compressor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tram/compressor"
+			}
+		]
+	},
+	"train_profiles/tram/compressor_attack": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tram/compressor_attack"
+			}
+		]
+	},
+	"train_profiles/tram/compressor_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tram/compressor_release"
+			}
+		]
+	},
+	"train_profiles/tram/door_close": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tram/door_close"
+			}
+		]
+	},
+	"train_profiles/tram/door_open": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tram/door_open"
+			}
+		]
+	},
+	"train_profiles/tram/flange": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tram/flange"
+			}
+		]
+	},
+	"train_profiles/tram/motor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tram/motor"
+			}
+		]
+	},
+	"train_profiles/tube/brake_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tube/brake_release"
+			}
+		]
+	},
+	"train_profiles/tube/chime": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tube/chime"
+			}
+		]
+	},
+	"train_profiles/tube/compressor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tube/compressor"
+			}
+		]
+	},
+	"train_profiles/tube/compressor_attack": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tube/compressor_attack"
+			}
+		]
+	},
+	"train_profiles/tube/compressor_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tube/compressor_release"
+			}
+		]
+	},
+	"train_profiles/tube/door_close": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tube/door_close"
+			}
+		]
+	},
+	"train_profiles/tube/door_open": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tube/door_open"
+			}
+		]
+	},
+	"train_profiles/tube/flange": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tube/flange"
+			}
+		]
+	},
+	"train_profiles/tube/motor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/tube/motor"
+			}
+		]
+	},
+	"train_profiles/uk_emu/brake_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/uk_emu/brake_release"
+			}
+		]
+	},
+	"train_profiles/uk_emu/chime": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/uk_emu/chime"
+			}
+		]
+	},
+	"train_profiles/uk_emu/compressor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/uk_emu/compressor"
+			}
+		]
+	},
+	"train_profiles/uk_emu/compressor_attack": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/uk_emu/compressor_attack"
+			}
+		]
+	},
+	"train_profiles/uk_emu/compressor_release": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/uk_emu/compressor_release"
+			}
+		]
+	},
+	"train_profiles/uk_emu/door_close": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/uk_emu/door_close"
+			}
+		]
+	},
+	"train_profiles/uk_emu/door_open": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/uk_emu/door_open"
+			}
+		]
+	},
+	"train_profiles/uk_emu/flange": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/uk_emu/flange"
+			}
+		]
+	},
+	"train_profiles/uk_emu/motor": {
+		"sounds": [
+			{
+				"name": "aurelia:train_profiles/uk_emu/motor"
+			}
+		]
+	}
+}

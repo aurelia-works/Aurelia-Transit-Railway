@@ -38,6 +38,8 @@ class AnnouncerLogicTest {
 		assertEquals(Announcement.Kind.NEXT, next.kind());
 		assertEquals(List.of("The next station is Alpha."), next.lines());
 		assertEquals(List.of("next_alpha"), next.clips());
+		assertTrue(next.fragments().contains(new Announcement.VoiceFragment("phrase.next_station_is", "The next station is")));
+		assertTrue(next.fragments().stream().anyMatch(fragment -> fragment.key().equals("station.alpha")));
 		assertNull(logic.update(ride(0, "東京駅|Alpha|AT03", 15, 0, 400), 10_000, ALL_CLIPS));
 
 		// 15 m/s * 20 s = 300 blocks: arriving window.

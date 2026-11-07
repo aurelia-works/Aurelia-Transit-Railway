@@ -1,5 +1,6 @@
 package org.mtr.mod.render;
 
+import org.mtr.aurelia.signal.SignalLookahead;
 import org.mtr.core.data.Position;
 import org.mtr.core.data.TwoPositionsBase;
 import org.mtr.core.tool.Utilities;
@@ -92,7 +93,9 @@ public abstract class RenderSignalBase<T extends BlockSignalBase.BlockEntityBase
 
 				// If filters are empty, render all signal states, including node states
 				// If filters are not empty, only render the signal state of the selected colors, even if the colors don't exist
-				final int occupiedAspect = entity.getActualAspect(filterColors.isEmpty() && aspectState.nodeBlocked || aspectState.occupiedColors.intStream().anyMatch(color -> filterColors.isEmpty() || filterColors.contains(color)), isBackSide);
+				final boolean occupied = filterColors.isEmpty() && aspectState.nodeBlocked || aspectState.occupiedColors.intStream().anyMatch(color -> filterColors.isEmpty() || filterColors.contains(color));
+				final int fallbackAspect = entity.getActualAspect(occupied, isBackSide);
+				final int occupiedAspect = SignalLookahead.lamp(pos, newAngle + 90, isBackSide, aspects, filterColors, fallbackAspect);
 				render(storedMatrixTransformationsNew, entity, tickDelta, occupiedAspect, isBackSide);
 
 				if (occupiedAspect > 0 && occupiedAspect < aspects) {

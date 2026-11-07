@@ -1,0 +1,55 @@
+{
+	"name": "Tram",
+	"motor": {
+		"sounds": [
+			"aurelia:train_profiles/tram/motor"
+		],
+		"volume": 0.8,
+		"pitch_curve": [
+			{
+				"speed": 0,
+				"pitch": 0.6
+			},
+			{
+				"speed": 15,
+				"pitch": 0.95
+			},
+			{
+				"speed": 40,
+				"pitch": 1.35
+			},
+			{
+				"speed": 70,
+				"pitch": 1.65
+			}
+		],
+		"volume_curve": [
+			{
+				"speed": 0,
+				"volume": 0.12
+			},
+			{
+				"speed": 8,
+				"volume": 0.6
+			},
+			{
+				"speed": 30,
+				"volume": 1
+			},
+			{
+				"speed": 70,
+				"volume": 0.85
+			}
+		]
+	},
+	"door_chime": "aurelia:train_profiles/tram/chime",
+	"door_open": "aurelia:train_profiles/tram/door_open",
+	"door_close": "aurelia:train_profiles/tram/door_close",
+	"brake_release": "aurelia:train_profiles/tram/brake_release",
+	"compressor_loop": "aurelia:train_profiles/tram/compressor",
+	"compressor_attack": "aurelia:train_profiles/tram/compressor_attack",
+	"compressor_release": "aurelia:train_profiles/tram/compressor_release",
+	"flange": [
+		"aurelia:train_profiles/tram/flange"
+	]
+}

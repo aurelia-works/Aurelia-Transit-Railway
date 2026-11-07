@@ -84,6 +84,7 @@ public class VehicleExtension extends Vehicle implements Utilities {
 		oldSpeed = speed;
 		simulate(millisElapsed, null, null);
 		persistentVehicleData.tick(railProgress, millisElapsed, vehicleExtraData);
+		persistentVehicleData.updateSoundProfile(getId());
 		final MinecraftClient minecraftClient = MinecraftClient.getInstance();
 		final ClientWorld clientWorld = minecraftClient.getWorldMapped();
 		final ClientPlayerEntity clientPlayerEntity = minecraftClient.getPlayerMapped();
@@ -390,5 +391,10 @@ public class VehicleExtension extends Vehicle implements Utilities {
 	 */
 	public void dispose() {
 		persistentVehicleData.dispose();
+	}
+
+	/** Distance in metres from the start of the path to the front of the train. Used by the driver aids. */
+	public double getRailProgress() {
+		return railProgress;
 	}
 }
