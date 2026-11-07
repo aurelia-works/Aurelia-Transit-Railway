@@ -464,6 +464,11 @@
 		"aurelia_transit_architecture:luggage_trolley",
 		"aurelia_transit_architecture:airport_seat",
 		"aurelia_transit_architecture:apron_platform",
-		"aurelia_transit_architecture:jet_bridge"
+		"aurelia_transit_architecture:jet_bridge",
+		"aurelia_transit_architecture:steel_panel",
+		"aurelia_transit_architecture:steel_panel_dark",
+		"aurelia_transit_architecture:steel_panel_perforated",
+		"aurelia_transit_architecture:steel_panel_galvanised",
+		"aurelia_transit_architecture:steel_panel_brushed"
 	]
 }
