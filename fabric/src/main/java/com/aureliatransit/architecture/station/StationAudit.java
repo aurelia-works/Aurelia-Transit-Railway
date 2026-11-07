@@ -1597,11 +1597,10 @@ public final class StationAudit {
 		/** The country's platform height and the layout the plan uses for it; MTR fixes the boarding level itself. */
 		private void platformHeight() {
 			final StationFeatures.PlatformHeight height = StationFeatures.PlatformHeight.of(spec);
-			final boolean tactileEdge = spec.tactile() && height == StationFeatures.PlatformHeight.HIGH;
 			final double built = 1.0 / StationGeometry.BLOCKS_PER_METRE;
 			pass(Topic.PLATFORM_HEIGHT, height.label() + " platforms (" + String.format(java.util.Locale.ROOT, "%.2f m", height.metres())
-					+ " above the rail); the plan boards at MTR's fixed one-block level (" + String.format(java.util.Locale.ROOT, "%.2f m", built)
-					+ ") and " + (tactileEdge ? "sets the tactile strip in the edge cell" : "sets the tactile strip one block in"));
+					+ " above the rail); MTR fixes the boarding level at one block (" + String.format(java.util.Locale.ROOT, "%.2f m", built)
+					+ "), and " + (spec.tactile() ? "the tactile warning is part of the edge paving" : "no tactile warning was asked for"));
 		}
 
 		/**

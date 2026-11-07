@@ -764,7 +764,8 @@ abstract class PlanFurniture extends PlanRoofs {
 	 * stand stands on the back of the platform, clear of the boarding edge and the stairs.
 	 */
 	boolean screenOnStand(TrackLayout.PlatformBand band, int target) {
-		final int step = band.trackRight() ? -1 : 1;
+		// inward from the back: a side platform with its track on the right backs onto uMin, so the stand is at uMin + 1
+		final int step = band.trackRight() ? 1 : -1;
 		final int back = backColumn(band);
 		for (int d = 0; d <= 12; d += 2) {
 			for (final int v : d == 0 ? new int[]{target} : new int[]{target + d, target - d}) {
@@ -773,7 +774,8 @@ abstract class PlanFurniture extends PlanRoofs {
 				}
 				for (int k = 0; k <= 2; k++) {
 					final int u = back + step * k;
-					if (isEdge(band, u) || taken(u, StationGeometry.WALK_Y, v) || taken(u, StationGeometry.WALK_Y + 1, v)
+					if (u < band.uMin() || u > band.uMax() || u + step < band.uMin() || u + step > band.uMax()
+							|| isEdge(band, u) || taken(u, StationGeometry.WALK_Y, v) || taken(u, StationGeometry.WALK_Y + 1, v)
 							|| taken(u, StationGeometry.WALK_Y + 2, v) || taken(u + step, StationGeometry.WALK_Y + 2, v)) {
 						continue;
 					}

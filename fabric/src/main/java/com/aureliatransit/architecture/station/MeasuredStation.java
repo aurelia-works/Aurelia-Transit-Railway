@@ -83,6 +83,13 @@ public enum MeasuredStation {
 				return station;
 			}
 		}
+		// the presets use shorter names than the research sheets ("Frankfurt Hbf", "Berlin Hbf")
+		if (wanted.startsWith("frankfurt")) {
+			return FRANKFURT;
+		}
+		if (wanted.startsWith("berlin")) {
+			return BERLIN;
+		}
 		// the presets use shorter names than the research sheets ("Amsterdam Centraal", "West Kowloon", "Munchen Ost")
 		for (final MeasuredStation station : values()) {
 			final String sheet = normalise(station.label);
