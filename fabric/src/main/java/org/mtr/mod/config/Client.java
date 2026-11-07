@@ -14,6 +14,9 @@ public final class Client extends ClientSchema {
 	public static final int RAIL_FAR_CHUNKS_MAX = 32;
 	public static final int TRAIN_INTERIOR_CHUNKS_MAX = 16;
 	public static final int TRAIN_BOX_CHUNKS_MAX = 32;
+	public static final int RAIL_VIEW_CHUNKS_MAX = 64;
+	public static final int TRAIN_VIEW_CHUNKS_MAX = 64;
+	public static final int BLOCK_ENTITY_WARN_MAX = 1000;
 	public static final double PANTOGRAPH_RAISE_SECONDS_MAX = 10;
 	public static final double PANTOGRAPH_STAY_UP_KILOMETERS_PER_HOUR_MAX = 200;
 	public static final double SOUND_MAX_PITCH_MIN = 2;
@@ -100,6 +103,22 @@ public final class Client extends ClientSchema {
 
 	public int getTrainBoxChunks() {
 		return (int) trainBoxChunks;
+	}
+
+	public int getRailViewChunks() {
+		return (int) railViewChunks;
+	}
+
+	public int getTrainViewChunks() {
+		return (int) trainViewChunks;
+	}
+
+	public boolean getFarDetail() {
+		return farDetail;
+	}
+
+	public int getBlockEntityWarn() {
+		return (int) blockEntityWarn;
 	}
 
 	public boolean getUseMTRFont() {
@@ -196,6 +215,22 @@ public final class Client extends ClientSchema {
 
 	public void setTrainBoxChunks(int trainBoxChunks) {
 		this.trainBoxChunks = Utilities.clamp(trainBoxChunks, 0, TRAIN_BOX_CHUNKS_MAX);
+	}
+
+	public void setRailViewChunks(int railViewChunks) {
+		this.railViewChunks = Utilities.clamp(railViewChunks, 0, RAIL_VIEW_CHUNKS_MAX);
+	}
+
+	public void setTrainViewChunks(int trainViewChunks) {
+		this.trainViewChunks = Utilities.clamp(trainViewChunks, 0, TRAIN_VIEW_CHUNKS_MAX);
+	}
+
+	public void toggleFarDetail() {
+		farDetail = !farDetail;
+	}
+
+	public void setBlockEntityWarn(int blockEntityWarn) {
+		this.blockEntityWarn = Utilities.clamp(blockEntityWarn, 0, BLOCK_ENTITY_WARN_MAX);
 	}
 
 	public void toggleUseMTRFont() {

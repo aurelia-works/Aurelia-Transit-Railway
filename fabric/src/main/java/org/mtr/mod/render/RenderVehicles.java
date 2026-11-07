@@ -13,9 +13,11 @@ import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair
 import org.mtr.mapping.holder.*;
 import org.mtr.mapping.mapper.EntityHelper;
 import org.mtr.mapping.mapper.GraphicsHolder;
+import org.mtr.mapping.mapper.MinecraftClientHelper;
 import org.mtr.mapping.mapper.OptimizedRenderer;
 import org.mtr.mod.Init;
 import org.mtr.mod.client.*;
+import org.mtr.mod.config.Client;
 import org.mtr.mod.config.Config;
 import org.mtr.mod.data.AirplanePath;
 import org.mtr.mod.data.DepotOptions;
@@ -121,12 +123,20 @@ public class RenderVehicles implements IGui {
 					return () -> vehicle.persistentVehicleData.rayTracing[carNumber] = shouldRender;
 				});
 
-				if (vehicle.persistentVehicleData.rayTracing[carNumber] || VehicleRidingMovement.isRiding(vehicle.getId())) {
-					// Train LOD: far cars skip their interior, farther ones are a plain box and their model is never requested
-					if (trainLodTier(vehicle, vehicleCarDetails.right().right()) == TrainLod.Tier.BOX) {
+				// Train LOD: far cars skip their interior, farther ones are a plain box and their model is never requested.
+				// Past Minecraft's render distance a box is drawn even when occlusion culling did not reach that far.
+				final TrainLod.Tier tier = trainLodTier(vehicle, vehicleCarDetails.right().right());
+				if (tier == TrainLod.Tier.HIDDEN) {
+					return;
+				}
+				if (tier == TrainLod.Tier.BOX || tier == TrainLod.Tier.BOX_FAR) {
+					// A far box has no occlusion result, so a cheap behind-camera check keeps the queued boxes down
+					if (tier == TrainLod.Tier.BOX_FAR ? farBoxInFront(vehicleCarDetails.right().right()) : vehicle.persistentVehicleData.rayTracing[carNumber] || VehicleRidingMovement.isRiding(vehicle.getId())) {
 						queueTrainBox(vehicle, vehicleCarDetails.left(), vehicleCarDetails.right().right());
-						return;
 					}
+					return;
+				}
+				if (vehicle.persistentVehicleData.rayTracing[carNumber] || VehicleRidingMovement.isRiding(vehicle.getId())) {
 					CustomResourceLoader.getVehicleById(vehicle.getTransportMode(), vehicleCarDetails.left().getVehicleId(), vehicleResourceDetails -> {
 						final VehicleResource vehicleResource = vehicleResourceDetails.left();
 						final boolean fromResourcePackCreator = vehicleResourceDetails.rightBoolean() && !vehicle.getIsOnRoute();
@@ -625,14 +635,24 @@ public class RenderVehicles implements IGui {
 	// so new lambdas go here and existing lambdas capture nothing new (DropInSignaturesTest)
 
 	private static TrainLod.Tier trainLodTier(VehicleExtension vehicle, PositionAndRotation carPosition) {
-		if (!Config.getClient().getTrainLod()) {
-			return TrainLod.Tier.FULL;
-		}
+		final Client client = Config.getClient();
 		final Vector3d camera = MinecraftClient.getInstance().getGameRendererMapped().getCamera().getPos();
 		final double dx = carPosition.position.x - camera.getXMapped();
 		final double dy = carPosition.position.y - camera.getYMapped();
 		final double dz = carPosition.position.z - camera.getZMapped();
-		return TrainLod.tier(Math.sqrt(dx * dx + dy * dy + dz * dz), VehicleRidingMovement.isRiding(vehicle.getId()), Config.getClient().getTrainInteriorChunks(), Config.getClient().getTrainBoxChunks());
+		final double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+		final boolean riding = VehicleRidingMovement.isRiding(vehicle.getId());
+		if (!MainRenderer.renderingShadows()) {
+			// A box past Minecraft's render distance is drawn without occlusion culling; the culling distance stops there
+			final TrainLod.Tier viewTier = TrainLod.viewTier(distance, riding, client.getTrainViewChunks(), MinecraftClientHelper.getRenderDistance(), client.getFarDetail());
+			if (viewTier == TrainLod.Tier.HIDDEN || viewTier == TrainLod.Tier.BOX_FAR) {
+				return viewTier;
+			}
+		}
+		if (!client.getTrainLod()) {
+			return TrainLod.Tier.FULL;
+		}
+		return TrainLod.tier(distance, riding, client.getTrainInteriorChunks(), client.getTrainBoxChunks());
 	}
 
 	private static boolean withoutInterior(VehicleExtension vehicle, PositionAndRotation carPosition) {
@@ -645,6 +665,16 @@ public class RenderVehicles implements IGui {
 
 	private static void queueTrainBox(VehicleExtension vehicle, VehicleCar vehicleCar, PositionAndRotation carPosition) {
 		CustomResourceLoader.getVehicleById(vehicle.getTransportMode(), vehicleCar.getVehicleId(), vehicleResourceDetails -> TrainProxy.queue(vehicleCar, carPosition, vehicleResourceDetails.left().getColor()));
+	}
+
+	/** A cheap behind-camera check for a far box, which has no occlusion result to rely on. */
+	private static boolean farBoxInFront(PositionAndRotation carPosition) {
+		final Camera camera = MinecraftClient.getInstance().getGameRendererMapped().getCamera();
+		final Vector3d cameraPosition = camera.getPos();
+		final double yawRadians = Math.toRadians(camera.getYaw());
+		final double dx = carPosition.position.x - cameraPosition.getXMapped();
+		final double dz = carPosition.position.z - cameraPosition.getZMapped();
+		return dx * -Math.sin(yawRadians) + dz * Math.cos(yawRadians) > -8;
 	}
 
 	public static class RidingPlayerInterpolation {

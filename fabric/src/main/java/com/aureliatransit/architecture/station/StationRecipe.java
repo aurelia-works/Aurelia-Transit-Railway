@@ -56,7 +56,7 @@ public record StationRecipe(Look look, Look mix, boolean terminus, int tracks, P
 		public boolean hasSheet() {
 			return switch (this) {
 				case FRANKFURT, ST_PANCRAS, PARIS, MILAN, NEW_YORK, MUNICH, BERLIN, COVENTRY, TOKYO, BEIJING, KUALA_LUMPUR, SURBITON, ANTWERP, ZURICH,
-						MUMBAI, BANGKOK -> true;
+						MUMBAI, BANGKOK, AMSTERDAM -> true;
 				default -> false;
 			};
 		}

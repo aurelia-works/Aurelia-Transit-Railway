@@ -56,10 +56,11 @@ class RealCitiesATest {
 	}
 
 	@Test
-	void amsterdamIsAGrandBuildingUnlessToldOtherwise() {
+	void amsterdamIsAGrandBuildingWithItsSheetUnlessToldOtherwise() {
 		assertEquals(StationScale.GRAND, spec("amsterdam station building").scale());
 		assertEquals(StationScale.COMPACT, spec("small amsterdam station building").scale());
 		assertEquals(StationScale.CITY, spec("amsterdam station, city building").scale());
+		assertSame(Landmarks.AMSTERDAM, Landmarks.of(spec("8 track real amsterdam station building, 160 long")));
 	}
 
 	@Test
@@ -97,7 +98,7 @@ class RealCitiesATest {
 	@Test
 	void theSpreadOfEveryCityPlansAndAuditsClean() {
 		final String[] cities = {"real frankfurt", "real st pancras", "real paris", "real milan", "real new york", "real munich", "real berlin",
-				"real coventry", "amsterdam"};
+				"real coventry", "real amsterdam"};
 		final int[] lengths = {48, 64, 96, 160, 240, 300};
 		final String[] sizes = {"", "small", "big", "grand building", "compact building", "city building"};
 		final String[] layouts = {"", "side platforms", "island platforms"};
@@ -113,7 +114,7 @@ class RealCitiesATest {
 						+ sizes[(i / 2) % sizes.length] + ", " + layouts[(i / 5) % layouts.length];
 				final ParseResult parsed = StationDescriptionParser.parse(words);
 				final StationSpec spec = parsed.spec();
-				if (Landmarks.of(spec) != null && !city.equals("amsterdam")) {
+				if (Landmarks.of(spec) != null) {
 					sheets++;
 				}
 				final StationPlan plan = StationPlanner.plan(spec);

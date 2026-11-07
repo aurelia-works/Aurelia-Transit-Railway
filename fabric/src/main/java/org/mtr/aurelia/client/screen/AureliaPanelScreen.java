@@ -21,6 +21,9 @@ import org.mtr.aurelia.client.ZipClient;
 import org.mtr.aurelia.client.PassengerDrawSettings;
 import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.ScriptingHandshake;
+import org.mtr.aurelia.client.TrainView;
+import org.mtr.aurelia.sound.SoundProfile;
+import org.mtr.aurelia.sound.SoundProfileStore;
 import org.mtr.mod.InitClient;
 import org.mtr.mod.Items;
 import org.mtr.mod.config.Client;
@@ -29,6 +32,7 @@ import org.mtr.mod.item.ItemRailBuilder;
 import org.mtr.mod.packet.PacketUpdateRailBuilder;
 import org.mtr.mod.passenger.PassengerNetwork;
 import org.mtr.mod.passenger.PassengerService;
+import org.mtr.mod.render.BlockEntityCounter;
 import org.mtr.aurelia.client.BuildClient;
 import org.mtr.mod.building.BuildMath;
 import org.mtr.mod.building.BuildSettings;
@@ -111,7 +115,12 @@ public final class AureliaPanelScreen extends Screen {
 			new Distance("options.mtr.train_box_chunks", Client.TRAIN_BOX_CHUNKS_MAX, config::getTrainBoxChunks, config::setTrainBoxChunks),
 			new Toggle("options.mtr.faster_model_loading", config::getFasterModelLoading, config::toggleFasterModelLoading),
 			new Toggle("options.mtr.background_model_loading", config::getBackgroundModelLoading, config::toggleBackgroundModelLoading),
-			new Toggle("options.mtr.free_unused_models", config::getFreeUnusedModels, config::toggleFreeUnusedModels)
+			new Toggle("options.mtr.free_unused_models", config::getFreeUnusedModels, config::toggleFreeUnusedModels),
+			new Distance("options.mtr.rail_view_chunks", Client.RAIL_VIEW_CHUNKS_MAX, config::getRailViewChunks, config::setRailViewChunks),
+			new Distance("options.mtr.train_view_chunks", Client.TRAIN_VIEW_CHUNKS_MAX, config::getTrainViewChunks, config::setTrainViewChunks),
+			new Toggle("options.mtr.far_detail", config::getFarDetail, config::toggleFarDetail),
+			new Distance("options.mtr.block_entity_warn", Client.BLOCK_ENTITY_WARN_MAX, config::getBlockEntityWarn, config::setBlockEntityWarn),
+			new Toggle("options.mtr.aurelia_block_look", org.mtr.aurelia.client.AureliaLookPack::enabled, org.mtr.aurelia.client.AureliaLookPack::toggle)
 	);
 
 	private Tab tab;
@@ -120,12 +129,14 @@ public final class AureliaPanelScreen extends Screen {
 	private int lookFirst;
 	private static final AureliaUiSettings.ScreenId[] LOOK_IDS = AureliaUiSettings.ScreenId.values();
 	private static final Text LOOK_HINT = Text.translatable("gui.aurelia.look.hint");
+	private int trainSoundFirst;
+	private static final int TRAIN_SOUND_ROWS = 13;
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
 	private int drivingFirst;
 	private static final int DRIVING_ROWS = 6;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
-	private static final int PASSENGER_ROWS = 9;
+	private static final int PASSENGER_ROWS = 17;
 
 	public AureliaPanelScreen(@Nullable Screen parent, Tab tab) {
 		super(Text.translatable("gui.aurelia.panel.title"));
@@ -148,6 +159,7 @@ public final class AureliaPanelScreen extends Screen {
 				firstRow = 0;
 				lookFirst = 0;
 				buildFirst = 0;
+				trainSoundFirst = 0;
 				clearAndInit();
 			}).dimensions(tabsLeft + (i % columns) * (tabWidth + 4), 28 + (i / columns) * TAB_ROW, tabWidth, 18).build());
 			button.active = target != tab;
@@ -286,28 +298,101 @@ public final class AureliaPanelScreen extends Screen {
 	}
 
 	/**
-	 * Train sounds: the pitch range past vanilla's 0.5-2, pitch bending across old-style motor steps, a door chime and
-	 * the flange squeal volume.
+	 * Train sounds: the profile for the train you ride (or the nearest one) and a volume per sound part, then the pitch
+	 * range past vanilla's 0.5-2, pitch bending across old-style motor steps and a door chime.
 	 */
 	private void initTrainSound() {
+		trainSoundFirst = Math.max(0, Math.min(trainSoundFirst, TRAIN_SOUND_ROWS - visibleRows()));
 		final int left = (width - BUTTON_WIDTH) / 2;
-		addDrawableChild(ButtonWidget.builder(widePitchLabel(), b -> {
-			config.toggleSoundWidePitch();
-			b.setMessage(widePitchLabel());
-		}).dimensions(left, top, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.wide_pitch.tooltip")));
-		addDrawableChild(new RangeSlider(left, top + ROW, Client.SOUND_MAX_PITCH_MIN, Client.SOUND_MAX_PITCH_MAX, 0.25, config::getSoundMaxPitch, config::setSoundMaxPitch,
-				pitch -> Text.translatable("gui.aurelia.train_sound.max_pitch", String.format("%.2f", pitch))));
-		addDrawableChild(new RangeSlider(left, top + ROW * 2, 0, Client.MOTOR_PITCH_SMOOTHING_MAX, 0.05, config::getMotorPitchSmoothing, config::setMotorPitchSmoothing,
-				spread -> spread == 0 ? Text.translatable("gui.aurelia.train_sound.motor_smoothing.off") : Text.translatable("gui.aurelia.train_sound.motor_smoothing", Math.round(spread * 100))))
-				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.motor_smoothing.tooltip")));
-		addDrawableChild(ButtonWidget.builder(doorChimeLabel(), b -> {
-			config.cycleDoorChime();
-			b.setMessage(doorChimeLabel());
-		}).dimensions(left, top + ROW * 3, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.door_chime.tooltip")));
-		addDrawableChild(new RangeSlider(left, top + ROW * 4, 0, 1, 0.05, config::getDoorChimeVolume, config::setDoorChimeVolume,
-				volume -> Text.translatable("gui.aurelia.train_sound.door_chime_volume", Math.round(volume * 100))));
-		addDrawableChild(new RangeSlider(left, top + ROW * 5, 0, 1, 0.05, config::getFlangeVolume, config::setFlangeVolume,
-				volume -> volume == 0 ? Text.translatable("gui.aurelia.train_sound.flange_volume.off") : Text.translatable("gui.aurelia.train_sound.flange_volume", Math.round(volume * 100))));
+		final TrainView train = trainForSound();
+		if (trainSoundRow(0)) {
+			final ButtonWidget profile = addDrawableChild(ButtonWidget.builder(soundProfileLabel(train), b -> {
+				if (train != null) {
+					SoundProfileStore.cycleProfile(train.id());
+					b.setMessage(soundProfileLabel(train));
+				}
+			}).dimensions(left, trainSoundY(0), BUTTON_WIDTH, 20).build());
+			profile.active = train != null;
+			profile.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.profile.tooltip")));
+		}
+		addTrainVolumeSlider(left, 1, train, SoundProfileStore.Part.MOTOR);
+		addTrainVolumeSlider(left, 2, train, SoundProfileStore.Part.DOOR);
+		addTrainVolumeSlider(left, 3, train, SoundProfileStore.Part.CHIME);
+		addTrainVolumeSlider(left, 4, train, SoundProfileStore.Part.BRAKE);
+		addTrainVolumeSlider(left, 5, train, SoundProfileStore.Part.COMPRESSOR);
+		addTrainVolumeSlider(left, 6, train, SoundProfileStore.Part.FLANGE);
+		if (trainSoundRow(7)) {
+			addDrawableChild(ButtonWidget.builder(widePitchLabel(), b -> {
+				config.toggleSoundWidePitch();
+				b.setMessage(widePitchLabel());
+			}).dimensions(left, trainSoundY(7), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.wide_pitch.tooltip")));
+		}
+		if (trainSoundRow(8)) {
+			addDrawableChild(new RangeSlider(left, trainSoundY(8), Client.SOUND_MAX_PITCH_MIN, Client.SOUND_MAX_PITCH_MAX, 0.25, config::getSoundMaxPitch, config::setSoundMaxPitch,
+					pitch -> Text.translatable("gui.aurelia.train_sound.max_pitch", String.format("%.2f", pitch))));
+		}
+		if (trainSoundRow(9)) {
+			addDrawableChild(new RangeSlider(left, trainSoundY(9), 0, Client.MOTOR_PITCH_SMOOTHING_MAX, 0.05, config::getMotorPitchSmoothing, config::setMotorPitchSmoothing,
+					spread -> spread == 0 ? Text.translatable("gui.aurelia.train_sound.motor_smoothing.off") : Text.translatable("gui.aurelia.train_sound.motor_smoothing", Math.round(spread * 100))))
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.motor_smoothing.tooltip")));
+		}
+		if (trainSoundRow(10)) {
+			addDrawableChild(ButtonWidget.builder(doorChimeLabel(), b -> {
+				config.cycleDoorChime();
+				b.setMessage(doorChimeLabel());
+			}).dimensions(left, trainSoundY(10), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.door_chime.tooltip")));
+		}
+		if (trainSoundRow(11)) {
+			addDrawableChild(new RangeSlider(left, trainSoundY(11), 0, 1, 0.05, config::getDoorChimeVolume, config::setDoorChimeVolume,
+					volume -> Text.translatable("gui.aurelia.train_sound.door_chime_volume", Math.round(volume * 100))));
+		}
+		if (trainSoundRow(12)) {
+			addDrawableChild(new RangeSlider(left, trainSoundY(12), 0, 1, 0.05, config::getFlangeVolume, config::setFlangeVolume,
+					volume -> volume == 0 ? Text.translatable("gui.aurelia.train_sound.flange_volume.off") : Text.translatable("gui.aurelia.train_sound.flange_volume", Math.round(volume * 100))));
+		}
+	}
+
+	private boolean trainSoundRow(int row) {
+		return row >= trainSoundFirst && row < trainSoundFirst + visibleRows();
+	}
+
+	private int trainSoundY(int row) {
+		return top + (row - trainSoundFirst) * ROW;
+	}
+
+	@Nullable
+	private TrainView trainForSound() {
+		if (client == null || client.player == null) {
+			return null;
+		}
+		final List<TrainView> trains = MtrBridge.loadedTrains(client.player.getX(), client.player.getY(), client.player.getZ());
+		return trains.isEmpty() ? null : trains.get(0);
+	}
+
+	private void addTrainVolumeSlider(int left, int row, @Nullable TrainView train, SoundProfileStore.Part part) {
+		if (!trainSoundRow(row)) {
+			return;
+		}
+		final RangeSlider slider = addDrawableChild(new RangeSlider(left, trainSoundY(row), 0, 1, 0.05,
+				() -> train == null ? 1 : SoundProfileStore.settings(train.id()).volume(part),
+				volume -> {
+					if (train != null) {
+						SoundProfileStore.setVolume(train.id(), part, volume);
+					}
+				},
+				volume -> Text.translatable("gui.aurelia.train_sound.volume." + part.key, Math.round(volume * 100))));
+		slider.active = train != null;
+	}
+
+	private static Text soundProfileLabel(@Nullable TrainView train) {
+		final Text value;
+		if (train == null) {
+			value = Text.translatable("gui.aurelia.train_sound.profile.no_train");
+		} else {
+			final SoundProfile profile = SoundProfileStore.resolve(SoundProfileStore.settings(train.id()));
+			value = profile == null ? Text.translatable("gui.aurelia.train_sound.profile.none") : Text.literal(profile.displayName());
+		}
+		return Text.translatable("gui.aurelia.train_sound.profile", value);
 	}
 
 	private Text widePitchLabel() {
@@ -508,6 +593,49 @@ public final class AureliaPanelScreen extends Screen {
 					value -> PassengerDrawSettings.setMaxPerPlace((int) value),
 					value -> Text.translatable("gui.aurelia.passengers.max_drawn", value.intValue()));
 		}
+		if (passengerRow(9)) {
+			addDrawableChild(ButtonWidget.builder(solidLabel(), b -> {
+				PassengerDrawSettings.cycleLook();
+				b.setMessage(solidLabel());
+			}).dimensions(left, passengerY(9), BUTTON_WIDTH, 20).build());
+		}
+		if (passengerRow(10)) {
+			addPassengerSlider(left, 10, true, PassengerDrawSettings.FIGURE_SIZE_MIN, PassengerDrawSettings.FIGURE_SIZE_MAX, 10, () -> PassengerDrawSettings.get().figureSize(),
+					value -> PassengerDrawSettings.setFigureSize((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.figure_size", value.intValue()));
+		}
+		if (passengerRow(11)) {
+			addPassengerSlider(left, 11, true, 0, PassengerDrawSettings.HUE_MAX, 10, () -> PassengerDrawSettings.get().waitingHue(),
+					value -> PassengerDrawSettings.setWaitingHue((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.waiting_hue", value.intValue()));
+		}
+		if (passengerRow(12)) {
+			addPassengerSlider(left, 12, true, 0, PassengerDrawSettings.HUE_MAX, 10, () -> PassengerDrawSettings.get().ridingHue(),
+					value -> PassengerDrawSettings.setRidingHue((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.riding_hue", value.intValue()));
+		}
+		if (passengerRow(13)) {
+			addPassengerSlider(left, 13, true, 0, PassengerDrawSettings.MAX_WALKERS_MAX, 4, () -> PassengerDrawSettings.get().maxWalkers(),
+					value -> PassengerDrawSettings.setMaxWalkers((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.max_walkers", value.intValue()));
+		}
+		if (passengerRow(14)) {
+			final ButtonWidget routes = addDrawableChild(ButtonWidget.builder(routesLabel(), b -> {
+				PassengerDrawSettings.setRoutes(!PassengerDrawSettings.get().routes());
+				b.setMessage(routesLabel());
+			}).dimensions(left, passengerY(14), BUTTON_WIDTH, 20).build());
+			routes.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.passengers.routes.tooltip")));
+		}
+		if (passengerRow(15)) {
+			addPassengerSlider(left, 15, true, PassengerDrawSettings.WALK_RANGE_MIN, PassengerDrawSettings.WALK_RANGE_MAX, 2, () -> PassengerDrawSettings.get().walkRange(),
+					value -> PassengerDrawSettings.setWalkRange((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.walk_range", value.intValue()));
+		}
+		if (passengerRow(16)) {
+			addPassengerSlider(left, 16, true, PassengerDrawSettings.MAX_PATH_MIN, PassengerDrawSettings.MAX_PATH_MAX, 500, () -> PassengerDrawSettings.get().maxPath(),
+					value -> PassengerDrawSettings.setMaxPath((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.max_path", value.intValue()));
+		}
 	}
 
 	/** Rows left after the waiting/riding line and the server-cost line. */
@@ -532,12 +660,21 @@ public final class AureliaPanelScreen extends Screen {
 		PassengerClient.request(change.apply(PassengerClient.settings()));
 	}
 
+	private static Text routesLabel() {
+		return Text.translatable("gui.aurelia.passengers.routes", ScreenTexts.onOrOff(PassengerDrawSettings.get().routes()));
+	}
+
 	private static Text passengersLabel(boolean enabled) {
 		return Text.translatable("gui.aurelia.passengers.enabled", ScreenTexts.onOrOff(enabled));
 	}
 
 	private static Text drawLabel() {
 		return Text.translatable("gui.aurelia.passengers.draw", ScreenTexts.onOrOff(PassengerDrawSettings.get().draw()));
+	}
+
+	private static Text solidLabel() {
+		final PassengerDrawSettings.Values values = PassengerDrawSettings.get();
+		return Text.translatable("gui.aurelia.passengers.look", Text.translatable(values.people() ? "gui.aurelia.passengers.look.people" : values.solid() ? "gui.aurelia.passengers.look.solid" : "gui.aurelia.passengers.look.outlines"));
 	}
 
 	private Text pantographAnimationLabel() {
@@ -685,6 +822,14 @@ public final class AureliaPanelScreen extends Screen {
 			}
 			return true;
 		}
+		if (tab == Tab.TRAIN_SOUND) {
+			final int newFirstRow = Math.max(0, Math.min(TRAIN_SOUND_ROWS - visibleRows(), trainSoundFirst - (int) Math.signum(amount)));
+			if (newFirstRow != trainSoundFirst) {
+				trainSoundFirst = newFirstRow;
+				clearAndInit();
+			}
+			return true;
+		}
 		return super.mouseScrolled(mouseX, mouseY, amount);
 	}
 
@@ -693,6 +838,7 @@ public final class AureliaPanelScreen extends Screen {
 		renderBackground(context);
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
 		if (tab == Tab.RENDERING) {
+			renderBlockEntityCounter(context);
 			for (int i = firstRow; i < Math.min(renderingRows.size(), firstRow + visibleRows()); i++) {
 				context.drawTextWithShadow(textRenderer, Text.translatable(renderingRows.get(i).key()), 16, top + (i - firstRow) * ROW + 6, 0xFFFFFF);
 			}
@@ -711,6 +857,8 @@ public final class AureliaPanelScreen extends Screen {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), width / 2, top - 10, 0xFF5555);
 		} else if (tab == Tab.ZIP && client.player != null && !client.player.hasPermissionLevel(2)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), width / 2, top - 10, 0xFF5555);
+		} else if (tab == Tab.TRAIN_SOUND && TRAIN_SOUND_ROWS > visibleRows()) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", trainSoundFirst + 1, Math.min(TRAIN_SOUND_ROWS, trainSoundFirst + visibleRows()), TRAIN_SOUND_ROWS), width / 2, height - 44, 0xAAAAAA);
 		} else if (tab == Tab.TOOLS && !MtrBridge.canEdit()) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), width / 2, top - 10, 0xFF5555);
 		} else if (tab == Tab.DRIVING && DRIVING_ROWS > visibleRows()) {
@@ -721,9 +869,18 @@ public final class AureliaPanelScreen extends Screen {
 		super.render(context, mouseX, mouseY, delta);
 	}
 
+	/** The block entities drawn in the last frame, red past the player's warning threshold. */
+	private void renderBlockEntityCounter(DrawContext context) {
+		final int count = BlockEntityCounter.lastFrame();
+		final int warn = config.getBlockEntityWarn();
+		final String limit = warn > 0 ? String.valueOf(warn) : "-";
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.block_entities", count, limit), width / 2, top - 10, warn > 0 && count > warn ? 0xFF5555 : 0xAAAAAA);
+	}
+
 	@Override
 	public void close() {
 		Config.save();
+		SoundProfileStore.save();
 		client.setScreen(parent);
 	}
 
