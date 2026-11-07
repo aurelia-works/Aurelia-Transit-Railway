@@ -29,6 +29,7 @@ import org.mtr.mod.item.ItemRailBuilder;
 import org.mtr.mod.packet.PacketUpdateRailBuilder;
 import org.mtr.mod.passenger.PassengerNetwork;
 import org.mtr.mod.passenger.PassengerService;
+import org.mtr.mod.render.BlockEntityCounter;
 import org.mtr.aurelia.client.BuildClient;
 import org.mtr.mod.building.BuildMath;
 import org.mtr.mod.building.BuildSettings;
@@ -111,7 +112,11 @@ public final class AureliaPanelScreen extends Screen {
 			new Distance("options.mtr.train_box_chunks", Client.TRAIN_BOX_CHUNKS_MAX, config::getTrainBoxChunks, config::setTrainBoxChunks),
 			new Toggle("options.mtr.faster_model_loading", config::getFasterModelLoading, config::toggleFasterModelLoading),
 			new Toggle("options.mtr.background_model_loading", config::getBackgroundModelLoading, config::toggleBackgroundModelLoading),
-			new Toggle("options.mtr.free_unused_models", config::getFreeUnusedModels, config::toggleFreeUnusedModels)
+			new Toggle("options.mtr.free_unused_models", config::getFreeUnusedModels, config::toggleFreeUnusedModels),
+			new Distance("options.mtr.rail_view_chunks", Client.RAIL_VIEW_CHUNKS_MAX, config::getRailViewChunks, config::setRailViewChunks),
+			new Distance("options.mtr.train_view_chunks", Client.TRAIN_VIEW_CHUNKS_MAX, config::getTrainViewChunks, config::setTrainViewChunks),
+			new Toggle("options.mtr.far_detail", config::getFarDetail, config::toggleFarDetail),
+			new Distance("options.mtr.block_entity_warn", Client.BLOCK_ENTITY_WARN_MAX, config::getBlockEntityWarn, config::setBlockEntityWarn)
 	);
 
 	private Tab tab;
@@ -682,6 +687,7 @@ public final class AureliaPanelScreen extends Screen {
 		renderBackground(context);
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
 		if (tab == Tab.RENDERING) {
+			renderBlockEntityCounter(context);
 			for (int i = firstRow; i < Math.min(renderingRows.size(), firstRow + visibleRows()); i++) {
 				context.drawTextWithShadow(textRenderer, Text.translatable(renderingRows.get(i).key()), 16, top + (i - firstRow) * ROW + 6, 0xFFFFFF);
 			}
@@ -706,6 +712,14 @@ public final class AureliaPanelScreen extends Screen {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), width / 2, top + 6, 0xAAAAAA);
 		}
 		super.render(context, mouseX, mouseY, delta);
+	}
+
+	/** The block entities drawn in the last frame, red past the player's warning threshold. */
+	private void renderBlockEntityCounter(DrawContext context) {
+		final int count = BlockEntityCounter.lastFrame();
+		final int warn = config.getBlockEntityWarn();
+		final String limit = warn > 0 ? String.valueOf(warn) : "-";
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.block_entities", count, limit), width / 2, top - 10, warn > 0 && count > warn ? 0xFF5555 : 0xAAAAAA);
 	}
 
 	@Override

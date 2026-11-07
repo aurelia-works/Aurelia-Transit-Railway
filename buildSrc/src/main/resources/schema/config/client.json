@@ -71,6 +71,22 @@
 			"type": "integer",
 			"default": 10
 		},
+		"railViewChunks": {
+			"type": "integer",
+			"default": 0
+		},
+		"trainViewChunks": {
+			"type": "integer",
+			"default": 0
+		},
+		"farDetail": {
+			"type": "boolean",
+			"default": true
+		},
+		"blockEntityWarn": {
+			"type": "integer",
+			"default": 200
+		},
 		"useMTRFont": {
 			"type": "boolean"
 		},

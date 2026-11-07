@@ -283,6 +283,7 @@
 	"gui.aurelia.architecture.airport.tooltip": "Plan or build the airport on the wrench in your hand",
 	"gui.aurelia.architecture.airport.hold": "Hold an Airport Wrench to use this",
 	"gui.aurelia.panel.scroll": "Rows %s-%s of %s (scroll)",
+	"gui.aurelia.panel.block_entities": "Block entities drawn: %s (warn at %s)",
 	"gui.aurelia.open_panel": "Open...",
 	"key.aurelia.open_panel": "Open Aurelia panel",
 	"gui.aurelia.panel.tab.builder": "Builder",

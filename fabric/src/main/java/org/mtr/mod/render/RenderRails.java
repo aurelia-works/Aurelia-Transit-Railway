@@ -25,6 +25,7 @@ import org.mtr.mod.block.PlatformHelper;
 import org.mtr.mod.client.CustomResourceLoader;
 import org.mtr.mod.client.IDrawing;
 import org.mtr.mod.client.MinecraftClientData;
+import org.mtr.mod.config.Client;
 import org.mtr.mod.config.Config;
 import org.mtr.mod.data.IGui;
 import org.mtr.mod.data.RailType;
@@ -53,6 +54,8 @@ public class RenderRails implements IGui {
 	private static final Identifier ONE_WAY_RAIL_ARROW_TEXTURE = new Identifier(Init.MOD_ID, "textures/block/one_way_rail_arrow.png");
 	private static final int INVALID_NODE_CHECK_RADIUS = 16;
 	private static final double LIGHT_REFERENCE_OFFSET = 0.1;
+	/** Sits the far quad just above the near 2D rail where the two overlap, so they do not z-fight. */
+	private static final float FAR_VIEW_Y_OFFSET = 0.0015F;
 	private static final ModelSmallCube MODEL_SMALL_CUBE = new ModelSmallCube(new Identifier(Init.MOD_ID, "textures/block/white.png"));
 	/**
 	 * Start of the rail being drawn when rail LOD is on, null when off. Set before MTR's rail lambdas run (render thread) so they capture nothing new.
@@ -190,6 +193,8 @@ public class RenderRails implements IGui {
 					break;
 			}
 		});
+
+		renderFarRails(holdingRailRelated);
 
 		if (holdingRailRelated) {
 			// Render nodes
@@ -329,11 +334,18 @@ public class RenderRails implements IGui {
 	private static void renderWithinRenderDistance(Rail rail, RenderRailWithBlockPos callback, double interval, float offsetRadius1, float offsetRadius2) {
 		final Camera camera = MinecraftClient.getInstance().getGameRendererMapped().getCamera();
 		final Vector3d cameraPosition = camera.getPos();
-		final int renderDistance = MinecraftClientHelper.getRenderDistance() * 16;
+		final int minecraftRenderDistance = MinecraftClientHelper.getRenderDistance() * 16;
+		final int railViewChunks = Config.getClient().getRailViewChunks();
+		// The setting can shorten the normal pass too, so a low value also saves the near rail cost
+		final int renderDistance = railViewChunks > 0 ? Math.min(minecraftRenderDistance, railViewChunks * 16) : minecraftRenderDistance;
 
 		rail.railMath.render((x1, z1, x2, z2, x3, z3, x4, z4, y1, y2) -> {
 			final BlockPos blockPos = Init.newBlockPos(x1, y1 + LIGHT_REFERENCE_OFFSET, z1);
-			final double distanceToCamera = new Vector3d(x1, 0, z1).distanceTo(new Vector3d(cameraPosition.getXMapped(), 0, cameraPosition.getZMapped())); // Minecraft does not have vertical render distance, no need to compare the Y-axis.
+			// Minecraft does not have vertical render distance, no need to compare the Y-axis. Direct maths: this runs for
+			// every piece of every visible rail, and two Vector3d allocations per piece showed up in a frame profile.
+			final double differenceX = x1 - cameraPosition.getXMapped();
+			final double differenceZ = z1 - cameraPosition.getZMapped();
+			final double distanceToCamera = Math.sqrt(differenceX * differenceX + differenceZ * differenceZ);
 			if (distanceToCamera <= renderDistance) {
 				if (distanceToCamera < 32) {
 					callback.renderRail(blockPos, x1, z1, x2, z2, x3, z3, x4, z4, y1, y2);
@@ -535,5 +547,117 @@ public class RenderRails implements IGui {
 	@FunctionalInterface
 	private interface RenderRailWithBlockPos {
 		void renderRail(BlockPos blockPos, double x1, double z1, double x2, double z2, double x3, double z3, double x4, double z4, double y1, double y2);
+	}
+
+	/**
+	 * Rails past Minecraft's render distance up to the player's rail view distance, as flat textured quads that keep the
+	 * 2D rail's width, texture and colour: no rail model is requested. The pass reaches {@link RailLod#FAR_VIEW_OVERLAP}
+	 * blocks back into Minecraft's distance, so the switch to the cheap shape does not pop and the boundary has no gap.
+	 * Render thread only.
+	 */
+	private static void renderFarRails(boolean holdingRailRelated) {
+		final Client client = Config.getClient();
+		if (!client.getFarDetail() || client.getRailViewChunks() <= 0 || MainRenderer.renderingShadows()) {
+			return;
+		}
+		final int minecraftChunks = MinecraftClientHelper.getRenderDistance();
+		if (client.getRailViewChunks() <= minecraftChunks) {
+			return;
+		}
+		final ClientWorld clientWorld = MinecraftClient.getInstance().getWorldMapped();
+		if (clientWorld == null) {
+			return;
+		}
+		final Camera camera = MinecraftClient.getInstance().getGameRendererMapped().getCamera();
+		final Vector3d cameraPosition = camera.getPos();
+		final double yawRadians = Math.toRadians(camera.getYaw());
+		final double forwardX = -Math.sin(yawRadians);
+		final double forwardZ = Math.cos(yawRadians);
+		final double nearDistance = minecraftChunks * 16.0 - RailLod.FAR_VIEW_OVERLAP;
+		final double farDistance = client.getRailViewChunks() * 16.0;
+		// Far pieces can be outside the loaded chunks, where there is no light data; use the camera's light there
+		final int cameraLight = getRailLight(clientWorld, Init.newBlockPos(cameraPosition.getXMapped(), cameraPosition.getYMapped(), cameraPosition.getZMapped()));
+		final ObjectArrayList<Rail> farRails = new ObjectArrayList<>();
+		MinecraftClientData.getInstance().railWrapperList.values().forEach(railWrapper -> {
+			final double nearest = RailLod.boxDistance(cameraPosition.getXMapped(), cameraPosition.getZMapped(), railWrapper.startVector.x, railWrapper.startVector.z, railWrapper.endVector.x, railWrapper.endVector.z);
+			final double farthest = RailLod.farthestBoxDistance(cameraPosition.getXMapped(), cameraPosition.getZMapped(), railWrapper.startVector.x, railWrapper.startVector.z, railWrapper.endVector.x, railWrapper.endVector.z);
+			if (nearest <= farDistance && farthest > nearDistance) {
+				farRails.add(railWrapper.getRail());
+			}
+		});
+		final int railViewChunks = client.getRailViewChunks();
+		for (int i = 0; i < farRails.size(); i++) {
+			final Rail rail = farRails.get(i);
+			final Identifier texture;
+			final float halfWidth;
+			final float yOffset;
+			final float u1;
+			final float v1;
+			final float u2;
+			final float v2;
+			final boolean scrollV;
+			// Same width, texture and vertical offset as the 2D rail each transport mode falls back to
+			switch (rail.getTransportMode()) {
+				case CABLE_CAR:
+					texture = METAL_TEXTURE;
+					halfWidth = 0.25F;
+					yOffset = 0.25F + SMALL_OFFSET;
+					u1 = 0.25F;
+					v1 = 0;
+					u2 = 0.75F;
+					v2 = 1;
+					scrollV = false;
+					break;
+				case AIRPLANE:
+					texture = IRON_BLOCK_TEXTURE;
+					halfWidth = 0.25F;
+					yOffset = 0.0625F + SMALL_OFFSET;
+					u1 = 0.25F;
+					v1 = 0;
+					u2 = 0.75F;
+					v2 = 1;
+					scrollV = false;
+					break;
+				case BOAT:
+					texture = RAIL_TEXTURE;
+					halfWidth = 0.5F;
+					yOffset = 0.065625F;
+					u1 = 0;
+					v1 = 0.1875F;
+					u2 = 1;
+					v2 = 0.3125F;
+					scrollV = true;
+					break;
+				default:
+					texture = RAIL_TEXTURE;
+					halfWidth = 1;
+					yOffset = 0.065625F;
+					u1 = 0;
+					v1 = 0.1875F;
+					u2 = 1;
+					v2 = 0.3125F;
+					scrollV = true;
+			}
+			MainRenderer.scheduleRender(texture, false, QueuedRenderLayer.EXTERIOR, (graphicsHolder, offset) -> renderFarRailPieces(graphicsHolder, offset, clientWorld, rail, cameraPosition, forwardX, forwardZ, cameraLight, minecraftChunks, railViewChunks, halfWidth, yOffset, u1, v1, u2, v2, scrollV, holdingRailRelated));
+		}
+	}
+
+	private static void renderFarRailPieces(GraphicsHolder graphicsHolder, Vector3d offset, ClientWorld clientWorld, Rail rail, Vector3d cameraPosition, double forwardX, double forwardZ, int cameraLight, int minecraftChunks, int railViewChunks, float halfWidth, float yOffset, float u1, float v1, float u2, float v2, boolean scrollV, boolean holdingRailRelated) {
+		final int color = holdingRailRelated ? RailType.getRailColor(rail) : ARGB_WHITE;
+		rail.railMath.render((x1, z1, x2, z2, x3, z3, x4, z4, y1, y2) -> {
+			final double differenceX = x1 - cameraPosition.getXMapped();
+			final double differenceZ = z1 - cameraPosition.getZMapped();
+			if (differenceX * forwardX + differenceZ * forwardZ > 0 && RailLod.inFarView(Math.sqrt(differenceX * differenceX + differenceZ * differenceZ), minecraftChunks, railViewChunks, true, RailLod.FAR_VIEW_OVERLAP)) {
+				final float textureOffset = scrollV ? Math.floorMod((int) (x1 + z1), 4) * 0.25F : 0;
+				final float vStart = v1 + textureOffset;
+				final float vEnd = v2 + textureOffset;
+				final double yStart = y1 + yOffset + FAR_VIEW_Y_OFFSET;
+				final double yEnd = y2 + yOffset + FAR_VIEW_Y_OFFSET;
+				final BlockPos blockPos = Init.newBlockPos(x1, y1 + LIGHT_REFERENCE_OFFSET, z1);
+				final int light = clientWorld.getChunkManager().isChunkLoaded(blockPos.getX() >> 4, blockPos.getZ() >> 4) ? getRailLight(clientWorld, blockPos) : cameraLight;
+				IDrawing.drawTexture(graphicsHolder, x1, yStart, z1, x2, yStart + SMALL_OFFSET, z2, x3, yEnd, z3, x4, yEnd + SMALL_OFFSET, z4, offset, u1, vStart, u2, vEnd, Direction.UP, color, light);
+				IDrawing.drawTexture(graphicsHolder, x2, yStart + SMALL_OFFSET, z2, x1, yStart, z1, x4, yEnd + SMALL_OFFSET, z4, x3, yEnd, z3, offset, u1, vStart, u2, vEnd, Direction.UP, color, light);
+			}
+		}, RailLod.FAR_VIEW_INTERVAL, -halfWidth, halfWidth);
 	}
 }

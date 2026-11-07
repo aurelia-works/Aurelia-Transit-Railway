@@ -49,6 +49,32 @@ public final class RailLodTest {
 	}
 
 	@Test
+	public void farViewStartsPastMinecraftDistance() {
+		assertTrue(RailLod.inFarView(129, 8, 32, true));
+		assertFalse(RailLod.inFarView(128, 8, 32, true));
+		assertFalse(RailLod.inFarView(513, 8, 32, true));
+		assertFalse(RailLod.inFarView(129, 8, 32, false));
+		assertFalse(RailLod.inFarView(129, 8, 8, true));
+		assertFalse(RailLod.inFarView(129, 8, 0, true));
+	}
+
+	@Test
+	public void farViewOverlapsTheNormalDistance() {
+		assertFalse(RailLod.inFarView(120, 8, 32, true, 0));
+		assertTrue(RailLod.inFarView(120, 8, 32, true, 16));
+		assertFalse(RailLod.inFarView(111, 8, 32, true, 16));
+	}
+
+	@Test
+	public void boxDistanceClampsToTheBox() {
+		assertEquals(0, RailLod.boxDistance(5, 5, 0, 0, 10, 10), 1E-9);
+		assertEquals(5, RailLod.boxDistance(-5, 5, 0, 0, 10, 10), 1E-9);
+		assertEquals(5, RailLod.boxDistance(-3, -4, 0, 0, 10, 10), 1E-9);
+		assertEquals(Math.hypot(10, 10), RailLod.farthestBoxDistance(0, 0, 0, 0, 10, 10), 1E-9);
+		assertEquals(Math.hypot(5, 5), RailLod.farthestBoxDistance(5, 5, 0, 0, 10, 10), 1E-9);
+	}
+
+	@Test
 	public void pieceIndexIsStableAndDrawsEveryStep() {
 		assertEquals(0, RailLod.pieceIndex(0, 0.5));
 		assertEquals(3, RailLod.pieceIndex(1.5, 0.5));
