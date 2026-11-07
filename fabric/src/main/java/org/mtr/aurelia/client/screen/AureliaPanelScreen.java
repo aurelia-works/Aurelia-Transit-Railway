@@ -498,7 +498,8 @@ public final class AureliaPanelScreen extends Screen {
 					}
 				}
 			}
-			lines.add(new PackLine(Text.translatable("gui.aurelia.panel.pack.entry", pack.name(), errors, warnings).getString() + "  " + pack.file(), errors > 0 ? 0xFF5555 : 0xFFFFFF));
+			lines.add(new PackLine(Text.translatable("gui.aurelia.panel.pack.entry", pack.name(), errors, warnings).getString(), errors > 0 ? 0xFF5555 : 0xFFFFFF));
+			lines.add(new PackLine("  " + pack.file() + "  ·  " + Text.translatable("gui.aurelia.panel.pack.counts", pack.operators().size(), pack.liveries().size(), pack.sounds().size(), pack.stationPresets().size(), pack.timetables().size()).getString(), 0xAAAAAA));
 		}
 		if (lines.isEmpty()) {
 			lines.add(new PackLine(Text.translatable("gui.aurelia.panel.pack.none").getString(), 0xAAAAAA));
@@ -962,7 +963,7 @@ public final class AureliaPanelScreen extends Screen {
 	/** Packs header, then the list. A bad file and its line sit under the pack rows in red. */
 	private void renderPacks(DrawContext context) {
 		final int errors = AureliaPacks.errorCount();
-		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.summary", AureliaPacks.packs().size(), errors, AureliaPacks.warningCount()), width / 2, top - 10, errors > 0 ? 0xFF5555 : 0xAAAAAA);
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.summary", AureliaPacks.packs().size(), AureliaPacks.entryCount(), errors, AureliaPacks.warningCount()), width / 2, top - 10, errors > 0 ? 0xFF5555 : 0xAAAAAA);
 		if (!PackSettings.enabled()) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.off"), width / 2, top + ROW * 2 + 8, 0xAAAAAA);
 			return;

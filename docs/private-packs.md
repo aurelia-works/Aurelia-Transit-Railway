@@ -33,6 +33,8 @@ and the **Example pack** switch enables the built-in example (off by default). T
 ## Format
 
 `format` is required and must be `1`. `name` is optional and falls back to the file name. Every section is optional.
+The machine-readable schema is [`private-packs.schema.json`](private-packs.schema.json) (JSON Schema 2020-12); editors
+that understand `$schema` can validate a pack as it is written.
 
 ```json
 {

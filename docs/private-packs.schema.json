@@ -1,0 +1,174 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://aurelia-works.github.io/Aurelia-Transit-Railway/private-packs.schema.json",
+	"title": "ATR private pack",
+	"description": "One file in assets/<namespace>/aurelia_packs/ or data/<namespace>/aurelia_packs/. See docs/private-packs.md.",
+	"type": "object",
+	"required": ["format"],
+	"properties": {
+		"format": {
+			"const": 1,
+			"description": "Format version. This ATR reads 1."
+		},
+		"name": {
+			"type": "string",
+			"minLength": 1,
+			"maxLength": 80,
+			"description": "Pack name. Falls back to the file name."
+		},
+		"operators": {
+			"type": "array",
+			"maxItems": 512,
+			"items": {"$ref": "#/$defs/operator"}
+		},
+		"liveries": {
+			"type": "array",
+			"maxItems": 512,
+			"items": {"$ref": "#/$defs/livery"}
+		},
+		"sounds": {
+			"type": "object",
+			"maxProperties": 512,
+			"description": "Vehicle resource id to SN sound profile id. The profile file is assets/<namespace>/aurelia_sound_profiles/<name>.json.",
+			"propertyNames": {"$ref": "#/$defs/resourceId"},
+			"additionalProperties": {"$ref": "#/$defs/resourceId"}
+		},
+		"station_presets": {
+			"type": "array",
+			"maxItems": 512,
+			"items": {"$ref": "#/$defs/stationPreset"}
+		},
+		"timetables": {
+			"type": "array",
+			"maxItems": 512,
+			"items": {"$ref": "#/$defs/timetable"}
+		}
+	},
+	"additionalProperties": true,
+	"$defs": {
+		"localId": {
+			"type": "string",
+			"pattern": "^[a-z0-9_.-]+$",
+			"maxLength": 64,
+			"description": "Pack-local id."
+		},
+		"resourceId": {
+			"type": "string",
+			"pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$",
+			"description": "Minecraft resource id, namespace:path."
+		},
+		"colour": {
+			"type": "string",
+			"pattern": "^#?[0-9A-Fa-f]{6}$",
+			"description": "#RRGGBB."
+		},
+		"operator": {
+			"type": "object",
+			"required": ["id", "name", "short_code", "colours"],
+			"properties": {
+				"id": {"$ref": "#/$defs/localId"},
+				"name": {"type": "string", "minLength": 1, "maxLength": 80},
+				"short_code": {"type": "string", "minLength": 1, "maxLength": 8},
+				"colours": {
+					"type": "object",
+					"required": ["primary"],
+					"properties": {
+						"primary": {"$ref": "#/$defs/colour"},
+						"secondary": {"$ref": "#/$defs/colour"},
+						"text": {"$ref": "#/$defs/colour"}
+					},
+					"additionalProperties": false
+				}
+			},
+			"additionalProperties": true
+		},
+		"livery": {
+			"type": "object",
+			"required": ["id", "operator"],
+			"anyOf": [
+				{"required": ["vehicles"]},
+				{"required": ["textures"]}
+			],
+			"properties": {
+				"id": {"$ref": "#/$defs/localId"},
+				"operator": {"$ref": "#/$defs/localId"},
+				"name": {"type": "string", "minLength": 1, "maxLength": 80},
+				"vehicles": {
+					"type": "array",
+					"maxItems": 128,
+					"items": {"$ref": "#/$defs/resourceId"}
+				},
+				"textures": {
+					"type": "object",
+					"maxProperties": 128,
+					"propertyNames": {"$ref": "#/$defs/resourceId"},
+					"additionalProperties": {"$ref": "#/$defs/resourceId"}
+				}
+			},
+			"additionalProperties": true
+		},
+		"stationPreset": {
+			"type": "object",
+			"required": ["id", "name", "description"],
+			"properties": {
+				"id": {"$ref": "#/$defs/localId"},
+				"name": {"type": "string", "minLength": 1, "maxLength": 80},
+				"description": {"type": "string", "minLength": 1, "maxLength": 512},
+				"style": {"type": "string", "minLength": 1, "maxLength": 32}
+			},
+			"additionalProperties": true
+		},
+		"timetablePlan": {
+			"type": "object",
+			"properties": {
+				"real_time": {"type": "boolean", "default": true}
+			},
+			"oneOf": [
+				{
+					"required": ["departures"],
+					"not": {"required": ["frequencies"]},
+					"properties": {
+						"departures": {
+							"type": "array",
+							"minItems": 1,
+							"maxItems": 2000,
+							"items": {
+								"type": "string",
+								"pattern": "^\\d{1,2}:\\d{2}(:\\d{2})?$"
+							}
+						}
+					}
+				},
+				{
+					"required": ["frequencies"],
+					"not": {"required": ["departures"]},
+					"properties": {
+						"frequencies": {
+							"type": "array",
+							"minItems": 24,
+							"maxItems": 24,
+							"items": {"type": "integer", "minimum": 0, "maximum": 20}
+						}
+					}
+				}
+			],
+			"additionalProperties": true
+		},
+		"timetable": {
+			"type": "object",
+			"required": ["id", "name", "depot"],
+			"anyOf": [
+				{"required": ["weekday"]},
+				{"required": ["weekend"]}
+			],
+			"properties": {
+				"id": {"$ref": "#/$defs/localId"},
+				"name": {"type": "string", "minLength": 1, "maxLength": 80},
+				"depot": {"type": "string", "minLength": 1, "maxLength": 80},
+				"weekday": {"$ref": "#/$defs/timetablePlan"},
+				"weekend": {"$ref": "#/$defs/timetablePlan"}
+			},
+			"additionalProperties": true
+		}
+	}
+}

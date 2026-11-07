@@ -75,6 +75,28 @@ public final class PrivatePackTest {
 	}
 
 	@Test
+	public void badEntryIsSkippedWithoutLosingTheFile() {
+		final String json = "{\n"
+				+ "  \"format\": 1,\n"
+				+ "  \"operators\": [\n"
+				+ "    {\"id\": \"good\", \"name\": \"Good\", \"short_code\": \"GD\", \"colours\": {\"primary\": \"#112233\"}},\n"
+				+ "    {\"id\": \"bad\", \"name\": \"Bad\", \"short_code\": \"BD\", \"colours\": {\"primary\": \"blue\"}}\n"
+				+ "  ]\n"
+				+ "}\n";
+		final PackLoadResult result = PackLoader.load(
+				List.of(new PackLoader.Source("example:entry.json", PackLoader.Kind.RESOURCE_PACK, json)),
+				id -> true
+		);
+		Assertions.assertEquals(1, result.errorCount(), result.diagnostics().toString());
+		Assertions.assertEquals(1, result.packs().size());
+		Assertions.assertEquals(1, result.packs().get(0).operators().size(), "the good operator still loads");
+		final PackDiagnostic error = result.diagnostics().get(0);
+		Assertions.assertEquals("example:entry.json", error.file());
+		Assertions.assertEquals(5, error.line());
+		Assertions.assertTrue(error.message().contains("blue"), error.message());
+	}
+
+	@Test
 	public void unknownSoundProfileIsAWarningNotACrash() {
 		final String json = "{\n"
 				+ "  \"format\": 1,\n"

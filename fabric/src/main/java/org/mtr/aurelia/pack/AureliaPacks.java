@@ -58,6 +58,14 @@ public final class AureliaPacks {
 		return merged.warningCount();
 	}
 
+	public static int entryCount() {
+		int count = 0;
+		for (final LoadedPack pack : merged.packs()) {
+			count += pack.entryCount();
+		}
+		return count;
+	}
+
 	private static synchronized void set(boolean resourcePack, PackLoadResult result) {
 		if (resourcePack) {
 			client = result;

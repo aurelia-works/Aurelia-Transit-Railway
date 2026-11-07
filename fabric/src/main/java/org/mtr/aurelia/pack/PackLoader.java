@@ -264,7 +264,7 @@ public final class PackLoader {
 				ctx.error(element, "\"sounds\": at most " + MAX_ENTRIES + " assignments are read");
 				break;
 			}
-			final String vehicle = entry.getKey();
+			final String vehicle = entry.getKey().strip();
 			final JsonElement value = entry.getValue();
 			if (!isResourceId(vehicle)) {
 				ctx.error(value, "sounds: \"" + vehicle + "\" is not a vehicle resource id (namespace:path)");
@@ -582,12 +582,13 @@ public final class PackLoader {
 		}
 		final Map<String, String> result = new LinkedHashMap<>();
 		for (final Map.Entry<String, JsonElement> entry : map.entrySet()) {
+			final String vehicle = entry.getKey().strip();
 			final JsonElement value = entry.getValue();
-			if (!isResourceId(entry.getKey()) || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString() || !isResourceId(value.getAsString())) {
-				ctx.error(value, label + ": \"" + entry.getKey() + "\" -> \"" + value + "\" is not a pair of resource ids");
+			if (!isResourceId(vehicle) || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString() || !isResourceId(value.getAsString())) {
+				ctx.error(value, label + ": \"" + vehicle + "\" -> \"" + value + "\" is not a pair of resource ids");
 				throw new EntryError();
 			}
-			result.put(entry.getKey(), value.getAsString().strip());
+			result.put(vehicle, value.getAsString().strip());
 		}
 		return result;
 	}
