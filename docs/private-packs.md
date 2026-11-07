@@ -126,7 +126,8 @@ vehicles and models; a livery only names them.
 
 This section only assigns profiles; it does not define them. A profile id points at SN's file
 `assets/<namespace>/aurelia_sound_profiles/<name>.json`, for example `mtr:uk_emu` is
-`assets/mtr/aurelia_sound_profiles/uk_emu.json`. If the file is not in the loaded resource packs, ATR keeps the
+`assets/mtr/aurelia_sound_profiles/uk_emu.json`. The format and the built-in profiles are documented in
+[`sound-profiles.md`](sound-profiles.md). If the file is not in the loaded resource packs, ATR keeps the
 assignment and shows a warning with the file and line. It does not fail the pack. Sound assignments are not checked in
 data packs because SN's profiles are client assets.
 
@@ -173,7 +174,8 @@ weekly timetables use:
 
 The example above is the built-in **ATR example private pack**, off by default. It is also the file
 `fabric/src/main/resources/resourcepacks/example_private_pack/assets/example_rail/aurelia_packs/example_rail.json`
-in the source tree. Copy it into your own pack, rename the namespace, ids and names, and keep `format: 1`.
+in the source tree. It uses the built-in `mtr:uk_emu` and `mtr:metro` profiles, so it loads without warnings. Copy it
+into your own pack, rename the namespace, ids and names, and keep `format: 1`.
 
 ## Compatibility
 
