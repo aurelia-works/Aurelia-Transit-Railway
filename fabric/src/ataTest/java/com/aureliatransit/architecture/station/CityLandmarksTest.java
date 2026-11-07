@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The realism pass of 10-25 (batch b): a city's real station, built when the station is named after it. */
@@ -62,12 +63,24 @@ class CityLandmarksTest {
 	}
 
 	@Test
-	void beijingKualaLumpurAndSurbitonHaveTheirSheets() {
-		assertEquals(Landmarks.BEIJING, Landmarks.of(spec("ten track beijing station, 300 long, named Beijing South")));
+	void beijingSouthHasItsOwnLookAndThe1959SheetStaysOnBeijingRailwayStation() {
+		// Beijing South's deep-roof look, not the 1959 Beijing Railway Station sheet
+		final StationSpec south = spec("ten track beijing station, 300 long, named Beijing South");
+		assertNull(Landmarks.of(south));
+		assertEquals(BuildingStyle.BEIJING, south.building());
+		final StationPlan southPlan = StationPlanner.plan(south);
+		assertEquals(0, count(southPlan, "minecraft:prismarine_bricks"), "no 1959 glazed tile towers");
+
+		// the 1959 sheet still takes its own names
+		assertEquals(Landmarks.BEIJING, Landmarks.of(spec("ten track beijing station, 300 long, named Beijing Railway Station")));
+		final StationPlan beijing = StationPlanner.plan(spec("ten track beijing station, 300 long, named Beijing Railway Station"));
+		assertTrue(count(beijing, "minecraft:prismarine_bricks") > 100, "blue-green glazed tile towers");
+	}
+
+	@Test
+	void kualaLumpurAndSurbitonHaveTheirSheets() {
 		assertEquals(Landmarks.KUALA_LUMPUR, Landmarks.of(spec("four track kuala lumpur station, 160 long, named Kuala Lumpur")));
 		assertEquals(Landmarks.SURBITON, Landmarks.of(spec("four track surbiton station, 250 long, named Surbiton")));
-		final StationPlan beijing = StationPlanner.plan(spec("ten track beijing station, 300 long, named Beijing South"));
-		assertTrue(count(beijing, "minecraft:prismarine_bricks") > 100, "blue-green glazed tile towers");
 		final StationPlan kl = StationPlanner.plan(spec("four track kuala lumpur station, 160 long, named Kuala Lumpur"));
 		assertTrue(count(kl, "minecraft:calcite") > 1000, "white Moorish walls");
 	}
