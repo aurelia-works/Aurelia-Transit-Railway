@@ -613,4 +613,25 @@ public final class MtrBridge {
 		others.forEach(other -> options.add(other.getId()));
 		return options;
 	}
+
+	/**
+	 * The middle of the loaded rail nearest to {@code (x, y, z)}, rounded to blocks, or null when none is within
+	 * {@code maxDistance}. For dropping a route waypoint on the rails the player stands next to.
+	 */
+	@javax.annotation.Nullable
+	public static long[] nearestRailNode(double x, double y, double z, double maxDistance) {
+		long[] best = null;
+		double bestDistance = maxDistance * maxDistance;
+		for (final org.mtr.aurelia.speed.SpeedAudit.Rail rail : loadedRails()) {
+			final double dx = rail.x() - x;
+			final double dy = rail.y() - y;
+			final double dz = rail.z() - z;
+			final double distance = dx * dx + dy * dy + dz * dz;
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				best = new long[]{Math.round(rail.x()), Math.round(rail.y()), Math.round(rail.z())};
+			}
+		}
+		return best;
+	}
 }

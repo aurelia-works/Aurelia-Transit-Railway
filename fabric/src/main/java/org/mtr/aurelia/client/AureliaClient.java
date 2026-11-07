@@ -73,12 +73,16 @@ public final class AureliaClient implements ClientModInitializer {
 		});
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(org.mtr.mod.data.RouteControlSync.SYNC, (client, handler, buf, response) -> {
 			final java.util.Map<Long, org.mtr.aurelia.route.RouteControl> read = org.mtr.mod.data.RouteControlOptions.read(buf);
-			client.execute(() -> org.mtr.mod.data.RouteControlOptions.setClient(read));
+			client.execute(() -> {
+				org.mtr.mod.data.RouteControlOptions.setClient(read);
+				org.mtr.aurelia.route.RouteControlStore.onControlSync();
+			});
 		});
 		RideClient.register();
 		PassengerClient.register();
 		PassengerDrawSettings.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.client.ui.AureliaUiSettings.load(FabricLoader.getInstance().getConfigDir());
+		org.mtr.aurelia.route.RouteControlSettings.load();
 		org.mtr.aurelia.sound.SoundProfileStore.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.sound.SoundProfileReloadListener.register();
 		PassengerRenderer.register();

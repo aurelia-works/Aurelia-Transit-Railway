@@ -178,6 +178,7 @@ public final class RouteStopsScreen extends Screen {
 		live.clear();
 		live.addAll(reordered);
 		MtrBridge.send(request -> request.addRoute(selectedRoute));
+		org.mtr.aurelia.route.RouteControlStore.invalidateRoute(selectedRoute.getId());
 		order = new StopOrder(live.size());
 		stopList.setOrder(order, this::stopLabel, this::onOrderChanged);
 		setStatus(Text.translatable(selectedRoute.depots.isEmpty() ? "gui.aurelia.stops.saved_no_depot" : "gui.aurelia.stops.saved"), COLOR_OK);

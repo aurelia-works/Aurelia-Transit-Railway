@@ -22,6 +22,7 @@ import org.mtr.aurelia.client.PassengerDrawSettings;
 import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.ScriptingHandshake;
 import org.mtr.aurelia.client.TrainView;
+import org.mtr.aurelia.route.RouteControlSettings;
 import org.mtr.aurelia.sound.SoundProfile;
 import org.mtr.aurelia.sound.SoundProfileStore;
 import org.mtr.mod.InitClient;
@@ -57,7 +58,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK}
+	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -85,6 +86,7 @@ public final class AureliaPanelScreen extends Screen {
 			new Tool("presets", true, TrainPresetScreen::new),
 			new Tool("stops", true, RouteStopsScreen::new),
 			new Tool("return", true, ReturnRouteScreen::new),
+			new Tool("control", true, RouteControlScreen::new),
 			new Tool("dwell", true, PlatformDwellScreen::new),
 			new Tool("departures", true, DepartureEditorScreen::new),
 			new Tool("overlap", true, StationOverlapScreen::new),
@@ -165,6 +167,7 @@ public final class AureliaPanelScreen extends Screen {
 		switch (tab) {
 			case RENDERING -> initRendering();
 			case TOOLS -> initTools();
+			case ROUTES -> initRoutes();
 			case SOUND -> initSound();
 			case ARCHITECTURE -> initArchitecture();
 			case RIDING -> initRiding();
@@ -211,6 +214,21 @@ public final class AureliaPanelScreen extends Screen {
 					.dimensions(left + (i / rows) * (buttonWidth + 8), top + (i % rows) * ROW, buttonWidth, 20).build());
 			button.active = canEdit || !tool.needsEdit();
 		}
+	}
+
+	/** Route control: the fallback master switch and the per-route editor. */
+	private void initRoutes() {
+		final int left = (width - BUTTON_WIDTH) / 2;
+		addDrawableChild(ButtonWidget.builder(masterLabel(), b -> {
+			RouteControlSettings.setFallbackMaster(!RouteControlSettings.fallbackMaster());
+			b.setMessage(masterLabel());
+		}).dimensions(left, top, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.control.master.tooltip")));
+		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.tools.control"), b -> client.setScreen(new RouteControlScreen(this)))
+				.dimensions(left, top + ROW, BUTTON_WIDTH, 20).build());
+	}
+
+	private static Text masterLabel() {
+		return Text.translatable("gui.aurelia.control.master", ScreenTexts.onOrOff(RouteControlSettings.fallbackMaster()));
 	}
 
 	private void initSound() {
