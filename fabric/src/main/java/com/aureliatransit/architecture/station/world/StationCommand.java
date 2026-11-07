@@ -60,7 +60,7 @@ public final class StationCommand {
 				.then(CommandManager.literal("verify").executes(context -> run(context, player -> StationActions.verify(player, false)))
 						.then(CommandManager.literal("paste").executes(context -> run(context, player -> StationActions.verify(player, true)))))
 				.then(CommandManager.literal("status").executes(context -> run(context, StationActions::status)))
-				.then(CommandManager.literal("override").then(CommandManager.argument("block", StringArgumentType.word())
+				.then(CommandManager.literal("override").then(CommandManager.argument("block", StringArgumentType.greedyString())
 						.executes(context -> run(context, player -> StationActions.override(player, StringArgumentType.getString(context, "block")))))));
 	}
 
