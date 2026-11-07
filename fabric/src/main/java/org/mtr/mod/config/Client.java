@@ -317,4 +317,57 @@ public final class Client extends ClientSchema {
 	public void setFlangeVolume(double flangeVolume) {
 		this.flangeVolume = Utilities.clamp(flangeVolume, 0, 1);
 	}
+
+	public static final double DRIVING_AWS_SECONDS_MIN = 1;
+	public static final double DRIVING_AWS_SECONDS_MAX = 6;
+	public static final double DRIVING_HUD_SCALE_MIN = 0.75;
+	public static final double DRIVING_HUD_SCALE_MAX = 1.5;
+
+	public boolean getDrivingAws() {
+		return drivingAws;
+	}
+
+	public void toggleDrivingAws() {
+		drivingAws = !drivingAws;
+	}
+
+	public boolean getDrivingTpws() {
+		return drivingTpws;
+	}
+
+	public void toggleDrivingTpws() {
+		drivingTpws = !drivingTpws;
+	}
+
+	public boolean getDrivingScoreHud() {
+		return drivingScoreHud;
+	}
+
+	public void toggleDrivingScoreHud() {
+		drivingScoreHud = !drivingScoreHud;
+	}
+
+	public boolean getDrivingStopMarker() {
+		return drivingStopMarker;
+	}
+
+	public void toggleDrivingStopMarker() {
+		drivingStopMarker = !drivingStopMarker;
+	}
+
+	public double getDrivingAwsSeconds() {
+		return Utilities.clamp(drivingAwsSeconds, DRIVING_AWS_SECONDS_MIN, DRIVING_AWS_SECONDS_MAX);
+	}
+
+	public void setDrivingAwsSeconds(double drivingAwsSeconds) {
+		this.drivingAwsSeconds = Utilities.clamp(drivingAwsSeconds, DRIVING_AWS_SECONDS_MIN, DRIVING_AWS_SECONDS_MAX);
+	}
+
+	public double getDrivingHudScale() {
+		return Utilities.clamp(drivingHudScale, DRIVING_HUD_SCALE_MIN, DRIVING_HUD_SCALE_MAX);
+	}
+
+	public void setDrivingHudScale(double drivingHudScale) {
+		this.drivingHudScale = Utilities.clamp(drivingHudScale, DRIVING_HUD_SCALE_MIN, DRIVING_HUD_SCALE_MAX);
+	}
 }
