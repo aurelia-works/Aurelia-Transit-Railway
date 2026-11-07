@@ -2,9 +2,11 @@ package org.mtr.aurelia.passenger;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mtr.aurelia.client.PassengerDoors;
 import org.mtr.aurelia.client.PassengerDrawSettings;
 import org.mtr.aurelia.client.PassengerFigures;
 import org.mtr.libraries.com.google.gson.JsonObject;
+import org.mtr.mod.passenger.PassengerNetwork;
 
 /**
  * Drawing stays cheap: nothing past the draw distance, one figure in the middle band, and a cap up close.
@@ -14,6 +16,10 @@ public final class PassengerFiguresTest {
 
 	@Test
 	public void distanceDecidesHowManyFigures() {
+		Assertions.assertEquals(PassengerFigures.Detail.NONE, PassengerFigures.detail(33, 32, 12));
+		Assertions.assertEquals(PassengerFigures.Detail.SIMPLE, PassengerFigures.detail(20, 32, 12));
+		Assertions.assertEquals(PassengerFigures.Detail.FULL, PassengerFigures.detail(10, 32, 12));
+		Assertions.assertEquals(PassengerFigures.Detail.NONE, PassengerFigures.detail(33, 32, 40), "nothing is drawn past the draw distance, even with a longer detail distance");
 		Assertions.assertEquals(0, PassengerFigures.toDraw(40, 8, 33, 32, 12));
 		Assertions.assertEquals(1, PassengerFigures.toDraw(40, 8, 20, 32, 12));
 		Assertions.assertEquals(8, PassengerFigures.toDraw(40, 8, 10, 32, 12));
@@ -32,6 +38,8 @@ public final class PassengerFiguresTest {
 
 	@Test
 	public void missingKeysKeepTheCheapDefaults() {
+		Assertions.assertFalse(PassengerDrawSettings.DEFAULT.draw(), "drawing stays off until an operator turns it on");
+		Assertions.assertFalse(PassengerNetwork.Settings.DEFAULT.enabled(), "passengers stay off in an old world");
 		final PassengerDrawSettings.Values read = PassengerDrawSettings.from(new JsonObject());
 		Assertions.assertEquals(PassengerDrawSettings.DEFAULT, read);
 
@@ -63,6 +71,35 @@ public final class PassengerFiguresTest {
 			Assertions.assertTrue(spots[i * 3 + 2] >= 2 && spots[i * 3 + 2] < 6, "figure " + i + " z " + spots[i * 3 + 2]);
 			Assertions.assertEquals(65, spots[i * 3 + 1], 0.01, "figure " + i);
 		}
+	}
+
+	/** People gather at the stopped train's doors, and shuffle aside while its passengers get off. */
+	@Test
+	public void crowdWaitsByTheDoorsAndStepsAside() {
+		// Platform on the +z side, two doors on the train at x 8 and x 16.
+		final PassengerFigures.Ground ground = (x, z, railY) -> z >= 2 && z < 6 ? 65 : 64;
+		final double[] doors = {8, 0, 16, 0};
+		final double[] spots = new double[6 * 3];
+		PassengerFigures.spotsAtDoors(0, 64, 0, 32, 64, 0, doors, 6, ground, spots);
+		for (int i = 0; i < 6; i++) {
+			Assertions.assertEquals(65, spots[i * 3 + 1], 0.01, "figure " + i);
+			Assertions.assertTrue(spots[i * 3 + 2] >= 2 && spots[i * 3 + 2] < 6, "figure " + i + " z " + spots[i * 3 + 2]);
+			final double toDoor = Math.min(Math.abs(spots[i * 3] - 8), Math.abs(spots[i * 3] - 16));
+			Assertions.assertTrue(toDoor <= 1.5, "figure " + i + " x " + spots[i * 3] + " is not by a door");
+		}
+
+		final double[] aside = new double[6 * 3];
+		PassengerFigures.stepAside(spots, aside, 6, 0, 0, 32, 0, doors, 0, 4.5, PassengerDoors.STEP_ASIDE);
+		Assertions.assertArrayEquals(spots, aside, "strength 0 leaves everyone where they were");
+
+		PassengerFigures.stepAside(spots, aside, 6, 0, 0, 32, 0, doors, 1, 4.5, PassengerDoors.STEP_ASIDE);
+		boolean moved = false;
+		for (int i = 0; i < 6; i++) {
+			final double door = Math.abs(spots[i * 3] - 8) <= Math.abs(spots[i * 3] - 16) ? 8 : 16;
+			Assertions.assertTrue(Math.abs(aside[i * 3] - door) >= Math.abs(spots[i * 3] - door), "figure " + i + " moved into the doorway");
+			moved |= Math.abs(aside[i * 3] - spots[i * 3]) > 0.1;
+		}
+		Assertions.assertTrue(moved, "nobody stepped aside");
 	}
 
 	@org.junit.jupiter.api.Test

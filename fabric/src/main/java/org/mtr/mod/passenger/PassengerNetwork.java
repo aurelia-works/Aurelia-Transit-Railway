@@ -83,11 +83,16 @@ public final class PassengerNetwork {
 
 	/**
 	 * A train stopped at a platform: riders for this station (or for a station the train no longer goes to) get off,
-	 * then waiting passengers whose station is ahead get on, until the train is full. A few per car each call.
+	 * then waiting passengers whose station is ahead get on, until the train is full. A few per car each call. Nobody
+	 * moves while the doors are shut.
 	 *
 	 * @param upcomingStations the stations this train still stops at after this one
+	 * @param doorsOpen        MTR's door command is open; closed doors keep everyone where they are
 	 */
-	public Exchange exchange(long vehicleId, long platformId, long stationId, Set<Long> upcomingStations, int cars, Settings settings) {
+	public Exchange exchange(long vehicleId, long platformId, long stationId, Set<Long> upcomingStations, int cars, Settings settings, boolean doorsOpen) {
+		if (!doorsOpen) {
+			return new Exchange(0, 0);
+		}
 		final List<Passenger> onboard = riding.computeIfAbsent(vehicleId, id -> new ArrayList<>());
 		int moves = Math.max(1, cars) * MOVES_PER_CAR;
 		int alighted = 0;

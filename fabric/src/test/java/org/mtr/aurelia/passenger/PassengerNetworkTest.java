@@ -35,7 +35,7 @@ public final class PassengerNetworkTest {
 		// The train stops at A going to B and C. Two cars: six through the doors a second.
 		int boarded = 0;
 		for (int second = 0; second < 10; second++) {
-			boarded += network.exchange(TRAIN, PLATFORM_A, A, Set.of(B, C), 2, SETTINGS).boarded();
+			boarded += network.exchange(TRAIN, PLATFORM_A, A, Set.of(B, C), 2, SETTINGS, true).boarded();
 		}
 		Assertions.assertEquals(20, boarded);
 		Assertions.assertEquals(0, network.waitingAt(PLATFORM_A));
@@ -44,18 +44,36 @@ public final class PassengerNetworkTest {
 		// At B only the B passengers leave; the C passengers stay on.
 		int alightedAtB = 0;
 		for (int second = 0; second < 10; second++) {
-			alightedAtB += network.exchange(TRAIN, PLATFORM_B, B, Set.of(C), 2, SETTINGS).alighted();
+			alightedAtB += network.exchange(TRAIN, PLATFORM_B, B, Set.of(C), 2, SETTINGS, true).alighted();
 		}
 		Assertions.assertTrue(alightedAtB > 0 && alightedAtB < 20, "some went to B, some to C: " + alightedAtB);
 		Assertions.assertEquals(20 - alightedAtB, network.ridingOn(TRAIN));
 
 		// At the terminus C everyone left gets off.
 		for (int second = 0; second < 10; second++) {
-			network.exchange(TRAIN, PLATFORM_C, C, Set.of(), 2, SETTINGS);
+			network.exchange(TRAIN, PLATFORM_C, C, Set.of(), 2, SETTINGS, true);
 		}
 		Assertions.assertEquals(0, network.ridingOn(TRAIN));
 		Assertions.assertEquals(0, network.total());
 		Assertions.assertEquals(20, network.alightedTotal());
+	}
+
+	/** Doors are the gate: a train stopped with its doors shut moves nobody, and the same stop boards once they open. */
+	@Test
+	public void closedDoorsMoveNobody() {
+		final PassengerNetwork network = new PassengerNetwork();
+		network.spawn(PLATFORM_A, new long[]{B}, 1, SETTINGS, 0, new Random(3));
+		final int waiting = network.waitingAt(PLATFORM_A);
+		for (int second = 0; second < 5; second++) {
+			final PassengerNetwork.Exchange exchange = network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, SETTINGS, false);
+			Assertions.assertEquals(0, exchange.boarded());
+			Assertions.assertEquals(0, exchange.alighted());
+		}
+		Assertions.assertEquals(waiting, network.waitingAt(PLATFORM_A));
+		Assertions.assertEquals(0, network.ridingOn(TRAIN));
+
+		Assertions.assertTrue(network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, SETTINGS, true).boarded() > 0);
+		Assertions.assertTrue(network.ridingOn(TRAIN) > 0, "the same stop boards once the doors open");
 	}
 
 	@Test
@@ -68,7 +86,7 @@ public final class PassengerNetworkTest {
 		Assertions.assertEquals(10, network.waitingAt(PLATFORM_B), "the whole world holds 25, so B gets the last 10");
 
 		for (int second = 0; second < 10; second++) {
-			network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, small);
+			network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, small, true);
 		}
 		Assertions.assertEquals(5, network.ridingOn(TRAIN), "one car with five seats");
 
