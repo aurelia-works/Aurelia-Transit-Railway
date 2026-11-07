@@ -84,6 +84,7 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		PocketTimetableNetworking.registerServer();
 		StationSystems.init();
 		BridgeSystems.init();
+		org.mtr.aurelia.pack.AureliaPacks.registerServer();
 		LOGGER.info("Registered {} Aurelia Transit Architecture blocks (MTR platform door contract: {}, MTR fares: {})", ModBlocks.entries().size(),
 				MtrPlatformContract.available() ? "enabled" : "unavailable", MtrFareContract.available() ? "enabled" : "unavailable");
 	}
