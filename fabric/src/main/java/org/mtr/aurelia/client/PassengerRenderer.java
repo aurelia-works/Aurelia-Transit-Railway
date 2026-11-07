@@ -87,14 +87,22 @@ public final class PassengerRenderer {
 	/** Sees every walk as it starts; only the dev run sets it. */
 	@Nullable
 	public static Consumer<PassengerWalk> walkListener;
-	/** Render-thread time for all figures, averaged, and how many the last frame drew: the dev run reports them. */
+	/** Render-thread time for all figures, averaged, and how many the last frame drew: the dev run and panel report them. */
 	public static double renderMicros;
 	public static int lastFigures;
+	/** Walkers alive on the last frame: the panel's cost read-out reports it. */
+	public static int lastWalkers;
 	/** A hard stop so a long draw distance cannot fill the frame. */
 	private static final int FRAME_CAP = 256;
 	/** Floors are read from the world this often, not every frame. */
 	private static final long SPOT_REFRESH_MILLIS = 2000;
 	private static final int SPOT_CACHE_SIZE = 64;
+	/** Waiting spots slide to their new places over this long, so a train arriving does not snap the crowd sideways. */
+	private static final long SPOT_BLEND_MILLIS = 1200;
+	/** Door positions are read this often while a train stands at a platform. */
+	private static final long DOOR_REFRESH_MILLIS = 1000;
+	/** Waiting this close to a door steps aside while people get off. */
+	private static final double STEP_ASIDE_REACH = 2.6;
 	/** Grid cells read each frame, so a scan never shows as a hitch. */
 	private static final int SCAN_CELLS = 400;
 	/** Blocks are read again this often, so a walker sees what was built. */
@@ -117,11 +125,20 @@ public final class PassengerRenderer {
 	private static final Field POSITION_2 = field("position2");
 	private static boolean loggedEnds;
 
-	private record Spots(int count, long millis, double[] at) {
+	/** {@code at} is where the crowd is heading; {@code from} is where it was when the train changed the doors. */
+	private record Spots(int count, long millis, double[] at, double[] from, long blendStart, double[] doors) {
 	}
 
 	/** The grid is null when the platform is too big to scan: its walkers keep the straight leg. Exits are x, feet, z cells. */
 	private record WalkMap(long platform, @Nullable PassengerWalkGrid grid, long millis, int[] spot, List<int[]> leaving, List<int[]> arriving) {
+	}
+
+	/** A count that arrived before the doors were wide enough to walk through. */
+	private record PendingDoors(int change, long millis) {
+	}
+
+	/** A stopped train's door positions and when they were read. */
+	private record DoorAnchors(double[] doors, long millis) {
 	}
 
 	private static final Identifier[] SKINS = new Identifier[PassengerLook.SKINS];
@@ -135,6 +152,11 @@ public final class PassengerRenderer {
 	private final double[] point = new double[3];
 	private final BlockPos.Mutable mutable = new BlockPos.Mutable();
 	private final Map<Long, Spots> spotCache = new HashMap<>();
+	private final Map<Long, PendingDoors> pendingDoors = new HashMap<>();
+	private final Map<Long, DoorAnchors> doorCache = new HashMap<>();
+	private final Map<Long, DoorAnchors> trainDoorCache = new HashMap<>();
+	/** A platform's waiting spots with the alighting crowd's step-aside applied, reused between frames. */
+	private double[] shifted = new double[0];
 	private int drawn;
 	private final List<PassengerWalk> walks = new ArrayList<>();
 	private final Map<Long, WalkMap> walkMaps = new HashMap<>();
@@ -161,6 +183,8 @@ public final class PassengerRenderer {
 	private void render(WorldRenderContext context) {
 		final PassengerDrawSettings.Values settings = PassengerDrawSettings.get();
 		if (!settings.draw() || context.consumers() == null || context.camera() == null || context.matrixStack() == null || context.world() == null) {
+			lastCounts = null;
+			pendingDoors.clear();
 			return;
 		}
 		final PassengerService.Counts counts = PassengerClient.counts();
@@ -175,7 +199,13 @@ public final class PassengerRenderer {
 			}
 			lastCounts = counts;
 		}
+		if (settings.people()) {
+			releasePendingDoors(settings, camera, context.world(), now);
+		}
 		if (counts.waiting().isEmpty() && counts.riding().isEmpty() && walks.isEmpty()) {
+			lastFigures = 0;
+			lastWalkers = 0;
+			renderMicros = 0;
 			return;
 		}
 		final MatrixStack matrices = context.matrixStack();
@@ -195,6 +225,7 @@ public final class PassengerRenderer {
 			immediate.draw();
 		}
 		lastFigures = drawn;
+		lastWalkers = walks.size();
 		renderMicros = renderMicros * 0.95 + (System.nanoTime() - frameStart) / 1000D * 0.05;
 	}
 
@@ -220,29 +251,64 @@ public final class PassengerRenderer {
 			final double y2 = haveEnds ? ends[1].getY() : mid.getY();
 			final double z2 = (haveEnds ? ends[1].getZ() : mid.getZ()) + 0.5;
 			final double distance = PassengerFigures.distanceToPlatform(camera.x, camera.y, camera.z, x1, y1, z1, x2, y2, z2);
+			final PassengerFigures.Detail detail = PassengerFigures.detail(distance, settings.drawDistance(), settings.detailDistance());
 			final int figures = PassengerFigures.toDraw(entry.getValue() - walkingTo(entry.getKey(), now), settings.maxPerPlace(), distance, settings.drawDistance(), settings.detailDistance());
 			if (figures <= 0) {
 				continue;
 			}
+			final double[] doors = doorsAt(entry.getKey(), x1, y1, z1, x2, y2, z2, now);
 			Spots spots = spotCache.get(entry.getKey());
-			if (spots == null || spots.count != figures || now - spots.millis > SPOT_REFRESH_MILLIS) {
+			if (spots == null || spots.count != figures || now - spots.millis > SPOT_REFRESH_MILLIS || !Arrays.equals(spots.doors, doors)) {
 				if (spotCache.size() > SPOT_CACHE_SIZE) {
 					spotCache.clear();
 				}
 				final double[] found = new double[figures * 3];
-				PassengerFigures.spots(x1, y1, z1, x2, y2, z2, figures, (x, z, railY) -> floor(world, x, z, railY), found);
-				spots = new Spots(figures, now, found);
+				final PassengerFigures.Ground ground = (x, z, railY) -> floor(world, x, z, railY);
+				if (doors.length > 0) {
+					PassengerFigures.spotsAtDoors(x1, y1, z1, x2, y2, z2, doors, figures, ground, found);
+				} else {
+					PassengerFigures.spots(x1, y1, z1, x2, y2, z2, figures, ground, found);
+				}
+				final double[] from = spots != null && spots.count == figures ? spots.at : null;
+				spots = new Spots(figures, now, found, from, now, doors);
 				spotCache.put(entry.getKey(), spots);
 			}
+			waitingPositions(entry.getKey(), spots, figures, now, x1, z1, x2, z2, doors);
+			final double length = (x2 - x1) * (x2 - x1) + (z2 - z1) * (z2 - z1);
 			for (int i = 0; i < figures && drawn < FRAME_CAP; i++) {
-				final double fx = spots.at[i * 3];
-				final double fz = spots.at[i * 3 + 2];
-				final double length = (x2 - x1) * (x2 - x1) + (z2 - z1) * (z2 - z1);
+				final double fx = shifted[i * 3];
+				final double fz = shifted[i * 3 + 2];
 				final double along = length <= 0 ? 0 : MathHelper.clamp(((fx - x1) * (x2 - x1) + (fz - z1) * (z2 - z1)) / length, 0, 1);
 				final float yaw = PassengerLook.yawToward(x1 + (x2 - x1) * along - fx, z1 + (z2 - z1) * along - fz);
-				figure(matrices, camera, settings, fx, spots.at[i * 3 + 1], fz, i, settings.waitingHue(), entry.getKey(), yaw);
+				figure(matrices, camera, settings, fx, shifted[i * 3 + 1], fz, i, settings.waitingHue(), entry.getKey(), yaw, detail);
 			}
 		}
+	}
+
+	/** The crowd slides from where it was to where the train's doors want it, then steps aside for people getting off. */
+	private void waitingPositions(long platform, Spots spots, int figures, long now, double x1, double z1, double x2, double z2, double[] doors) {
+		if (shifted.length < figures * 3) {
+			shifted = new double[figures * 3];
+		}
+		final double t = spots.from == null ? 1 : Math.min(1, (now - spots.blendStart) / (double) SPOT_BLEND_MILLIS);
+		for (int i = 0; i < figures * 3; i++) {
+			shifted[i] = spots.from == null ? spots.at[i] : spots.from[i] + (spots.at[i] - spots.from[i]) * t;
+		}
+		final double strength = stepAsideStrength(platform, now);
+		if (strength > 0) {
+			PassengerFigures.stepAside(shifted, shifted, figures, x1, z1, x2, z2, doors, strength, STEP_ASIDE_REACH, PassengerDoors.STEP_ASIDE);
+		}
+	}
+
+	/** The strongest step-aside among the people getting off at this platform. */
+	private double stepAsideStrength(long platform, long now) {
+		double strength = 0;
+		for (final PassengerWalk walk : walks) {
+			if (!walk.boarding() && !walk.arriving() && walk.platform() == platform) {
+				strength = Math.max(strength, PassengerDoors.stepAsideStrength(walk.progress(now)));
+			}
+		}
+		return strength;
 	}
 
 	/** The lowest place near the rail with something to stand on and room for a person above it. */
@@ -378,6 +444,58 @@ public final class PassengerRenderer {
 		return new int[]{MathHelper.floor(spot[0]), MathHelper.ceil(spot[1]), MathHelper.floor(spot[2])};
 	}
 
+	/**
+	 * Door x, z pairs of every train standing at this platform with its doors on this side. Read at most once a second,
+	 * because reading a train's doorways goes through its resource. Empty when no train is at the platform.
+	 */
+	private double[] doorsAt(long platform, double x1, double y1, double z1, double x2, double y2, double z2, long now) {
+		final DoorAnchors cached = doorCache.get(platform);
+		if (cached != null && now - cached.millis() <= DOOR_REFRESH_MILLIS) {
+			return cached.doors();
+		}
+		final DoubleArrayList found = new DoubleArrayList();
+		for (final VehicleExtension vehicle : MinecraftClientData.getInstance().vehicles) {
+			if (vehicle.isMoving()) {
+				continue;
+			}
+			final double[] doors = trainDoors(vehicle, now);
+			if (doors.length == 0) {
+				continue;
+			}
+			final Platform at = platformAt(doors);
+			if (at == null || at.getId() != platform) {
+				continue;
+			}
+			for (int i = 0; i < doors.length; i += 4) {
+				if (PassengerFigures.distanceToPlatform(outside(doors, i, 0), y1, outside(doors, i, 1), x1, y1, z1, x2, y2, z2) <= 2.5) {
+					found.add(doors[i]);
+					found.add(doors[i + 1]);
+				}
+			}
+		}
+		if (doorCache.size() > SPOT_CACHE_SIZE) {
+			doorCache.clear();
+		}
+		final double[] doors = found.toDoubleArray();
+		doorCache.put(platform, new DoorAnchors(doors, now));
+		return doors;
+	}
+
+	/** One train's doors, read at most once a second while it stands still. */
+	private double[] trainDoors(VehicleExtension vehicle, long now) {
+		final DoorAnchors cached = trainDoorCache.get(vehicle.getId());
+		if (cached != null && now - cached.millis() <= DOOR_REFRESH_MILLIS) {
+			return cached.doors();
+		}
+		final var cars = cars(vehicle);
+		final double[] doors = cars == null || cars.isEmpty() ? new double[0] : doors(vehicle, cars);
+		if (trainDoorCache.size() > SPOT_CACHE_SIZE) {
+			trainDoorCache.clear();
+		}
+		trainDoorCache.put(vehicle.getId(), new DoorAnchors(doors, now));
+		return doors;
+	}
+
 	private void trains(Map<Long, Integer> riding, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, long now) {
 		for (final VehicleExtension vehicle : MinecraftClientData.getInstance().vehicles) {
 			if (drawn >= FRAME_CAP) {
@@ -403,14 +521,15 @@ public final class PassengerRenderer {
 					}
 				}
 			}
+			final PassengerFigures.Detail detail = PassengerFigures.detail(distance, settings.drawDistance(), settings.detailDistance());
 			final int figures = PassengerFigures.toDraw(people, settings.maxPerPlace(), distance, settings.drawDistance(), settings.detailDistance());
 			if (figures > 0) {
-				drawInCars(cars, figures, settings, camera, matrices, vehicle.getId());
+				drawInCars(cars, figures, detail, settings, camera, matrices, vehicle.getId());
 			}
 		}
 	}
 
-	private void drawInCars(ObjectArrayList<ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>>> cars, int figures, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, long vehicleId) {
+	private void drawInCars(ObjectArrayList<ObjectObjectImmutablePair<org.mtr.core.data.VehicleCar, ObjectArrayList<ObjectObjectImmutablePair<Vector, Vector>>>> cars, int figures, PassengerFigures.Detail detail, PassengerDrawSettings.Values settings, Vec3d camera, MatrixStack matrices, long vehicleId) {
 		int remaining = figures;
 		for (int car = 0; car < cars.size() && remaining > 0 && drawn < FRAME_CAP; car++) {
 			final int share = (int) Math.ceil(remaining / (double) (cars.size() - car));
@@ -427,7 +546,7 @@ public final class PassengerRenderer {
 			}
 			for (int i = 0; i < share && drawn < FRAME_CAP; i++) {
 				PassengerFigures.place(start.x, start.y, start.z, end.x, end.y, end.z, i, share, 0, point);
-				figure(matrices, camera, settings, point[0], point[1] + CAR_FLOOR, point[2], i, settings.ridingHue(), vehicleId + car, PassengerLook.yawToward(end.x - start.x, end.z - start.z) + (i % 2) * 180);
+				figure(matrices, camera, settings, point[0], point[1] + CAR_FLOOR, point[2], i, settings.ridingHue(), vehicleId + car, PassengerLook.yawToward(end.x - start.x, end.z - start.z) + (i % 2) * 180, detail);
 			}
 		}
 	}
@@ -445,7 +564,7 @@ public final class PassengerRenderer {
 	private int walkingTo(long platform, long now) {
 		int count = 0;
 		for (final PassengerWalk walk : walks) {
-			if (walk.arriving() && walk.place() == platform && !walk.finished(now)) {
+			if (walk.arriving() && walk.platform() == platform && !walk.finished(now)) {
 				count++;
 			}
 		}
@@ -469,13 +588,19 @@ public final class PassengerRenderer {
 			final int shown = Math.min(settings.maxPerPlace(), entry.getValue());
 			final int people = Math.min(settings.maxWalkers(), Math.min(shown, change));
 			final double[] spots = new double[shown * 3];
-			PassengerFigures.spots(line[0], line[1], line[2], line[3], line[4], line[5], shown, (x, z, railY) -> floor(world, x, z, railY), spots);
+			final double[] doors = doorsAt(id, line[0], line[1], line[2], line[3], line[4], line[5], now);
+			final PassengerFigures.Ground ground = (x, z, railY) -> floor(world, x, z, railY);
+			if (doors.length > 0) {
+				PassengerFigures.spotsAtDoors(line[0], line[1], line[2], line[3], line[4], line[5], doors, shown, ground, spots);
+			} else {
+				PassengerFigures.spots(line[0], line[1], line[2], line[3], line[4], line[5], shown, ground, spots);
+			}
 			final long routeStart = System.nanoTime();
 			for (int i = 0; i < people && walks.size() < WALKS_MAX; i++) {
 				final int spot = shown - 1 - i;
 				final int[] exit = map.arriving().get(i % map.arriving().size());
 				final double[] points = leg(id, exit[0] + 0.5, exit[1], exit[2] + 0.5, spots[spot * 3], spots[spot * 3 + 1], spots[spot * 3 + 2]);
-				walks.add(PassengerWalk.of(points, now + i * WALK_STAGGER_MILLIS, id, spot, 0, false, true));
+				walks.add(PassengerWalk.of(points, now + i * WALK_STAGGER_MILLIS, id, spot, id, 0, false, true));
 				walksStarted++;
 				if (walkListener != null) {
 					walkListener.accept(walks.get(walks.size() - 1));
@@ -485,69 +610,122 @@ public final class PassengerRenderer {
 		}
 	}
 
-	/** A change in a train's riders at a platform is people crossing the gap: draw them doing it. */
+	/**
+	 * A change in a train's riders at a platform is people crossing the gap: draw them doing it. The count can arrive
+	 * while the doors are still opening, so it waits until they are wide enough; a count that never gets open doors is
+	 * not a real exchange and starts no walk.
+	 */
 	private void startWalks(PassengerService.Counts before, PassengerService.Counts after, PassengerDrawSettings.Values settings, Vec3d camera, World world, long now) {
 		for (final VehicleExtension vehicle : MinecraftClientData.getInstance().vehicles) {
 			final int change = after.riding().getOrDefault(vehicle.getId(), 0) - before.riding().getOrDefault(vehicle.getId(), 0);
 			if (change == 0) {
 				continue;
 			}
-			final var cars = cars(vehicle);
-			if (cars == null || cars.isEmpty()) {
-				continue;
+			if (!PassengerDoors.canCross(vehicle.persistentVehicleData.getDoorValue())) {
+				final PendingDoors pending = pendingDoors.get(vehicle.getId());
+				pendingDoors.put(vehicle.getId(), new PendingDoors((pending == null ? 0 : pending.change()) + change, pending == null ? now : pending.millis()));
+			} else {
+				startVehicleWalks(vehicle, change, before, settings, camera, world, now);
 			}
-			final double[] doors = doors(vehicle, cars);
-			if (doors.length == 0) {
-				continue;
-			}
-			final Platform platform = platformAt(doors);
-			if (platform == null) {
-				continue;
-			}
-			final double[] line = line(platform);
-			if (PassengerFigures.distanceToPlatform(camera.x, camera.y, camera.z, line[0], line[1], line[2], line[3], line[4], line[5]) > settings.drawDistance()) {
-				continue;
-			}
-			final int people = Math.min(settings.maxWalkers(), Math.abs(change));
-			if (people == 0) {
-				continue;
-			}
-			final int shown = Math.max(people, Math.min(settings.maxPerPlace(), before.waiting().getOrDefault(platform.getId(), 0)));
-			final double[] spots = new double[shown * 3];
-			PassengerFigures.spots(line[0], line[1], line[2], line[3], line[4], line[5], shown, (x, z, railY) -> floor(world, x, z, railY), spots);
-			final long routeStart = System.nanoTime();
-			for (int i = 0; i < people && walks.size() < WALKS_MAX; i++) {
-				final int spot = shown - 1 - i;
-				final double x = spots[spot * 3];
-				final double y = spots[spot * 3 + 1];
-				final double z = spots[spot * 3 + 2];
-				final long start = now + i * WALK_STAGGER_MILLIS;
-				if (change > 0) {
-					final int door = nearestDoor(platform.getId(), doors, x, y, z);
-					walks.add(PassengerWalk.of(toCar(platform.getId(), doors, door, x, y, z), start, platform.getId(), spot, vehicle.getId(), true));
-				} else if (map(platform.getId()) != null && !map(platform.getId()).leaving().isEmpty()) {
-					final List<int[]> exits = map(platform.getId()).leaving();
-					final int[] exit = exits.get(i % exits.size());
-					final int door = nearestDoor(platform.getId(), doors, x, y, z);
-					walks.add(PassengerWalk.of(fromCar(platform.getId(), doors, door, y, exit), start, vehicle.getId() + 1, spot, vehicle.getId(), false));
-				} else {
-					final double dx = line[3] - line[0];
-					final double dz = line[5] - line[2];
-					final double length = Math.max(1.0E-4, Math.hypot(dx, dz));
-					final double sign = i % 2 == 0 ? 1 : -1;
-					final double reach = reach(platform.getId(), x, y, z, dx / length * sign, dz / length * sign);
-					final double awayX = x + dx / length * reach * sign;
-					final double awayZ = z + dz / length * reach * sign;
-					final int door = nearestDoor(platform.getId(), doors, awayX, y, awayZ);
-					walks.add(PassengerWalk.of(reversed(toCar(platform.getId(), doors, door, awayX, y, awayZ)), start, vehicle.getId() + 1, spot, vehicle.getId(), false));
-				}
-				walksStarted++;
-				if (walkListener != null) {
-					walkListener.accept(walks.get(walks.size() - 1));
-				}
-			}
-			routeMicros = Math.max(routeMicros, (System.nanoTime() - routeStart) / 1000D);
 		}
+	}
+
+	/** Counts held while the doors open: start them when the gap is clear, forget them if the train was not really stopping. */
+	private void releasePendingDoors(PassengerDrawSettings.Values settings, Vec3d camera, World world, long now) {
+		if (pendingDoors.isEmpty()) {
+			return;
+		}
+		final Iterator<Map.Entry<Long, PendingDoors>> iterator = pendingDoors.entrySet().iterator();
+		while (iterator.hasNext()) {
+			final Map.Entry<Long, PendingDoors> entry = iterator.next();
+			final PendingDoors pending = entry.getValue();
+			final VehicleExtension vehicle = vehicle(entry.getKey());
+			if (vehicle == null || PassengerDoors.tooLate(pending.millis(), now)) {
+				iterator.remove();
+			} else if (PassengerDoors.canCross(vehicle.persistentVehicleData.getDoorValue())) {
+				iterator.remove();
+				startVehicleWalks(vehicle, pending.change(), lastCounts == null ? PassengerService.Counts.NONE : lastCounts, settings, camera, world, now);
+			}
+		}
+	}
+
+	/** Draws one train's exchange: boarders leave spots by its doors, alighters come out and head for an exit. */
+	private void startVehicleWalks(VehicleExtension vehicle, int change, PassengerService.Counts counts, PassengerDrawSettings.Values settings, Vec3d camera, World world, long now) {
+		final var cars = cars(vehicle);
+		if (cars == null || cars.isEmpty()) {
+			return;
+		}
+		final double[] doors = doors(vehicle, cars);
+		if (doors.length == 0) {
+			return;
+		}
+		final Platform platform = platformAt(doors);
+		if (platform == null) {
+			return;
+		}
+		final double[] line = line(platform);
+		if (PassengerFigures.distanceToPlatform(camera.x, camera.y, camera.z, line[0], line[1], line[2], line[3], line[4], line[5]) > settings.drawDistance()) {
+			return;
+		}
+		final int people = Math.min(settings.maxWalkers(), Math.abs(change));
+		if (people == 0) {
+			return;
+		}
+		final int shown = Math.max(people, Math.min(settings.maxPerPlace(), counts.waiting().getOrDefault(platform.getId(), 0)));
+		final double[] spots = new double[shown * 3];
+		PassengerFigures.spotsAtDoors(line[0], line[1], line[2], line[3], line[4], line[5], doorPairs(doors), shown, (x, z, railY) -> floor(world, x, z, railY), spots);
+		final long routeStart = System.nanoTime();
+		for (int i = 0; i < people && walks.size() < WALKS_MAX; i++) {
+			final int spot = shown - 1 - i;
+			final double x = spots[spot * 3];
+			final double y = spots[spot * 3 + 1];
+			final double z = spots[spot * 3 + 2];
+			final long start = now + i * WALK_STAGGER_MILLIS;
+			if (change > 0) {
+				final int door = nearestDoor(platform.getId(), doors, x, y, z);
+				walks.add(PassengerWalk.of(toCar(platform.getId(), doors, door, x, y, z), start, platform.getId(), spot, platform.getId(), vehicle.getId(), true));
+			} else if (map(platform.getId()) != null && !map(platform.getId()).leaving().isEmpty()) {
+				final List<int[]> exits = map(platform.getId()).leaving();
+				final int[] exit = exits.get(i % exits.size());
+				final int door = nearestDoor(platform.getId(), doors, x, y, z);
+				walks.add(PassengerWalk.of(fromCar(platform.getId(), doors, door, y, exit), start, vehicle.getId() + 1, spot, platform.getId(), vehicle.getId(), false));
+			} else {
+				final double dx = line[3] - line[0];
+				final double dz = line[5] - line[2];
+				final double length = Math.max(1.0E-4, Math.hypot(dx, dz));
+				final double sign = i % 2 == 0 ? 1 : -1;
+				final double reach = reach(platform.getId(), x, y, z, dx / length * sign, dz / length * sign);
+				final double awayX = x + dx / length * reach * sign;
+				final double awayZ = z + dz / length * reach * sign;
+				final int door = nearestDoor(platform.getId(), doors, awayX, y, awayZ);
+				walks.add(PassengerWalk.of(reversed(toCar(platform.getId(), doors, door, awayX, y, awayZ)), start, vehicle.getId() + 1, spot, platform.getId(), vehicle.getId(), false));
+			}
+			walksStarted++;
+			if (walkListener != null) {
+				walkListener.accept(walks.get(walks.size() - 1));
+			}
+		}
+		routeMicros = Math.max(routeMicros, (System.nanoTime() - routeStart) / 1000D);
+	}
+
+	@Nullable
+	private VehicleExtension vehicle(long id) {
+		for (final VehicleExtension vehicle : MinecraftClientData.getInstance().vehicles) {
+			if (vehicle.getId() == id) {
+				return vehicle;
+			}
+		}
+		return null;
+	}
+
+	/** The x, z pairs of a doors() array, for the spot helpers. */
+	private static double[] doorPairs(double[] doors) {
+		final double[] pairs = new double[doors.length / 2];
+		for (int i = 0; i < doors.length; i += 4) {
+			pairs[i / 2] = doors[i];
+			pairs[i / 2 + 1] = doors[i + 1];
+		}
+		return pairs;
 	}
 
 	/**
@@ -755,22 +933,38 @@ public final class PassengerRenderer {
 				final double x = at[0];
 				final double y = at[1];
 				final double z = at[2];
+				final PassengerFigures.Detail detail = PassengerFigures.detail(distance(camera, x, y, z), settings.drawDistance(), settings.detailDistance());
+				if (detail == PassengerFigures.Detail.NONE) {
+					continue;
+				}
 				final float fade = walk.fade(t, FADE_BLOCKS);
-				final float stride = t <= 0 ? -1 : (float) (walk.durationMillis() * t / 1000 * WALK_STRIDES);
-				person(matrices, settings, x - camera.x, y - camera.y, z - camera.z, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)),
-						PassengerLook.of(walk.place(), walk.index()), PassengerLook.yawToward(at[3], at[4]), stride, fade);
-				drawn++;
+				final PassengerLook look = PassengerLook.of(walk.place(), walk.index());
+				if (detail == PassengerFigures.Detail.SIMPLE) {
+					simplePerson(matrices, settings, x - camera.x, y - camera.y, z - camera.z, look, fade);
+					drawn++;
+				} else {
+					final float stride = t <= 0 ? -1 : (float) (walk.durationMillis() * t / 1000 * WALK_STRIDES);
+					person(matrices, settings, x - camera.x, y - camera.y, z - camera.z, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)),
+							look, PassengerLook.yawToward(at[3], at[4]), stride, fade);
+					drawn++;
+				}
 			}
 		}
 	}
 
 	/** One person: a real player model with one of the game's own skins, or the plain boxes when the panel asks for them. */
-	private void figure(MatrixStack matrices, Vec3d camera, PassengerDrawSettings.Values settings, double x, double y, double z, int index, int hue, long place, float yaw) {
+	private void figure(MatrixStack matrices, Vec3d camera, PassengerDrawSettings.Values settings, double x, double y, double z, int index, int hue, long place, float yaw, PassengerFigures.Detail detail) {
 		final double cx = x - camera.x;
 		final double cy = y - camera.y;
 		final double cz = z - camera.z;
+		final PassengerLook look = PassengerLook.of(place, index);
+		final boolean simple = detail == PassengerFigures.Detail.SIMPLE;
 		if (settings.people()) {
-			person(matrices, settings, cx, cy, cz, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)), PassengerLook.of(place, index), yaw, -1, 1);
+			if (simple) {
+				simplePerson(matrices, settings, cx, cy, cz, look, 1);
+			} else {
+				person(matrices, settings, cx, cy, cz, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)), look, yaw, -1, 1);
+			}
 			drawn++;
 			return;
 		}
@@ -783,15 +977,33 @@ public final class PassengerRenderer {
 		final VertexConsumer consumer = provider.getBuffer(settings.solid() ? RenderLayer.getDebugFilledBox() : RenderLayer.getLines());
 		if (settings.solid()) {
 			final double half = 0.2 * size;
-			WorldRenderer.renderFilledBox(matrices, consumer, cx - half * 0.8, cy, cz - half * 0.8, cx + half * 0.8, cy + 0.75 * size, cz + half * 0.8, 0.16F, 0.18F, 0.24F, 1);
-			WorldRenderer.renderFilledBox(matrices, consumer, cx - half, cy + 0.75 * size, cz - half, cx + half, cy + 1.35 * size, cz + half, r, g, b, 1);
-			final double head = half * 0.75;
-			WorldRenderer.renderFilledBox(matrices, consumer, cx - head, cy + 1.37 * size, cz - head, cx + head, cy + 1.72 * size, cz + head, 0.86F, 0.68F, 0.55F, 1);
+			if (simple) {
+				WorldRenderer.renderFilledBox(matrices, consumer, cx - half, cy, cz - half, cx + half, cy + 1.7 * size, cz + half, r, g, b, 1);
+			} else {
+				WorldRenderer.renderFilledBox(matrices, consumer, cx - half * 0.8, cy, cz - half * 0.8, cx + half * 0.8, cy + 0.75 * size, cz + half * 0.8, 0.16F, 0.18F, 0.24F, 1);
+				WorldRenderer.renderFilledBox(matrices, consumer, cx - half, cy + 0.75 * size, cz - half, cx + half, cy + 1.35 * size, cz + half, r, g, b, 1);
+				final double head = half * 0.75;
+				WorldRenderer.renderFilledBox(matrices, consumer, cx - head, cy + 1.37 * size, cz - head, cx + head, cy + 1.72 * size, cz + head, 0.86F, 0.68F, 0.55F, 1);
+			}
 		} else {
 			final double half = 0.22 * size;
 			WorldRenderer.drawBox(matrices, consumer, cx - half, cy, cz - half, cx + half, cy + 1.7 * size, cz + half, r, g, b, 1);
 		}
 		drawn++;
+	}
+
+	/** The middle distance: three boxes with the same silhouette, a fraction of a player model's cost. */
+	private void simplePerson(MatrixStack matrices, PassengerDrawSettings.Values settings, double cx, double cy, double cz, PassengerLook look, float alpha) {
+		final double size = settings.figureSize() / 100D * look.height();
+		final int rgb = look.bagColor();
+		final float shade = 0.7F + (look.skin() % 3) * 0.15F;
+		final float r = (rgb >> 16 & 0xFF) / 255F * shade;
+		final float g = (rgb >> 8 & 0xFF) / 255F * shade;
+		final float b = (rgb & 0xFF) / 255F * shade;
+		final VertexConsumer consumer = provider.getBuffer(RenderLayer.getDebugFilledBox());
+		WorldRenderer.renderFilledBox(matrices, consumer, cx - 0.13 * size, cy, cz - 0.12 * size, cx + 0.13 * size, cy + 0.78 * size, cz + 0.12 * size, 0.16F, 0.18F, 0.24F, alpha);
+		WorldRenderer.renderFilledBox(matrices, consumer, cx - 0.2 * size, cy + 0.78 * size, cz - 0.13 * size, cx + 0.2 * size, cy + 1.42 * size, cz + 0.13 * size, r, g, b, alpha);
+		WorldRenderer.renderFilledBox(matrices, consumer, cx - 0.12 * size, cy + 1.42 * size, cz - 0.12 * size, cx + 0.12 * size, cy + 1.7 * size, cz + 0.12 * size, 0.86F, 0.68F, 0.55F, alpha);
 	}
 
 	private void person(MatrixStack matrices, PassengerDrawSettings.Values settings, double cx, double cy, double cz, BlockPos lightAt, PassengerLook look, float yaw, float stride, float alpha) {
