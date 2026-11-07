@@ -402,7 +402,7 @@ public final class Landmarks {
 	 * Beijing Railway Station (Chen Deng'ao and others, 1959): a pale grey stone building 200 m wide, its tall middle hall under
 	 * a clock tower, a tower at each end under a Chinese pavilion roof of blue-green glazed tiles, long flat-roofed wings between.
 	 */
-	static final Landmark BEIJING = Landmark.side("beijing", "Beijing", "Beijing Station", "Beijing Railway Station", "Beijing South")
+	static final Landmark BEIJING = Landmark.side("beijing", "Beijing", "Beijing Station", "Beijing Railway Station")
 			.skin(BEIJING_STONE)
 			.facade(new Facade(Window.RECT, 6, 2, 6, 2, 3, 2, 0, true))
 			.tower(0, 10, 4, 1, 40, Cap.PYRAMID, 0, true)
@@ -530,7 +530,10 @@ public final class Landmarks {
 	/** True when the station can take the landmark's sheet by a city word. */
 	private static boolean carries(Landmark landmark, StationSpec spec) {
 		if (landmark.anchor() != Landmark.Anchor.HEAD) {
-			return !spec.terminus() && spec.sideBuilding() && spec.trackCount() >= 2;
+			// Amsterdam Centraal's long wings leave dark interior cells on a side-platform building (its own platform layout is
+			// islands), so a side-platform station keeps the city's look instead of the sheet
+			final boolean amsterdamFits = landmark != AMSTERDAM || spec.platformLayout() == PlatformLayout.ISLAND;
+			return !spec.terminus() && spec.sideBuilding() && spec.trackCount() >= 2 && amsterdamFits;
 		}
 		if (!spec.terminus() || spec.hub() || spec.trackCount() < 6 || spec.trackCount() % 2 != 0 || spec.platformLength() < 96) {
 			return false;
