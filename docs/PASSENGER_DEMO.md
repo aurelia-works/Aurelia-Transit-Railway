@@ -55,8 +55,8 @@ Proves:
 - a real automatic train stops and people board it (48 boarded, 1.5 ms per update, 2026-11-01).
 
 Does not prove:
-- people getting off: the proof run ended before the train reached their stations;
-- individual pathfinding or walking animation;
-- passengers using lifts, stairs or escalators.
+- door timing or the waiting crowd stepping aside: a screenshot cannot show either, so unit tests guard those decisions;
+- frame time on a busy station: the demo needs a real client and GPU, so measure it on the perf bench;
+- passengers using lifts, stairs or escalators on a station that was not part of the demo.
 
-Passengers are counts per platform and train, drawn as figures. The station graph and walkers are P3 work.
+Passengers are counts per platform and train. The drawing turns each count change into walkers along the scanned grid, waits for the doors to open before anyone crosses, and gathers the waiting crowd at the stopped train's doors. The panel's Passengers tab shows the live draw cost and walker count.
