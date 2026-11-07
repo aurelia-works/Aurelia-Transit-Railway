@@ -442,8 +442,9 @@ abstract class PlanFurniture extends PlanRoofs {
 				// a screen is always a proper board: from pole to pole across a column pair where the platform has one (raised
 				// clear of heads, under a girder of its own), else fixed to a column (it joins the pole rather than hanging
 				// beside it), hung, or two blocks on a post. Never a lone single block on the floor.
-				if (!screenBetweenColumns(band, target) && !screenOnColumn(band, target) && !hangScreen(band, target)) {
-					screenOnPost(band, target);
+				if (!screenBetweenColumns(band, target) && !screenOnColumn(band, target) && !hangScreen(band, target)
+						&& !screenOnPost(band, target)) {
+					screenOnStand(band, target);
 				}
 			}
 			final int middle = (band.vFrom() + band.vTo()) / 2;
@@ -750,6 +751,38 @@ abstract class PlanFurniture extends PlanRoofs {
 				final int v = post.v() + (side == LocalDir.PLUS_V ? 1 : -1);
 				if (band.runs(v) && !nearStairs(band, v) && !taken(post.u(), StationGeometry.WALK_Y, v)
 						&& put(Role.FIXTURE, post.u(), StationGeometry.WALK_Y, v, side, PIDS, "offset=none" + ON_ARM)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * A departure screen on its own two-block stand: a last resort for a platform whose train shed has no column or lamp within
+	 * reach of the walking level (St Pancras, Antwerp), so a big station never has a platform without a departure screen. The
+	 * stand stands on the back of the platform, clear of the boarding edge and the stairs.
+	 */
+	boolean screenOnStand(TrackLayout.PlatformBand band, int target) {
+		final int step = band.trackRight() ? -1 : 1;
+		final int back = backColumn(band);
+		for (int d = 0; d <= 12; d += 2) {
+			for (final int v : d == 0 ? new int[]{target} : new int[]{target + d, target - d}) {
+				if (v < band.vFrom() + 2 || v > band.vTo() - 2 || nearStairs(band, v)) {
+					continue;
+				}
+				for (int k = 0; k <= 2; k++) {
+					final int u = back + step * k;
+					if (isEdge(band, u) || taken(u, StationGeometry.WALK_Y, v) || taken(u, StationGeometry.WALK_Y + 1, v)
+							|| taken(u, StationGeometry.WALK_Y + 2, v) || taken(u + step, StationGeometry.WALK_Y + 2, v)) {
+						continue;
+					}
+					// the stand is a pole two high at the foot of the screen, which faces along the platform
+					put(Role.FIXTURE, u, StationGeometry.WALK_Y, v, LocalDir.PLUS_V, LAMP_POLE);
+					put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, v, LocalDir.PLUS_V, LAMP_POLE);
+					for (final int at : new int[]{u, u + step}) {
+						put(Role.FIXTURE, at, StationGeometry.WALK_Y + 2, v, LocalDir.PLUS_V, PIDS, "offset=" + (at == u ? "left" : "right"));
+					}
 					return true;
 				}
 			}

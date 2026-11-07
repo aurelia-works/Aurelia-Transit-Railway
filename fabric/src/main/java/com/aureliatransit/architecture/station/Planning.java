@@ -788,26 +788,60 @@ final class Planning extends PlanAirport {
 		if (!spec.features().cctv() || spec.isAirport()) {
 			return;
 		}
-		final String kind = spec.options().underground() ? "kind=wall" : "kind=pendant";
 		for (final TrackLayout.PlatformBand band : layout.platforms()) {
 			final int middle = (band.uMin() + band.uMax()) / 2;
+			final int back = band.trackRight() ? band.uMin() : band.uMax();
+			final LocalDir towardTrack = towardTrack(band);
 			for (int v = band.vFrom() + CAMERA_PITCH / 2; v <= band.vTo() - 2; v += CAMERA_PITCH) {
-				final LocalDir front = band.trackLeft() ? LocalDir.MINUS_U : LocalDir.PLUS_U;
-				for (int d = 0; d <= 2; d++) {
-					final int u = middle + (d % 2 == 0 ? d / 2 : -(d + 1) / 2);
-					if (u <= band.uMin() || u >= band.uMax() || taken(u, StationGeometry.WALK_Y, v)) {
+				boolean placed = false;
+				// under the canopy or hall frame, trying a few columns and rows around the pitch mark
+				for (int dv : new int[]{0, 2, -2, 4, -4}) {
+					final int row = v + dv;
+					if (row < band.vFrom() + 1 || row > band.vTo() - 1) {
 						continue;
 					}
-					final int top = ceilingAbove(u, StationGeometry.WALK_Y + StationGeometry.HEADROOM, v);
-					if (top < 0) {
+					for (int d = 0; d <= 4 && !placed; d++) {
+						final int u = middle + (d % 2 == 0 ? d / 2 : -(d + 1) / 2);
+						if (u <= band.uMin() || u >= band.uMax() || taken(u, StationGeometry.WALK_Y, row)) {
+							continue;
+						}
+						final int top = attachmentAbove(u, StationGeometry.WALK_Y + StationGeometry.HEADROOM, row);
+						final int y = top - 1;
+						if (top < 0 || y < StationGeometry.WALK_Y + StationGeometry.HEADROOM || taken(u, y, row)) {
+							continue;
+						}
+						placed = put(Role.FIXTURE, u, y, row, towardTrack, CCTV, "kind=pendant");
+					}
+				}
+				// a bored tube or a platform with no low roof: a wall camera fixed to the back wall, facing the trains
+				for (int dv : new int[]{0, 2, -2, 4, -4}) {
+					final int row = v + dv;
+					final int inner = back + (band.trackRight() ? 1 : -1);
+					if (placed || row < band.vFrom() + 1 || row > band.vTo() - 1 || isEdge(band, inner)) {
 						continue;
 					}
-					final int y = top - 1;
-					if (y < StationGeometry.WALK_Y + StationGeometry.HEADROOM || taken(u, y, v)) {
+					final int y = StationGeometry.WALK_Y + StationGeometry.HEADROOM;
+					final PlannedBlock wall = at(back, y, row);
+					if (wall != null && (wall.role() == Role.WALL || wall.role() == Role.WINDOW || wall.role() == Role.COLUMN)
+							&& !taken(inner, y, row)) {
+						placed = put(Role.FIXTURE, inner, y, row, towardTrack.opposite(), CCTV, "kind=wall");
+					}
+				}
+				// a bored tube or an open platform: a camera on its own three-block post at the back, clear of the edge
+				for (int dv : new int[]{0, 2, -2, 4, -4}) {
+					final int row = v + dv;
+					if (placed || row < band.vFrom() + 1 || row > band.vTo() - 1 || nearStairs(band, row)) {
 						continue;
 					}
-					if (put(Role.FIXTURE, u, y, v, front, CCTV, kind)) {
-						break;
+					final int u = back + (band.trackRight() ? 1 : -1);
+					if (isEdge(band, u)) {
+						continue;
+					}
+					if (freeColumn(u, StationGeometry.WALK_Y, StationGeometry.WALK_Y + 2, row) && !taken(u, StationGeometry.WALK_Y + 3, row)) {
+						put(Role.FIXTURE, u, StationGeometry.WALK_Y, row, towardTrack, LAMP_POLE);
+						put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, row, towardTrack, LAMP_POLE);
+						put(Role.FIXTURE, u, StationGeometry.WALK_Y + 2, row, towardTrack, LAMP_POLE);
+						placed = put(Role.FIXTURE, u, StationGeometry.WALK_Y + 3, row, towardTrack, CCTV, "kind=wall");
 					}
 				}
 			}
@@ -827,6 +861,21 @@ final class Planning extends PlanAirport {
 				}
 			}
 		}
+	}
+
+	/**
+	 * The first cell at or above {@code y} in column (u, v) that a camera can hang from: any roof, beam, rib, wall or column
+	 * within a train shed's height. A deep tube's lining is a wall, so its cameras take the wall kind.
+	 */
+	int attachmentAbove(int u, int y, int v) {
+		for (int h = y; h <= y + 32; h++) {
+			final PlannedBlock block = at(u, h, v);
+			if (block != null && (block.role().covers() || block.role() == Role.BEAM || block.role() == Role.RIB
+					|| block.role() == Role.WALL || block.role() == Role.COLUMN || block.role() == Role.COLUMN_CAP)) {
+				return h;
+			}
+		}
+		return -1;
 	}
 
 	/** Rows between security cameras along a platform or hall. */
