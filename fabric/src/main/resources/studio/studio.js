@@ -19,7 +19,7 @@
 
 	// ---- controls -------------------------------------------------------------------------------------------------------
 
-	const fields = ["text", "mode", "layout", "tracks", "length", "look", "mix", "roof", "building", "size", "name", "platforms", "bed", "esc", "walls", "trav", "class", "era", "facing", "operator", "gates", "door", "swaps"];
+	const fields = ["text", "mode", "layout", "tracks", "length", "look", "mix", "roof", "building", "size", "name", "platforms", "bed", "esc", "walls", "trav", "class", "era", "facing", "operator", "gates", "door", "swaps", "height"];
 
 	function fillSelect(select, pairs, extra) {
 		select.innerHTML = "";
@@ -45,6 +45,9 @@
 		// the generator seed: the dice's, or the one kept while Details is locked
 		q.seed = seeds.detail;
 		q.page = PAGE;
+		// dev-panel switches: every visible fitting can be turned off without losing the station
+		q.cctv = $("cctv").checked ? "1" : "0";
+		q.edgeLines = $("edgeLines").checked ? "1" : "0";
 		return q;
 	}
 
@@ -88,6 +91,12 @@
 		}
 		// only the controls the player had changed stay pinned: every select has a value, so having one says nothing
 		// what the player or the dice set (saved whole: "pinned" is filtered by the class and the locks)
+		if (saved.cctv !== undefined) {
+			$("cctv").checked = saved.cctv !== "0";
+		}
+		if (saved.edgeLines !== undefined) {
+			$("edgeLines").checked = saved.edgeLines !== "0";
+		}
 		for (const f of saved.touched || (saved.pinned || "").split(",")) {
 			if (fields.includes(f) && f !== "text") {
 				touched.add(f);
