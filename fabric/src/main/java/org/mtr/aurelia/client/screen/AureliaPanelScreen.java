@@ -29,6 +29,7 @@ import org.mtr.mod.item.ItemRailBuilder;
 import org.mtr.mod.packet.PacketUpdateRailBuilder;
 import org.mtr.mod.passenger.PassengerNetwork;
 import org.mtr.mod.passenger.PassengerService;
+import org.mtr.mod.render.BlockEntityCounter;
 import org.mtr.aurelia.client.BuildClient;
 import org.mtr.mod.building.BuildMath;
 import org.mtr.mod.building.BuildSettings;
@@ -112,6 +113,10 @@ public final class AureliaPanelScreen extends Screen {
 			new Toggle("options.mtr.faster_model_loading", config::getFasterModelLoading, config::toggleFasterModelLoading),
 			new Toggle("options.mtr.background_model_loading", config::getBackgroundModelLoading, config::toggleBackgroundModelLoading),
 			new Toggle("options.mtr.free_unused_models", config::getFreeUnusedModels, config::toggleFreeUnusedModels),
+			new Distance("options.mtr.rail_view_chunks", Client.RAIL_VIEW_CHUNKS_MAX, config::getRailViewChunks, config::setRailViewChunks),
+			new Distance("options.mtr.train_view_chunks", Client.TRAIN_VIEW_CHUNKS_MAX, config::getTrainViewChunks, config::setTrainViewChunks),
+			new Toggle("options.mtr.far_detail", config::getFarDetail, config::toggleFarDetail),
+			new Distance("options.mtr.block_entity_warn", Client.BLOCK_ENTITY_WARN_MAX, config::getBlockEntityWarn, config::setBlockEntityWarn),
 			new Toggle("options.mtr.aurelia_block_look", org.mtr.aurelia.client.AureliaLookPack::enabled, org.mtr.aurelia.client.AureliaLookPack::toggle)
 	);
 
@@ -124,7 +129,7 @@ public final class AureliaPanelScreen extends Screen {
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
-	private static final int PASSENGER_ROWS = 9;
+	private static final int PASSENGER_ROWS = 17;
 
 	public AureliaPanelScreen(@Nullable Screen parent, Tab tab) {
 		super(Text.translatable("gui.aurelia.panel.title"));
@@ -506,6 +511,49 @@ public final class AureliaPanelScreen extends Screen {
 					value -> PassengerDrawSettings.setMaxPerPlace((int) value),
 					value -> Text.translatable("gui.aurelia.passengers.max_drawn", value.intValue()));
 		}
+		if (passengerRow(9)) {
+			addDrawableChild(ButtonWidget.builder(solidLabel(), b -> {
+				PassengerDrawSettings.cycleLook();
+				b.setMessage(solidLabel());
+			}).dimensions(left, passengerY(9), BUTTON_WIDTH, 20).build());
+		}
+		if (passengerRow(10)) {
+			addPassengerSlider(left, 10, true, PassengerDrawSettings.FIGURE_SIZE_MIN, PassengerDrawSettings.FIGURE_SIZE_MAX, 10, () -> PassengerDrawSettings.get().figureSize(),
+					value -> PassengerDrawSettings.setFigureSize((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.figure_size", value.intValue()));
+		}
+		if (passengerRow(11)) {
+			addPassengerSlider(left, 11, true, 0, PassengerDrawSettings.HUE_MAX, 10, () -> PassengerDrawSettings.get().waitingHue(),
+					value -> PassengerDrawSettings.setWaitingHue((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.waiting_hue", value.intValue()));
+		}
+		if (passengerRow(12)) {
+			addPassengerSlider(left, 12, true, 0, PassengerDrawSettings.HUE_MAX, 10, () -> PassengerDrawSettings.get().ridingHue(),
+					value -> PassengerDrawSettings.setRidingHue((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.riding_hue", value.intValue()));
+		}
+		if (passengerRow(13)) {
+			addPassengerSlider(left, 13, true, 0, PassengerDrawSettings.MAX_WALKERS_MAX, 4, () -> PassengerDrawSettings.get().maxWalkers(),
+					value -> PassengerDrawSettings.setMaxWalkers((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.max_walkers", value.intValue()));
+		}
+		if (passengerRow(14)) {
+			final ButtonWidget routes = addDrawableChild(ButtonWidget.builder(routesLabel(), b -> {
+				PassengerDrawSettings.setRoutes(!PassengerDrawSettings.get().routes());
+				b.setMessage(routesLabel());
+			}).dimensions(left, passengerY(14), BUTTON_WIDTH, 20).build());
+			routes.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.passengers.routes.tooltip")));
+		}
+		if (passengerRow(15)) {
+			addPassengerSlider(left, 15, true, PassengerDrawSettings.WALK_RANGE_MIN, PassengerDrawSettings.WALK_RANGE_MAX, 2, () -> PassengerDrawSettings.get().walkRange(),
+					value -> PassengerDrawSettings.setWalkRange((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.walk_range", value.intValue()));
+		}
+		if (passengerRow(16)) {
+			addPassengerSlider(left, 16, true, PassengerDrawSettings.MAX_PATH_MIN, PassengerDrawSettings.MAX_PATH_MAX, 500, () -> PassengerDrawSettings.get().maxPath(),
+					value -> PassengerDrawSettings.setMaxPath((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.max_path", value.intValue()));
+		}
 	}
 
 	/** Rows left after the waiting/riding line and the server-cost line. */
@@ -530,12 +578,21 @@ public final class AureliaPanelScreen extends Screen {
 		PassengerClient.request(change.apply(PassengerClient.settings()));
 	}
 
+	private static Text routesLabel() {
+		return Text.translatable("gui.aurelia.passengers.routes", ScreenTexts.onOrOff(PassengerDrawSettings.get().routes()));
+	}
+
 	private static Text passengersLabel(boolean enabled) {
 		return Text.translatable("gui.aurelia.passengers.enabled", ScreenTexts.onOrOff(enabled));
 	}
 
 	private static Text drawLabel() {
 		return Text.translatable("gui.aurelia.passengers.draw", ScreenTexts.onOrOff(PassengerDrawSettings.get().draw()));
+	}
+
+	private static Text solidLabel() {
+		final PassengerDrawSettings.Values values = PassengerDrawSettings.get();
+		return Text.translatable("gui.aurelia.passengers.look", Text.translatable(values.people() ? "gui.aurelia.passengers.look.people" : values.solid() ? "gui.aurelia.passengers.look.solid" : "gui.aurelia.passengers.look.outlines"));
 	}
 
 	private Text pantographAnimationLabel() {
@@ -683,6 +740,7 @@ public final class AureliaPanelScreen extends Screen {
 		renderBackground(context);
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
 		if (tab == Tab.RENDERING) {
+			renderBlockEntityCounter(context);
 			for (int i = firstRow; i < Math.min(renderingRows.size(), firstRow + visibleRows()); i++) {
 				context.drawTextWithShadow(textRenderer, Text.translatable(renderingRows.get(i).key()), 16, top + (i - firstRow) * ROW + 6, 0xFFFFFF);
 			}
@@ -707,6 +765,14 @@ public final class AureliaPanelScreen extends Screen {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), width / 2, top + 6, 0xAAAAAA);
 		}
 		super.render(context, mouseX, mouseY, delta);
+	}
+
+	/** The block entities drawn in the last frame, red past the player's warning threshold. */
+	private void renderBlockEntityCounter(DrawContext context) {
+		final int count = BlockEntityCounter.lastFrame();
+		final int warn = config.getBlockEntityWarn();
+		final String limit = warn > 0 ? String.valueOf(warn) : "-";
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.block_entities", count, limit), width / 2, top - 10, warn > 0 && count > warn ? 0xFF5555 : 0xAAAAAA);
 	}
 
 	@Override

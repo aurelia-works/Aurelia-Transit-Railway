@@ -44,6 +44,16 @@ public class TrainLodTest {
 	}
 
 	@Test
+	public void viewTierPastMinecraftDistance() {
+		assertEquals(FULL, TrainLod.viewTier(500, false, 0, 8, true));
+		assertEquals(HIDDEN, TrainLod.viewTier(200, false, 10, 8, true));
+		assertEquals(BOX_FAR, TrainLod.viewTier(129, false, 16, 8, true));
+		assertEquals(FULL, TrainLod.viewTier(128, false, 16, 8, true));
+		assertEquals(HIDDEN, TrainLod.viewTier(129, false, 16, 8, false));
+		assertEquals(FULL, TrainLod.viewTier(500, true, 16, 8, true));
+	}
+
+	@Test
 	public void skipInteriorIsOnlySetDuringItsQueue() {
 		final boolean[] seen = {false};
 		TrainLod.queue(true, () -> seen[0] = TrainLod.skipInterior());

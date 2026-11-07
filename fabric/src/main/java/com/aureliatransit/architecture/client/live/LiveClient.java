@@ -9,9 +9,11 @@ import com.aureliatransit.architecture.live.SpeakerBlock;
 import com.aureliatransit.architecture.live.SpeakerBlockEntity;
 import com.aureliatransit.architecture.live.announce.AnnouncementCategory;
 import com.aureliatransit.architecture.live.announce.AnnouncementStyle;
+import com.aureliatransit.architecture.live.announce.AnnouncementText;
 import com.aureliatransit.architecture.live.announce.VoicePack;
 import com.aureliatransit.architecture.registry.LiveBlocks;
 import com.aureliatransit.architecture.transit.StationData;
+import org.mtr.aurelia.announce.Announcement;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
@@ -24,6 +26,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.minecraft.text.Text;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -37,6 +41,8 @@ public final class LiveClient {
 	private static final SpeakerRegistry SPEAKERS = new SpeakerRegistry();
 	private static final VoicePackManager VOICE_PACKS = new VoicePackManager();
 	private static final AnnouncementEngine ENGINE = new AnnouncementEngine(SPEAKERS, VOICE_PACKS);
+	/** On-train announcements, separate from the platform speaker queue. */
+	private static final AnnouncementPlayer ONBOARD = new AnnouncementPlayer();
 
 	private LiveClient() {
 	}
@@ -81,9 +87,11 @@ public final class LiveClient {
 			}
 		});
 		ClientTickEvents.END_CLIENT_TICK.register(ENGINE::onTick);
+		ClientTickEvents.END_CLIENT_TICK.register(client -> ONBOARD.tick(client, System.currentTimeMillis()));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			SPEAKERS.clear();
 			ENGINE.reset();
+			ONBOARD.stop();
 			if (provider != null) {
 				provider.clear();
 			}
@@ -149,6 +157,36 @@ public final class LiveClient {
 											return builder.buildFuture();
 										})
 										.executes(context -> playTest(context, AnnouncementStyle.byId(StringArgumentType.getString(context, "wording")))))))));
+	}
+
+	/**
+	 * Plays one on-train announcement through the loaded voice packs. Returns false when no fragment resolves and the
+	 * system voice is unavailable, so the caller can fall back to the legacy AureliaEX clips.
+	 */
+	public static boolean playOnboard(MinecraftClient client, List<Announcement.VoiceFragment> fragments, String subtitle) {
+		if (fragments.isEmpty() || client.player == null) {
+			return false;
+		}
+		final List<AnnouncementText.Fragment> text = new ArrayList<>(fragments.size());
+		for (final Announcement.VoiceFragment fragment : fragments) {
+			text.add(new AnnouncementText.Fragment(fragment.key(), fragment.text()));
+		}
+		final VoicePack.Stack stack = VOICE_PACKS.stack();
+		final List<String> missing = new ArrayList<>();
+		if (stack.resolvePartial(text, missing).isEmpty() && !SystemVoice.available(client)) {
+			return false;
+		}
+		final AnnouncementText.Announcement announcement = new AnnouncementText.Announcement(AnnouncementCategory.APPROACHING, subtitle, text);
+		ONBOARD.start(client, announcement, stack, client.player.getX(), client.player.getY(), client.player.getZ(), 1F, System.currentTimeMillis());
+		return true;
+	}
+
+	public static boolean onboardBusy() {
+		return ONBOARD.busy(System.currentTimeMillis());
+	}
+
+	public static void stopOnboard() {
+		ONBOARD.stop();
 	}
 
 	private static int playTest(com.mojang.brigadier.context.CommandContext<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> context, AnnouncementStyle style) {

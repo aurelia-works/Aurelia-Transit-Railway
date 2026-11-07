@@ -29,18 +29,29 @@ public final class TrainProxy implements IGui {
 		final float halfWidth = (float) Math.max(0.5, vehicleCar.getWidth() / 2);
 		final float halfLength = (float) Math.max(0.5, vehicleCar.getLength() / 2 - END_GAP);
 		final int color = ARGB_BLACK | rgb;
+		// Slight face shading gives the box a roof and ends instead of a flat silhouette; it is still one box per car
+		final int topColor = shade(color, 0.85F);
+		final int endColor = shade(color, 0.9F);
 		final int light = positionAndRotation.light;
 		final StoredMatrixTransformations transformations = RenderVehicles.getStoredMatrixTransformations(true, positionAndRotation, 0);
 		MainRenderer.scheduleRender(WHITE, false, QueuedRenderLayer.EXTERIOR, (graphicsHolder, offset) -> {
 			transformations.transform(graphicsHolder, offset);
 			// Each face is drawn with both windings so it shows whatever the face culling does
-			face(graphicsHolder, -halfWidth, TOP, -halfLength, halfWidth, TOP, -halfLength, halfWidth, TOP, halfLength, -halfWidth, TOP, halfLength, Direction.UP, color, light);
+			face(graphicsHolder, -halfWidth, TOP, -halfLength, halfWidth, TOP, -halfLength, halfWidth, TOP, halfLength, -halfWidth, TOP, halfLength, Direction.UP, topColor, light);
 			face(graphicsHolder, -halfWidth, BOTTOM, -halfLength, -halfWidth, BOTTOM, halfLength, -halfWidth, TOP, halfLength, -halfWidth, TOP, -halfLength, Direction.WEST, color, light);
 			face(graphicsHolder, halfWidth, BOTTOM, -halfLength, halfWidth, BOTTOM, halfLength, halfWidth, TOP, halfLength, halfWidth, TOP, -halfLength, Direction.EAST, color, light);
-			face(graphicsHolder, -halfWidth, BOTTOM, -halfLength, halfWidth, BOTTOM, -halfLength, halfWidth, TOP, -halfLength, -halfWidth, TOP, -halfLength, Direction.NORTH, color, light);
-			face(graphicsHolder, -halfWidth, BOTTOM, halfLength, halfWidth, BOTTOM, halfLength, halfWidth, TOP, halfLength, -halfWidth, TOP, halfLength, Direction.SOUTH, color, light);
+			face(graphicsHolder, -halfWidth, BOTTOM, -halfLength, halfWidth, BOTTOM, -halfLength, halfWidth, TOP, -halfLength, -halfWidth, TOP, -halfLength, Direction.NORTH, endColor, light);
+			face(graphicsHolder, -halfWidth, BOTTOM, halfLength, halfWidth, BOTTOM, halfLength, halfWidth, TOP, halfLength, -halfWidth, TOP, halfLength, Direction.SOUTH, endColor, light);
 			graphicsHolder.pop();
 		});
+	}
+
+	private static int shade(int color, float factor) {
+		final int alpha = color & 0xFF000000;
+		final int red = (int) (((color >> 16) & 0xFF) * factor);
+		final int green = (int) (((color >> 8) & 0xFF) * factor);
+		final int blue = (int) ((color & 0xFF) * factor);
+		return alpha | red << 16 | green << 8 | blue;
 	}
 
 	private static void face(GraphicsHolder graphicsHolder, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, Direction direction, int color, int light) {

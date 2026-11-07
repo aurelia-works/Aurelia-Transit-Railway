@@ -1,5 +1,6 @@
 package org.mtr.aurelia.client;
 
+import com.aureliatransit.architecture.client.live.LiveClient;
 import org.mtr.aurelia.announce.Announcement;
 import org.mtr.aurelia.announce.AnnouncerLogic;
 import org.mtr.aurelia.announce.OnboardWording;
@@ -227,8 +228,11 @@ public final class Announcer {
 
 	private static void start(MinecraftClient client, Announcement announcement) {
 		stop(client);
-		CLIPS.addAll(announcement.clips());
 		final java.util.List<String> lines = wording.lines(announcement);
+		final boolean voice = !announcement.fragments().isEmpty() && LiveClient.playOnboard(client, announcement.fragments(), String.join(" ", lines));
+		if (!voice) {
+			CLIPS.addAll(announcement.clips());
+		}
 		// local chat only (nothing is sent to the server), like MTR's own announcement
 		lines.forEach(line -> client.player.sendMessage(Text.literal(line), false));
 		if (actionBar) {
@@ -237,7 +241,7 @@ public final class Announcer {
 				client.player.sendMessage(Text.literal(bar), true);
 			}
 		}
-		remember(announcement.kind() + " " + lines + " " + announcement.clips());
+		remember(announcement.kind() + " " + lines + " " + (voice ? "voice" : announcement.clips()));
 	}
 
 	/** Plays the queued clips one after another. */
@@ -296,6 +300,7 @@ public final class Announcer {
 
 	private static void stop(MinecraftClient client) {
 		CLIPS.clear();
+		LiveClient.stopOnboard();
 		if (playing != null) {
 			client.getSoundManager().stop(playing);
 			playing = null;

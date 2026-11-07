@@ -15,6 +15,7 @@
 			"com.aureliatransit.architecture.gametest.AirportMtrGameTests",
 			"com.aureliatransit.architecture.gametest.AirportMtrRebuildGameTests",
 			"com.aureliatransit.architecture.gametest.JetBridgeGameTests",
+			"com.aureliatransit.architecture.bridge.world.BridgeGameTests",
 			"org.mtr.mod.gametest.CargoGameTests",
 			"org.mtr.mod.gametest.RailNodeGameTests"
 		]
