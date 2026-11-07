@@ -1556,14 +1556,13 @@ public final class StationDescriptionParser {
 				features = features.withEdgeLines(true);
 				use(i + 1, i + 1);
 				note(i, "white platform edge lines");
-			} else if (token.equals("low") || token.equals("high") || token.equals("standard")) {
-				if (at(i + 1).equals("platform") || at(i + 1).equals("platforms")) {
-					final StationFeatures.PlatformHeight height = token.equals("low") ? StationFeatures.PlatformHeight.LOW
-							: token.equals("high") ? StationFeatures.PlatformHeight.HIGH : StationFeatures.PlatformHeight.STANDARD;
-					features = features.withHeight(height);
-					use(i + 1, i + 1);
-					note(i, height.label() + " platform height");
-				}
+			} else if ((token.equals("low") || token.equals("high") || token.equals("standard"))
+					&& (at(i + 1).equals("platform") || at(i + 1).equals("platforms"))) {
+				final StationFeatures.PlatformHeight height = token.equals("low") ? StationFeatures.PlatformHeight.LOW
+						: token.equals("high") ? StationFeatures.PlatformHeight.HIGH : StationFeatures.PlatformHeight.STANDARD;
+				features = features.withHeight(height);
+				use(i + 1, i + 1);
+				note(i, height.label() + " platform height");
 			} else if (token.equals("benches") || token.equals("furniture") || token.equals("furnished")) {
 				if (furniture == null) {
 					furniture = true;

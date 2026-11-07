@@ -273,7 +273,8 @@ public final class StationActions {
 				player.sendMessage(Text.literal(removed ? "Fine edit removed for that cell." : "That cell had no fine edit.").formatted(removed ? Formatting.GREEN : Formatting.YELLOW), false);
 				return removed;
 			}
-			if (blockId.indexOf(':') < 0 || net.minecraft.registry.Registries.BLOCK.get(new net.minecraft.util.Identifier(blockId)) == net.minecraft.block.Blocks.AIR) {
+			if (!blockId.matches("[a-z0-9_.-]+:[a-z0-9_./-]+")
+					|| net.minecraft.registry.Registries.BLOCK.get(net.minecraft.util.Identifier.tryParse(blockId)) == net.minecraft.block.Blocks.AIR) {
 				error(player, "Unknown block: " + blockId);
 				return false;
 			}
