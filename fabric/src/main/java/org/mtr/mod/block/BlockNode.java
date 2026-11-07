@@ -108,7 +108,7 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 
 	public static BlockState getStateWithAngle(BlockState state, float angle) {
 		final boolean continuousMovement = state.getBlock().data instanceof BlockContinuousMovementNode;
-		return getStateWithAngle(state, Angle.getQuadrant(angle, !continuousMovement), continuousMovement);
+		return getStateWithAngle(state, continuousMovement ? Angle.getQuadrant(angle, false) : org.mtr.aurelia.NodeAngles.step(angle), continuousMovement);
 	}
 
 	private static BlockState getStateWithAngle(BlockState state, int quadrant, boolean continuousMovement) {
@@ -119,7 +119,7 @@ public class BlockNode extends BlockWaterloggable implements DirectionHelper, Wa
 					.with(new Property<>(IS_22_5.data), false)
 					.with(new Property<>(IS_CONNECTED.data), false);
 		}
-		return state.with(new Property<>(FACING.data), quadrant % 16 >= 8)
+		return state.with(new Property<>(FACING.data), quadrant < 8)
 				.with(new Property<>(IS_45.data), quadrant % 8 >= 4)
 				.with(new Property<>(IS_22_5.data), quadrant % 4 >= 2)
 				.with(new Property<>(IS_11_25.data), quadrant % 2 == 1)
