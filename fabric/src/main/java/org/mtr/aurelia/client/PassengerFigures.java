@@ -202,13 +202,13 @@ public final class PassengerFigures {
 			final double doorZ = doors[door * 2 + 1];
 			final double at = length < 1.0E-4 ? 0.5 : clamp(((doorX - x1) * dx + (doorZ - z1) * dz) / (length * length), 0.02, 0.98);
 			final int rank = i / doorCount;
-			final double along = rank == 0 ? 0 : ((rank + 1) / 2) * DOOR_SPREAD * (rank % 2 == 1 ? 1 : -1);
+			final double along = (rank == 0 ? 0 : ((rank + 1) / 2) * DOOR_SPREAD * (rank % 2 == 1 ? 1 : -1)) + ((i * 37) % 7 - 3) * 0.04;
 			final boolean positive = usePlus && useMinus ? rank % 2 == 0 : usePlus || !useMinus;
 			final double[] edge = usePlus || useMinus ? (positive ? plus : minus) : noFloor;
 			final double sign = positive ? 1 : -1;
 			final double baseX = x1 + dx * at + alongX * along;
 			final double baseZ = z1 + dz * at + alongZ * along;
-			double offset = edge[0] + 0.5 + (rank / 2 % 3) * 0.65;
+			double offset = edge[0] + 0.5 + (rank / 2 % 3) * 0.65 + ((i * 53) % 5 - 2) * 0.07;
 			double top = roomy(ground, baseX + normalX * sign * offset, baseZ + normalZ * sign * offset, railY, edge[1]);
 			double nudge = 0;
 			for (int step = 1; step <= NUDGE_STEPS * 2 && (Double.isNaN(top) || Math.abs(top - edge[1]) > 0.6); step++) {

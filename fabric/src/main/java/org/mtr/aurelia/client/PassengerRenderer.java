@@ -157,6 +157,8 @@ public final class PassengerRenderer {
 	private final Map<Long, DoorAnchors> trainDoorCache = new HashMap<>();
 	/** A platform's waiting spots with the alighting crowd's step-aside applied, reused between frames. */
 	private double[] shifted = new double[0];
+	/** The same spots before the step-aside, so the drawing can face and animate the shuffle. */
+	private double[] anchored = new double[0];
 	private int drawn;
 	private final List<PassengerWalk> walks = new ArrayList<>();
 	private final Map<Long, WalkMap> walkMaps = new HashMap<>();
@@ -269,18 +271,38 @@ public final class PassengerRenderer {
 				} else {
 					PassengerFigures.spots(x1, y1, z1, x2, y2, z2, figures, ground, found);
 				}
-				final double[] from = spots != null && spots.count == figures ? spots.at : null;
+				final double[] from = spots == null ? null : spots.at;
 				spots = new Spots(figures, now, found, from, now, doors);
 				spotCache.put(entry.getKey(), spots);
 			}
 			waitingPositions(entry.getKey(), spots, figures, now, x1, z1, x2, z2, doors);
-			final double length = (x2 - x1) * (x2 - x1) + (z2 - z1) * (z2 - z1);
+			final double blend = spots.from == null ? 1 : Math.min(1, (now - spots.blendStart) / (double) SPOT_BLEND_MILLIS);
 			for (int i = 0; i < figures && drawn < FRAME_CAP; i++) {
 				final double fx = shifted[i * 3];
 				final double fz = shifted[i * 3 + 2];
-				final double along = length <= 0 ? 0 : MathHelper.clamp(((fx - x1) * (x2 - x1) + (fz - z1) * (z2 - z1)) / length, 0, 1);
-				final float yaw = PassengerLook.yawToward(x1 + (x2 - x1) * along - fx, z1 + (z2 - z1) * along - fz);
-				figure(matrices, camera, settings, fx, shifted[i * 3 + 1], fz, i, settings.waitingHue(), entry.getKey(), yaw, detail);
+				double dirX = 0;
+				double dirZ = 0;
+				boolean moving = false;
+				if (spots.from != null && blend < 1 && i * 3 + 2 < spots.from.length) {
+					dirX = spots.at[i * 3] - spots.from[i * 3];
+					dirZ = spots.at[i * 3 + 2] - spots.from[i * 3 + 2];
+					moving = dirX * dirX + dirZ * dirZ > 0.0025;
+				}
+				final double asideX = shifted[i * 3] - anchored[i * 3];
+				final double asideZ = shifted[i * 3 + 2] - anchored[i * 3 + 2];
+				if (asideX * asideX + asideZ * asideZ > 0.0016) {
+					dirX = asideX;
+					dirZ = asideZ;
+					moving = true;
+				}
+				final float yaw;
+				if (moving) {
+					yaw = PassengerLook.yawToward(dirX, dirZ);
+				} else {
+					yaw = faceRail(fx, fz, x1, z1, x2, z2);
+				}
+				final float stride = moving ? (float) ((now % 6283L) / 1000D * WALK_STRIDES) : -1;
+				figure(matrices, camera, settings, fx, shifted[i * 3 + 1], fz, i, settings.waitingHue(), entry.getKey(), yaw, stride, 1, detail);
 			}
 		}
 	}
@@ -289,15 +311,33 @@ public final class PassengerRenderer {
 	private void waitingPositions(long platform, Spots spots, int figures, long now, double x1, double z1, double x2, double z2, double[] doors) {
 		if (shifted.length < figures * 3) {
 			shifted = new double[figures * 3];
+			anchored = new double[figures * 3];
 		}
 		final double t = spots.from == null ? 1 : Math.min(1, (now - spots.blendStart) / (double) SPOT_BLEND_MILLIS);
 		for (int i = 0; i < figures * 3; i++) {
-			shifted[i] = spots.from == null ? spots.at[i] : spots.from[i] + (spots.at[i] - spots.from[i]) * t;
+			anchored[i] = spots.from == null || i >= spots.from.length ? spots.at[i] : spots.from[i] + (spots.at[i] - spots.from[i]) * t;
+			shifted[i] = anchored[i];
 		}
 		final double strength = stepAsideStrength(platform, now);
+		final double[] asideDoors = doors.length > 0 ? doors : spots.doors;
 		if (strength > 0) {
-			PassengerFigures.stepAside(shifted, shifted, figures, x1, z1, x2, z2, doors, strength, STEP_ASIDE_REACH, PassengerDoors.STEP_ASIDE);
+			PassengerFigures.stepAside(anchored, shifted, figures, x1, z1, x2, z2, asideDoors, strength, STEP_ASIDE_REACH, PassengerDoors.STEP_ASIDE);
 		}
+	}
+
+	/** Waiting people face the track, so they are looking at the train rather than along the platform. */
+	private static float faceRail(double x, double z, double x1, double z1, double x2, double z2) {
+		final double dx = x2 - x1;
+		final double dz = z2 - z1;
+		final double length = Math.hypot(dx, dz);
+		if (length < 1.0E-4) {
+			return 0;
+		}
+		final double normalX = -dz / length;
+		final double normalZ = dx / length;
+		final double side = (x - x1) * normalX + (z - z1) * normalZ;
+		final double toward = side >= 0 ? -1 : 1;
+		return PassengerLook.yawToward(normalX * toward, normalZ * toward);
 	}
 
 	/** The strongest step-aside among the people getting off at this platform. */
@@ -545,8 +585,8 @@ public final class PassengerRenderer {
 				continue;
 			}
 			for (int i = 0; i < share && drawn < FRAME_CAP; i++) {
-				PassengerFigures.place(start.x, start.y, start.z, end.x, end.y, end.z, i, share, 0, point);
-				figure(matrices, camera, settings, point[0], point[1] + CAR_FLOOR, point[2], i, settings.ridingHue(), vehicleId + car, PassengerLook.yawToward(end.x - start.x, end.z - start.z) + (i % 2) * 180, detail);
+				PassengerFigures.place(start.x, start.y, start.z, end.x, end.y, end.z, i, share, 0.35, point);
+				figure(matrices, camera, settings, point[0], point[1] + CAR_FLOOR, point[2], i, settings.ridingHue(), vehicleId + car, PassengerLook.yawToward(end.x - start.x, end.z - start.z) + (i % 2) * 180, -1, 1, detail);
 			}
 		}
 	}
@@ -938,22 +978,15 @@ public final class PassengerRenderer {
 					continue;
 				}
 				final float fade = walk.fade(t, FADE_BLOCKS);
-				final PassengerLook look = PassengerLook.of(walk.place(), walk.index());
-				if (detail == PassengerFigures.Detail.SIMPLE) {
-					simplePerson(matrices, settings, x - camera.x, y - camera.y, z - camera.z, look, fade);
-					drawn++;
-				} else {
-					final float stride = t <= 0 ? -1 : (float) (walk.durationMillis() * t / 1000 * WALK_STRIDES);
-					person(matrices, settings, x - camera.x, y - camera.y, z - camera.z, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)),
-							look, PassengerLook.yawToward(at[3], at[4]), stride, fade);
-					drawn++;
-				}
+				final float stride = t <= 0 ? -1 : (float) (walk.durationMillis() * t / 1000 * WALK_STRIDES);
+				final int hue = walk.boarding() ? settings.waitingHue() : settings.ridingHue();
+				figure(matrices, camera, settings, x, y, z, walk.index(), hue, walk.place(), PassengerLook.yawToward(at[3], at[4]), stride, fade, detail);
 			}
 		}
 	}
 
 	/** One person: a real player model with one of the game's own skins, or the plain boxes when the panel asks for them. */
-	private void figure(MatrixStack matrices, Vec3d camera, PassengerDrawSettings.Values settings, double x, double y, double z, int index, int hue, long place, float yaw, PassengerFigures.Detail detail) {
+	private void figure(MatrixStack matrices, Vec3d camera, PassengerDrawSettings.Values settings, double x, double y, double z, int index, int hue, long place, float yaw, float stride, float alpha, PassengerFigures.Detail detail) {
 		final double cx = x - camera.x;
 		final double cy = y - camera.y;
 		final double cz = z - camera.z;
@@ -961,9 +994,9 @@ public final class PassengerRenderer {
 		final boolean simple = detail == PassengerFigures.Detail.SIMPLE;
 		if (settings.people()) {
 			if (simple) {
-				simplePerson(matrices, settings, cx, cy, cz, look, 1);
+				simplePerson(matrices, settings, cx, cy, cz, look, yaw, stride, alpha);
 			} else {
-				person(matrices, settings, cx, cy, cz, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)), look, yaw, -1, 1);
+				person(matrices, settings, cx, cy, cz, new BlockPos(MathHelper.floor(x), MathHelper.floor(y + 1), MathHelper.floor(z)), look, yaw, stride, alpha);
 			}
 			drawn++;
 			return;
@@ -992,18 +1025,24 @@ public final class PassengerRenderer {
 		drawn++;
 	}
 
-	/** The middle distance: three boxes with the same silhouette, a fraction of a player model's cost. */
-	private void simplePerson(MatrixStack matrices, PassengerDrawSettings.Values settings, double cx, double cy, double cz, PassengerLook look, float alpha) {
+	/** The middle distance: a few boxes with the same silhouette, a fraction of a player model's cost, legs still swing. */
+	private void simplePerson(MatrixStack matrices, PassengerDrawSettings.Values settings, double cx, double cy, double cz, PassengerLook look, float yaw, float stride, float alpha) {
 		final double size = settings.figureSize() / 100D * look.height();
 		final int rgb = look.bagColor();
 		final float shade = 0.7F + (look.skin() % 3) * 0.15F;
 		final float r = (rgb >> 16 & 0xFF) / 255F * shade;
 		final float g = (rgb >> 8 & 0xFF) / 255F * shade;
 		final float b = (rgb & 0xFF) / 255F * shade;
+		final double swing = stride < 0 ? 0 : MathHelper.sin(stride) * 0.2 * size;
 		final VertexConsumer consumer = provider.getBuffer(RenderLayer.getDebugFilledBox());
-		WorldRenderer.renderFilledBox(matrices, consumer, cx - 0.13 * size, cy, cz - 0.12 * size, cx + 0.13 * size, cy + 0.78 * size, cz + 0.12 * size, 0.16F, 0.18F, 0.24F, alpha);
-		WorldRenderer.renderFilledBox(matrices, consumer, cx - 0.2 * size, cy + 0.78 * size, cz - 0.13 * size, cx + 0.2 * size, cy + 1.42 * size, cz + 0.13 * size, r, g, b, alpha);
-		WorldRenderer.renderFilledBox(matrices, consumer, cx - 0.12 * size, cy + 1.42 * size, cz - 0.12 * size, cx + 0.12 * size, cy + 1.7 * size, cz + 0.12 * size, 0.86F, 0.68F, 0.55F, alpha);
+		matrices.push();
+		matrices.translate(cx, cy, cz);
+		matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180 - yaw - (stride < 0 ? look.turn() : 0)));
+		WorldRenderer.renderFilledBox(matrices, consumer, -0.09 * size, 0, -0.09 * size + swing, -0.01 * size, 0.78 * size, 0.09 * size + swing, 0.16F, 0.18F, 0.24F, alpha);
+		WorldRenderer.renderFilledBox(matrices, consumer, 0.01 * size, 0, -0.09 * size - swing, 0.09 * size, 0.78 * size, 0.09 * size - swing, 0.16F, 0.18F, 0.24F, alpha);
+		WorldRenderer.renderFilledBox(matrices, consumer, -0.2 * size, 0.78 * size, -0.13 * size, 0.2 * size, 1.42 * size, 0.13 * size, r, g, b, alpha);
+		WorldRenderer.renderFilledBox(matrices, consumer, -0.12 * size, 1.42 * size, -0.12 * size, 0.12 * size, 1.7 * size, 0.12 * size, 0.86F, 0.68F, 0.55F, alpha);
+		matrices.pop();
 	}
 
 	private void person(MatrixStack matrices, PassengerDrawSettings.Values settings, double cx, double cy, double cz, BlockPos lightAt, PassengerLook look, float yaw, float stride, float alpha) {
