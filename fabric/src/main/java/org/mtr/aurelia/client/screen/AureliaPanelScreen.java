@@ -14,6 +14,7 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import org.mtr.aurelia.client.Announcer;
+import org.mtr.aurelia.client.AureliaExamplePack;
 import org.mtr.aurelia.client.ui.AureliaUiSettings;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.PassengerClient;
@@ -23,6 +24,10 @@ import org.mtr.aurelia.client.PassengerRenderer;
 import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.ScriptingHandshake;
 import org.mtr.aurelia.client.TrainView;
+import org.mtr.aurelia.pack.AureliaPacks;
+import org.mtr.aurelia.pack.LoadedPack;
+import org.mtr.aurelia.pack.PackDiagnostic;
+import org.mtr.aurelia.pack.PackSettings;
 import org.mtr.aurelia.sound.SoundProfile;
 import org.mtr.aurelia.sound.SoundProfileStore;
 import org.mtr.mod.InitClient;
@@ -41,6 +46,7 @@ import org.mtr.mod.zip.ZipSettings;
 import org.mtr.mod.resource.PantographEnd;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleConsumer;
@@ -58,7 +64,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING}
+	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -128,6 +134,7 @@ public final class AureliaPanelScreen extends Screen {
 	private int firstRow;
 	private int passengerFirst;
 	private int lookFirst;
+	private int packsFirst;
 	private static final AureliaUiSettings.ScreenId[] LOOK_IDS = AureliaUiSettings.ScreenId.values();
 	private static final Text LOOK_HINT = Text.translatable("gui.aurelia.look.hint");
 	private int trainSoundFirst;
@@ -161,6 +168,7 @@ public final class AureliaPanelScreen extends Screen {
 				lookFirst = 0;
 				buildFirst = 0;
 				trainSoundFirst = 0;
+				packsFirst = 0;
 				clearAndInit();
 			}).dimensions(tabsLeft + (i % columns) * (tabWidth + 4), 28 + (i / columns) * TAB_ROW, tabWidth, 18).build());
 			button.active = target != tab;
@@ -179,6 +187,7 @@ public final class AureliaPanelScreen extends Screen {
 			case BUILD -> initBuild();
 			case LOOK -> initLook();
 			case DRIVING -> initDriving();
+			case PACKS -> initPacks();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
@@ -443,6 +452,67 @@ public final class AureliaPanelScreen extends Screen {
 
 	private static Text lookLabel(AureliaUiSettings.ScreenId id) {
 		return Text.translatable("gui.aurelia.look." + id.key, ScreenTexts.onOrOff(AureliaUiSettings.enabled(id)));
+	}
+
+	/**
+	 * Private packs: a master switch that reloads resources when flipped, the built-in example pack, and the list drawn
+	 * by {@link #renderPacks}. The list has no buttons of its own; a pack with errors is skipped by the loader, not here.
+	 */
+	private void initPacks() {
+		final int left = (width - BUTTON_WIDTH) / 2;
+		addDrawableChild(ButtonWidget.builder(packsEnabledLabel(), b -> {
+			PackSettings.setEnabled(!PackSettings.enabled());
+			packsFirst = 0;
+			b.setMessage(packsEnabledLabel());
+			if (client != null) {
+				client.reloadResources();
+			}
+		}).dimensions(left, top, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.panel.pack.enabled.tooltip")));
+		addDrawableChild(ButtonWidget.builder(examplePackLabel(), b -> {
+			AureliaExamplePack.toggle();
+			b.setMessage(examplePackLabel());
+		}).dimensions(left, top + ROW, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.panel.pack.example.tooltip")));
+	}
+
+	private static Text packsEnabledLabel() {
+		return Text.translatable("gui.aurelia.panel.pack.enabled", ScreenTexts.onOrOff(PackSettings.enabled()));
+	}
+
+	private static Text examplePackLabel() {
+		return Text.translatable("gui.aurelia.panel.pack.example", ScreenTexts.onOrOff(AureliaExamplePack.enabled()));
+	}
+
+	/** One row per loaded pack, then every diagnostic. Scrolls with the mouse wheel. */
+	private static List<PackLine> packLines() {
+		final List<PackLine> lines = new ArrayList<>();
+		final List<PackDiagnostic> diagnostics = AureliaPacks.diagnostics();
+		for (final LoadedPack pack : AureliaPacks.packs()) {
+			int errors = 0;
+			int warnings = 0;
+			for (final PackDiagnostic diagnostic : diagnostics) {
+				if (diagnostic.file().equals(pack.file())) {
+					if (diagnostic.severity() == PackDiagnostic.Severity.ERROR) {
+						errors++;
+					} else {
+						warnings++;
+					}
+				}
+			}
+			lines.add(new PackLine(Text.translatable("gui.aurelia.panel.pack.entry", pack.name(), errors, warnings).getString() + "  " + pack.file(), errors > 0 ? 0xFF5555 : 0xFFFFFF));
+		}
+		if (lines.isEmpty()) {
+			lines.add(new PackLine(Text.translatable("gui.aurelia.panel.pack.none").getString(), 0xAAAAAA));
+		}
+		if (!diagnostics.isEmpty()) {
+			lines.add(new PackLine("", 0xAAAAAA));
+			for (final PackDiagnostic diagnostic : diagnostics) {
+				lines.add(new PackLine(diagnostic.text(), diagnostic.severity() == PackDiagnostic.Severity.ERROR ? 0xFF5555 : 0xFFAA00));
+			}
+		}
+		return lines;
+	}
+
+	private record PackLine(String text, int colour) {
 	}
 
 	/** Building tools: station guide, rail stylus and the box tunnel. Operators only; the dig is shared. */
@@ -836,6 +906,14 @@ public final class AureliaPanelScreen extends Screen {
 			}
 			return true;
 		}
+		if (tab == Tab.PACKS) {
+			final int visible = packsVisible();
+			final int newFirst = Math.max(0, Math.min(Math.max(0, packLines().size() - visible), packsFirst - (int) Math.signum(amount)));
+			if (newFirst != packsFirst) {
+				packsFirst = newFirst;
+			}
+			return true;
+		}
 		return super.mouseScrolled(mouseX, mouseY, amount);
 	}
 
@@ -875,8 +953,36 @@ public final class AureliaPanelScreen extends Screen {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", drivingFirst + 1, Math.min(DRIVING_ROWS, drivingFirst + visibleRows()), DRIVING_ROWS), width / 2, height - 44, 0xAAAAAA);
 		} else if (tab == Tab.BUILDER && !isRailBuilder(client.player.getMainHandStack()) && !isRailBuilder(client.player.getOffHandStack())) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), width / 2, top + 6, 0xAAAAAA);
+		} else if (tab == Tab.PACKS) {
+			renderPacks(context);
 		}
 		super.render(context, mouseX, mouseY, delta);
+	}
+
+	/** Packs header, then the list. A bad file and its line sit under the pack rows in red. */
+	private void renderPacks(DrawContext context) {
+		final int errors = AureliaPacks.errorCount();
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.summary", AureliaPacks.packs().size(), errors, AureliaPacks.warningCount()), width / 2, top - 10, errors > 0 ? 0xFF5555 : 0xAAAAAA);
+		if (!PackSettings.enabled()) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.off"), width / 2, top + ROW * 2 + 8, 0xAAAAAA);
+			return;
+		}
+		final List<PackLine> lines = packLines();
+		final int listTop = top + ROW * 2 + 4;
+		final int visible = packsVisible();
+		packsFirst = Math.max(0, Math.min(packsFirst, Math.max(0, lines.size() - visible)));
+		for (int i = packsFirst; i < Math.min(lines.size(), packsFirst + visible); i++) {
+			final PackLine line = lines.get(i);
+			final String text = textRenderer.trimToWidth(line.text(), width - 32);
+			context.drawTextWithShadow(textRenderer, Text.literal(text), 16, listTop + (i - packsFirst) * 10, line.colour());
+		}
+		if (lines.size() > visible) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", packsFirst + 1, Math.min(lines.size(), packsFirst + visible), lines.size()), width / 2, height - 44, 0xAAAAAA);
+		}
+	}
+
+	private int packsVisible() {
+		return Math.max(1, (height - 36 - (top + ROW * 2 + 4)) / 10);
 	}
 
 	/** The block entities drawn in the last frame, red past the player's warning threshold. */
