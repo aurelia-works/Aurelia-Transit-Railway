@@ -1,20 +1,57 @@
 {
 	"name": "Metro",
 	"motor": {
-		"sounds": ["aurelia:train_profiles/metro/motor"],
+		"sounds": [
+			"aurelia:train_profiles/metro/motor"
+		],
 		"volume": 0.9,
 		"pitch_curve": [
-			{"speed": 0, "pitch": 0.8},
-			{"speed": 30, "pitch": 1.05},
-			{"speed": 60, "pitch": 1.3},
-			{"speed": 90, "pitch": 1.5},
-			{"speed": 120, "pitch": 1.55}
+			{
+				"speed": 0,
+				"pitch": 0.7
+			},
+			{
+				"speed": 20,
+				"pitch": 1.05
+			},
+			{
+				"speed": 35,
+				"pitch": 1.05
+			},
+			{
+				"speed": 55,
+				"pitch": 1.4
+			},
+			{
+				"speed": 70,
+				"pitch": 1.4
+			},
+			{
+				"speed": 90,
+				"pitch": 1.75
+			},
+			{
+				"speed": 120,
+				"pitch": 1.8
+			}
 		],
 		"volume_curve": [
-			{"speed": 0, "volume": 0.12},
-			{"speed": 15, "volume": 0.68},
-			{"speed": 55, "volume": 1},
-			{"speed": 120, "volume": 0.92}
+			{
+				"speed": 0,
+				"volume": 0.12
+			},
+			{
+				"speed": 15,
+				"volume": 0.68
+			},
+			{
+				"speed": 55,
+				"volume": 1
+			},
+			{
+				"speed": 120,
+				"volume": 0.92
+			}
 		]
 	},
 	"door_chime": "aurelia:train_profiles/metro/chime",
@@ -24,5 +61,7 @@
 	"compressor_loop": "aurelia:train_profiles/metro/compressor",
 	"compressor_attack": "aurelia:train_profiles/metro/compressor_attack",
 	"compressor_release": "aurelia:train_profiles/metro/compressor_release",
-	"flange": ["aurelia:train_profiles/metro/flange"]
+	"flange": [
+		"aurelia:train_profiles/metro/flange"
+	]
 }
