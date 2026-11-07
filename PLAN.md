@@ -10,6 +10,7 @@ Old plan and handoffs: `archive/2026-10/`. Research behind this plan: `docs/rese
 - Public launch only when everything is tested in game and there is a trailer.
 
 ## Rules for every phase
+- Quality bar (Jah 2026-11-07): 9/10 realism for everything visible: airport, stations, passengers, signals, sounds, trains, block art. Each PR rates its result x/10 against real references and lists what keeps it below 9.
 - Every visible feature gets its switches and sliders on the Aurelia dev panel. Heavy features can be turned off and drop detail with distance. Passenger defaults are set on the panel; no fixed frame budget.
 - Decoration uses plain blocks. Block entities only where something changes live (PIDS, departure boards, clocks, gates).
 - No operator logos or names in the ATR jar. All branded liveries (real operators and Stepford County Railway) go in a separate optional "ATR Liveries" resource pack. Jah decided: no permission request to the SCR devs.
