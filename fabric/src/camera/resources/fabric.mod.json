@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "atr_camera",
+	"version": "1.0.0",
+	"name": "ATR trailer camera (dev only)",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"org.mtr.camera.CameraRecorderMod"
+		]
+	},
+	"depends": {
+		"mtr": "*"
+	}
+}
