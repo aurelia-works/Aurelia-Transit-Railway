@@ -12,6 +12,7 @@
 		"CancelledRunMixin"
 	],
 	"client": [
+		"BlockEntityCounterMixin",
 		"DebugHudMixin",
 		"WeatherInsideVehicleMixin",
 		"SitCameraMixin",
