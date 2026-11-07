@@ -51,7 +51,9 @@ public final class RouteControlOptions {
 			final NbtList waypointList = new NbtList();
 			control.waypoints().forEach(waypoint -> {
 				final NbtCompound waypointNbt = new NbtCompound();
-				waypointNbt.putLong("node", waypoint.nodeId());
+				waypointNbt.putLong("x", waypoint.x());
+				waypointNbt.putLong("y", waypoint.y());
+				waypointNbt.putLong("z", waypoint.z());
 				waypointNbt.putInt("after", waypoint.afterStop());
 				waypointList.add(waypointNbt);
 			});
@@ -78,10 +80,9 @@ public final class RouteControlOptions {
 			final java.util.List<RouteControl.Waypoint> waypoints = new java.util.ArrayList<>();
 			for (final NbtElement element : entry.getList("waypoints", NbtElement.COMPOUND_TYPE)) {
 				final NbtCompound waypointNbt = (NbtCompound) element;
-				final long node = waypointNbt.getLong("node");
 				final int after = waypointNbt.getInt("after");
-				if (node != 0 && after >= 0) {
-					waypoints.add(new RouteControl.Waypoint(node, after));
+				if (after >= 0) {
+					waypoints.add(new RouteControl.Waypoint(waypointNbt.getLong("x"), waypointNbt.getLong("y"), waypointNbt.getLong("z"), after));
 				}
 			}
 			final Map<Integer, Long> choices = new HashMap<>();
@@ -126,7 +127,9 @@ public final class RouteControlOptions {
 		buf.writeBoolean(control.fallback());
 		buf.writeVarInt(control.waypoints().size());
 		control.waypoints().forEach(waypoint -> {
-			buf.writeLong(waypoint.nodeId());
+			buf.writeLong(waypoint.x());
+			buf.writeLong(waypoint.y());
+			buf.writeLong(waypoint.z());
 			buf.writeVarInt(waypoint.afterStop());
 		});
 		buf.writeVarInt(control.platformChoices().size());
@@ -141,10 +144,12 @@ public final class RouteControlOptions {
 		final int waypointCount = buf.readVarInt();
 		final java.util.List<RouteControl.Waypoint> waypoints = new java.util.ArrayList<>();
 		for (int i = 0; i < waypointCount; i++) {
-			final long node = buf.readLong();
+			final long x = buf.readLong();
+			final long y = buf.readLong();
+			final long z = buf.readLong();
 			final int after = buf.readVarInt();
-			if (node != 0 && after >= 0) {
-				waypoints.add(new RouteControl.Waypoint(node, after));
+			if (after >= 0) {
+				waypoints.add(new RouteControl.Waypoint(x, y, z, after));
 			}
 		}
 		final int choiceCount = buf.readVarInt();

@@ -8,9 +8,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * One route's route-control data: waypoints its trains must pass (in passing order), a chosen platform per stop
- * (a stop without a choice uses the route's planned platform), and whether a taken planned platform falls back to a
- * free platform of the same station.
+ * One route's route-control data: waypoints its trains must pass (rail coordinates, in passing order), a chosen
+ * platform per stop (a stop without a choice uses the route's planned platform), and whether a taken planned platform
+ * falls back to a free platform of the same station.
  *
  * <p>Pure Java: no Minecraft or MTR classes, so unit tests cover it directly. The world save keeps it in
  * {@code atr_route_control.dat} under new keys only; a route with no entry loads as {@link #empty()} (no waypoints,
@@ -19,7 +19,17 @@ import java.util.Set;
 public final class RouteControl {
 
 	/** A rail node the route must pass, after the stop at {@code afterStop} (0-based, clamped into the route). */
-	public record Waypoint(long nodeId, int afterStop) {
+	public record Waypoint(long x, long y, long z, int afterStop) {
+	}
+
+	/** One passing point of a route, in order: a stop (with its resolved platform) or a waypoint (coordinates). */
+	public sealed interface Visit permits StopVisit, WaypointVisit {
+	}
+
+	public record StopVisit(int stopIndex, long platformId) implements Visit {
+	}
+
+	public record WaypointVisit(long x, long y, long z) implements Visit {
 	}
 
 	public static final RouteControl EMPTY = new RouteControl(List.of(), Map.of(), false);
@@ -32,8 +42,8 @@ public final class RouteControl {
 		final List<Waypoint> kept = new ArrayList<>();
 		if (waypoints != null) {
 			for (final Waypoint waypoint : waypoints) {
-				if (waypoint != null && waypoint.nodeId() != 0) {
-					kept.add(new Waypoint(waypoint.nodeId(), Math.max(0, waypoint.afterStop())));
+				if (waypoint != null) {
+					kept.add(new Waypoint(waypoint.x(), waypoint.y(), waypoint.z(), Math.max(0, waypoint.afterStop())));
 				}
 			}
 		}
@@ -88,25 +98,28 @@ public final class RouteControl {
 	}
 
 	/**
-	 * Every platform id a train passes, in order: each stop's platform (choice or planned), with each waypoint's node
-	 * right after its stop. Waypoints keep their listed order inside a segment; ones past the last stop end the list.
+	 * Every passing point of the route in order: each stop (with its choice or planned platform), with each
+	 * waypoint's coordinates right after its stop. Waypoints keep their listed order inside a segment; ones past the
+	 * last stop end the list.
 	 */
-	public List<Long> visitOrder(List<Long> stopPlatformIds) {
-		final List<Long> order = new ArrayList<>();
+	public List<Visit> visitOrder(List<Long> stopPlatformIds) {
+		final List<Visit> order = new ArrayList<>();
 		if (stopPlatformIds == null || stopPlatformIds.isEmpty()) {
-			waypoints.forEach(waypoint -> order.add(waypoint.nodeId()));
+			waypoints.forEach(waypoint -> order.add(new WaypointVisit(waypoint.x(), waypoint.y(), waypoint.z())));
 			return order;
 		}
-		final List<List<Long>> after = new ArrayList<>();
+		final List<List<Waypoint>> after = new ArrayList<>();
 		for (int i = 0; i < stopPlatformIds.size(); i++) {
 			after.add(new ArrayList<>());
 		}
 		for (final Waypoint waypoint : waypoints) {
-			after.get(Math.min(waypoint.afterStop(), stopPlatformIds.size() - 1)).add(waypoint.nodeId());
+			after.get(Math.min(waypoint.afterStop(), stopPlatformIds.size() - 1)).add(waypoint);
 		}
 		for (int i = 0; i < stopPlatformIds.size(); i++) {
-			order.add(platformForStop(i, stopPlatformIds.get(i)));
-			order.addAll(after.get(i));
+			order.add(new StopVisit(i, platformForStop(i, stopPlatformIds.get(i))));
+			for (final Waypoint waypoint : after.get(i)) {
+				order.add(new WaypointVisit(waypoint.x(), waypoint.y(), waypoint.z()));
+			}
 		}
 		return order;
 	}
@@ -134,7 +147,9 @@ public final class RouteControl {
 	public long contentVersion() {
 		long version = fallback ? 1 : 0;
 		for (final Waypoint waypoint : waypoints) {
-			version = version * 31 + waypoint.nodeId();
+			version = version * 31 + waypoint.x();
+			version = version * 31 + waypoint.y();
+			version = version * 31 + waypoint.z();
 			version = version * 31 + waypoint.afterStop();
 		}
 		final List<Integer> stops = new ArrayList<>(platformChoices.keySet());
@@ -146,12 +161,9 @@ public final class RouteControl {
 		return version;
 	}
 
-	public RouteControl withWaypoint(long nodeId, int afterStop) {
-		if (nodeId == 0) {
-			return this;
-		}
+	public RouteControl withWaypoint(long x, long y, long z, int afterStop) {
 		final List<Waypoint> next = new ArrayList<>(waypoints);
-		next.add(new Waypoint(nodeId, Math.max(0, afterStop)));
+		next.add(new Waypoint(x, y, z, Math.max(0, afterStop)));
 		return new RouteControl(next, platformChoices, fallback);
 	}
 
@@ -198,7 +210,7 @@ public final class RouteControl {
 			if (!waypointBuilder.isEmpty()) {
 				waypointBuilder.append(',');
 			}
-			waypointBuilder.append(waypoint.nodeId()).append(':').append(waypoint.afterStop());
+			waypointBuilder.append(waypoint.x()).append(';').append(waypoint.y()).append(';').append(waypoint.z()).append(':').append(waypoint.afterStop());
 		}
 		final List<Integer> stops = new ArrayList<>(platformChoices.keySet());
 		Collections.sort(stops);
@@ -219,15 +231,20 @@ public final class RouteControl {
 		}
 		final List<Waypoint> waypoints = new ArrayList<>();
 		for (final String part : entries.getOrDefault(KEY_WAYPOINTS, "").split(",")) {
-			final String[] pair = part.strip().split(":");
-			if (pair.length == 2) {
-				try {
-					final long nodeId = Long.parseLong(pair[0].strip());
-					final int afterStop = Integer.parseInt(pair[1].strip());
-					if (nodeId != 0 && afterStop >= 0) {
-						waypoints.add(new Waypoint(nodeId, afterStop));
+			final String[] halves = part.strip().split(":");
+			if (halves.length == 2) {
+				final String[] coords = halves[0].split(";");
+				if (coords.length == 3) {
+					try {
+						final long x = Long.parseLong(coords[0].strip());
+						final long y = Long.parseLong(coords[1].strip());
+						final long z = Long.parseLong(coords[2].strip());
+						final int afterStop = Integer.parseInt(halves[1].strip());
+						if (afterStop >= 0) {
+							waypoints.add(new Waypoint(x, y, z, afterStop));
+						}
+					} catch (NumberFormatException ignored) {
 					}
-				} catch (NumberFormatException ignored) {
 				}
 			}
 		}

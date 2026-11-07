@@ -1,6 +1,10 @@
 package org.mtr.aurelia.route;
 
 import org.junit.jupiter.api.Test;
+import org.mtr.aurelia.route.RouteControl.StopVisit;
+import org.mtr.aurelia.route.RouteControl.Visit;
+import org.mtr.aurelia.route.RouteControl.Waypoint;
+import org.mtr.aurelia.route.RouteControl.WaypointVisit;
 
 import java.util.HashMap;
 import java.util.List;
@@ -14,18 +18,22 @@ class RouteControlTest {
 	@Test
 	void waypointOrderIsRespected() {
 		final RouteControl control = new RouteControl(List.of(
-				new RouteControl.Waypoint(101, 0),
-				new RouteControl.Waypoint(102, 0),
-				new RouteControl.Waypoint(201, 1),
-				new RouteControl.Waypoint(999, 99)
+				new Waypoint(1, 64, 10, 0),
+				new Waypoint(2, 64, 20, 0),
+				new Waypoint(3, 64, 30, 1),
+				new Waypoint(4, 64, 40, 99)
 		), Map.of(), false);
-		assertEquals(List.of(11L, 101L, 102L, 22L, 201L, 33L, 999L), control.visitOrder(List.of(11L, 22L, 33L)),
+		assertEquals(
+				List.of(new StopVisit(0, 11L), new WaypointVisit(1, 64, 10), new WaypointVisit(2, 64, 20),
+						new StopVisit(1, 22L), new WaypointVisit(3, 64, 30),
+						new StopVisit(2, 33L), new WaypointVisit(4, 64, 40)),
+				control.visitOrder(List.of(11L, 22L, 33L)),
 				"waypoints follow their stop, keep listed order, and a stop past the end lands last");
 	}
 
 	@Test
 	void noWaypointsKeepsStopOrder() {
-		assertEquals(List.of(11L, 22L), RouteControl.EMPTY.visitOrder(List.of(11L, 22L)));
+		assertEquals(List.of(new StopVisit(0, 11L), new StopVisit(1, 22L)), RouteControl.EMPTY.visitOrder(List.of(11L, 22L)));
 		assertTrue(RouteControl.EMPTY.visitOrder(List.of()).isEmpty());
 	}
 
@@ -34,7 +42,8 @@ class RouteControlTest {
 		final RouteControl control = RouteControl.EMPTY.withPlatformChoice(1, 220L);
 		assertEquals(110L, control.platformForStop(0, 110L));
 		assertEquals(220L, control.platformForStop(1, 210L));
-		assertEquals(List.of(110L, 220L), control.visitOrder(List.of(110L, 210L)), "visit order uses the choice");
+		final List<Visit> order = control.visitOrder(List.of(110L, 210L));
+		assertEquals(List.of(new StopVisit(0, 110L), new StopVisit(1, 220L)), order, "visit order uses the choice");
 	}
 
 	@Test
@@ -63,7 +72,7 @@ class RouteControlTest {
 	@Test
 	void malformedEntriesFallBackToDefaults() {
 		final Map<String, String> entries = new HashMap<>();
-		entries.put("waypoints", "abc,12,0:-1");
+		entries.put("waypoints", "abc,1;2,0:-1,1;2;3");
 		entries.put("platforms", "x:y");
 		entries.put("fallback", "yes");
 		final RouteControl control = RouteControl.fromEntries(entries);
@@ -74,10 +83,9 @@ class RouteControlTest {
 
 	@Test
 	void entriesRoundTrip() {
-		final RouteControl control = new RouteControl(List.of(new RouteControl.Waypoint(101, 2)), Map.of(1, 220L), true);
+		final RouteControl control = new RouteControl(List.of(new Waypoint(1, 64, -5, 2)), Map.of(1, 220L), true);
 		final RouteControl read = RouteControl.fromEntries(control.toEntries());
-		assertEquals(control.waypoints(), read.waypoints());
-		assertEquals(control.platformChoices(), read.platformChoices());
+		assertEquals(control, read);
 		assertTrue(read.fallback());
 	}
 
@@ -86,7 +94,7 @@ class RouteControlTest {
 		final long base = RouteControl.EMPTY.contentVersion();
 		assertEquals(base, RouteControl.fromEntries(Map.of()).contentVersion());
 		assertNotEquals(base, RouteControl.EMPTY.withFallback(true).contentVersion());
-		assertNotEquals(base, RouteControl.EMPTY.withWaypoint(101, 0).contentVersion());
+		assertNotEquals(base, RouteControl.EMPTY.withWaypoint(1, 64, 10, 0).contentVersion());
 		assertNotEquals(base, RouteControl.EMPTY.withPlatformChoice(0, 110L).contentVersion());
 	}
 }
