@@ -123,7 +123,7 @@ public final class AureliaPanelScreen extends Screen {
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
-	private static final int PASSENGER_ROWS = 14;
+	private static final int PASSENGER_ROWS = 17;
 
 	public AureliaPanelScreen(@Nullable Screen parent, Tab tab) {
 		super(Text.translatable("gui.aurelia.panel.title"));
@@ -531,6 +531,23 @@ public final class AureliaPanelScreen extends Screen {
 					value -> PassengerDrawSettings.setMaxWalkers((int) value),
 					value -> Text.translatable("gui.aurelia.passengers.max_walkers", value.intValue()));
 		}
+		if (passengerRow(14)) {
+			final ButtonWidget routes = addDrawableChild(ButtonWidget.builder(routesLabel(), b -> {
+				PassengerDrawSettings.setRoutes(!PassengerDrawSettings.get().routes());
+				b.setMessage(routesLabel());
+			}).dimensions(left, passengerY(14), BUTTON_WIDTH, 20).build());
+			routes.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.passengers.routes.tooltip")));
+		}
+		if (passengerRow(15)) {
+			addPassengerSlider(left, 15, true, PassengerDrawSettings.WALK_RANGE_MIN, PassengerDrawSettings.WALK_RANGE_MAX, 2, () -> PassengerDrawSettings.get().walkRange(),
+					value -> PassengerDrawSettings.setWalkRange((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.walk_range", value.intValue()));
+		}
+		if (passengerRow(16)) {
+			addPassengerSlider(left, 16, true, PassengerDrawSettings.MAX_PATH_MIN, PassengerDrawSettings.MAX_PATH_MAX, 500, () -> PassengerDrawSettings.get().maxPath(),
+					value -> PassengerDrawSettings.setMaxPath((int) value),
+					value -> Text.translatable("gui.aurelia.passengers.max_path", value.intValue()));
+		}
 	}
 
 	/** Rows left after the waiting/riding line and the server-cost line. */
@@ -553,6 +570,10 @@ public final class AureliaPanelScreen extends Screen {
 
 	private static void sendPassengers(UnaryOperator<PassengerNetwork.Settings> change) {
 		PassengerClient.request(change.apply(PassengerClient.settings()));
+	}
+
+	private static Text routesLabel() {
+		return Text.translatable("gui.aurelia.passengers.routes", ScreenTexts.onOrOff(PassengerDrawSettings.get().routes()));
 	}
 
 	private static Text passengersLabel(boolean enabled) {

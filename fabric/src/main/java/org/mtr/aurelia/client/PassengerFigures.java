@@ -9,6 +9,10 @@ public final class PassengerFigures {
 	/** Clear of a train's sides: floor is looked for this far from the rail centre. */
 	private static final int EDGE_NEAREST = 2;
 	private static final int EDGE_FARTHEST = 6;
+	/** How far along the platform a spot moves to get out of a pillar, in steps each way. */
+	private static final double NUDGE = 0.8;
+	private static final int NUDGE_STEPS = 6;
+	private static final double ROOM = 0.7;
 
 	private PassengerFigures() {
 	}
@@ -99,15 +103,36 @@ public final class PassengerFigures {
 			final double x = x1 + dx * t;
 			final double z = z1 + dz * t;
 			double offset = edge[0] + 0.5 + (i % 3) * 0.7;
-			double top = ground.top(x + normalX * sign * offset, z + normalZ * sign * offset, railY);
-			if (Double.isNaN(top) || Math.abs(top - edge[1]) > 0.6) {
-				offset = edge[0] + 0.5;
-				top = ground.top(x + normalX * sign * offset, z + normalZ * sign * offset, railY);
+			double top = roomy(ground, x + normalX * sign * offset, z + normalZ * sign * offset, railY, edge[1]);
+			double along = 0;
+			// Something stands here: the nearest clear place along the platform, in the same row or the one by the edge
+			for (int step = 1; step <= NUDGE_STEPS * 2 && (Double.isNaN(top) || Math.abs(top - edge[1]) > 0.6); step++) {
+				along = (step + 1) / 2 * NUDGE * (step % 2 == 0 ? -1 : 1);
+				final double tryOffset = edge[0] + 0.5 + (step % 4 < 2 ? (i % 3) * 0.7 : 0);
+				final double alongX = length < 1.0E-4 ? 0 : dx / length * along;
+				final double alongZ = length < 1.0E-4 ? 0 : dz / length * along;
+				top = roomy(ground, x + alongX + normalX * sign * tryOffset, z + alongZ + normalZ * sign * tryOffset, railY, edge[1]);
+				offset = tryOffset;
 			}
-			out[i * 3] = x + normalX * sign * offset;
+			out[i * 3] = x + (length < 1.0E-4 ? 0 : dx / length * along) + normalX * sign * offset;
 			out[i * 3 + 1] = Double.isNaN(top) ? edge[1] : top;
-			out[i * 3 + 2] = z + normalZ * sign * offset;
+			out[i * 3 + 2] = z + (length < 1.0E-4 ? 0 : dz / length * along) + normalZ * sign * offset;
 		}
+	}
+
+	/** The floor here, or NaN when something stands within arm's reach: people keep off pillars and walls. */
+	private static double roomy(Ground ground, double x, double z, int railY, double floor) {
+		final double top = ground.top(x, z, railY);
+		for (int i = 0; i < 4 && !Double.isNaN(top); i++) {
+			final double near = ground.top(x + (i == 0 ? ROOM : i == 1 ? -ROOM : 0), z + (i == 2 ? ROOM : i == 3 ? -ROOM : 0), railY);
+			if (near > floor + 0.6) {
+				return Double.NaN;
+			}
+			if (Double.isNaN(near)) {
+				return Double.NaN;
+			}
+		}
+		return top;
 	}
 
 	/** The first distance from the rail with a floor on this side, and its height, or null when this side has none. */

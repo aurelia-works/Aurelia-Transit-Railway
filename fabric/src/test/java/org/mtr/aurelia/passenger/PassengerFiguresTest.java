@@ -64,4 +64,13 @@ public final class PassengerFiguresTest {
 			Assertions.assertEquals(65, spots[i * 3 + 1], 0.01, "figure " + i);
 		}
 	}
+
+	@org.junit.jupiter.api.Test
+	void nobodyWaitsInsideAPillar() {
+		final double[] out = new double[30 * 3];
+		PassengerFigures.spots(0, 0, 0, 40, 0, 0, 30, (x, z, railY) -> x >= 18 && x < 21 ? Double.NaN : 1, out);
+		for (int i = 0; i < 30; i++) {
+			org.junit.jupiter.api.Assertions.assertFalse(out[i * 3] >= 18 && out[i * 3] < 21, "spot " + i + " at x " + out[i * 3]);
+		}
+	}
 }
