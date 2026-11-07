@@ -48,7 +48,7 @@ public final class StationPresets {
 			new Preset("berlin", BuildingStyle.BERLIN,
 					"six track berlin station, three island platforms, 300 long, train shed, station building with footbridge, named Berlin Hbf"),
 			new Preset("hong_kong", BuildingStyle.HONG_KONG,
-					"eight track hong kong terminus, four island platforms, 200 long, named West Kowloon"),
+					"eight track hong kong terminus, four island platforms, 200 long, glass hall roof, named West Kowloon"),
 			new Preset("beijing", BuildingStyle.BEIJING,
 					"ten track beijing station, five island platforms, 300 long, train shed, station building with mezzanine, named Beijing South"),
 			new Preset("bangkok", BuildingStyle.BANGKOK,
@@ -63,15 +63,15 @@ public final class StationPresets {
 			// Frankford's one island under a canopy with the transit centre at its end, and 69th Street's island and side
 			// platform in front of its brick hall; the bus loops beside them are not built
 			new Preset("frankford", BuildingStyle.MODERN,
-					"two track concrete terminus, island platform, 130 long, canopy, city station building, escalators, named Frankford"),
+					"two track concrete terminus, island platform, 130 long, glass canopy, city station building, named Frankford"),
 			new Preset("sixty_ninth_street", BuildingStyle.AMSTERDAM,
-					"three track brick terminus, island and side platforms, 110 long, canopy, city station building, escalators, named 69th Street"),
+					"three track brick terminus, island and side platforms, 110 long, glass canopy, city station building, named 69th Street"),
 			new Preset("mumbai", BuildingStyle.MUMBAI,
 					"ten track mumbai terminus, five island platforms, 280 long, train shed, named Mumbai CSMT"),
 			// British suburban stations (Enviro, 10-20), laid out as the real ones: Teddington's two side platforms and
 			// footbridge, Surbiton's two islands, Coventry's island and side platform under a covered overbridge
 			new Preset("teddington", BuildingStyle.VICTORIAN,
-					"two track teddington station, side platforms, 200 long, small station building with footbridge, named Teddington"),
+					"two track teddington station, side platforms, 6 wide, 200 long, small station building with footbridge, named Teddington"),
 			new Preset("surbiton", BuildingStyle.ART_DECO,
 					"four track surbiton station, two island platforms, 250 long, city station building with footbridge, named Surbiton"),
 			new Preset("coventry", BuildingStyle.MODERNIST,
@@ -79,7 +79,7 @@ public final class StationPresets {
 			// an underground station (Enviro, 10-20): Berlin's U8 at Rosenthaler Platz, one island in an orange-tiled box with
 			// stairs at both ends straight up to the street
 			new Preset("rosenthaler_platz", BuildingStyle.NONE,
-					"two track berlin underground station, island platform, 130 long, named Rosenthaler Platz"),
+					"two track berlin underground station, island platform, 130 long, escalators, named Rosenthaler Platz"),
 			// deep stations (research 10-20, docs/research): Angel is a bored tube 27 m down (40 blocks; 27 m would round to 41) with escalators only ("no ramps": no lift);
 			// Canary Wharf and Vijzelgracht are cut-and-cover boxes (24 m and 26 m, 36 and 39 blocks) with lifts. Lengths are the
 			// most the generator builds (Canary Wharf's 265 m is capped at 300 blocks); Vijzelgracht's 125 m island is built 188 long
@@ -95,7 +95,7 @@ public final class StationPresets {
 			new Preset("westminster", BuildingStyle.NONE,
 					"2 track stacked deep tube station, 58 blocks deep, 100 long, step-free, grey tiles, tfl signs, named Westminster"),
 			new Preset("modern", BuildingStyle.MODERN,
-					"four track modern station, two island platforms, 96 long, glass canopy, station building with footbridge"));
+					"four track modern station, two island platforms, 96 long, glass canopy, station building with footbridge, escalators, named Riverside"));
 
 	private StationPresets() {
 	}
