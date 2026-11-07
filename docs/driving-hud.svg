@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="176" viewBox="0 0 420 176">
+<rect width="100%" height="100%" fill="#0b0b0b"/>
+<g transform="translate(20,20)">
+<rect x="0" y="0" width="380" height="124" fill="#181818" stroke="#000" stroke-width="1"/>
+<rect x="0" y="0" width="380" height="2" fill="#090909"/>
+<rect x="0" y="2" width="380" height="1" fill="#00489d"/>
+<rect x="104" y="6" width="1" height="80" fill="#444"/>
+<rect x="170" y="6" width="1" height="80" fill="#444"/>
+<rect x="234" y="6" width="1" height="80" fill="#444"/>
+<rect x="288" y="6" width="1" height="80" fill="#444"/>
+<rect x="330" y="6" width="1" height="80" fill="#444"/>
+<rect x="6" y="90" width="368" height="1" fill="#444"/>
+<rect x="6" y="108" width="368" height="1" fill="#444"/>
+<circle cx="52" cy="40" r="31" fill="#050505"/>
+<circle cx="52" cy="40" r="28" fill="#101010"/>
+<line x1="38.6" y1="53.4" x2="33.6" y2="58.4" stroke="#e6e6e6" stroke-width="1"/>
+<line x1="32.6" y1="50.4" x2="29.1" y2="52.3" stroke="#777" stroke-width="1"/>
+<line x1="33.4" y1="43.7" x2="26.5" y2="45.1" stroke="#e6e6e6" stroke-width="1"/>
+<line x1="30.1" y1="37.8" x2="26.1" y2="37.5" stroke="#777" stroke-width="1"/>
+<line x1="34.4" y1="32.7" x2="28.0" y2="30.1" stroke="#e6e6e6" stroke-width="1"/>
+<line x1="35.0" y1="26.0" x2="31.9" y2="23.5" stroke="#777" stroke-width="1"/>
+<line x1="41.4" y1="24.2" x2="37.6" y2="18.4" stroke="#e6e6e6" stroke-width="1"/>
+<line x1="45.6" y1="18.9" x2="44.5" y2="15.1" stroke="#777" stroke-width="1"/>
+<line x1="52.0" y1="21.0" x2="52.0" y2="14.0" stroke="#e6e6e6" stroke-width="1"/>
+<line x1="58.4" y1="18.9" x2="59.5" y2="15.1" stroke="#777" stroke-width="1"/>
+<line x1="62.6" y1="24.2" x2="66.4" y2="18.4" stroke="#e6e6e6" stroke-width="1"/>
+<line x1="69.0" y1="26.0" x2="72.1" y2="23.5" stroke="#777" stroke-width="1"/>
+<line x1="69.6" y1="32.7" x2="76.0" y2="30.1" stroke="#e6e6e6" stroke-width="1"/>
+<line x1="73.9" y1="37.8" x2="77.9" y2="37.5" stroke="#777" stroke-width="1"/>
+<line x1="70.6" y1="43.7" x2="77.5" y2="45.1" stroke="#e6e6e6" stroke-width="1"/>
+<line x1="71.4" y1="50.4" x2="74.9" y2="52.3" stroke="#777" stroke-width="1"/>
+<line x1="65.4" y1="53.4" x2="70.4" y2="58.4" stroke="#e6e6e6" stroke-width="1"/>
+<line x1="52.0" y1="22.0" x2="52.0" y2="13.0" stroke="#34c759" stroke-width="2"/>
+<line x1="51.6" y1="43.0" x2="55.1" y2="19.2" stroke="#ff3b30" stroke-width="2"/>
+<circle cx="52" cy="40" r="3" fill="#b0b0b0"/>
+<text x="8" y="80" fill="#ffc107" font-family="Helvetica,Arial" font-size="8">LIMIT 80</text>
+<text x="52" y="72" fill="#fff" font-family="Helvetica,Arial" font-size="11" text-anchor="middle">85</text>
+<text x="62" y="72" fill="#aaa" font-family="Helvetica,Arial" font-size="7">km/h</text>
+<text x="108" y="10" fill="#aaa" font-family="Helvetica,Arial" font-size="7">POWER</text>
+<rect x="112" y="14" width="6" height="66" fill="#111"/>
+<rect x="108" y="80" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="76" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="71" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="67" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="62" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="58" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="54" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="49" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="45" width="4" height="1" fill="#bbb"/>
+<rect x="108" y="40" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="36" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="32" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="27" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="23" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="18" width="4" height="1" fill="#3a3a3a"/>
+<rect x="108" y="14" width="4" height="1" fill="#3a3a3a"/>
+<rect x="112" y="29" width="6" height="16" fill="#6fa8ff"/>
+<text x="126" y="40" fill="#6fa8ff" font-family="Helvetica,Arial" font-size="14">P3</text>
+<text x="126" y="20" fill="#aaa" font-family="Helvetica,Arial" font-size="7">P7</text>
+<text x="126" y="55" fill="#aaa" font-family="Helvetica,Arial" font-size="7">N</text>
+<text x="126" y="80" fill="#aaa" font-family="Helvetica,Arial" font-size="7">B8</text>
+<text x="174" y="10" fill="#aaa" font-family="Helvetica,Arial" font-size="7">DOORS</text>
+<text x="174" y="23" fill="#fff" font-family="Helvetica,Arial" font-size="9">CLOSED</text>
+<rect x="174" y="32" width="42" height="10" fill="#111"/>
+<rect x="176" y="34" width="6" height="6" fill="#2e7d32"/>
+<rect x="208" y="34" width="6" height="6" fill="#333"/>
+<rect x="186" y="35" width="18" height="4" fill="#333"/>
+<text x="174" y="54" fill="#34c759" font-family="Helvetica,Arial" font-size="7">PLATFORM L</text>
+<text x="174" y="66" fill="#aaa" font-family="Helvetica,Arial" font-size="7">4 CARS</text>
+<text x="174" y="78" fill="#aaa" font-family="Helvetica,Arial" font-size="7">84 m</text>
+<text x="238" y="10" fill="#aaa" font-family="Helvetica,Arial" font-size="7">AWS</text>
+<circle cx="248" cy="24" r="8" fill="#ffc107"/>
+<line x1="241.0" y1="24.0" x2="255.0" y2="24.0" stroke="#111" stroke-width="1.5"/>
+<line x1="243.1" y1="19.1" x2="252.9" y2="28.9" stroke="#111" stroke-width="1.5"/>
+<line x1="248.0" y1="17.0" x2="248.0" y2="31.0" stroke="#111" stroke-width="1.5"/>
+<line x1="252.9" y1="19.1" x2="243.1" y2="28.9" stroke="#111" stroke-width="1.5"/>
+<circle cx="248" cy="24" r="2" fill="#111"/>
+<text x="260" y="24" fill="#34c759" font-family="Helvetica,Arial" font-size="8">OK</text>
+<text x="292" y="10" fill="#aaa" font-family="Helvetica,Arial" font-size="7">TPWS</text>
+<text x="292" y="24" fill="#ffc107" font-family="Helvetica,Arial" font-size="8">ARMED</text>
+<text x="334" y="10" fill="#aaa" font-family="Helvetica,Arial" font-size="7">NEXT</text>
+<circle cx="362" cy="18" r="6" fill="#000"/>
+<circle cx="362" cy="18" r="5" fill="#2a2a2a"/>
+<circle cx="362" cy="30" r="6" fill="#000"/>
+<circle cx="362" cy="30" r="5" fill="#ffc107"/>
+<circle cx="362" cy="42" r="6" fill="#000"/>
+<circle cx="362" cy="42" r="5" fill="#2a2a2a"/>
+<circle cx="362" cy="54" r="6" fill="#000"/>
+<circle cx="362" cy="54" r="5" fill="#2a2a2a"/>
+<text x="334" y="76" fill="#fff" font-family="Helvetica,Arial" font-size="7">120 m</text>
+<text x="334" y="86" fill="#ffc107" font-family="Helvetica,Arial" font-size="7">YEL</text>
+<text x="6" y="102" fill="#aaa" font-family="Helvetica,Arial" font-size="7">4 CARS / 84 m</text>
+<text x="120" y="102" fill="#fff" font-family="Helvetica,Arial" font-size="8">STOP 42 m</text>
+<rect x="210" y="98" width="156" height="4" fill="#111"/>
+<rect x="366" y="96" width="6" height="8" fill="#34c759"/>
+<rect x="344" y="95" width="2" height="10" fill="#fff"/>
+<text x="8" y="120" fill="#fff" font-family="Helvetica,Arial" font-size="7">LAST 1,240 pts   0.3 m   0 SPAD   0 OVS   3:12</text>
+</g>
+<text x="20" y="164" fill="#777" font-family="Helvetica,Arial" font-size="8">Aurelia driver HUD - synthetic layout preview, not an in-game screenshot</text>
+</svg>
