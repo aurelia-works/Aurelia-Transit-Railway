@@ -74,6 +74,7 @@ public final class BlockModels {
 			props.put("facing", Boolean.toString(heading.alongX()));
 			props.put("is_45", "false");
 			props.put("is_22_5", "false");
+			props.put("is_11_25", "false");
 			props.put("is_connected", "false");
 		} else if (!SIX_WAY_FACING.contains(blockId) && (names.contains("facing") || blockstate == null && (MTR_FACING.contains(blockId) || blockId.endsWith("_stairs")))) {
 			props.put("facing", (FACING_AWAY.contains(blockId) ? heading.opposite() : heading).name().toLowerCase(java.util.Locale.ROOT));
