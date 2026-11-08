@@ -24,8 +24,11 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String BLAST_SURFACE = "minecraft:polished_andesite";
 	static final String TAXI_SURFACE = "minecraft:gray_concrete";
 	static final String APRON_SURFACE = "minecraft:light_gray_concrete";
-	/** A joint between two apron slabs: darker than the slabs, so the apron reads as concrete panels. */
-	static final String APRON_JOINT = "minecraft:gray_concrete";
+	/**
+	 * A joint between two apron slabs: a shade darker than the slabs, so the apron reads as concrete panels. Gray concrete
+	 * was too dark: a block-wide joint in it read as a road grid from the ground.
+	 */
+	static final String APRON_JOINT = "minecraft:tuff";
 	/** The landside forecourt's footways and kerbs. */
 	static final String SIDEWALK = "minecraft:smooth_stone";
 	static final String KERB = "minecraft:stone_brick_slab";
