@@ -8,9 +8,9 @@ import java.util.List;
  * road to the runways, v along the runways. No Minecraft classes; the planner ({@link PlanAirport}), the checks and the tests all
  * read the same numbers.
  * <p>
- * Across (low u to high u): the road in front of the terminal, the terminal, the apron with the aircraft stands, the parallel
- * taxiway, open ground, then the runway (and, with two, open ground and the second runway). Along v: a margin at each end, the
- * runway's blast pads, and the runway between them.
+ * Across (low u to high u): the landside car park and its access road, the road in front of the terminal, the terminal, the apron
+ * with the aircraft stands, the parallel taxiway, open ground, then the runway (and, with two, open ground and the second runway).
+ * Along v: a margin at each end, the runway's blast pads, and the runway between them.
  */
 public record AirportGeometry(AirportSpec spec, int width, int length, int roadU0, int roadU1, int terminalU0, int terminalU1, int terminalV0,
 		int terminalV1, int apronU0, int apronU1, int apronV0, int apronV1, int taxiU0, int taxiU1, int taxiV0, int taxiV1, int runwayV0,
@@ -73,6 +73,15 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 	/** A runway longer than this gets a link in the middle as well. */
 	public static final int MID_LINK_LENGTH = 480;
 
+	/**
+	 * Columns the landside band before the forecourt road takes when there is a forecourt: a surface car park with its footways
+	 * (u = 0..{@link #LANDSIDE}-1). Everything from the road right is moved along by it, so the plan still starts at u = 0.
+	 */
+	public static final int LANDSIDE = 32;
+
+	/** Rows of the access road out to the landside edge: a footway, a kerb, a seven-block carriageway and its far kerb. */
+	public static final int ACCESS_ROAD = 11;
+
 	/** The dimensions of an airport whose runways are {@code runwayWidth} wide. */
 	public static Dims dims(int runwayWidth) {
 		return runwayWidth >= REAL_WIDTH ? REAL : COMPACT;
@@ -83,10 +92,12 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 			throw new IllegalArgumentException("not an airport");
 		}
 		final Dims d = dims(spec.runwayWidth());
-		final int roadU0 = spec.terminal() ? 0 : -1;
-		final int roadU1 = spec.terminal() ? d.road() - 1 : -1;
-		final int terminalU0 = spec.terminal() ? d.road() : -1;
-		final int terminalU1 = spec.terminal() ? d.road() + d.terminalDepth() - 1 : -1;
+		// no forecourt, no landside: the road is the first column, as before
+		final int landside = spec.terminal() && spec.forecourt() ? LANDSIDE : 0;
+		final int roadU0 = spec.terminal() ? landside : -1;
+		final int roadU1 = spec.terminal() ? landside + d.road() - 1 : -1;
+		final int terminalU0 = spec.terminal() ? landside + d.road() : -1;
+		final int terminalU1 = spec.terminal() ? landside + d.road() + d.terminalDepth() - 1 : -1;
 		final int apronU0 = spec.terminal() ? terminalU1 + 1 : 0;
 		final int apronU1 = apronU0 + d.standDepth() - 1;
 		final int taxiU0 = apronU1 + 1;
@@ -202,6 +213,34 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 		return length - 1 - v;
 	}
 
+	/** True when the landside car park and access road are planned: a terminal with its forecourt. */
+	public boolean landside() {
+		return spec.terminal() && spec.forecourt();
+	}
+
+	/** First and last row of the surface car park, set just past the terminal's ends. */
+	public int carParkV0() {
+		return Math.max(0, terminalV0 - 8);
+	}
+
+	public int carParkV1() {
+		return Math.min(length - 1, terminalV1 + 8);
+	}
+
+	/** The access road runs along the car park's low-v edge, from the forecourt out to the landside edge at u = 0. */
+	public int accessV0() {
+		return Math.max(0, carParkV0() - ACCESS_ROAD);
+	}
+
+	public int accessV1() {
+		return Math.max(accessV0(), carParkV0() - 1);
+	}
+
+	/** The row of the access road's centre line: three blocks of carriageway either side of it. */
+	public int accessCentre() {
+		return Math.min(accessV1() - 1, accessV0() + 6);
+	}
+
 	/** Where an aircraft's nose stops on stand: past the boarding bridge, or well in from the apron's edge without a terminal. */
 	public int stopU() {
 		return spec.terminal() ? terminalU1 + dims.bridge() + 3 : apronU0 + 10;
@@ -238,6 +277,11 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 		if (spec.terminal()) {
 			out.add(new Area(Kind.ROAD, roadU0, roadU1, Math.max(0, apronV0 - 20), Math.min(length - 1, apronV1 + 20), OPEN_CLEARANCE));
 			out.add(new Area(Kind.TERMINAL, terminalU0, terminalU1, terminalV0, terminalV1, dims.wallTop() + 2));
+			if (landside()) {
+				// the car park and the access road out to the site's landside edge
+				out.add(new Area(Kind.ROAD, 0, LANDSIDE - 1, carParkV0(), carParkV1(), OPEN_CLEARANCE));
+				out.add(new Area(Kind.ROAD, 0, LANDSIDE - 1, accessV0(), accessV1(), OPEN_CLEARANCE));
+			}
 		}
 		out.add(new Area(Kind.APRON, apronU0, apronU1, apronV0, apronV1, dims.mast() + 1));
 		out.add(new Area(Kind.TAXIWAY, taxiU0, taxiU1, taxiV0, taxiV1, OPEN_CLEARANCE));

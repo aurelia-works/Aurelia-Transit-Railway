@@ -32,6 +32,14 @@ abstract class PlanAirport extends PlanFitOut {
 	/** The landside forecourt's footways and kerbs. */
 	static final String SIDEWALK = "minecraft:smooth_stone";
 	static final String KERB = "minecraft:stone_brick_slab";
+	/** The car park's row-end planters: a soil bed under oak hedges, with one oak tree in each. */
+	static final String PLANTER_SOIL = "minecraft:dirt";
+	static final String HEDGE = "minecraft:oak_leaves";
+	static final String TRUNK = "minecraft:oak_log";
+	/** The car park across u: a bay row 5 deep, then a 6-wide aisle, starting past the outer footway and its kerb. */
+	static final int CAR_BAY = 5;
+	static final int CAR_AISLE = 6;
+	static final int CAR_FIRST_BAY = 3;
 	/**
 	 * The apron's concrete as an MTR platform block, beside each stand's platform rail so the plane's doors open.
 	 * Ported from Aurelia Transit Architecture pull request 7 ({@code apron_platform} and {@code gatePlatforms}), which
@@ -131,7 +139,10 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 		taxiMarks();
 		if (spec.airport().terminal() && spec.airport().forecourt()) {
+			// the access road first: its mouth takes the forecourt's outer footway and kerb
+			airportAccessRoad();
 			airportForecourt();
+			airportCarPark();
 		}
 		pavement();
 	}
@@ -410,8 +421,9 @@ abstract class PlanAirport extends PlanFitOut {
 		for (final int[] link : air.links()) {
 			final int middle = (link[0] + link[1]) / 2;
 			for (int u = gapFrom; u <= gapTo; u++) {
-				// a link is an ordinary taxiway: yellow centre and edges, green lead-on lights and blue edge lights
-				if (spec.airport().taxiwayLights() && u % greenEvery == 0) {
+				// a link is an ordinary taxiway: yellow centre and edges, green lead-on lights and blue edge lights. The green
+				// lights stop a cell short of the runway, so none touches its pavement (they share the threshold lights' block)
+				if (spec.airport().taxiwayLights() && u % greenEvery == 0 && u < gapTo) {
 					light(u, middle, THRESHOLD_LIGHT);
 				}
 				paint(u, middle, PAINT_YELLOW);
@@ -1111,10 +1123,7 @@ abstract class PlanAirport extends PlanFitOut {
 			if (Math.abs(v - door) < half + 8) {
 				continue;
 			}
-			for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + 6; y++) {
-				put(Role.FIXTURE, u0 + 1, y, v, LocalDir.PLUS_U, LAMP_POLE);
-			}
-			put(Role.LAMP, u0 + 1, StationGeometry.WALK_Y + 6, v, LocalDir.PLUS_U, TOWER_BEACON);
+			streetLamp(u0 + 1, v, LocalDir.PLUS_U);
 		}
 		// low bollard lights along the kerb, eight blocks apart, so the footway reads at night from the airside too
 		for (int v = door - 24; v <= door + 24; v += 8) {
@@ -1122,6 +1131,150 @@ abstract class PlanAirport extends PlanFitOut {
 				continue;
 			}
 			put(Role.LAMP, u0 + 1, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, TOWER_BEACON);
+		}
+	}
+
+	// ---- the landside car park and access road -----------------------------------------------------------------------------
+
+	/** A street lamp: the station's sign pole for the post, a sea lantern on top. */
+	private void streetLamp(int u, int v, LocalDir front) {
+		for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + 6; y++) {
+			put(Role.FIXTURE, u, y, v, front, LAMP_POLE);
+		}
+		put(Role.LAMP, u, StationGeometry.WALK_Y + 6, v, front, TOWER_BEACON);
+	}
+
+	/**
+	 * The access road from the forecourt out to the landside edge of the site (u = 0): two footways and kerbs round a seven-block
+	 * carriageway with a dashed white centre line, a lamp every 10 blocks, and a gap in its kerb where each car park aisle meets it.
+	 * Planned before the forecourt, so its mouth takes the forecourt's outer footway and kerb and the two join.
+	 */
+	void airportAccessRoad() {
+		final int u0 = 0;
+		final int u1 = air.roadU0() - 1;
+		final int v0 = air.accessV0();
+		final int v1 = air.accessV1();
+		final int centre = air.accessCentre();
+		// the mouth: the road carries on through the forecourt's outer footway and kerb
+		for (int v = v0; v <= v1; v++) {
+			for (int u = u1 + 1; u <= air.roadU0() + 2; u++) {
+				paint(u, v, ROAD_SURFACE);
+			}
+		}
+		// the centre line: 4 blocks of paint and 8 of gap, as on the forecourt
+		for (int u = u0 + 2; u <= u1; u++) {
+			if (Math.floorMod(u - u0 - 2, 12) < 4) {
+				paint(u, centre, PAINT_WHITE);
+			}
+		}
+		for (int u = u0; u <= u1; u++) {
+			// the footway and kerb on the outer side, and the kerb along the car park
+			paint(u, v0, SIDEWALK);
+			paint(u, v0 + 1, SIDEWALK);
+			put(Role.FIXTURE, u, StationGeometry.WALK_Y, v0 + 2, LocalDir.PLUS_V, KERB, "type=bottom");
+			if (!carParkEntrance(u)) {
+				put(Role.FIXTURE, u, StationGeometry.WALK_Y, v1, LocalDir.MINUS_V, KERB, "type=bottom");
+			}
+		}
+		for (int u = u0 + 5; u <= u1 - 2; u += 10) {
+			streetLamp(u, v0 + 1, LocalDir.PLUS_V);
+		}
+	}
+
+	/** True for a column of one of the car park's aisles, where its kerb gives way to a driveway. */
+	private boolean carParkEntrance(int u) {
+		for (int row = 0; row < 2; row++) {
+			final int aisle = CAR_FIRST_BAY + row * (CAR_BAY + CAR_AISLE) + CAR_BAY;
+			if (u >= aisle && u < aisle + CAR_AISLE) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * The surface car park behind the forecourt: three rows of 2 x 5 bays off two 6-wide aisles, a kerbed footway along the site
+	 * edge and a wider one along the road, a lamp every 10 blocks down each aisle, and a planter with an oak tree at each end of
+	 * every bay row. Its asphalt is the geometry's two ROAD areas; the bay lines are painted before the pavement.
+	 */
+	void airportCarPark() {
+		final int v0 = air.carParkV0();
+		final int v1 = air.carParkV1();
+		final int walk = entranceV();
+		// the kerbed footpath from the site edge to the terminal doors, across the car park
+		for (int v = walk - 1; v <= walk + 1; v++) {
+			for (int u = 0; u < AirportGeometry.LANDSIDE; u++) {
+				paint(u, v, SIDEWALK);
+			}
+		}
+		for (int u = 2; u < AirportGeometry.LANDSIDE - 2; u++) {
+			put(Role.FIXTURE, u, StationGeometry.WALK_Y, walk - 2, LocalDir.MINUS_V, KERB, "type=bottom");
+			put(Role.FIXTURE, u, StationGeometry.WALK_Y, walk + 2, LocalDir.PLUS_V, KERB, "type=bottom");
+		}
+		for (int v = v0; v <= v1; v++) {
+			paint(0, v, SIDEWALK);
+			paint(1, v, SIDEWALK);
+			// the kerbs give way where the footpath crosses them
+			if (Math.abs(v - walk) > 1) {
+				put(Role.FIXTURE, 2, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, KERB, "type=bottom");
+				put(Role.FIXTURE, AirportGeometry.LANDSIDE - 2, StationGeometry.WALK_Y, v, LocalDir.MINUS_U, KERB, "type=bottom");
+			}
+			paint(AirportGeometry.LANDSIDE - 1, v, SIDEWALK);
+		}
+		for (int row = 0; row < 3; row++) {
+			final int bay = CAR_FIRST_BAY + row * (CAR_BAY + CAR_AISLE);
+			// one line every third row leaves the bays two blocks wide
+			for (int v = v0 + 3; v <= v1 - 3; v++) {
+				if (Math.floorMod(v - v0, 3) == 0) {
+					for (int u = bay; u < bay + CAR_BAY; u++) {
+						paint(u, v, PAINT_WHITE);
+					}
+				}
+			}
+			carParkPlanter(bay, bay + CAR_BAY - 1, v0, v0 + 2);
+			carParkPlanter(bay, bay + CAR_BAY - 1, v1 - 2, v1);
+		}
+		// a lamp down each aisle, every 10 rows, clear of the footpath
+		final int aisleA = CAR_FIRST_BAY + CAR_BAY;
+		final int aisleB = CAR_FIRST_BAY + CAR_BAY + CAR_AISLE + CAR_BAY;
+		for (int v = v0 + 6; v <= v1 - 4; v += 10) {
+			if (Math.abs(v - walk) <= 2) {
+				continue;
+			}
+			streetLamp(aisleA, v, LocalDir.PLUS_U);
+			streetLamp(aisleB, v, LocalDir.PLUS_U);
+		}
+	}
+
+	/** A row-end planter: a soil bed in a kerb ring, an oak hedge round one tree. */
+	private void carParkPlanter(int u0, int u1, int v0, int v1) {
+		for (int v = v0; v <= v1; v++) {
+			for (int u = u0; u <= u1; u++) {
+				if (u == u0 || u == u1 || v == v0 || v == v1) {
+					put(Role.FIXTURE, u, StationGeometry.WALK_Y, v, LocalDir.PLUS_V, KERB, "type=bottom");
+				} else {
+					paint(u, v, PLANTER_SOIL);
+				}
+			}
+		}
+		final int cu = (u0 + u1) / 2;
+		final int cv = (v0 + v1) / 2;
+		for (int v = v0 + 1; v < v1; v++) {
+			for (int u = u0 + 1; u < u1; u++) {
+				if (u != cu || v != cv) {
+					put(Role.FIXTURE, u, StationGeometry.WALK_Y, v, LocalDir.PLUS_V, HEDGE, "persistent=true");
+				}
+			}
+		}
+		for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 3; y++) {
+			put(Role.FIXTURE, cu, y, cv, LocalDir.PLUS_V, TRUNK);
+		}
+		for (int du = -1; du <= 1; du++) {
+			for (int dv = -1; dv <= 1; dv++) {
+				if (du != 0 || dv != 0) {
+					put(Role.FIXTURE, cu + du, StationGeometry.WALK_Y + 4, cv + dv, LocalDir.PLUS_V, HEDGE, "persistent=true");
+				}
+			}
 		}
 	}
 
