@@ -121,8 +121,7 @@ public final class CameraPath {
 		final double after = cumulative[index];
 		final double span = after - before;
 		final double local = span <= 0 ? 0 : (distance - before) / span;
-		final double t = ((index - 1) + local) / SAMPLES_PER_SEGMENT;
-		return sample(t * (keyframes.size() - 1));
+		return sample(((index - 1) + local) / SAMPLES_PER_SEGMENT);
 	}
 
 	/** Signed shortest turn from {@code from} to {@code to} in degrees, in [-180, 180). */
