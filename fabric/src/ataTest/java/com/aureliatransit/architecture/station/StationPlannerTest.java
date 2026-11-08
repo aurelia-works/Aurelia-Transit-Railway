@@ -606,11 +606,11 @@ class StationPlannerTest {
 		expected.put(Role.BENCH, 12);
 		expected.put(Role.BIN, 6);
 		// per platform: two departure screens fixed to a column, two blocks wide on both faces of it (8), a help point and two
-		// speakers (one every 32 blocks), plus a CCTV camera every 20 rows (2 a platform); and the under-canopy LED strips
-		// (two lines of canopy lights a platform, hung from the girders, with one soffit light and hanger rods: 217)
-		expected.put(Role.FIXTURE, 243);
+		// speakers (one every 32 blocks), plus a CCTV camera every 20 rows (2 a platform); and the under-canopy light
+		// (invisible level-15 lights, a thin batten a line per half, thin chains to the frame: 404)
+		expected.put(Role.FIXTURE, 430);
 		assertEquals(expected, counts);
-		assertEquals(1499, plan(spec).blocks().size());
+		assertEquals(1686, plan(spec).blocks().size());
 	}
 
 	@Test

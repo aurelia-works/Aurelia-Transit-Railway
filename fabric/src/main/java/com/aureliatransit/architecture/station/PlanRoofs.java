@@ -906,12 +906,11 @@ abstract class PlanRoofs extends PlanColumns {
 	static final int LAMP_HEAD_Y = StationGeometry.WALK_Y + 3;
 
 	/**
-	 * Continuous LED strips under every platform canopy (the glass canopy was dark at night: its roof lights sit six
-	 * blocks over the platform, so the floor below them never tops 9). A line of canopy lights at lamp-head height every
-	 * two cells across each platform, the whole canopy length, hung from the girders every eight cells. Every standing
-	 * cell is within one cell of a strip, so the platform reads evenly lit, like a real NS platform's linear lighting.
-	 * A hanging fixture, not roof fabric: the validator's roof-span rules do not apply to it. Street entrances get the
-	 * same strips where a bridge deck covers them (their pole lamps only reach the open rows).
+	 * Light without bulk under every platform canopy (the glass canopy was dark at night, and the first fix's lamp
+	 * blocks read as a low ceiling hiding the roof). Invisible light blocks at lamp-head height carry the light level;
+	 * a thin visible batten runs right under the canopy frame, one line per platform half. A hanging fixture, not roof
+	 * fabric: the validator's roof-span rules do not apply to it. Street entrances get the same strips where a bridge
+	 * deck covers them (their pole lamps only reach the open rows).
 	 */
 	void canopyLamps() {
 		if (!spec.furniture()) {
@@ -923,16 +922,24 @@ abstract class PlanRoofs extends PlanColumns {
 				continue;
 			}
 			strip(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), y, band);
+			batten(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), band);
+			chains(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), y);
 		}
 		for (final TrackLayout.PlatformBand street : site.streets()) {
 			strip(street.uMin(), street.uMax(), street.vFrom(), street.vTo(), y, street);
+			chains(street.uMin(), street.uMax(), street.vFrom(), street.vTo(), y);
 		}
 	}
 
+	/** Invisible light (level 15) at head height: the planned light level with nothing to see. */
+	static final String CANOPY_LIGHT = "minecraft:light";
+	/** The light level the invisible strips burn at. */
+	static final String CANOPY_LIGHT_STATE = "level=15";
+
 	/**
-	 * LED strips across uMin..uMax, from..to: a line every two cells (and the last column when it would stand alone),
-	 * hung from the frame above every eight cells. Under open sky there is nothing to hang from, so only rows with a
-	 * roof, deck or slab over them get a strip; pole lamps light the rest.
+	 * LED strips across uMin..uMax, from..to: a line of invisible light every two cells (and the last column when it
+	 * would stand alone). Under open sky there is nothing above the light, so only rows with a roof, deck or slab over
+	 * them get a strip; pole lamps light the rest.
 	 */
 	void strip(int uMin, int uMax, int from, int to, int y, TrackLayout.PlatformBand band) {
 		final List<Integer> lines = new ArrayList<>();
@@ -947,19 +954,68 @@ abstract class PlanRoofs extends PlanColumns {
 				if (!coveredAbove(u, v)) {
 					continue;
 				}
-				if (!put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, palette.blockId(Role.ROOF_LIGHT)) && !isEdge(band, u)) {
+				if (!put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, CANOPY_LIGHT, CANOPY_LIGHT_STATE) && !isEdge(band, u)) {
 					// a stair flight or shaft crosses the strip: its soffit carries the light one lower
-					put(Role.FIXTURE, u, y - 1, v, LocalDir.PLUS_V, palette.blockId(Role.ROOF_LIGHT));
+					put(Role.FIXTURE, u, y - 1, v, LocalDir.PLUS_V, CANOPY_LIGHT, CANOPY_LIGHT_STATE);
 				}
 			}
+		}
+	}
+
+	/**
+	 * The visible batten: a thin white plate hung just under the canopy frame, one line per platform half. The later
+	 * dressing (screens, speakers, cameras) wins any cell it needs, so a batten stops for information and monitoring.
+	 */
+	void batten(int uMin, int uMax, int from, int to, TrackLayout.PlatformBand band) {
+		final int width = uMax - uMin + 1;
+		final List<Integer> lines = new ArrayList<>();
+		for (final int u : new int[]{uMin + width / 4, uMin + 3 * width / 4}) {
+			if (!lines.contains(u)) {
+				lines.add(u);
+			}
+		}
+		for (final int u : lines) {
+			for (int v = from; v <= to; v++) {
+				if (!coveredAbove(u, v)) {
+					continue;
+				}
+				put(Role.FIXTURE, u, LAMP_HEAD_Y + 1, v, LocalDir.PLUS_V, ata("uk_concrete_canopy"));
+			}
+		}
+	}
+
+	/**
+	 * Thin chains joining each strip to the frame above it, every eight cells: what keeps the hanging lights joined to
+	 * the ground. A strip the batten, a cap or a girder already stands under needs none; later dressing may still take
+	 * the cell, and the strip keeps its light either way.
+	 */
+	void chains(int uMin, int uMax, int from, int to, int y) {
+		final List<Integer> lines = new ArrayList<>();
+		for (int u = uMin; u <= uMax; u += 2) {
+			lines.add(u);
+		}
+		if (lines.get(lines.size() - 1) < uMax - 1) {
+			lines.add(uMax);
 		}
 		for (final int u : lines) {
 			for (int v = from; v <= to; v += 8) {
 				final PlannedBlock strip = at(u, y, v);
-				if (strip != null && strip.role() == Role.FIXTURE) {
-					dropRod(u, y, v);
+				if (strip == null || !strip.role().equals(Role.FIXTURE) || !strip.blockId().equals(CANOPY_LIGHT) || at(u, y + 1, v) != null) {
+					continue;
 				}
+				dropChain(u, y, v);
 			}
+		}
+	}
+
+	/** A thin chain from the light at (u, y, v) up to the frame above it, joining the strip to the girders. */
+	void dropChain(int u, int y, int v) {
+		final int top = ceilingAbove(u, y, v);
+		if (top < 0) {
+			return;
+		}
+		for (int h = y + 1; h < top; h++) {
+			put(Role.FIXTURE, u, h, v, LocalDir.PLUS_V, "minecraft:chain", "axis=y");
 		}
 	}
 
