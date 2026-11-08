@@ -51,6 +51,34 @@ abstract class PlanFurniture extends PlanRoofs {
 				put(Role.LAMP, u, room ? LAMP_HEAD_Y : StationGeometry.WALK_Y, v, front);
 			}
 		}
+		for (final TrackLayout.PlatformBand street : site.streets()) {
+			// pole lamps along a street entrance where the sky is open (covered rows get LED strips instead): a line
+			// every two cells, every 6 along, so the walk to the bridge and its end ramps stay at 8 or more at night
+			final List<Integer> lines = new ArrayList<>();
+			for (int u = street.uMin(); u <= street.uMax(); u += 2) {
+				lines.add(u);
+			}
+			if (lines.get(lines.size() - 1) < street.uMax() - 1) {
+				lines.add(street.uMax());
+			}
+			for (final int u : lines) {
+				for (int v = street.vFrom(); v <= street.vTo(); v += 6) {
+					if (coveredAbove(u, v)) {
+						continue;
+					}
+					boolean room = true;
+					for (int y = StationGeometry.WALK_Y; y <= LAMP_HEAD_Y; y++) {
+						room &= !taken(u, y, v);
+					}
+					if (room) {
+						for (int y = StationGeometry.WALK_Y; y < LAMP_HEAD_Y; y++) {
+							put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, LAMP_POLE);
+						}
+					}
+					put(Role.LAMP, u, room ? LAMP_HEAD_Y : StationGeometry.WALK_Y, v, LocalDir.PLUS_V);
+				}
+			}
+		}
 	}
 
 	/**

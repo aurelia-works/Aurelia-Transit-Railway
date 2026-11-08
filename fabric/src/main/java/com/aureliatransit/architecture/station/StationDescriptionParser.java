@@ -1121,6 +1121,18 @@ public final class StationDescriptionParser {
 					if (word.equals("rail")) {
 						j++;
 					}
+				} else if (word.equals("bed") || word.equals("beds") || word.equals("ballast") || word.equals("gravel") || word.equals("andesite")) {
+					trackBed = TrackBed.NONE;
+					note(i, "no track bed (the ground stays as it is)");
+					// "no gravel bed": the noun after a material belongs to it
+					if ((word.equals("gravel") || word.equals("andesite") || word.equals("ballast"))
+							&& (at(j + 1).equals("bed") || at(j + 1).equals("beds"))) {
+						j++;
+					}
+				} else if (word.equals("track") && (at(j + 1).equals("bed") || at(j + 1).equals("beds"))) {
+					trackBed = TrackBed.NONE;
+					note(i, "no track bed (the ground stays as it is)");
+					j++;
 				} else {
 					continue;
 				}
@@ -2682,6 +2694,10 @@ public final class StationDescriptionParser {
 			}
 			if (trackBed != null) {
 				builder.trackBed(trackBed);
+			} else {
+				// new plans get ballast with lit platform walls; "no track bed" leaves the ground as it is
+				builder.trackBed(TrackBed.GRAVEL);
+				defaulted.add("gravel track bed with lit platform walls (default)");
 			}
 			if (operator == null) {
 				cityOperator();

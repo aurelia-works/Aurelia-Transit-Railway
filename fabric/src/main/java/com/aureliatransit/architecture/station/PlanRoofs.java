@@ -904,4 +904,73 @@ abstract class PlanRoofs extends PlanColumns {
 
 	/** The height of an open platform's lamp head, on its pole. */
 	static final int LAMP_HEAD_Y = StationGeometry.WALK_Y + 3;
+
+	/**
+	 * Continuous LED strips under every platform canopy (the glass canopy was dark at night: its roof lights sit six
+	 * blocks over the platform, so the floor below them never tops 9). A line of canopy lights at lamp-head height every
+	 * two cells across each platform, the whole canopy length, hung from the girders every eight cells. Every standing
+	 * cell is within one cell of a strip, so the platform reads evenly lit, like a real NS platform's linear lighting.
+	 * A hanging fixture, not roof fabric: the validator's roof-span rules do not apply to it. Street entrances get the
+	 * same strips where a bridge deck covers them (their pole lamps only reach the open rows).
+	 */
+	void canopyLamps() {
+		if (!spec.furniture()) {
+			return;
+		}
+		final int y = LAMP_HEAD_Y;
+		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			if (roof(band) != RoofType.CANOPY) {
+				continue;
+			}
+			strip(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), y, band);
+		}
+		for (final TrackLayout.PlatformBand street : site.streets()) {
+			strip(street.uMin(), street.uMax(), street.vFrom(), street.vTo(), y, street);
+		}
+	}
+
+	/**
+	 * LED strips across uMin..uMax, from..to: a line every two cells (and the last column when it would stand alone),
+	 * hung from the frame above every eight cells. Under open sky there is nothing to hang from, so only rows with a
+	 * roof, deck or slab over them get a strip; pole lamps light the rest.
+	 */
+	void strip(int uMin, int uMax, int from, int to, int y, TrackLayout.PlatformBand band) {
+		final List<Integer> lines = new ArrayList<>();
+		for (int u = uMin; u <= uMax; u += 2) {
+			lines.add(u);
+		}
+		if (lines.get(lines.size() - 1) < uMax - 1) {
+			lines.add(uMax);
+		}
+		for (final int u : lines) {
+			for (int v = from; v <= to; v++) {
+				if (!coveredAbove(u, v)) {
+					continue;
+				}
+				if (!put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, palette.blockId(Role.ROOF_LIGHT)) && !isEdge(band, u)) {
+					// a stair flight or shaft crosses the strip: its soffit carries the light one lower
+					put(Role.FIXTURE, u, y - 1, v, LocalDir.PLUS_V, palette.blockId(Role.ROOF_LIGHT));
+				}
+			}
+		}
+		for (final int u : lines) {
+			for (int v = from; v <= to; v += 8) {
+				final PlannedBlock strip = at(u, y, v);
+				if (strip != null && strip.role() == Role.FIXTURE) {
+					dropRod(u, y, v);
+				}
+			}
+		}
+	}
+
+	/** True when a roof, deck or slab stands over (u, v) high enough to hang a strip from. */
+	boolean coveredAbove(int u, int v) {
+		for (int y = 6; y <= 40; y++) {
+			final PlannedBlock over = at(u, y, v);
+			if (over != null && over.role().covers()) {
+				return true;
+			}
+		}
+		return false;
+	}
 }
