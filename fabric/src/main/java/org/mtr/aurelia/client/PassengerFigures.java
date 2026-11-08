@@ -1,8 +1,9 @@
 package org.mtr.aurelia.client;
 
 /**
- * How many box figures to draw for one platform or train, and where they stand.
- * Far away, one figure stands in for the whole crowd. Past the draw distance, nothing is drawn.
+ * How many figures to draw for one platform or train, and where they stand.
+ * Up close everyone is a full figure, farther away one simple figure stands in for the whole crowd, and past the draw
+ * distance nothing is drawn.
  */
 public final class PassengerFigures {
 
@@ -13,8 +14,24 @@ public final class PassengerFigures {
 	private static final double NUDGE = 0.8;
 	private static final int NUDGE_STEPS = 6;
 	private static final double ROOM = 0.7;
+	/** How far people at the same door stand either side of it. */
+	private static final double DOOR_SPREAD = 0.75;
+
+	/** How much of a person to draw at this distance. */
+	public enum Detail {NONE, SIMPLE, FULL}
 
 	private PassengerFigures() {
+	}
+
+	/**
+	 * Nothing past the draw distance, a simple figure in the middle band, a full figure inside the detail distance.
+	 * A detail distance past the draw distance is treated as the draw distance, so detail never outlives drawing.
+	 */
+	public static Detail detail(double distance, double drawDistance, double detailDistance) {
+		if (drawDistance <= 0 || distance > drawDistance) {
+			return Detail.NONE;
+		}
+		return distance > Math.min(detailDistance, drawDistance) ? Detail.SIMPLE : Detail.FULL;
 	}
 
 	/**
@@ -25,13 +42,14 @@ public final class PassengerFigures {
 	 * @param detailDistance full figures inside this; one figure between here and the draw distance
 	 */
 	public static int toDraw(int people, int maxPerPlace, double distance, double drawDistance, double detailDistance) {
-		if (people <= 0 || maxPerPlace <= 0 || drawDistance <= 0 || distance > drawDistance) {
+		if (people <= 0 || maxPerPlace <= 0) {
 			return 0;
 		}
-		if (distance > detailDistance) {
-			return 1;
-		}
-		return Math.min(people, maxPerPlace);
+		return switch (detail(distance, drawDistance, detailDistance)) {
+			case NONE -> 0;
+			case SIMPLE -> 1;
+			case FULL -> Math.min(people, maxPerPlace);
+		};
 	}
 
 	/**
@@ -150,5 +168,96 @@ public final class PassengerFigures {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Where people wait in front of a stopped train's doors. {@code doors} is door x, z pairs, as {@code doors()} builds
+	 * them. People at the same door stand either side of it, and each rank behind them stands a little further out.
+	 * With no doors this is {@link #spots}, so a platform with no train keeps its spread-out crowd.
+	 */
+	public static void spotsAtDoors(double x1, double y1, double z1, double x2, double y2, double z2, double[] doors, int count, Ground ground, double[] out) {
+		if (doors.length < 2 || count <= 0) {
+			spots(x1, y1, z1, x2, y2, z2, count, ground, out);
+			return;
+		}
+		final double dx = x2 - x1;
+		final double dz = z2 - z1;
+		final double length = Math.hypot(dx, dz);
+		final double alongX = length < 1.0E-4 ? 0 : dx / length;
+		final double alongZ = length < 1.0E-4 ? 0 : dz / length;
+		final double normalX = length < 1.0E-4 ? 0 : -dz / length;
+		final double normalZ = length < 1.0E-4 ? 1 : dx / length;
+		final int railY = (int) Math.floor(y1);
+		final double[] plus = edge(x1, z1, dx, dz, normalX, normalZ, ground, railY);
+		final double[] minus = edge(x1, z1, dx, dz, -normalX, -normalZ, ground, railY);
+		final double height = Math.max(plus == null ? Double.NEGATIVE_INFINITY : plus[1], minus == null ? Double.NEGATIVE_INFINITY : minus[1]);
+		final boolean usePlus = plus != null && plus[1] > height - 0.25;
+		final boolean useMinus = minus != null && minus[1] > height - 0.25;
+		final double[] noFloor = {EDGE_NEAREST, railY + 1};
+		final int doorCount = doors.length / 2;
+
+		for (int i = 0; i < count; i++) {
+			final int door = i % doorCount;
+			final double doorX = doors[door * 2];
+			final double doorZ = doors[door * 2 + 1];
+			final double at = length < 1.0E-4 ? 0.5 : clamp(((doorX - x1) * dx + (doorZ - z1) * dz) / (length * length), 0.02, 0.98);
+			final int rank = i / doorCount;
+			final double along = rank == 0 ? 0 : ((rank + 1) / 2) * DOOR_SPREAD * (rank % 2 == 1 ? 1 : -1);
+			final boolean positive = usePlus && useMinus ? rank % 2 == 0 : usePlus || !useMinus;
+			final double[] edge = usePlus || useMinus ? (positive ? plus : minus) : noFloor;
+			final double sign = positive ? 1 : -1;
+			final double baseX = x1 + dx * at + alongX * along;
+			final double baseZ = z1 + dz * at + alongZ * along;
+			double offset = edge[0] + 0.5 + (rank / 2 % 3) * 0.65;
+			double top = roomy(ground, baseX + normalX * sign * offset, baseZ + normalZ * sign * offset, railY, edge[1]);
+			double nudge = 0;
+			for (int step = 1; step <= NUDGE_STEPS * 2 && (Double.isNaN(top) || Math.abs(top - edge[1]) > 0.6); step++) {
+				nudge = (step + 1) / 2 * NUDGE * (step % 2 == 0 ? -1 : 1);
+				top = roomy(ground, baseX + alongX * nudge + normalX * sign * offset, baseZ + alongZ * nudge + normalZ * sign * offset, railY, edge[1]);
+			}
+			out[i * 3] = baseX + alongX * nudge + normalX * sign * offset;
+			out[i * 3 + 1] = Double.isNaN(top) ? edge[1] : top;
+			out[i * 3 + 2] = baseZ + alongZ * nudge + normalZ * sign * offset;
+		}
+	}
+
+	/**
+	 * Copies waiting spots to {@code to}, moving those within {@code reach} of a door sideways along the platform by
+	 * {@code strength} times {@code shift}, so the people getting off have a clear doorway. {@code strength} 0 leaves
+	 * everyone where they were; 1 is fully aside.
+	 */
+	public static void stepAside(double[] from, double[] to, int count, double x1, double z1, double x2, double z2, double[] doors, double strength, double reach, double shift) {
+		System.arraycopy(from, 0, to, 0, count * 3);
+		if (strength <= 0 || doors.length < 2) {
+			return;
+		}
+		final double dx = x2 - x1;
+		final double dz = z2 - z1;
+		final double length = Math.hypot(dx, dz);
+		final double alongX = length < 1.0E-4 ? 0 : dx / length;
+		final double alongZ = length < 1.0E-4 ? 0 : dz / length;
+		final double push = clamp(strength, 0, 1) * shift;
+		for (int i = 0; i < count; i++) {
+			double nearest = Double.MAX_VALUE;
+			double doorAt = 0;
+			for (int door = 0; door < doors.length; door += 2) {
+				final double distance = Math.hypot(doors[door] - from[i * 3], doors[door + 1] - from[i * 3 + 2]);
+				if (distance < nearest) {
+					nearest = distance;
+					doorAt = length < 1.0E-4 ? 0.5 : ((doors[door] - x1) * dx + (doors[door + 1] - z1) * dz) / (length * length);
+				}
+			}
+			if (nearest > reach) {
+				continue;
+			}
+			final double at = length < 1.0E-4 ? 0.5 : ((from[i * 3] - x1) * dx + (from[i * 3 + 2] - z1) * dz) / (length * length);
+			final double sign = at == doorAt ? (i % 2 == 0 ? 1 : -1) : at > doorAt ? 1 : -1;
+			to[i * 3] += alongX * push * sign;
+			to[i * 3 + 2] += alongZ * push * sign;
+		}
+	}
+
+	private static double clamp(double value, double min, double max) {
+		return Math.max(min, Math.min(max, value));
 	}
 }

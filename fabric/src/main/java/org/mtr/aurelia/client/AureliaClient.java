@@ -40,6 +40,8 @@ public final class AureliaClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		AtuImport.run(FabricLoader.getInstance().getConfigDir());
 		AureliaLookPack.register();
+		AureliaExamplePack.register();
+		org.mtr.aurelia.pack.AureliaPacks.registerClient();
 		// Fabric API screen events: the panel button on MTR's dashboard. MTR fills its dashboard data when that screen
 		// opens, so the tools always start from fresh data. Top-left corner of the map: MTR draws the cursor coordinates
 		// top-right and its own buttons along the bottom.
@@ -82,6 +84,7 @@ public final class AureliaClient implements ClientModInitializer {
 		ZipCableRenderer.register();
 		BuildClient.register();
 		BuildPreviewRenderer.register();
+		org.mtr.aurelia.driving.DriverClient.register();
 		LOGGER.info("[ATR] Aurelia panel ready");
 	}
 

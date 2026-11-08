@@ -26,7 +26,7 @@ public final class PassengerDrawSettings {
 	public static final int MAX_PATH_MIN = 500;
 	public static final int MAX_PATH_MAX = 12000;
 
-	/** Off, figures out to 64 blocks, a single figure past 32, at most 16 in one place, life size, drawn as people. Boxes, if chosen, are solid, blue waiting and orange riding. */
+	/** Off, full figures inside 32 blocks, one simple figure out to 64, at most 16 in one place, life size, drawn as people. Boxes, if chosen, are solid, blue waiting and orange riding. */
 	public static final Values DEFAULT = new Values(false, 64, 32, 16, true, 100, 210, 30, true, 64, true, 16, 6000);
 
 	private static Values values = DEFAULT;

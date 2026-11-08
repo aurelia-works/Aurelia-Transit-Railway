@@ -393,6 +393,11 @@ public class VehicleExtension extends Vehicle implements Utilities {
 		persistentVehicleData.dispose();
 	}
 
+	/** Distance in metres from the start of the path to the front of the train. Used by the driver aids. */
+	public double getRailProgress() {
+		return railProgress;
+	}
+
 	/**
 	 * This train's default sound profile from its first car's {@code aurelia_sound:} tag. A plain method call, no
 	 * lambdas, so MTR's existing ones keep their order. Last in the class.
