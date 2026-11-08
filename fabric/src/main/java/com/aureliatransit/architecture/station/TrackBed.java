@@ -31,4 +31,13 @@ public enum TrackBed {
 	public boolean falls() {
 		return this == GRAVEL;
 	}
+
+	/** The half block of the same ballast for a raised shoulder; empty for {@link #NONE}. */
+	public String shoulder() {
+		return switch (this) {
+			case NONE -> "";
+			case GRAVEL -> "aurelia_transit_architecture:gravel_ballast_slab";
+			case ANDESITE -> "minecraft:andesite_slab";
+		};
+	}
 }

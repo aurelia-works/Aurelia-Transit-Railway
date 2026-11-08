@@ -127,6 +127,9 @@ public final class ElevatedBlocks {
 	public static final Block ANDESITE_BED_LIGHT = ModBlocks.register("andesite_bed_light", BlockFamily.PLATFORMS, RenderKind.SOLID,
 			new FacingShapedBlock(ModBlocks.paving(MapColor.STONE_GRAY).luminance(state -> 15).nonOpaque(), Placement.TOWARD_PLAYER, box(0, 0, 0, 16, 16, 16)),
 			TIP + "faces_you");
+	/** Gravel as a half block: the station generator's raised ballast shoulder beside the sleeper ends. */
+	public static final Block GRAVEL_BALLAST_SLAB = ModBlocks.register("gravel_ballast_slab", BlockFamily.PLATFORMS, RenderKind.SOLID,
+			new net.minecraft.block.SlabBlock(ModBlocks.paving(MapColor.STONE_GRAY).sounds(net.minecraft.sound.BlockSoundGroup.GRAVEL)));
 
 	public static void init() {
 		// Class loading registers everything declared here.

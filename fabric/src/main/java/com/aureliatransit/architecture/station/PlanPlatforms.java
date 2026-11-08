@@ -545,4 +545,73 @@ abstract class PlanPlatforms extends PlanState {
 			}
 		}
 	}
+
+	/**
+	 * Planned last, on cells nothing else wanted. The ballast shoulder beside an open outer track is raised half a block, level
+	 * with the sleeper tops, like a real ballast profile; the open side along a street entrance gets its shoulder and cess
+	 * wherever the street, its steps and its lift leave room; and past each end of an island the ground between its two tracks
+	 * is ballast, instead of grass running up to the platform's end wall.
+	 */
+	void shoulders() {
+		final TrackBed bed = spec.trackBed();
+		if (bed == TrackBed.NONE || StationGeometry.cess(spec) == 0) {
+			return;
+		}
+		for (final TrackLayout.Track track : layout.tracks()) {
+			for (final int side : new int[]{-1, 1}) {
+				if (side < 0 ? track.platformLeft() : track.platformRight()) {
+					continue;
+				}
+				final int shoulder = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + 1);
+				final boolean streetSide = side < 0 && site.street() != null && !cessSide(track, side) && layout.buildingWidth() == 0
+						&& layout.tracks().stream().noneMatch(other -> other.u() < track.u()) && shoulder - 1 >= 0;
+				for (int v = layout.vMin(); v <= layout.trackEnd(track); v++) {
+					if (streetSide && freeColumn(shoulder, v) && freeColumn(shoulder - 1, v)) {
+						put(Role.TRACK_BED, shoulder, -1, v, LocalDir.PLUS_V, bed.blockId());
+						put(Role.TRACK_BED, shoulder - 1, -1, v, LocalDir.PLUS_V, CESS_PATH);
+						extraSupport.add(new Box(shoulder, -2, v, shoulder, -2, v));
+					}
+					final PlannedBlock under = at(shoulder, -1, v);
+					if (under != null && under.role() == Role.TRACK_BED && under.blockId().equals(bed.blockId()) && free(shoulder, 0, v)
+							&& free(shoulder, 1, v)) {
+						put(Role.TRACK_BED, shoulder, 0, v, LocalDir.PLUS_V, bed.shoulder());
+					}
+				}
+			}
+		}
+		final Set<TrackLayout.PlatformBand> ramped = new HashSet<>(rampedBands());
+		final int bedTo = layout.tracks().stream().mapToInt(this::bedEnd).min().orElse(-1);
+		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			if (ramped.contains(band) || !betweenTracks(band)) {
+				continue;
+			}
+			for (int v = layout.vMin(); v <= bedTo; v++) {
+				if (v >= band.vFrom() && v <= band.vTo()) {
+					continue;
+				}
+				for (int u = band.uMin(); u <= band.uMax(); u++) {
+					if (freeColumn(u, v)) {
+						put(Role.TRACK_BED, u, -1, v, LocalDir.PLUS_V, bed.blockId());
+						extraSupport.add(new Box(u, -2, v, u, -2, v));
+					}
+				}
+			}
+		}
+	}
+
+	/** Nothing planned or kept clear at the cell. */
+	private boolean free(int u, int y, int v) {
+		final Cell cell = new Cell(u, y, v);
+		return !cells.containsKey(cell) && !air.contains(cell);
+	}
+
+	/** Nothing planned or kept clear from the bed up to head height at that column and row. */
+	private boolean freeColumn(int u, int v) {
+		for (int y = -1; y <= StationGeometry.WALK_Y + 1; y++) {
+			if (!free(u, y, v)) {
+				return false;
+			}
+		}
+		return true;
+	}
 }

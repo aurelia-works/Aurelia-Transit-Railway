@@ -117,6 +117,7 @@ public final class StationPlanner {
 		planning.parking();
 		planning.underground();
 		planning.edgeRailings();
+		planning.shoulders();
 		return planning.finish();
 	}
 
