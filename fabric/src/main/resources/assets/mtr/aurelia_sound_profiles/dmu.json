@@ -1,0 +1,28 @@
+{
+	"name": "DMU",
+	"motor": {
+		"sounds": ["aurelia:train_profiles/dmu/motor"],
+		"always": true,
+		"volume": 0.85,
+		"pitch_curve": [
+			{"speed": 0, "pitch": 0.9},
+			{"speed": 40, "pitch": 1},
+			{"speed": 90, "pitch": 1.12},
+			{"speed": 140, "pitch": 1.2}
+		],
+		"volume_curve": [
+			{"speed": 0, "volume": 0.35},
+			{"speed": 25, "volume": 0.6},
+			{"speed": 80, "volume": 0.95},
+			{"speed": 140, "volume": 1}
+		]
+	},
+	"door_chime": "aurelia:train_profiles/dmu/chime",
+	"door_open": "aurelia:train_profiles/dmu/door_open",
+	"door_close": "aurelia:train_profiles/dmu/door_close",
+	"brake_release": "aurelia:train_profiles/dmu/brake_release",
+	"compressor_loop": "aurelia:train_profiles/dmu/compressor",
+	"compressor_attack": "aurelia:train_profiles/dmu/compressor_attack",
+	"compressor_release": "aurelia:train_profiles/dmu/compressor_release",
+	"flange": ["aurelia:train_profiles/dmu/flange"]
+}

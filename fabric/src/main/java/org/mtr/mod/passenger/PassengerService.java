@@ -1,5 +1,6 @@
 package org.mtr.mod.passenger;
 
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -9,9 +10,15 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
+import org.mtr.core.data.Data;
 import org.mtr.core.data.Platform;
+import org.mtr.core.data.Position;
 import org.mtr.core.data.Route;
 import org.mtr.core.data.RoutePlatformData;
 import org.mtr.core.data.Siding;
@@ -71,6 +78,7 @@ public final class PassengerService {
 	}
 
 	public static void registerServer() {
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> PassengerCommand.register(dispatcher));
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> settings = state(server).settings);
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			NETWORKS.clear();
@@ -173,12 +181,13 @@ public final class PassengerService {
 					final Route route = simulator.routeIdMap.get(vehicle.vehicleExtraData.getThisRouteId());
 					if (platform != null && platform.area != null && route != null) {
 						final int cars = Math.max(1, vehicle.vehicleExtraData.immutableVehicleCars.size());
-						network.exchange(vehicle.getId(), platformId, platform.area.getId(), upcomingStations(route, platformId, vehicle.vehicleExtraData.getStopIndex()), cars, current);
+						// MTR keeps the door target open while a train is dwelling with its doors released
+						network.exchange(vehicle.getId(), platformId, platform.area.getId(), upcomingStations(route, platformId, vehicle.vehicleExtraData.getStopIndex()), cars, current, vehicle.vehicleExtraData.getDoorMultiplier() > 0);
 					}
 				}
 				riding += network.ridingOn(vehicle.getId());
 			}
-			network.retain(vehicleIds, destinations.keySet());
+			network.retain(vehicleIds, platformsToKeep(simulator));
 
 			final double micros = (System.nanoTime() - start) / 1000D;
 			final double cost = COST.getOrDefault(dimension, micros) * 0.9 + micros * 0.1;
@@ -190,8 +199,15 @@ public final class PassengerService {
 		}
 	}
 
+	/** Platforms whose waiting passengers stay: every platform that still exists, with a route or not. */
+	public static Set<Long> platformsToKeep(Data data) {
+		final Set<Long> platforms = new HashSet<>();
+		data.platforms.forEach(platform -> platforms.add(platform.getId()));
+		return platforms;
+	}
+
 	/** Every platform a route stops at, with the stations reachable from it by staying on that route. */
-	static Map<Long, long[]> destinationsByPlatform(Simulator simulator) {
+	public static Map<Long, long[]> destinationsByPlatform(Data simulator) {
 		final Map<Long, Set<Long>> sets = new HashMap<>();
 		for (final Route route : simulator.routes) {
 			final List<RoutePlatformData> stops = route.getRoutePlatforms();
@@ -266,6 +282,125 @@ public final class PassengerService {
 		return result;
 	}
 
+	/**
+	 * Turns passengers on, finds the nearest MTR platform to {@code near}, and fills it with waiting people through the
+	 * normal network. The service's next second keeps them alive, boards them if a train stops, and sends new counts.
+	 */
+	public static void demo(MinecraftServer server, ServerWorld world, BlockPos near, int count, ServerPlayerEntity player) {
+		final ObjectImmutableList<Simulator> simulators = simulators();
+		if (simulators == null) {
+			tell(player, "MTR is not ready yet; try again in a moment.", Formatting.RED);
+			return;
+		}
+		final String dimension = Init.getWorldId(new org.mtr.mapping.holder.World(world));
+		for (final Simulator simulator : simulators) {
+			if (!simulator.dimension.equals(dimension)) {
+				continue;
+			}
+			// Only the on switch is saved. The operator's caps stay; the demo's own numbers apply to this one fill.
+			final State state = state(server);
+			final PassengerNetwork.Settings saved = state.settings;
+			final PassengerNetwork.Settings on = new PassengerNetwork.Settings(true, saved.perPlatformPerMinute(), saved.maxWaitingPerPlatform(), saved.maxTotal(), saved.seatsPerCar());
+			state.settings = on;
+			state.markDirty();
+			settings = on;
+			final PassengerNetwork.Settings demo = new PassengerNetwork.Settings(true, PassengerNetwork.Settings.MAX_PER_MINUTE, PassengerNetwork.Settings.MAX_WAITING, PassengerNetwork.Settings.MAX_TOTAL, on.seatsPerCar());
+			simulator.run(() -> {
+				final Platform platform = nearestPlatform(simulator, near);
+				if (platform == null) {
+					server.execute(() -> tell(player, "No MTR platform within 128 blocks; stand on or beside a platform.", Formatting.RED));
+					return;
+				}
+				final PassengerNetwork network = NETWORKS.computeIfAbsent(dimension, key -> new PassengerNetwork());
+				long[] destinations = destinationsByPlatform(simulator).get(platform.getId());
+				final boolean served = destinations != null && destinations.length > 0;
+				if (!served) {
+					final long station = platform.area == null ? platform.getId() : platform.area.getId();
+					destinations = new long[]{station == Long.MAX_VALUE ? station - 1 : station + 1};
+				}
+				network.spawn(platform.getId(), destinations, (count + 0.5) / PassengerNetwork.Settings.MAX_PER_MINUTE, demo, System.currentTimeMillis(), new Random());
+				final int waiting = network.waitingTotal();
+				final int riding = network.ridingCounts().values().stream().mapToInt(Integer::intValue).sum();
+				final int here = network.waitingAt(platform.getId());
+				final Position mid = platform.getMidPosition();
+				final int away = (int) Math.round(Math.sqrt(near.getSquaredDistance(mid.getX(), mid.getY(), mid.getZ())));
+				COUNTS.put(dimension, new Counts(network.waitingCounts(), network.ridingCounts()));
+				STATS.put(dimension, new Stats(waiting, riding, network.boardedTotal(), network.alightedTotal(), 0));
+				server.execute(() -> {
+					server.getPlayerManager().getPlayerList().forEach(PassengerService::send);
+					final String station = platform.getStationName().isBlank() ? platform.getName() : platform.getStationName();
+					tell(player, "Passenger demo: " + here + " waiting at " + (station.isBlank() ? "the nearest platform" : station)
+							+ ", " + away + " blocks from you at " + mid.getX() + " " + mid.getY() + " " + mid.getZ() + ".", Formatting.GREEN);
+					tell(player, served ? "Figures show when you are near it, once /atr_passenger_draw on is set."
+							: "No route stops here, so nobody will board. Add this platform to a route with a running train.", served ? Formatting.GRAY : Formatting.YELLOW);
+				});
+			});
+			return;
+		}
+		tell(player, "No MTR simulator for this dimension.", Formatting.RED);
+	}
+
+	/** Clears the demo network, removes the counts and turns passengers off again. The caps stay. */
+	public static void clearDemo(MinecraftServer server, ServerWorld world, ServerPlayerEntity player) {
+		final ObjectImmutableList<Simulator> simulators = simulators();
+		if (simulators == null) {
+			tell(player, "MTR is not ready yet.", Formatting.RED);
+			return;
+		}
+		final String dimension = Init.getWorldId(new org.mtr.mapping.holder.World(world));
+		for (final Simulator simulator : simulators) {
+			if (!simulator.dimension.equals(dimension)) {
+				continue;
+			}
+			final State state = state(server);
+			final PassengerNetwork.Settings saved = state.settings;
+			final PassengerNetwork.Settings off = new PassengerNetwork.Settings(false, saved.perPlatformPerMinute(), saved.maxWaitingPerPlatform(), saved.maxTotal(), saved.seatsPerCar());
+			state.settings = off;
+			state.markDirty();
+			settings = off;
+			simulator.run(() -> {
+				final PassengerNetwork network = NETWORKS.get(dimension);
+				if (network != null) {
+					network.clear();
+				}
+				COUNTS.remove(dimension);
+				STATS.remove(dimension);
+				server.execute(() -> {
+					server.getPlayerManager().getPlayerList().forEach(PassengerService::send);
+					tell(player, "Passenger demo cleared; passengers are off.", Formatting.GRAY);
+				});
+			});
+			return;
+		}
+		tell(player, "No MTR simulator for this dimension.", Formatting.RED);
+	}
+
+	private static Platform nearestPlatform(Simulator simulator, BlockPos near) {
+		Platform best = null;
+		double bestDistance = 128 * 128;
+		for (final Platform platform : simulator.platforms) {
+			final Position mid = platform.getMidPosition();
+			if (mid == null) {
+				continue;
+			}
+			final double dx = mid.getX() - near.getX() - 0.5;
+			final double dy = mid.getY() - near.getY();
+			final double dz = mid.getZ() - near.getZ() - 0.5;
+			final double distance = dx * dx + dy * dy + dz * dz;
+			if (distance < bestDistance) {
+				best = platform;
+				bestDistance = distance;
+			}
+		}
+		return best;
+	}
+
+	private static void tell(ServerPlayerEntity player, String message, Formatting formatting) {
+		if (!player.isRemoved()) {
+			player.sendMessage(Text.literal(message).formatted(formatting), false);
+		}
+	}
+
 	private static void send(ServerPlayerEntity player) {
 		final PacketByteBuf buf = PacketByteBufs.create();
 		write(buf, settings);
@@ -301,7 +436,7 @@ public final class PassengerService {
 
 	@SuppressWarnings("unchecked")
 	@Nullable
-	private static ObjectImmutableList<Simulator> simulators() {
+	public static ObjectImmutableList<Simulator> simulators() {
 		try {
 			final Field mainField = Init.class.getDeclaredField("main");
 			mainField.setAccessible(true);

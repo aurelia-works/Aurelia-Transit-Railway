@@ -71,6 +71,22 @@
 			"type": "integer",
 			"default": 10
 		},
+		"railViewChunks": {
+			"type": "integer",
+			"default": 0
+		},
+		"trainViewChunks": {
+			"type": "integer",
+			"default": 0
+		},
+		"farDetail": {
+			"type": "boolean",
+			"default": true
+		},
+		"blockEntityWarn": {
+			"type": "integer",
+			"default": 200
+		},
 		"useMTRFont": {
 			"type": "boolean"
 		},
@@ -140,6 +156,30 @@
 			"default": 0.8
 		},
 		"flangeVolume": {
+			"type": "number",
+			"default": 1.0
+		},
+		"drivingAws": {
+			"type": "boolean",
+			"default": true
+		},
+		"drivingTpws": {
+			"type": "boolean",
+			"default": true
+		},
+		"drivingScoreHud": {
+			"type": "boolean",
+			"default": true
+		},
+		"drivingStopMarker": {
+			"type": "boolean",
+			"default": true
+		},
+		"drivingAwsSeconds": {
+			"type": "number",
+			"default": 3.0
+		},
+		"drivingHudScale": {
 			"type": "number",
 			"default": 1.0
 		}

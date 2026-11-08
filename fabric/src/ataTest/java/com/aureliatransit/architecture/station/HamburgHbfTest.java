@@ -45,6 +45,7 @@ class HamburgHbfTest {
 		assertEquals(10, spec.trackCount());
 		assertTrue(spec.platforms().stream().allMatch(p -> p.kind() == PlatformSpec.Kind.ISLAND));
 		assertEquals(225, spec.platformLength());
+		assertEquals(BuildingStyle.CLINKER, spec.building());
 		assertEquals(RoofType.HALL, spec.roof());
 		assertEquals(ShedShape.ARCH, spec.shed());
 		assertEquals(StationScale.GRAND, spec.scale());
@@ -97,9 +98,12 @@ class HamburgHbfTest {
 		for (final int u : List.of(us.get(0) + aisle / 2, us.get(us.size() - 1) - aisle / 2)) {
 			assertTrue(top.get(u) < peak - 10, "aisle at u " + u + " rises to " + top.get(u));
 		}
-		// the clock tower stands as high as the real ones
+		// the two clock towers stand as high as the real ones
 		final int highest = plan.blocks().stream().mapToInt(PlannedBlock::y).max().orElseThrow();
 		assertTrue(highest >= HAMBURG.towerTopY(), "tallest point " + highest);
+		final List<PlannedBlock> clockFaces = plan.blocks().stream().filter(b -> b.blockId().endsWith("clock_face_panel")).toList();
+		final int street = clockFaces.stream().mapToInt(PlannedBlock::u).min().orElseThrow();
+		assertEquals(2, clockFaces.stream().filter(b -> b.u() == street).count(), "two entrance towers");
 		// and reads as a tower, not a chimney: windows up its shaft, not only at its foot
 		final List<Integer> windows = plan.blocks().stream().filter(b -> b.role() == Role.WINDOW && b.y() > HAMBURG.roofTopY() - 20)
 				.map(PlannedBlock::y).distinct().toList();

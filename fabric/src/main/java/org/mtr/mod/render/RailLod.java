@@ -11,6 +11,10 @@ public final class RailLod {
 	public static final double TALL_HEIGHT = 0.5;
 	public static final double FAR_SPACING = 4;
 	public static final double TALL_SPACING = 2;
+	/** Spacing of the flat quads drawn past Minecraft's render distance. */
+	public static final double FAR_VIEW_INTERVAL = 8;
+	/** How far the far pass reaches back into the normal render distance, so detail levels do not pop or gap. */
+	public static final double FAR_VIEW_OVERLAP = 16;
 
 	private RailLod() {
 	}
@@ -59,5 +63,39 @@ public final class RailLod {
 	/** In the far tier only every {@code step}-th piece is drawn, covering the next {@code step} pieces. */
 	public static boolean drawsFarPiece(long pieceIndex, int step) {
 		return step <= 1 || Math.floorMod(pieceIndex, step) == 0;
+	}
+
+	/**
+	 * A piece past Minecraft's render distance but still inside the player's rail view distance. These are drawn as flat
+	 * quads instead of full rail models. 0 or a setting at or below Minecraft's render distance turns this off.
+	 */
+	public static boolean inFarView(double distanceBlocks, int minecraftChunks, int railViewChunks, boolean farDetail) {
+		return inFarView(distanceBlocks, minecraftChunks, railViewChunks, farDetail, 0);
+	}
+
+	/**
+	 * @param overlapBlocks how far the far pass reaches back into Minecraft's render distance. The far quads then sit
+	 *                      under the normal rail for a short stretch, so the switch to the cheap shape does not pop and
+	 *                      the boundary has no gap.
+	 */
+	public static boolean inFarView(double distanceBlocks, int minecraftChunks, int railViewChunks, boolean farDetail, double overlapBlocks) {
+		return farDetail && railViewChunks > minecraftChunks && distanceBlocks > Math.max(0, minecraftChunks * 16.0 - overlapBlocks) && distanceBlocks <= railViewChunks * 16.0;
+	}
+
+	/**
+	 * Horizontal distance from a point to an axis-aligned box, 0 when the point is inside it. Used to skip rails whose
+	 * whole bounding box is outside the far view without walking their pieces.
+	 */
+	public static double boxDistance(double x, double z, double minX, double minZ, double maxX, double maxZ) {
+		final double dx = Math.max(0, Math.max(minX - x, x - maxX));
+		final double dz = Math.max(0, Math.max(minZ - z, z - maxZ));
+		return Math.hypot(dx, dz);
+	}
+
+	/** Horizontal distance from a point to the farthest corner of an axis-aligned box. */
+	public static double farthestBoxDistance(double x, double z, double minX, double minZ, double maxX, double maxZ) {
+		final double dx = Math.max(Math.abs(x - minX), Math.abs(x - maxX));
+		final double dz = Math.max(Math.abs(z - minZ), Math.abs(z - maxZ));
+		return Math.hypot(dx, dz);
 	}
 }

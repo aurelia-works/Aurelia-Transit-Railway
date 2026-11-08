@@ -49,6 +49,9 @@ public class VehicleRidingMovement {
 	private static int pressingDoorsTicks = 0;
 	private static int pressingAtoTicks = 0;
 	private static int doorOverrideTicks;
+	/** One-shot requests from the Aurelia driver aids, cleared by the next update. */
+	private static int aureliaBrakeNotches;
+	private static boolean aureliaDoorRequest;
 
 	public static final int SEND_UPDATE_FREQUENCY = 1000;
 	private static final float VEHICLE_WALKING_SPEED_MULTIPLIER = 0.005F;
@@ -81,9 +84,25 @@ public class VehicleRidingMovement {
 		pressingDoorsTicks = isHoldingDriverKeyNew && driverKey.canOpenDoors && KeyBindings.TRAIN_TOGGLE_DOORS.isPressed() ? pressingDoorsTicks + 1 : 0;
 		pressingAtoTicks = isHoldingDriverKeyNew && driverKey.canDrive && KeyBindings.TRAIN_TOGGLE_DOORS.isPressed() ? pressingAtoTicks + 1 : 0;
 
-		if (sendPositionUpdateTime > 0 && sendPositionUpdateTime <= System.currentTimeMillis() || isHoldingDriverKeyNew != isHoldingDriverKey || pressingAccelerateTicks == 1 || pressingBrakeTicks == 1 || pressingDoorsTicks == 1 || pressingAtoTicks == 1 || doorOverrideTicks == 1) {
+		if (ridingVehicleId == 0) {
+			// Do not carry a protection request over to the next train the player boards
+			aureliaBrakeNotches = 0;
+			aureliaDoorRequest = false;
+		}
+
+		if (sendPositionUpdateTime > 0 && sendPositionUpdateTime <= System.currentTimeMillis() || isHoldingDriverKeyNew != isHoldingDriverKey || pressingAccelerateTicks == 1 || pressingBrakeTicks == 1 || pressingDoorsTicks == 1 || pressingAtoTicks == 1 || doorOverrideTicks == 1 || aureliaDoorRequest) {
 			isHoldingDriverKey = isHoldingDriverKeyNew;
 			sendUpdate(false);
+		}
+
+		if (aureliaBrakeNotches > 0) {
+			final int notches = Math.min(3, aureliaBrakeNotches);
+			aureliaBrakeNotches = 0;
+			if (ridingVehicleId != 0) {
+				for (int i = 0; i < notches; i++) {
+					sendUpdate(false, true);
+				}
+			}
 		}
 
 		if (doorOverrideTicks > 0) {
@@ -381,13 +400,35 @@ public class VehicleRidingMovement {
 	}
 
 	private static void sendUpdate(boolean dismount) {
+		sendUpdate(dismount, false);
+	}
+
+	private static void sendUpdate(boolean dismount, boolean protectionBrake) {
 		if (ridingVehicleId != 0) {
-			InitClient.REGISTRY_CLIENT.sendPacketToServer(PacketUpdateVehicleRidingEntities.create(ridingSidingId, ridingVehicleId, dismount ? -1 : ridingVehicleCarNumber, ridingVehicleX, ridingVehicleY, ridingVehicleZ, isOnGangway, isHoldingDriverKey, pressingAccelerateTicks == 1, pressingBrakeTicks == 1, pressingDoorsTicks == 1, pressingAtoTicks == 1, doorOverrideTicks > 1));
+			final boolean brake = pressingBrakeTicks == 1 || protectionBrake;
+			final boolean doors = pressingDoorsTicks == 1 || aureliaDoorRequest;
+			InitClient.REGISTRY_CLIENT.sendPacketToServer(PacketUpdateVehicleRidingEntities.create(ridingSidingId, ridingVehicleId, dismount ? -1 : ridingVehicleCarNumber, ridingVehicleX, ridingVehicleY, ridingVehicleZ, isOnGangway, isHoldingDriverKey, !protectionBrake && pressingAccelerateTicks == 1, brake, doors, !protectionBrake && pressingAtoTicks == 1, doorOverrideTicks > 1));
+			aureliaDoorRequest = false;
 			sendPositionUpdateTime = 0;
 		}
 	}
 
 	private static double getFromScale(double min, double max, double percentage) {
 		return (max - min) * percentage + min;
+	}
+
+	/** One service brake notch from the Aurelia driver aids. */
+	public static void requestAureliaBrake() {
+		aureliaBrakeNotches = Math.max(aureliaBrakeNotches, 1);
+	}
+
+	/** Three brake notches per tick for a TPWS trip, so the emergency brake goes on quickly. */
+	public static void requestAureliaEmergencyBrake() {
+		aureliaBrakeNotches = Math.max(aureliaBrakeNotches, 3);
+	}
+
+	/** One door toggle from the Aurelia door keys. The update clears it, so one request is one toggle. */
+	public static void requestAureliaDoors() {
+		aureliaDoorRequest = true;
 	}
 }

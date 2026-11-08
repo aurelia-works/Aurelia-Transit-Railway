@@ -2,7 +2,15 @@ package org.mtr.aurelia.passenger;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mtr.core.data.Data;
+import org.mtr.core.data.Platform;
+import org.mtr.core.data.Position;
+import org.mtr.core.data.Rail;
+import org.mtr.core.data.TransportMode;
+import org.mtr.core.tool.Angle;
+import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.mod.passenger.PassengerNetwork;
+import org.mtr.mod.passenger.PassengerService;
 
 import java.util.Random;
 import java.util.Set;
@@ -27,7 +35,7 @@ public final class PassengerNetworkTest {
 		// The train stops at A going to B and C. Two cars: six through the doors a second.
 		int boarded = 0;
 		for (int second = 0; second < 10; second++) {
-			boarded += network.exchange(TRAIN, PLATFORM_A, A, Set.of(B, C), 2, SETTINGS).boarded();
+			boarded += network.exchange(TRAIN, PLATFORM_A, A, Set.of(B, C), 2, SETTINGS, true).boarded();
 		}
 		Assertions.assertEquals(20, boarded);
 		Assertions.assertEquals(0, network.waitingAt(PLATFORM_A));
@@ -36,18 +44,36 @@ public final class PassengerNetworkTest {
 		// At B only the B passengers leave; the C passengers stay on.
 		int alightedAtB = 0;
 		for (int second = 0; second < 10; second++) {
-			alightedAtB += network.exchange(TRAIN, PLATFORM_B, B, Set.of(C), 2, SETTINGS).alighted();
+			alightedAtB += network.exchange(TRAIN, PLATFORM_B, B, Set.of(C), 2, SETTINGS, true).alighted();
 		}
 		Assertions.assertTrue(alightedAtB > 0 && alightedAtB < 20, "some went to B, some to C: " + alightedAtB);
 		Assertions.assertEquals(20 - alightedAtB, network.ridingOn(TRAIN));
 
 		// At the terminus C everyone left gets off.
 		for (int second = 0; second < 10; second++) {
-			network.exchange(TRAIN, PLATFORM_C, C, Set.of(), 2, SETTINGS);
+			network.exchange(TRAIN, PLATFORM_C, C, Set.of(), 2, SETTINGS, true);
 		}
 		Assertions.assertEquals(0, network.ridingOn(TRAIN));
 		Assertions.assertEquals(0, network.total());
 		Assertions.assertEquals(20, network.alightedTotal());
+	}
+
+	/** Doors are the gate: a train stopped with its doors shut moves nobody, and the same stop boards once they open. */
+	@Test
+	public void closedDoorsMoveNobody() {
+		final PassengerNetwork network = new PassengerNetwork();
+		network.spawn(PLATFORM_A, new long[]{B}, 1, SETTINGS, 0, new Random(3));
+		final int waiting = network.waitingAt(PLATFORM_A);
+		for (int second = 0; second < 5; second++) {
+			final PassengerNetwork.Exchange exchange = network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, SETTINGS, false);
+			Assertions.assertEquals(0, exchange.boarded());
+			Assertions.assertEquals(0, exchange.alighted());
+		}
+		Assertions.assertEquals(waiting, network.waitingAt(PLATFORM_A));
+		Assertions.assertEquals(0, network.ridingOn(TRAIN));
+
+		Assertions.assertTrue(network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, SETTINGS, true).boarded() > 0);
+		Assertions.assertTrue(network.ridingOn(TRAIN) > 0, "the same stop boards once the doors open");
 	}
 
 	@Test
@@ -60,7 +86,7 @@ public final class PassengerNetworkTest {
 		Assertions.assertEquals(10, network.waitingAt(PLATFORM_B), "the whole world holds 25, so B gets the last 10");
 
 		for (int second = 0; second < 10; second++) {
-			network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, small);
+			network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, small, true);
 		}
 		Assertions.assertEquals(5, network.ridingOn(TRAIN), "one car with five seats");
 
@@ -72,5 +98,24 @@ public final class PassengerNetworkTest {
 
 		network.expire(PassengerNetwork.GIVE_UP_MILLIS + 1);
 		Assertions.assertEquals(0, network.total(), "waited too long and went home");
+	}
+
+	@Test
+	public void aPlatformWithNoRouteKeepsItsPeople() {
+		final Data data = new Data() {
+		};
+		final Position end1 = new Position(0, 64, 0);
+		final Position end2 = new Position(20, 64, 0);
+		data.rails.add(Rail.newPlatformRail(end1, Angle.E, end2, Angle.W, Rail.Shape.QUADRATIC, 0, new ObjectArrayList<>(), TransportMode.TRAIN));
+		final Platform platform = new Platform(end1, end2, TransportMode.TRAIN, data);
+		data.platforms.add(platform);
+		data.sync();
+
+		final PassengerNetwork network = new PassengerNetwork();
+		network.spawn(platform.getId(), new long[]{B}, 40 / 30D, SETTINGS, 0, new Random(1));
+		final int waiting = network.waitingAt(platform.getId());
+		Assertions.assertTrue(waiting > 0);
+		network.retain(Set.of(), PassengerService.platformsToKeep(data));
+		Assertions.assertEquals(waiting, network.waitingAt(platform.getId()));
 	}
 }

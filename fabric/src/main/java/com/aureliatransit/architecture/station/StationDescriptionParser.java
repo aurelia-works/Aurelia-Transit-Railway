@@ -1726,6 +1726,7 @@ public final class StationDescriptionParser {
 					case "zurich" -> "Zurich HB";
 					case "mumbai" -> "Mumbai CSMT";
 					case "bangkok" -> "Hua Lamphong";
+					case "amsterdam" -> "Amsterdam Centraal";
 					default -> null;
 				};
 			}
@@ -2110,7 +2111,8 @@ public final class StationDescriptionParser {
 				warn(who + " is built as it is; the look words are left out");
 			}
 			building = true;
-			buildingStyle = null;
+			// Hamburg Hbf's clinker brick, not the German S-Bahn platform style's default sandstone (that is Frankfurt's hall)
+			buildingStyle = BuildingStyle.CLINKER;
 			looks.clear();
 			lookOnlyWord = null;
 			if (scale != null && scale != StationScale.GRAND) {

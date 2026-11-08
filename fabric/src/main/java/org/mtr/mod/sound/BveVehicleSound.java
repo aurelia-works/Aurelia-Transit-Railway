@@ -1,5 +1,6 @@
 package org.mtr.mod.sound;
 
+import org.mtr.aurelia.sound.ProfileSounds;
 import org.mtr.mapping.holder.BlockPos;
 import org.mtr.mapping.holder.MinecraftClient;
 import org.mtr.mapping.holder.SoundEvent;
@@ -11,6 +12,10 @@ import java.util.Random;
 public class BveVehicleSound extends VehicleSoundBase {
 
 	private final BveVehicleSoundConfig config;
+	@Nullable
+	private ProfileSounds profileSounds;
+	private String appliedLoopKey = "";
+	private VehicleLoopingSoundInstance[] profileMotor = new VehicleLoopingSoundInstance[0];
 
 	private float oldSpeedChange;
 	private boolean oldOnRoute = false;
@@ -62,6 +67,9 @@ public class BveVehicleSound extends VehicleSoundBase {
 		final float secondsElapsed = MinecraftClient.getInstance().getLastFrameDuration() / 20;
 		final float speedKilometersPerHour = speed * 3600;
 		final float speedMetersPerSecond = speed * 1000;
+		final ProfileSounds profile = profileSounds;
+		final float motorVolumeMultiply = profile == null ? config.config.motorVolumeMultiply : config.config.motorVolumeMultiply * profile.motorVolume;
+		final float motorPitchMultiply = profile == null ? 1 : profile.pitchAt(speedKilometersPerHour);
 
 		// Rolling noise
 		if (vehicleLoopingSoundHolder.soundLoopRun != null) {
@@ -111,18 +119,30 @@ public class BveVehicleSound extends VehicleSoundBase {
 		}
 		if (vehicleLoopingSoundHolder.soundLoopCompressor != null) {
 			// NOTE: Attack sound playback is not to BVE specification.
-			vehicleLoopingSoundHolder.soundLoopCompressor.setData(isCompressorActive ? 1 : 0, 1, blockPos);
+			vehicleLoopingSoundHolder.soundLoopCompressor.setData(isCompressorActive ? (profile == null ? 1 : profile.compressorVolume) : 0, 1, blockPos);
 		}
 		if (isCompressorActive && !isCompressorActiveLastElapsed) {
-			playSoundInWorld(config.config.compressorAttack, blockPos);
+			playCompressorAttack(blockPos, profile);
 		} else if (!isCompressorActive && isCompressorActiveLastElapsed) {
-			playSoundInWorld(config.config.compressorRelease, blockPos);
+			playCompressorRelease(blockPos, profile);
 		}
 
 		// Motor noise
-		for (int i = 0; i < config.motorData.getSoundCount(); i++) {
-			if (vehicleLoopingSoundHolder.soundLoopMotor[i] != null) {
-				vehicleLoopingSoundHolder.soundLoopMotor[i].setData(config.motorData.getVolume(i, speedKilometersPerHour, motorCurrentOutput) * config.config.motorVolumeMultiply, config.motorData.getPitch(i, speedKilometersPerHour, motorCurrentOutput), blockPos);
+		if (profile != null && profileMotor.length > 0) {
+			for (int i = 0; i < config.motorData.getSoundCount(); i++) {
+				if (vehicleLoopingSoundHolder.soundLoopMotor[i] != null) {
+					vehicleLoopingSoundHolder.soundLoopMotor[i].setData(0, 1, blockPos);
+				}
+			}
+			final float gain = profile.motorGainAt(speedKilometersPerHour) * motorVolumeMultiply * (profile.motorAlwaysOn ? 1 : Math.max(0.25F, Math.abs(motorCurrentOutput)));
+			for (final VehicleLoopingSoundInstance motor : profileMotor) {
+				motor.setData(gain, motorPitchMultiply, blockPos);
+			}
+		} else {
+			for (int i = 0; i < config.motorData.getSoundCount(); i++) {
+				if (vehicleLoopingSoundHolder.soundLoopMotor[i] != null) {
+					vehicleLoopingSoundHolder.soundLoopMotor[i].setData(config.motorData.getVolume(i, speedKilometersPerHour, motorCurrentOutput) * motorVolumeMultiply, config.motorData.getPitch(i, speedKilometersPerHour, motorCurrentOutput) * motorPitchMultiply, blockPos);
+				}
 			}
 		}
 
@@ -150,7 +170,7 @@ public class BveVehicleSound extends VehicleSoundBase {
 
 		// Air brake application and release noise
 		if (oldSpeedChange < 0 && speedChange >= 0) {
-			playSoundInWorld(config.config.brakeHandleRelease, blockPos);
+			playBrakeRelease(blockPos, profile);
 			if (speedMetersPerSecond < config.config.regenerationLimit) {
 				playSoundInWorld(config.config.airZero, blockPos);
 			}
@@ -173,17 +193,111 @@ public class BveVehicleSound extends VehicleSoundBase {
 
 	@Override
 	protected void playDoorSound(BlockPos blockPos, boolean isOpen) {
-		ScheduledSound.schedule(blockPos, isOpen ? config.config.doorOpen : config.config.doorClose, 2, 1);
+		final ProfileSounds profile = profileSounds;
+		if (profile != null && (isOpen ? profile.doorOpen : profile.doorClose) != null) {
+			ScheduledSound.schedule(blockPos, isOpen ? profile.doorOpen : profile.doorClose, (float) (2 * profile.doorVolume), 1);
+		} else {
+			ScheduledSound.schedule(blockPos, isOpen ? config.config.doorOpen : config.config.doorClose, 2, 1);
+		}
 	}
 
 	@Override
 	public void dispose() {
+		for (final VehicleLoopingSoundInstance motor : profileMotor) {
+			motor.dispose();
+		}
 		vehicleLoopingSoundHolder.dispose();
 	}
 
 	@Override
 	protected double getDoorCloseSoundTime() {
 		return config.config.doorCloseSoundLength;
+	}
+
+	@Override
+	public void setSoundProfile(@Nullable ProfileSounds profile) {
+		final String loopKey = profile == null ? "" : profile.loopKey;
+		if (profileSounds == profile && appliedLoopKey.equals(loopKey)) {
+			return;
+		}
+		profileSounds = profile;
+		if (!appliedLoopKey.equals(loopKey)) {
+			appliedLoopKey = loopKey;
+			rebuildProfileLoops();
+		}
+	}
+
+	@Nullable
+	@Override
+	protected SoundEvent getProfileDoorChime() {
+		return profileSounds == null ? null : profileSounds.doorChime;
+	}
+
+	@Override
+	protected float getProfileDoorChimeVolume() {
+		return profileSounds == null ? 1 : (float) (profileSounds.chimeVolume * Config.getClient().getDoorChimeVolume());
+	}
+
+	/** Swaps the flange, compressor and motor loops for the profile's, or back to the train's own. */
+	private void rebuildProfileLoops() {
+		final ProfileSounds profile = profileSounds;
+		for (final VehicleLoopingSoundInstance motor : profileMotor) {
+			motor.dispose();
+		}
+		if (profile != null && profile.motor.length > 0) {
+			final VehicleLoopingSoundInstance[] motors = new VehicleLoopingSoundInstance[profile.motor.length];
+			for (int i = 0; i < motors.length; i++) {
+				motors[i] = new VehicleLoopingSoundInstance(profile.motor[i]);
+			}
+			profileMotor = motors;
+		} else {
+			profileMotor = new VehicleLoopingSoundInstance[0];
+		}
+		if (profile != null && profile.flange.length > 0) {
+			final VehicleLoopingSoundInstance[] flange = new VehicleLoopingSoundInstance[profile.flange.length];
+			for (int i = 0; i < flange.length; i++) {
+				flange[i] = new VehicleLoopingSoundInstance(profile.flange[i]);
+			}
+			vehicleLoopingSoundHolder.replaceFlange(flange);
+		} else {
+			final VehicleLoopingSoundInstance[] flange = new VehicleLoopingSoundInstance[config.config.flange.length];
+			for (int i = 0; i < flange.length; i++) {
+				if (config.config.flange[i] != null) {
+					flange[i] = new VehicleLoopingSoundInstance(config.config.flange[i]);
+				}
+			}
+			vehicleLoopingSoundHolder.replaceFlange(flange);
+		}
+		final SoundEvent compressor = profile != null && profile.compressorLoop != null ? profile.compressorLoop : config.config.compressorLoop;
+		vehicleLoopingSoundHolder.replaceCompressor(compressor == null ? null : new VehicleLoopingSoundInstance(compressor));
+	}
+
+	private void playCompressorAttack(BlockPos blockPos, @Nullable ProfileSounds profile) {
+		if (profile != null && profile.compressorAttack != null) {
+			playSoundInWorld(profile.compressorAttack, blockPos, profile.compressorVolume);
+		} else {
+			playSoundInWorld(config.config.compressorAttack, blockPos);
+		}
+	}
+
+	private void playCompressorRelease(BlockPos blockPos, @Nullable ProfileSounds profile) {
+		if (profile != null && profile.compressorRelease != null) {
+			playSoundInWorld(profile.compressorRelease, blockPos, profile.compressorVolume);
+		} else {
+			playSoundInWorld(config.config.compressorRelease, blockPos);
+		}
+	}
+
+	private void playBrakeRelease(BlockPos blockPos, @Nullable ProfileSounds profile) {
+		if (profile != null && profile.brakeRelease != null) {
+			playSoundInWorld(profile.brakeRelease, blockPos, profile.brakeVolume);
+		} else {
+			playSoundInWorld(config.config.brakeHandleRelease, blockPos);
+		}
+	}
+
+	private static void playSoundInWorld(@Nullable SoundEvent soundEvent, BlockPos blockPos, float gain) {
+		ScheduledSound.schedule(blockPos, soundEvent, gain, 1);
 	}
 
 	private void playFlange(BlockPos blockPos, float speedKilometersPerHour) {
@@ -213,7 +327,7 @@ public class BveVehicleSound extends VehicleSoundBase {
 			lastBogieX = x;
 			lastBogieZ = z;
 		}
-		final float gain = loaded == 0 ? 0 : FlangeSqueal.gain(curvature, speedKilometersPerHour) * (float) Config.getClient().getFlangeVolume();
+		final float gain = loaded == 0 ? 0 : FlangeSqueal.gain(curvature, speedKilometersPerHour) * (float) Config.getClient().getFlangeVolume() * (profileSounds == null ? 1 : profileSounds.flangeVolume);
 		final float pitch = FlangeSqueal.pitch(speedKilometersPerHour);
 		final int slot = FlangeSqueal.slot(speedKilometersPerHour, loaded);
 		int seen = 0;
@@ -239,13 +353,13 @@ public class BveVehicleSound extends VehicleSoundBase {
 		private final VehicleLoopingSoundInstance[] soundLoopMotor;
 		@Nullable
 		private final VehicleLoopingSoundInstance soundLoopRun;
-		private final VehicleLoopingSoundInstance[] soundLoopFlange;
+		private VehicleLoopingSoundInstance[] soundLoopFlange;
 		@Nullable
 		private final VehicleLoopingSoundInstance soundLoopNoise;
 		@Nullable
 		private final VehicleLoopingSoundInstance soundLoopShoe;
 		@Nullable
-		private final VehicleLoopingSoundInstance soundLoopCompressor;
+		private VehicleLoopingSoundInstance soundLoopCompressor;
 
 		/** The MTR 4.0.5 constructor. Add-ons hook it by descriptor, so it stays even though new code passes the flange array. */
 		@SuppressWarnings("unused")
@@ -299,6 +413,22 @@ public class BveVehicleSound extends VehicleSoundBase {
 			if (soundLoopCompressor != null) {
 				soundLoopCompressor.dispose();
 			}
+		}
+
+		private void replaceFlange(VehicleLoopingSoundInstance[] next) {
+			for (final VehicleLoopingSoundInstance flange : soundLoopFlange) {
+				if (flange != null) {
+					flange.dispose();
+				}
+			}
+			soundLoopFlange = next;
+		}
+
+		private void replaceCompressor(@Nullable VehicleLoopingSoundInstance next) {
+			if (soundLoopCompressor != null) {
+				soundLoopCompressor.dispose();
+			}
+			soundLoopCompressor = next;
 		}
 	}
 }

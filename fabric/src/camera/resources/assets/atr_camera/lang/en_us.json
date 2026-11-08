@@ -1,0 +1,23 @@
+{
+	"key.categories.atr_camera": "ATR trailer camera (dev)",
+	"key.atr_camera.add": "Add camera keyframe",
+	"key.atr_camera.play": "Play / stop camera path",
+	"key.atr_camera.panel": "Open camera panel",
+	"gui.atr_camera.added": "Camera frame %s added",
+	"gui.atr_camera.panel.title": "Trailer camera (dev only)",
+	"gui.atr_camera.panel.name": "Path name",
+	"gui.atr_camera.panel.frames": "Frames: %s (F8 adds here)",
+	"gui.atr_camera.panel.saved": "Saved paths (click loads)",
+	"gui.atr_camera.panel.empty": "No saved paths yet",
+	"gui.atr_camera.panel.scroll": "%s-%s of %s",
+	"gui.atr_camera.panel.save": "Save path",
+	"gui.atr_camera.panel.delete": "Delete saved path",
+	"gui.atr_camera.panel.add": "Add frame here",
+	"gui.atr_camera.panel.play": "Play (F9)",
+	"gui.atr_camera.panel.stop": "Stop (F9)",
+	"gui.atr_camera.panel.clear": "Clear frames",
+	"gui.atr_camera.panel.speed": "Speed: %s blocks/s",
+	"gui.atr_camera.panel.hide_hud": "Hide HUD: %s",
+	"gui.atr_camera.panel.path": "%s (%s)",
+	"gui.atr_camera.panel.status": "%s"
+}

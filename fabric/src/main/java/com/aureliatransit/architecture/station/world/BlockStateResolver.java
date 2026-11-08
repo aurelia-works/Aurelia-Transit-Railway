@@ -121,7 +121,9 @@ public final class BlockStateResolver {
 
 	/**
 	 * The state for a block facing {@code facing}: FACING for facing-shaped blocks, the facing's axis for axis blocks, and for
-	 * {@code mtr:rail} the {@code facing} flag true for a track along X, with no 45 or 22.5 degree angle and not connected.
+	 * {@code mtr:rail} the {@code facing} flag true for a track along X, with no 45, 22.5 or 11.25 degree angle and not connected.
+	 * Every angle flag is cleared by name: a boolean block property defaults to true, so a flag left alone turns the node (an
+	 * {@code is_11_25} left on bent every platform rail into an arc, MTR fitting a curve to ends 11.25 degrees off the track).
 	 */
 	public static BlockState state(Block block, Heading facing) {
 		final Heading heading = facing == null ? Heading.NORTH : facing;
@@ -130,6 +132,7 @@ public final class BlockStateResolver {
 			BlockState rail = withBoolean(state, "facing", heading.alongX());
 			rail = withBoolean(rail, "is_45", false);
 			rail = withBoolean(rail, "is_22_5", false);
+			rail = withBoolean(rail, "is_11_25", false);
 			return withBoolean(rail, "is_connected", false);
 		}
 		if (state.contains(Properties.HORIZONTAL_FACING)) {

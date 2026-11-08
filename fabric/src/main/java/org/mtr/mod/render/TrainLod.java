@@ -11,7 +11,7 @@ import java.util.function.Predicate;
  */
 public final class TrainLod {
 
-	public enum Tier {FULL, NO_INTERIOR, BOX}
+	public enum Tier {FULL, NO_INTERIOR, BOX, BOX_FAR, HIDDEN}
 
 	/** Set while one car's batched model is queued without its interior parts (render thread only). */
 	private static boolean skipInterior;
@@ -55,5 +55,23 @@ public final class TrainLod {
 			}
 		}
 		return exterior;
+	}
+
+	/**
+	 * The tier past Minecraft's render distance. A car there is a plain box ({@link Tier#BOX_FAR}) and must be drawn
+	 * without waiting for occlusion culling, because the culling distance stops at the render distance. 0 turns the
+	 * train view distance off. With far detail off, cars past the view distance are hidden instead.
+	 */
+	public static Tier viewTier(double distanceBlocks, boolean riding, int trainViewChunks, int minecraftChunks, boolean farDetail) {
+		if (riding || trainViewChunks <= 0) {
+			return Tier.FULL;
+		}
+		if (distanceBlocks > trainViewChunks * 16.0) {
+			return Tier.HIDDEN;
+		}
+		if (distanceBlocks > minecraftChunks * 16.0) {
+			return farDetail ? Tier.BOX_FAR : Tier.HIDDEN;
+		}
+		return Tier.FULL;
 	}
 }
