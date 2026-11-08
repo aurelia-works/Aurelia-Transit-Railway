@@ -209,11 +209,16 @@ abstract class PlanLifts extends PlanBuilding {
 			buttons.add(new LiftButton(c1 + 1, low + 1, vBack, -o, in.opposite(), c0 - 1));
 		}
 		final int cMax = farWall ? c1 + 1 : c1;
+		// a free-standing tower is framed like a real one: a band of cladding at the upper floor and a clad head over the
+		// upper doors, where the lift's machinery sits, so the glass runs between frame members instead of up to the roof
+		final boolean tower = farWall && roofId != null;
+		final String clad = palette.building().trim();
 		for (int y = low; y < roof; y++) {
+			final boolean band = tower && (y == StationGeometry.UPPER_FLOOR_Y || y >= high + 2);
 			for (int c = c0 - 1; c <= cMax; c++) {
 				// a glass shaft stands on solid corner posts: the panes end on them and the call buttons are fixed to them
 				final boolean corner = farWall && (c == c0 - 1 || c == cMax);
-				final String id = corner ? palette.building().pier() : wallId;
+				final String id = corner ? palette.building().pier() : band ? clad : wallId;
 				// the door row's floor at the upper level is the deck or the slab
 				if (y != StationGeometry.UPPER_FLOOR_Y) {
 					put(Role.WALL, c, y, vD, in.opposite(), id);
@@ -223,20 +228,36 @@ abstract class PlanLifts extends PlanBuilding {
 				}
 			}
 			for (int v = vD + o; v != vBack; v += o) {
-				put(Role.WALL, c0 - 1, y, v, LocalDir.MINUS_U, wallId);
+				put(Role.WALL, c0 - 1, y, v, LocalDir.MINUS_U, band ? clad : wallId);
 				if (farWall) {
-					put(Role.WALL, c1 + 1, y, v, LocalDir.PLUS_U, wallId);
+					put(Role.WALL, c1 + 1, y, v, LocalDir.PLUS_U, band ? clad : wallId);
 				}
 			}
 		}
 		if (roofId != null) {
 			for (int c = c0 - 1; c <= c1 + 1; c++) {
 				for (int v = vD + o; v != vBack + o; v += o) {
-					put(Role.BUILDING_ROOF, c, roof, v, LocalDir.PLUS_V, roofId);
+					put(Role.BUILDING_ROOF, c, roof, v, LocalDir.PLUS_V, tower ? clad : roofId);
+				}
+			}
+		}
+		if (tower) {
+			// a coping round the flat roof's edge, over the door row too where nothing else roofs it
+			for (int c = c0 - 1; c <= c1 + 1; c++) {
+				for (int v = vD; v != vBack + o; v += o) {
+					if (at(c, roof, v) == null) {
+						put(Role.BUILDING_ROOF, c, roof, v, LocalDir.PLUS_V, clad);
+					}
+					if (c == c0 - 1 || c == c1 + 1 || v == vD || v == vBack) {
+						put(Role.BUILDING_ROOF, c, roof + 1, v, LocalDir.PLUS_V, LIFT_COPING, "type=bottom");
+					}
 				}
 			}
 		}
 	}
+
+	/** The thin coping round a lift tower's roof. */
+	static final String LIFT_COPING = "minecraft:smooth_stone_slab";
 
 	/** True when the platform ends at a terminus head's gate line, which carries its big number. */
 	boolean gateNumbered(TrackLayout.PlatformBand band) {

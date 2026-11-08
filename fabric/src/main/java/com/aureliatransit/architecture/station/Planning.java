@@ -711,6 +711,13 @@ final class Planning extends PlanAirport {
 				// gravel needs a block under it (here and between tracks)
 				supports.add(new Box(track.u() - StationGeometry.ENVELOPE_HALF_WIDTH, -2, layout.vMin(), track.u() + StationGeometry.ENVELOPE_HALF_WIDTH, -2,
 						layout.trackEnd(track)));
+				for (final int side : new int[]{-1, 1}) {
+					if (cessSide(track, side)) {
+						// and under its shoulder
+						final int shoulder = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + 1);
+						supports.add(new Box(shoulder, -2, layout.vMin(), shoulder, -2, layout.trackEnd(track)));
+					}
+				}
 			}
 			if (layout.deadEnd(track)) {
 				// the ground under a bay track's buffer stop

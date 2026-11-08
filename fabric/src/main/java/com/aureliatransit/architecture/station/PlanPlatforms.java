@@ -133,6 +133,21 @@ abstract class PlanPlatforms extends PlanState {
 
 	void ramps() {
 		for (final TrackLayout.PlatformBand band : rampedBands()) {
+			// the steps down from a street entrance get a parapet each side: a cheek wall level with the entrance and a rail
+			// on it, so their open sides (onto the ground and the track) are guarded like a real station's entrance steps
+			if (site.streets().contains(band) && band.uMax() - band.uMin() + 1 >= 5) {
+				final List<Integer> rows = new ArrayList<>(List.of(band.vFrom() - 2, band.vFrom() - 1));
+				if (!layout.terminus()) {
+					rows.addAll(List.of(band.vTo() + 1, band.vTo() + 2));
+				}
+				for (final int u : new int[]{band.uMin(), band.uMax()}) {
+					final LocalDir outward = u == band.uMin() ? LocalDir.MINUS_U : LocalDir.PLUS_U;
+					for (final int v : rows) {
+						put(Role.WALL, u, StationGeometry.PLATFORM_Y, v, outward, PlanBridges.PLATEAU_WALL);
+						put(Role.RAILING, u, StationGeometry.WALK_Y, v, outward);
+					}
+				}
+			}
 			for (int u = band.uMin(); u <= band.uMax(); u++) {
 				put(Role.RAMP_LOWER, u, StationGeometry.PLATFORM_Y, band.vFrom() - 2, LocalDir.MINUS_V);
 				put(Role.RAMP_UPPER, u, StationGeometry.PLATFORM_Y, band.vFrom() - 1, LocalDir.MINUS_V);
@@ -301,6 +316,43 @@ abstract class PlanPlatforms extends PlanState {
 				}
 			}
 		}
+		for (final TrackLayout.Track track : layout.tracks()) {
+			for (final int side : new int[]{-1, 1}) {
+				if (!cessSide(track, side)) {
+					continue;
+				}
+				// past the sleeper ends: the ballast shoulder, then the cess, a walkway of concrete cable-trough lids
+				final int shoulder = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + 1);
+				for (int v = layout.vMin(); v <= layout.trackEnd(track); v++) {
+					put(Role.TRACK_BED, shoulder, -1, v, LocalDir.PLUS_V, bed.blockId());
+					put(Role.TRACK_BED, shoulder + side, -1, v, LocalDir.PLUS_V, CESS_PATH);
+				}
+			}
+		}
+	}
+
+	/** The cess walkway beside an outer track: concrete trough lids. */
+	static final String CESS_PATH = "minecraft:smooth_stone";
+
+	/** True when the layout left room for a shoulder and cess on this side of the track (an open outer side). */
+	boolean cessSide(TrackLayout.Track track, int side) {
+		if (StationGeometry.cess(spec) == 0 || (side < 0 ? track.platformLeft() : track.platformRight())) {
+			return false;
+		}
+		final int u0 = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + 1);
+		final int u1 = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + StationGeometry.CESS);
+		if (Math.min(u0, u1) < 0 || Math.max(u0, u1) >= layout.width()) {
+			return false;
+		}
+		// nothing else in those columns: no other track's clearance, no platform, no street
+		for (final TrackLayout.Track other : layout.tracks()) {
+			if (other != track && Math.abs(other.u() - u0) <= StationGeometry.ENVELOPE_HALF_WIDTH + StationGeometry.CESS) {
+				return false;
+			}
+		}
+		final List<TrackLayout.PlatformBand> bands = new ArrayList<>(layout.platforms());
+		bands.addAll(site.streets());
+		return bands.stream().noneMatch(band -> band.uMax() >= Math.min(u0, u1) && band.uMin() <= Math.max(u0, u1));
 	}
 
 	/**

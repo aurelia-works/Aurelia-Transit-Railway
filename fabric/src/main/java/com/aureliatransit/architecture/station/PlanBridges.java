@@ -253,11 +253,21 @@ abstract class PlanBridges extends PlanConcourse {
 						// runs up to the cell a passenger on the step stands in, so its fence-high hitbox stands 1.5 above their
 						// feet (stopping at the step's own level left half a block, which a player walks over)
 						final boolean edgeRail = rail >= EDGE_RAIL_Y;
+						// off the boarding edge the flank is a parapet: a solid cheek wall up to the step's own level, the rail
+						// on top of it at the passenger's height
 						if (isEdge(band, left) ? edgeRail : rail <= y + 1) {
-							put(Role.RAILING, left, rail, v, LocalDir.MINUS_U);
+							if (!isEdge(band, left) && rail <= y) {
+								put(Role.WALL, left, rail, v, LocalDir.MINUS_U, b.trim());
+							} else {
+								put(Role.RAILING, left, rail, v, LocalDir.MINUS_U);
+							}
 						}
 						if (isEdge(band, right) ? edgeRail : rail <= y + 1) {
-							put(Role.RAILING, right, rail, v, LocalDir.PLUS_U);
+							if (!isEdge(band, right) && rail <= y) {
+								put(Role.WALL, right, rail, v, LocalDir.PLUS_U, b.trim());
+							} else {
+								put(Role.RAILING, right, rail, v, LocalDir.PLUS_U);
+							}
 						}
 					}
 				}

@@ -986,9 +986,10 @@ abstract class PlanRoofs extends PlanColumns {
 	}
 
 	/**
-	 * Thin chains joining each strip to the frame above it, every eight cells: what keeps the hanging lights joined to
-	 * the ground. A strip the batten, a cap or a girder already stands under needs none; later dressing may still take
-	 * the cell, and the strip keeps its light either way.
+	 * Pendant lights joining each strip to the frame above it, every eight cells: a thin chain down from the frame with an
+	 * LED rod at its foot in the strip's cell, so the chain ends in a fitting rather than in the air. A strip the batten, a
+	 * cap or a girder already stands under needs none. A stair approach or shaft breaks a line into runs; a run that touches
+	 * nothing else (the grid missed it) gets one at its first cell, so no run hangs loose.
 	 */
 	void chains(int uMin, int uMax, int from, int to, int y) {
 		final List<Integer> lines = new ArrayList<>();
@@ -998,26 +999,56 @@ abstract class PlanRoofs extends PlanColumns {
 		if (lines.get(lines.size() - 1) < uMax - 1) {
 			lines.add(uMax);
 		}
+		final List<Cell> pendants = new ArrayList<>();
 		for (final int u : lines) {
 			for (int v = from; v <= to; v += 8) {
-				final PlannedBlock strip = at(u, y, v);
-				if (strip == null || !strip.role().equals(Role.FIXTURE) || !strip.blockId().equals(CANOPY_LIGHT) || at(u, y + 1, v) != null) {
-					continue;
+				if (isStrip(u, y, v) && at(u, y + 1, v) == null && dropChain(u, y, v)) {
+					pendants.add(new Cell(u, y, v));
 				}
-				dropChain(u, y, v);
 			}
+			int start = -1;
+			boolean joined = false;
+			for (int v = from; v <= to + 1; v++) {
+				if (v <= to && isStrip(u, y, v)) {
+					if (start < 0) {
+						start = v;
+						joined = at(u, y, v - 1) != null;
+					}
+					joined |= at(u, y + 1, v) != null || at(u, y - 1, v) != null || at(u - 1, y, v) != null || at(u + 1, y, v) != null;
+				} else if (start >= 0) {
+					if (!joined && (v > to || at(u, y, v) == null) && dropChain(u, y, start)) {
+						pendants.add(new Cell(u, y, start));
+					}
+					start = -1;
+				}
+			}
+		}
+		// the rods go in once every run is found (a rod is no longer strip)
+		for (final Cell cell : pendants) {
+			cells.remove(cell);
+			put(Role.FIXTURE, cell.u(), cell.y(), cell.v(), LocalDir.PLUS_V, PENDANT, "facing=down");
 		}
 	}
 
-	/** A thin chain from the light at (u, y, v) up to the frame above it, joining the strip to the girders. */
-	void dropChain(int u, int y, int v) {
+	/** The LED rod at the foot of each pendant chain: it gives the strip's light where it hangs. */
+	static final String PENDANT = "minecraft:end_rod";
+
+	/** True when (u, y, v) holds a canopy strip light. */
+	boolean isStrip(int u, int y, int v) {
+		final PlannedBlock strip = at(u, y, v);
+		return strip != null && strip.role().equals(Role.FIXTURE) && strip.blockId().equals(CANOPY_LIGHT);
+	}
+
+	/** A thin chain from the light at (u, y, v) up to the frame above it; false when there is no frame to hang from. */
+	boolean dropChain(int u, int y, int v) {
 		final int top = ceilingAbove(u, y, v);
 		if (top < 0) {
-			return;
+			return false;
 		}
 		for (int h = y + 1; h < top; h++) {
 			put(Role.FIXTURE, u, h, v, LocalDir.PLUS_V, "minecraft:chain", "axis=y");
 		}
+		return true;
 	}
 
 	/** True when a roof, deck or slab stands over (u, v) high enough to hang a strip from. */
