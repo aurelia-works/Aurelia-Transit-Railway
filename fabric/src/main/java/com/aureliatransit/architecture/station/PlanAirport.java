@@ -63,6 +63,9 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String TOWER_GLASS = "minecraft:glass";
 	/** The tower's beacon on the cab roof. */
 	static final String TOWER_BEACON = "minecraft:sea_lantern";
+	/** A rooftop plant box's grille and vent: plain iron, no block entity. */
+	static final String PLANT_GRILLE = "minecraft:iron_trapdoor";
+	static final String PLANT_VENT = "minecraft:iron_bars";
 	static final String MAST_LAMP = "aurelia_transit_architecture:apron_floodlight";
 	static final String CHECK_IN_DESK = "aurelia_transit_architecture:check_in_desk";
 	static final String DEPARTURES_BOARD = "aurelia_transit_architecture:departures_board";
@@ -783,20 +786,25 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 		for (int y = StationGeometry.WALK_Y; y <= top; y++) {
 			for (int v = v0; v <= v1; v++) {
-				// airside: a full-height glass curtain wall, a mullion every five rows
-				final boolean pilaster = Math.floorMod(v - v0, 5) == 0 || v == v1;
-				put(pilaster ? Role.WALL : Role.WINDOW, u1, y, v, LocalDir.PLUS_U, pilaster ? b.wall() : b.window());
-				// landside: a plinth, a band of glass, a fascia
-				final boolean glass = y >= 2 && y <= top - 2 && Math.abs(v - door) > half;
+				// airside: a full-height glass curtain wall on a solid plinth, a light metal mullion every four rows
+				final boolean plinth = y == StationGeometry.WALK_Y;
+				final boolean mullionAir = Math.floorMod(v - v0, 4) == 0 || v == v1;
+				put(plinth || mullionAir ? Role.WALL : Role.WINDOW, u1, y, v, LocalDir.PLUS_U,
+						plinth ? b.plinth() : mullionAir ? b.trim() : b.window());
+				// landside: a plinth, a band of glass with the same rhythm, a fascia
+				final boolean band = y >= 2 && y <= top - 2 && Math.abs(v - door) > half;
+				final boolean mullionLand = band && Math.floorMod(v - door, 4) == 0;
+				final boolean glass = band && !mullionLand;
 				final boolean lintel = y == StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT && Math.abs(v - door) <= half;
-				put(glass ? Role.WINDOW : Role.WALL, u0, y, v, LocalDir.MINUS_U, glass ? b.window() : lintel ? b.trim() : b.wall());
+				put(glass ? Role.WINDOW : Role.WALL, u0, y, v, LocalDir.MINUS_U,
+						plinth ? b.plinth() : glass ? b.window() : mullionLand || lintel ? b.trim() : b.wall());
 			}
 			for (int u = u0 + 1; u < u1; u++) {
-				put(Role.WALL, u, y, v0, LocalDir.MINUS_V, b.wall());
-				put(Role.WALL, u, y, v1, LocalDir.PLUS_V, b.wall());
+				put(Role.WALL, u, y, v0, LocalDir.MINUS_V, y == StationGeometry.WALK_Y ? b.plinth() : b.wall());
+				put(Role.WALL, u, y, v1, LocalDir.PLUS_V, y == StationGeometry.WALK_Y ? b.plinth() : b.wall());
 			}
 		}
-		// the roof's overhang: one row over the forecourt, the apron and both gable ends, so the glass wall is shaded
+		// the roof's first overhang ring: one row over the forecourt, the apron and both gable ends; terminalRoofEdge adds the rest
 		for (int v = v0 - 1; v <= v1 + 1; v++) {
 			put(Role.BUILDING_ROOF, u0 - 1, terminalRoofY(), v, LocalDir.MINUS_U, b.roof());
 			put(Role.BUILDING_ROOF, u1 + 1, terminalRoofY(), v, LocalDir.PLUS_U, b.roof());
@@ -864,6 +872,165 @@ abstract class PlanAirport extends PlanFitOut {
 			}
 			put(Role.BIN, u1 - 2, StationGeometry.WALK_Y, c + off + 4, LocalDir.PLUS_U);
 		}
+		terminalRoofEdge();
+		terminalRoofPlant();
+		terminalSkylights();
+		terminalEntranceCanopy();
+	}
+
+	/**
+	 * The terminal roof's edge: the deck reaches two blocks past the landside wall and three past the airside one, two past the
+	 * gable ends, with a light metal fascia at the rim, a soffit under the whole overhang and a low parapet above, so the glass
+	 * box has a deep roof rather than a lid. It stays over the terminal, the road and the apron, clear of the boarding bridges.
+	 */
+	void terminalRoofEdge() {
+		final StylePalette.Building b = palette.building();
+		final int roofY = terminalRoofY();
+		final int u0 = air.terminalU0();
+		final int u1 = air.terminalU1();
+		final int v0 = air.terminalV0();
+		final int v1 = air.terminalV1();
+		// the deck: landside 2 deep, airside 3, and 2 past each gable end, the outermost ring in the metal fascia
+		for (int v = v0 - 2; v <= v1 + 2; v++) {
+			for (int u = u0 - 2; u <= u1 + 3; u++) {
+				if (u >= u0 && u <= u1 && v >= v0 && v <= v1) {
+					continue;
+				}
+				final boolean rim = u == u0 - 2 || u == u1 + 3 || v == v0 - 2 || v == v1 + 2;
+				final LocalDir front = u < u0 ? LocalDir.MINUS_U : u > u1 ? LocalDir.PLUS_U : v < v0 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+				put(Role.BUILDING_ROOF, u, roofY, v, front, rim ? b.trim() : b.roof());
+			}
+		}
+		// the soffit under the overhang, the older one-block ring included; a forecourt column keeps its cap
+		for (int v = v0 - 2; v <= v1 + 2; v++) {
+			for (int u = u0 - 2; u <= u1 + 3; u++) {
+				if (u >= u0 && u <= u1 && v >= v0 && v <= v1 || forecourtCap(u, roofY - 1, v)) {
+					continue;
+				}
+				final LocalDir front = u < u0 ? LocalDir.MINUS_U : u > u1 ? LocalDir.PLUS_U : v < v0 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+				put(Role.BUILDING_ROOF, u, roofY - 1, v, front, b.plinth());
+			}
+		}
+		// a low parapet on the outer rim, so the deck reads as a roof from the airside and the forecourt
+		for (int v = v0 - 2; v <= v1 + 2; v++) {
+			put(Role.BUILDING_ROOF, u0 - 2, roofY + 1, v, LocalDir.MINUS_U, b.trim());
+			put(Role.BUILDING_ROOF, u1 + 3, roofY + 1, v, LocalDir.PLUS_U, b.trim());
+		}
+		for (int u = u0 - 2; u <= u1 + 3; u++) {
+			put(Role.BUILDING_ROOF, u, roofY + 1, v0 - 2, LocalDir.MINUS_V, b.trim());
+			put(Role.BUILDING_ROOF, u, roofY + 1, v1 + 2, LocalDir.PLUS_V, b.trim());
+		}
+	}
+
+	/** True at a forecourt canopy column's cap, which the terminal's roof soffit leaves for the column below it. */
+	private boolean forecourtCap(int u, int y, int v) {
+		if (!spec.airport().forecourt() || y != StationGeometry.WALK_Y + 5 || u != air.roadU1() - 1) {
+			return false;
+		}
+		final int side = air.dims().entrance() / 2 + 6;
+		return v == entranceV() - side || v == entranceV() + side;
+	}
+
+	/**
+	 * A few plant boxes on the roof, two by three and three high: grey concrete bodies, an iron trapdoor grille on each long
+	 * side and a barred vent in the cap. Placed on the free deck either side of the skylights, clear of the older plant boxes.
+	 */
+	void terminalRoofPlant() {
+		final int deck = terminalRoofY() + 1;
+		final int u0 = air.terminalU0();
+		final int u1 = air.terminalU1();
+		final int v0 = air.terminalV0();
+		final int v1 = air.terminalV1();
+		final int du = u1 - u0 + 1;
+		final int dv = v1 - v0 + 1;
+		for (final int uu : new int[]{u0 + du / 5, u1 - du / 5 - 1}) {
+			for (final int vv : new int[]{v0 + dv / 6, v0 + 5 * dv / 6}) {
+				if (!roofFree(uu, uu + 1, deck, deck + 2, vv, vv + 2)) {
+					continue;
+				}
+				for (int u = uu; u <= uu + 1; u++) {
+					for (int v = vv; v <= vv + 2; v++) {
+						put(Role.WALL, u, deck, v, LocalDir.PLUS_V, TOWER_FLOOR);
+						final boolean grille = v == vv + 1;
+						final LocalDir front = u == uu ? LocalDir.MINUS_U : LocalDir.PLUS_U;
+						put(grille ? Role.FIXTURE : Role.WALL, u, deck + 1, v, front, grille ? PLANT_GRILLE : TOWER_FLOOR,
+								grille ? "open=true" : "");
+						final boolean vent = u == uu && v == vv + 1;
+						put(vent ? Role.FIXTURE : Role.BUILDING_ROOF, u, deck + 2, v, LocalDir.PLUS_V, vent ? PLANT_VENT : TAXI_SURFACE);
+					}
+				}
+			}
+		}
+	}
+
+	/** A row of framed glass skylights on the roof's centre line, every 24 rows, wherever the deck is free. */
+	void terminalSkylights() {
+		final StylePalette.Building b = palette.building();
+		final int deck = terminalRoofY() + 1;
+		final int c = (air.terminalU0() + air.terminalU1()) / 2;
+		final int v1 = air.terminalV1();
+		for (int v = air.terminalV0() + 8; v + 5 <= v1 - 4; v += 24) {
+			if (!roofFree(c - 2, c + 2, deck, deck, v, v + 5)) {
+				continue;
+			}
+			for (int u = c - 2; u <= c + 2; u++) {
+				for (int w = v; w <= v + 5; w++) {
+					final boolean frame = u == c - 2 || u == c + 2 || w == v || w == v + 5;
+					put(Role.BUILDING_ROOF, u, deck, w, LocalDir.PLUS_V, frame ? b.trim() : TOWER_GLASS);
+				}
+			}
+		}
+	}
+
+	/**
+	 * The landside entrance canopy: five rows deep over the departures kerb in front of the main doors, its deck a light soffit
+	 * with recessed lights and a metal fascia, on two slim columns. Kept below the name band, so the lettering over the doors
+	 * stays visible above it.
+	 */
+	void terminalEntranceCanopy() {
+		final StylePalette.Building b = palette.building();
+		final int u0 = air.terminalU0();
+		final int door = entranceV();
+		final int half = air.dims().entrance() / 2;
+		final int deckY = Math.min(StationGeometry.WALK_Y + 4, air.dims().wallTop() - 2);
+		final int from = u0 - 5;
+		final int to = u0 - 1;
+		final int v0 = door - half - 4;
+		final int v1 = door + half + 4;
+		for (int v = v0; v <= v1; v++) {
+			for (int u = from; u <= to; u++) {
+				final boolean edge = u == from || u == to || v == v0 || v == v1;
+				final boolean light = !edge && Math.floorMod(u + v, 4) == 0;
+				put(light ? Role.LIGHT_PANEL : Role.BUILDING_ROOF, u, deckY, v, LocalDir.PLUS_V,
+						light ? b.light() : edge ? b.trim() : b.wall());
+			}
+		}
+		// its metal fascia drops one block below the deck along the three open sides
+		for (int v = v0; v <= v1; v++) {
+			put(Role.BUILDING_ROOF, from, deckY - 1, v, LocalDir.MINUS_U, b.trim());
+		}
+		for (int u = from + 1; u <= to; u++) {
+			put(Role.BUILDING_ROOF, u, deckY - 1, v0, LocalDir.MINUS_V, b.trim());
+			put(Role.BUILDING_ROOF, u, deckY - 1, v1, LocalDir.PLUS_V, b.trim());
+		}
+		for (final int v : new int[]{door - half - 2, door + half + 2}) {
+			for (int y = StationGeometry.WALK_Y; y < deckY - 1; y++) {
+				put(Role.COLUMN, u0 - 2, y, v, LocalDir.PLUS_U);
+			}
+			put(Role.COLUMN_CAP, u0 - 2, deckY - 1, v, LocalDir.PLUS_U);
+		}
+	}
+
+	/** True when every cell of the box (u0..u1, y0..y1, v0..v1) is free: a roof unit only goes where the deck is bare. */
+	private boolean roofFree(int u0, int u1, int y0, int y1, int v0, int v1) {
+		for (int u = u0; u <= u1; u++) {
+			for (int v = v0; v <= v1; v++) {
+				if (!freeColumn(u, y0, y1, v)) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	/**
