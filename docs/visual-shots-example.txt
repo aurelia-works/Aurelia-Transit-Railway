@@ -1,0 +1,52 @@
+# Run 2: station at platform level, golden hour train, airport
+cmd gamerule doDaylightCycle false
+cmd time set 6000
+cmd weather clear
+hud off
+shaders off
+cmd gamemode creative
+tp 300 -60 60 -90 0
+cmd ata_station plan two track dutch station, island platform, 64 long, glass canopy, named Leidsche Rijn
+wait 200
+cmd ata_station confirm replace_terrain
+wait 600
+cmd gamemode spectator
+tp 306 -57.4 57.5 -90 2
+shot st-platform-a-off
+tp 306 -57.4 62.5 -90 2
+shot st-platform-b-off
+tp 362 -57.4 60 90 2
+shot st-platform-c-off
+tp 330 -54 45 -20 15
+shot st-canopy-off
+shaders on
+tp 306 -57.4 57.5 -90 2
+shot st-platform-a-on
+tp 330 -54 45 -20 15
+shot st-canopy-on
+cmd time set 12600
+wait 40
+tp 330 -56 -10 -60 12
+shot train-34-golden-on
+tp 306 -57.4 57.5 -90 2
+shot st-platform-golden-on
+cmd time set 18000
+wait 40
+tp 306 -57.4 57.5 -90 2
+shot st-platform-night-on
+shaders off
+cmd time set 6000
+cmd gamemode creative
+tp 300 -60 700 -90 0
+cmd ata_station plan airport, 1 runway
+wait 400
+cmd ata_station confirm replace_terrain
+wait 7200
+cmd gamemode spectator
+tp 250 40 640 -60 35
+shot ap-over-off
+tp 290 -50 700 -90 8
+shot ap-ground-off
+shaders on
+tp 250 40 640 -60 35
+shot ap-over-on

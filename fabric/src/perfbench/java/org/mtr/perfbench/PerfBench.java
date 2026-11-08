@@ -66,7 +66,7 @@ public final class PerfBench implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		if (PanelShots.ACTIVE || PassengerShots.ACTIVE || PassengerDemoClient.ACTIVE) {
+		if (PanelShots.ACTIVE || PassengerShots.ACTIVE || PassengerDemoClient.ACTIVE || VisualShots.ACTIVE) {
 			return;
 		}
 		for (final boolean shaders : new boolean[]{false, true}) {
