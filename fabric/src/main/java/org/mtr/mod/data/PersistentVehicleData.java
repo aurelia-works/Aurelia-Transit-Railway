@@ -39,6 +39,8 @@ public final class PersistentVehicleData {
 	private final ObjectArrayList<VehicleSoundBase> vehicleSoundBaseList = new ObjectArrayList<>();
 	private SoundProfileStore.Settings appliedSoundSettings = SoundProfileStore.Settings.DEFAULT;
 	private int appliedProfileVersion = -1;
+	private String appliedDefaultProfileId = "";
+	private boolean appliedUseDefaults = true;
 	@Nullable
 	private ProfileSounds appliedProfileSounds;
 	private final ObjectArrayList<ObjectArrayList<ScrollingText>> scrollingTexts = new ObjectArrayList<>();
@@ -189,18 +191,30 @@ public final class PersistentVehicleData {
 	}
 
 	/**
-	 * Applies this train's sound profile (chosen on the Aurelia panel) to every car. Only runs when the choice or a
-	 * volume slider changed; a train with no profile is never touched.
+	 * Applies this train's sound profile (chosen on the Aurelia panel, or the pack's default tag) to every car. Only
+	 * runs when the choice, the toggle, the tag or a volume slider changed; a train with no profile is never touched.
 	 */
 	public void updateSoundProfile(long vehicleId) {
+		updateSoundProfile(vehicleId, "");
+	}
+
+	/**
+	 * New overload for the pack default: add-ons calling the old one keep the previous behaviour (no default).
+	 * Last in the class, like the rest of ATR's additions, so MTR's methods keep their shape.
+	 */
+	public void updateSoundProfile(long vehicleId, @Nullable String defaultProfileId) {
 		final SoundProfileStore.Settings settings = SoundProfileStore.settings(vehicleId);
 		final int version = SoundProfileRegistry.version();
-		if (settings.equals(appliedSoundSettings) && version == appliedProfileVersion) {
+		final boolean useDefaults = SoundProfileStore.useTrainDefaults();
+		final String def = defaultProfileId == null ? "" : defaultProfileId;
+		if (settings.equals(appliedSoundSettings) && version == appliedProfileVersion && def.equals(appliedDefaultProfileId) && useDefaults == appliedUseDefaults) {
 			return;
 		}
 		appliedSoundSettings = settings;
 		appliedProfileVersion = version;
-		final SoundProfile profile = SoundProfileStore.resolve(settings);
+		appliedDefaultProfileId = def;
+		appliedUseDefaults = useDefaults;
+		final SoundProfile profile = SoundProfileStore.resolveWithDefault(settings, useDefaults ? def : "");
 		appliedProfileSounds = profile == null ? null : ProfileSounds.resolve(profile, settings);
 		for (final VehicleSoundBase soundBase : vehicleSoundBaseList) {
 			soundBase.setSoundProfile(appliedProfileSounds);
