@@ -6,6 +6,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import com.aureliatransit.architecture.station.Heading;
+import com.aureliatransit.architecture.station.LocalFrame;
+import com.aureliatransit.architecture.station.world.StationSessions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,8 +24,11 @@ import java.util.UUID;
 /**
  * Dev only: {@code -Datr.visualshots=<script file>} with the perf bench run plays a shot script and quits. One step per line:
  * {@code wait <ticks>}, {@code cmd <server command>} (run as op, no slash), {@code tp <x> <y> <z> <yaw> <pitch>},
- * {@code shaders on|off}, {@code hud on|off}, {@code shot <name>} (saves {@code screenshots/vis-<name>.png}). Lines starting
- * with {@code #} are comments. Writes visualshots.txt with each step and its result, so the same views can be re-shot after
+ * {@code tpst <across> <height> <along> <yaw> <pitch>} (relative to the player's last built ATA station, else its pending plan:
+ * across and along are fractions of its footprint, so 0.5 0.5 is its middle and -0.2 stands outside it; height is blocks above
+ * rail level; yaw 0 looks down the station's length), {@code shaders on|off}, {@code hud on|off}, {@code view <chunks>}
+ * (render distance), {@code settle <ticks>} (wait after each later tp, tpst or shader switch; 60 by default),
+ * {@code shot <name>} (saves {@code screenshots/vis-<name>.png}). Lines starting with {@code #} are comments. Writes visualshots.txt with each step and its result, so the same views can be re-shot after
  * every change.
  */
 public final class VisualShots implements ClientModInitializer {
@@ -33,7 +39,7 @@ public final class VisualShots implements ClientModInitializer {
 	private static final Logger LOGGER = LoggerFactory.getLogger("ATR visual shots");
 	private static final int START_TICKS = 20 * 20;
 	/** After a teleport or a shader switch: chunks load and the shader pack compiles before the shot. */
-	private static final int SETTLE_TICKS = 3 * 20;
+	private int settleTicks = 3 * 20;
 
 	private final List<String> steps = new ArrayList<>();
 	private final List<String> results = new ArrayList<>();
@@ -82,12 +88,19 @@ public final class VisualShots implements ClientModInitializer {
 				case "tp" -> {
 					final String[] p = arg.split(" ");
 					runCommand(client, String.format(Locale.ROOT, "tp @s %s %s %s %s %s", p[0], p[1], p[2], p[3], p[4]));
-					waitUntil = ticks + SETTLE_TICKS;
+					waitUntil = ticks + settleTicks;
+				}
+				case "tpst" -> {
+					results.add(step + ": " + tpStation(client, arg.split(" ")));
+					waitUntil = ticks + settleTicks;
+					return;
 				}
 				case "shaders" -> {
 					shaders(arg.strip().equals("on"));
-					waitUntil = ticks + SETTLE_TICKS * 2;
+					waitUntil = ticks + settleTicks * 2;
 				}
+				case "settle" -> settleTicks = Integer.parseInt(arg.strip());
+				case "view" -> client.options.getViewDistance().setValue(Integer.parseInt(arg.strip()));
 				case "hud" -> client.options.hudHidden = arg.strip().equals("off");
 				case "shot" -> {
 					final String name = arg.strip().replaceAll("[^A-Za-z0-9_-]+", "_");
@@ -117,6 +130,28 @@ public final class VisualShots implements ClientModInitializer {
 				server.getCommandManager().executeWithPrefix(player.getCommandSource().withLevel(4), command);
 			}
 		});
+	}
+
+	/** Teleports relative to the last station this player built; returns where, or why not. */
+	private String tpStation(MinecraftClient client, String[] p) {
+		// The last built station, else the pending plan (built stations are kept in memory only, so after a restart re-plan from
+		// the same spot to get the same frame)
+		final StationSessions.Built built = StationSessions.built(client.player.getUuid());
+		final StationSessions.Pending pending = StationSessions.pending(client.player.getUuid());
+		if (built == null && pending == null) {
+			throw new IllegalStateException("no built or planned station");
+		}
+		final var layout = built != null ? built.plan().layout() : pending.plan().layout();
+		final LocalFrame frame = built != null ? built.frame() : pending.frame();
+		final int u = Math.round(Float.parseFloat(p[0]) * layout.width());
+		final int v = layout.vMin() + Math.round(Float.parseFloat(p[2]) * (layout.vMax() - layout.vMin()));
+		final int x = frame.x(u, v);
+		final int z = frame.z(u, v);
+		final double y = frame.oy() + Double.parseDouble(p[1]);
+		final Heading forward = frame.forward();
+		final float yaw = (float) Math.toDegrees(Math.atan2(-forward.dx(), forward.dz())) + Float.parseFloat(p[3]);
+		runCommand(client, String.format(Locale.ROOT, "tp @s %d.5 %.1f %d.5 %.1f %s", x, y, z, yaw, p[4]));
+		return String.format(Locale.ROOT, "ok at %d %.1f %d (footprint %d wide, v %d..%d, facing %s)", x, y, z, layout.width(), layout.vMin(), layout.vMax(), forward);
 	}
 
 	private static void shaders(boolean on) {
