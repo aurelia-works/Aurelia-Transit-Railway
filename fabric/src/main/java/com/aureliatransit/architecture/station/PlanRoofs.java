@@ -954,8 +954,9 @@ abstract class PlanRoofs extends PlanColumns {
 				if (!coveredAbove(u, v)) {
 					continue;
 				}
+				// a stair flight or shaft crosses the strip: its soffit carries the light one lower. The clear approach to a
+				// stair foot (planned first) takes neither, and is lit from the strip either side of it.
 				if (!put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, CANOPY_LIGHT, CANOPY_LIGHT_STATE) && !isEdge(band, u)) {
-					// a stair flight or shaft crosses the strip: its soffit carries the light one lower
 					put(Role.FIXTURE, u, y - 1, v, LocalDir.PLUS_V, CANOPY_LIGHT, CANOPY_LIGHT_STATE);
 				}
 			}

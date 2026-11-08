@@ -326,8 +326,8 @@ class StationDescriptionParserTest {
 	void emptyBlankAndNullGiveDefaults() {
 		for (final String text : new String[]{null, "", "   "}) {
 			final ParseResult result = StationDescriptionParser.parse(text);
-			// the defaults, with platforms as wide as a description gets them (and ballast under the tracks)
-			assertEquals(StationSpec.builder().platformWidth(StationSpec.DEFAULT_SIDE_WIDTH).trackBed(TrackBed.GRAVEL).build(), result.spec());
+			// the defaults, with platforms as wide as a description gets them
+			assertEquals(StationSpec.builder().platformWidth(StationSpec.DEFAULT_SIDE_WIDTH).build(), result.spec());
 			assertEquals("no description: using defaults", result.defaulted().get(0));
 			assertTrue(result.understood().isEmpty());
 			assertTrue(result.ignored().isEmpty());

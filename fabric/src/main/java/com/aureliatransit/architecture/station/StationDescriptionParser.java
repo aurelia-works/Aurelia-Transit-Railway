@@ -2694,10 +2694,6 @@ public final class StationDescriptionParser {
 			}
 			if (trackBed != null) {
 				builder.trackBed(trackBed);
-			} else {
-				// new plans get ballast with lit platform walls; "no track bed" leaves the ground as it is
-				builder.trackBed(TrackBed.GRAVEL);
-				defaulted.add("gravel track bed with lit platform walls (default)");
 			}
 			if (operator == null) {
 				cityOperator();

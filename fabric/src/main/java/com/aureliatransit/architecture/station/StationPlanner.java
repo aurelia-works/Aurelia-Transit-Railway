@@ -92,8 +92,8 @@ public final class StationPlanner {
 		planning.columns();
 		planning.canopyRoofs();
 		planning.hallRoof();
-		planning.canopyLamps();
 		planning.stairFeet();
+		planning.canopyLamps();
 		planning.numberSigns();
 		planning.lamps();
 		planning.shelters();

@@ -18,7 +18,7 @@ class TrackBedTest {
 
 	@Test
 	void wordsPickTheBed() {
-		assertEquals(TrackBed.GRAVEL, StationDescriptionParser.parse("2 tracks").spec().trackBed());
+		assertEquals(TrackBed.NONE, StationDescriptionParser.parse("2 tracks").spec().trackBed());
 		assertEquals(TrackBed.GRAVEL, StationDescriptionParser.parse("gravel track bed").spec().trackBed());
 		assertEquals(TrackBed.GRAVEL, StationDescriptionParser.parse("ballast").spec().trackBed());
 		assertEquals(TrackBed.ANDESITE, StationDescriptionParser.parse("andesite terminus").spec().trackBed());
@@ -30,7 +30,7 @@ class TrackBedTest {
 
 	@Test
 	void noBedLeavesTheGroundAlone() {
-		assertTrue(plan("2 tracks island no track bed").blocks().stream().noneMatch(b -> b.role() == Role.TRACK_BED || b.y() < 0));
+		assertTrue(plan("2 tracks island").blocks().stream().noneMatch(b -> b.role() == Role.TRACK_BED || b.y() < 0));
 	}
 
 	@Test
