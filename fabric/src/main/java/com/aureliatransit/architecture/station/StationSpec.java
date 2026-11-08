@@ -47,11 +47,11 @@ public record StationSpec(int trackCount, PlatformLayout platformLayout, int pla
 		Facing facing, Operator operator, RealStation real, StationOptions options, StationFeatures features) {
 
 	public static final int MIN_TRACKS = 1;
-	public static final int MAX_TRACKS = 10;
+	public static final int MAX_TRACKS = 16;
 	/** Tracks of a station with a platform list: ten islands bring twenty. */
 	public static final int MAX_LISTED_TRACKS = 2 * PlatformSpec.MAX_PLATFORMS;
 	public static final int MIN_LENGTH = 16;
-	public static final int MAX_LENGTH = 300;
+	public static final int MAX_LENGTH = 450;
 	public static final int MIN_WIDTH = 3;
 	public static final int MAX_WIDTH = 20;
 	public static final int MAX_NAME = 32;
