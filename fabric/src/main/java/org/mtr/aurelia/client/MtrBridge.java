@@ -510,7 +510,7 @@ public final class MtrBridge {
 					extra.getThisRouteName(), extra.getThisRouteColor(), extra.getThisRouteDestination(), extra.getThisStationName(), extra.getNextStationName(),
 					depot == null ? "" : depot.getName(), siding == null ? "" : siding.getName(), extra.immutableVehicleCars.size(), extra.getTotalVehicleLength(),
 					kilometresPerHour(vehicle.getSpeed()), vehicle.getSpeedLimitKilometersPerHour(), extra.getIsCurrentlyManual(), vehicle.getIsOnRoute(),
-					vehicle.persistentVehicleData.getDoorValue() > 0, delay, x, y, z));
+					vehicle.persistentVehicleData.getDoorValue() > 0, delay, x, y, z, defaultSoundProfile(vehicle)));
 		}
 		trains.sort(Comparator.comparing((TrainView train) -> !train.riding()).thenComparingDouble(TrainView::distance));
 		return trains;
@@ -552,5 +552,14 @@ public final class MtrBridge {
 	/** MTR stores alternative-language names separated by '|'. */
 	public static String displayName(String name) {
 		return name == null ? "" : name.replace('|', ' ');
+	}
+
+	/** One train's default sound profile from its first car's {@code aurelia_sound:} tag, or empty. */
+	private static String defaultSoundProfile(VehicleExtension vehicle) {
+		final VehicleExtraData extra = vehicle.vehicleExtraData;
+		if (extra.immutableVehicleCars.isEmpty()) {
+			return "";
+		}
+		return org.mtr.aurelia.sound.SoundProfileDefaults.forVehicleType(vehicle.getTransportMode(), extra.immutableVehicleCars.get(0).getVehicleId());
 	}
 }

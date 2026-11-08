@@ -25,6 +25,8 @@ public record TrainView(
 		Long delaySeconds,
 		double x,
 		double y,
-		double z
+		double z,
+		/** This train's default sound profile from its pack's {@code aurelia_sound:} tag, or empty when it names none. */
+		String defaultSoundProfile
 ) {
 }
