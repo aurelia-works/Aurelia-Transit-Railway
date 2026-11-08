@@ -11,8 +11,8 @@ A fork of Minecraft Transit Railway 4.0.5 for Fabric 1.20.1. The mod id stays `m
 
 From David Andre's video (13:05): most tests an agent writes are written only so they pass. They bloat the code, slow CI down and test nothing.
 
-- Do not write tests unless they are truly needed. Never write a test just to get a green run.
-- Write a test only when the same kind of bug has happened before, or to guard something add-ons or saved worlds depend on. One or two targeted tests, not a suite.
+- Do not write new tests. Never write a test just to get a green run, and never invent coverage for code you just wrote.
+- If a test looks truly needed (the same bug happened before, or an add-on/saved-world guard), do not write it — ask the orchestrator or Jah first. One approved test at most, never a suite.
 - No tests for one-off edge cases that will never happen in a real game.
 - No slow tests: no real-time waits and no long sweeps. If a test needs minutes, it needs a reason.
 - Never skip, disable or weaken a test to make CI pass. Fix the code.

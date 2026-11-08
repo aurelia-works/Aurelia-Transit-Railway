@@ -26,20 +26,20 @@ Old plan and handoffs: `archive/2026-10/`. Research behind this plan: `docs/rese
 ## Phases
 Agent time is rough. Total about 65-110 h.
 
-| # | Phase | Est. | Wave | Status |
+| # | Phase | Est. | Wave | Status (2026-11-08) |
 |---|---|---|---|---|
-| F | Foundations: land the waiting branches | 2-3 h | 0 | in progress |
-| R | Rendering: rail cost with shaders, far rails and trains, block entity counter | 6-10 h | 1 | not started |
-| S | Station generator: the most realistic in Minecraft | 10-15 h | 1 | not started |
-| PX | Passengers finished (launch headline) | 5-8 h | 1 | not started |
-| SG | Signals and driving (SCR/TSW feel) | 8-12 h | 1 | not started |
-| SN | Sound profiles for any train | 6-10 h | 1 | not started |
-| O2 | Block, item, rail and signal art (Opus, Blockbench) | 5-10 h | 1 | not started |
-| RT | Route control | 3-5 h | 2 (after SG) | not started |
-| LV | ATR Liveries pack (separate) | 10-20 h | 2 | not started |
-| PK | Private pack format | 2-4 h | 2 | not started |
+| F | Foundations: land the waiting branches | 2-3 h | 0 | done (#47-#50) |
+| R | Rendering: rail cost with shaders, far rails and trains, block entity counter | 6-10 h | 1 | far rails merged (#51); perf numbers and block entity counter not checked |
+| S | Station generator: the most realistic in Minecraft | 10-15 h | 1 | PR #62 open, 7.5/10, fixing to 9 |
+| PX | Passengers finished (launch headline) | 5-8 h | 1 | merged (#49, #54) |
+| SG | Signals and driving (SCR/TSW feel) | 8-12 h | 1 | merged (#55); #60 open |
+| SN | Sound profiles for any train | 6-10 h | 1 | merged (#52); #57 open |
+| O2 | Block, item, rail and signal art (Opus, Blockbench) | 5-10 h | 1 | merged (#53); Jah: "something's off", waiting on which part |
+| RT | Route control | 3-5 h | 2 (after SG) | PR #59 open |
+| LV | ATR Liveries pack (separate) | 10-20 h | 2 | in progress in ATR-Liveries (350 LNR, 450 SWR) |
+| PK | Private pack format | 2-4 h | 2 | merged (#56) |
 | T | Full in-game test pass | 4-6 h | 3 | not started |
-| TR | Trailer | 4-8 h | 3 | not started |
+| TR | Trailer | 4-8 h | 3 | recorder PR #58 open, shots PR #63 open |
 
 ### F. Foundations
 - Waiting branches (check each is still wanted, rebase on master, review, PR, merge):
