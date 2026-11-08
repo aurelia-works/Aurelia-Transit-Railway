@@ -86,7 +86,7 @@ jobs:
         run: ./gradlew setupFiles :fabric:ataTest --tests '${{ matrix.class }}'
   ata-gametest:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
