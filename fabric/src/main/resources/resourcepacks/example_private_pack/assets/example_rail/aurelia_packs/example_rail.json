@@ -1,0 +1,73 @@
+{
+	"format": 1,
+	"name": "Example Rail private pack",
+	"operators": [
+		{
+			"id": "example_rail",
+			"name": "Example Rail",
+			"short_code": "EXR",
+			"colours": {
+				"primary": "#1F4E79",
+				"secondary": "#F2C94C",
+				"text": "#FFFFFF"
+			}
+		}
+	],
+	"liveries": [
+		{
+			"id": "example_emu",
+			"operator": "example_rail",
+			"name": "Example EMU",
+			"vehicles": [
+				"example:emu_cab",
+				"example:emu_trailer"
+			]
+		},
+		{
+			"id": "example_metro",
+			"operator": "example_rail",
+			"name": "Example Metro",
+			"vehicles": [
+				"example:metro_car"
+			],
+			"textures": {
+				"example:metro_car": "example_rail:textures/vehicle/example_metro.png"
+			}
+		}
+	],
+	"sounds": {
+		"example:emu_cab": "mtr:uk_emu",
+		"example:metro_car": "mtr:metro"
+	},
+	"station_presets": [
+		{
+			"id": "example_central",
+			"name": "Example Central",
+			"description": "four track modern station, two island platforms, 160 long, glass canopy, station building with footbridge, named Example Central",
+			"style": "modern"
+		}
+	],
+	"timetables": [
+		{
+			"id": "example_weekday",
+			"name": "Example Weekday",
+			"depot": "Example Depot",
+			"weekday": {
+				"real_time": true,
+				"departures": [
+					"05:30",
+					"05:45",
+					"06:00",
+					"06:15"
+				]
+			},
+			"weekend": {
+				"real_time": false,
+				"frequencies": [
+					0, 0, 0, 0, 0, 2, 4, 4, 4, 4, 4, 4,
+					4, 4, 4, 4, 4, 4, 4, 4, 2, 2, 0, 0
+				]
+			}
+		}
+	]
+}
