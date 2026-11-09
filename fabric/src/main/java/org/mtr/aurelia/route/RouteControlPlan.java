@@ -103,7 +103,11 @@ public final class RouteControlPlan {
 			if (old != null) {
 				WAYPOINT_IDS.removeAll(old.fakeStopIndex.keySet());
 			}
-			EFFECTIVE_PLATFORMS.remove(depot.getId());
+			if (EFFECTIVE_PLATFORMS.remove(depot.getId()) != null || old != null) {
+				// The control was cleared after this list was rewritten, and MTR refills it only on its next data sync:
+				// put back the planned platforms now, so the regeneration that follows the edit takes MTR's path again.
+				fillPlatforms(platformsInRoute, plannedStops(depot));
+			}
 			return;
 		}
 
@@ -458,6 +462,24 @@ public final class RouteControlPlan {
 			options.add(other.getId());
 		}
 		return options;
+	}
+
+	/** Each route's own planned platforms, in the list shape {@code Depot.writeRouteCache} builds. */
+	private static List<Stop> plannedStops(Depot depot) {
+		final List<Stop> stops = new ArrayList<>();
+		long previousPlatformId = 0;
+		for (final Route route : depot.routes) {
+			final ObjectArrayList<RoutePlatformData> routePlatforms = route.getRoutePlatforms();
+			for (int i = 0; i < routePlatforms.size(); i++) {
+				final RoutePlatformData routePlatform = routePlatforms.get(i);
+				final Platform platform = routePlatform == null ? null : routePlatform.platform;
+				if (platform != null && platform.getId() != previousPlatformId) {
+					stops.add(new Stop(platform, i == 0 ? null : route, i, i == 0 ? Integer.MAX_VALUE : i - 1));
+					previousPlatformId = platform.getId();
+				}
+			}
+		}
+		return stops;
 	}
 
 	private static void fillPlatforms(ObjectArrayList platformsInRoute, List<Stop> stops) {
