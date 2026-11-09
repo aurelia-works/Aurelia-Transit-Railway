@@ -129,6 +129,46 @@ public final class UndoLog {
 		this.world = world;
 		this.owner = owner;
 		saveFailed = !UndoStore.begin(this);
+		journalHeld();
+	}
+
+	/**
+	 * Writes what the log already holds when it is attached, as a rebuild's log is filled with the kept cells, soil and rails
+	 * before it has an owner. Encoded and appended a batch at a time: encoding a whole airport's site at once ran the
+	 * server out of memory (884,240 cells, AirportMtrRebuildGameTests).
+	 */
+	private void journalHeld() {
+		for (final Entry entry : entries) {
+			batched(cell(entry, keys.get(entry.pos())));
+		}
+		for (final Map.Entry<BlockPos, BlockState> soil : coveredSoil.entrySet()) {
+			batched(soil(soil.getKey(), soil.getValue()));
+		}
+		for (final BlockPos stop : lifts) {
+			batched(position("lift", stop));
+		}
+		for (final BlockPos node : railNodes) {
+			batched(position("rail", node));
+		}
+		for (final long id : stations) {
+			batched(station(id));
+		}
+		for (final AirportMtr.Ids ids : airports) {
+			batched(airport(ids));
+		}
+		flushNow();
+	}
+
+	private void batched(@Nullable NbtCompound record) {
+		record(record);
+		if (pending.size() >= SAVE_RECORDS) {
+			flushNow();
+		}
+	}
+
+	/** True once the log has a journal to write to; before that it records nothing, and {@link #attach} writes it all. */
+	private boolean journaling() {
+		return owner != null && !saveFailed;
 	}
 
 	@Nullable
@@ -166,7 +206,9 @@ public final class UndoLog {
 			keys.remove(entry.pos());
 			keys.put(entry.pos(), key);
 		}
-		record(cell(entry, key));
+		if (journaling()) {
+			record(cell(entry, key));
+		}
 	}
 
 	/** What each written cell was written as, in write order; a rebuild at the same spot compares its plan with this. */
@@ -188,7 +230,7 @@ public final class UndoLog {
 	/** Covered soil carries over to the log of a rebuild at the same spot. */
 	void copySoil(UndoLog from) {
 		from.coveredSoil.forEach((pos, state) -> {
-			if (coveredSoil.putIfAbsent(pos, state) == null) {
+			if (coveredSoil.putIfAbsent(pos, state) == null && journaling()) {
 				record(soil(pos, state));
 			}
 		});
@@ -196,7 +238,7 @@ public final class UndoLog {
 
 	/** Remembers soil that decays when covered, the first time the build writes above it. */
 	void coverSoil(BlockPos pos, BlockState soil) {
-		if (coveredSoil.putIfAbsent(pos, soil) == null) {
+		if (coveredSoil.putIfAbsent(pos, soil) == null && journaling()) {
 			record(soil(pos, soil));
 		}
 	}
@@ -308,7 +350,7 @@ public final class UndoLog {
 
 	/** A new record that did not fit the last batch; a record that cannot be encoded leaves the in-memory undo usable. */
 	private void record(@Nullable NbtCompound record) {
-		if (record != null && !saveFailed) {
+		if (record != null && journaling()) {
 			pending.add(record);
 		}
 	}
