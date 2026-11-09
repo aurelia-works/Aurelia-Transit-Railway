@@ -93,6 +93,8 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String PLANT_VENT = "minecraft:iron_bars";
 	static final String MAST_LAMP = "aurelia_transit_architecture:apron_floodlight";
 	static final String BOLLARD = "aurelia_transit_architecture:bollard";
+	/** The terminal's name, in navy block letters on the landside glass. */
+	static final String NAME_LETTER = "minecraft:blue_concrete";
 	static final String CHECK_IN_DESK = "aurelia_transit_architecture:check_in_desk";
 	static final String DEPARTURES_BOARD = "aurelia_transit_architecture:departures_board";
 	static final String JET_BRIDGE = "aurelia_transit_architecture:jet_bridge";
@@ -552,6 +554,25 @@ abstract class PlanAirport extends PlanFitOut {
 			row0 += h + gap;
 		}
 		return out;
+	}
+
+	/**
+	 * The airport's name in block letters five rows tall, standing on the landside glass between the canopy and the eave (ap03),
+	 * centred on the entrance. False when there is no name, a letter the font lacks, or no room, so the caller letters a sign
+	 * instead. Placed before the canopy's braces, so a brace gives way to a letter.
+	 */
+	private boolean nameInLetters(int u0, int v0, int v1, int door, int top) {
+		final String name = spec.name().toUpperCase(java.util.Locale.ROOT);
+		final int w = AirportGlyphs.width(name, 1);
+		if (name.isBlank() || !name.chars().allMatch(c -> AirportGlyphs.has((char) c))
+				|| top - AirportGlyphs.GLYPH_HEIGHT < landsideCanopyY() + 1 || w > v1 - v0 - 8) {
+			return false;
+		}
+		// read from the forecourt, looking +u: the reader's right is -v
+		for (final int[] px : AirportGlyphs.pixels(name, 1)) {
+			put(Role.FIXTURE, u0 - 1, top - px[1], door + w / 2 - px[0], LocalDir.MINUS_U, NAME_LETTER);
+		}
+		return true;
 	}
 
 	/** One approach light: a white lamp on a one-block post over the grass, or a flush lamp where it crosses pavement. */
@@ -1476,7 +1497,7 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 		// the name, over the entrance, fixed flat to the landside wall; a compact terminal's canopy sits just below it
 		final int nameY = Math.max(top - 1, landsideCanopyY() + 1);
-		if (!spec.name().isEmpty()) {
+		if (!nameInLetters(u0, v0, v1, door, top) && !spec.name().isEmpty()) {
 			for (int v = door - half - 3; v <= door + half + 3; v++) {
 				putText(Role.FIXTURE, u0 - 1, nameY, v, LocalDir.MINUS_U, LETTERING, spec.name());
 			}
