@@ -3,6 +3,10 @@
 Two things landed together: lineside signal aspects now follow the blocks ahead, and a driver gets a UK-style cab
 (AWS, TPWS, door keys, a stop marker and a score). Everything visible is switched on the panel's new **Driving** tab.
 
+![Driver HUD layout preview](driving-hud.svg)
+
+The picture is a synthetic layout preview, not an in-game screenshot; the in-game check is in the test steps below.
+
 ## Keys
 
 | Key | Default | What it does |
@@ -39,8 +43,9 @@ rail that has the same colours (and the signal's filter colours when it has filt
 400 ms, so the lamps are not recomputed per frame.
 
 **A route set** has no real meaning in MTR: there is no interlocking. A route counts as set when a signalled rail
-exists on the signal's facing side. At a junction the straightest matching rail is followed rather than a set
-branch. This is the main difference from a real interlocking.
+exists on the signal's facing side. When a train has already reserved a route, MTR's pre-blocked signal colours steer
+the walk at a junction; with no reservation the straightest matching rail is followed. This is the main difference
+from a real interlocking.
 
 The aspect count comes from the physical head (2, 3 or 4 lamps), so the same block state produces the right
 sequence for each head. The 2- and 3-aspect renderers never receive the double-yellow index.
@@ -59,9 +64,9 @@ The horn and bell are synthesized for ATR (`assets/aurelia/sounds/`), not sample
 
 A TPWS trip puts the emergency brake on (B8) and lights the TPWS indicator. It latches:
 
-- **Overspeed:** within 400 m of a restrictive signal, the current speed above the lower of the track and manual
+- **Overspeed:** within 150 m of a restrictive signal, the current speed above the lower of the track and manual
   limits by 5% + 1 km/h. Real TPWS overspeed loops sit at signal approaches and speed restrictions, not on every
-  metre of line, so plain-line overspeed is scored but not tripped.
+  metre of line, so plain-line overspeed is scored but not tripped. The HUD shows `TPWS ARMED` inside that window.
 - **SPAD:** passing a signal whose block is occupied, i.e. a signal that was red.
 
 Stop the train, then press K. The reset is refused while the train is moving. The emergency brake stays applied
@@ -81,8 +86,9 @@ moving.
 ## Stop marker
 
 When a platform stop is within 400 m, a yellow/black stop board is drawn beside the track at the front stop point for
-this train. The HUD also shows a stop tape, the distance to the marker, and the train's car count and length, so the
-same marker works for a 2-car unit and a 10-car set. The board is geometry only; no new sign art.
+this train. Its face says `N CAR STOP` for this train, and the HUD also shows a stop tape, the distance to the marker,
+and the car count and length, so the same marker works for a 2-car unit and a 10-car set. The board is geometry and
+billboard text; no new sign art.
 
 ## Score
 
@@ -98,6 +104,13 @@ platform ends the run with a poor accuracy and a new run starts from the next de
 
 The HUD shows the current run while moving and the last run after stopping. The **Score HUD** switch hides the last
 line; the run is still scored.
+
+## Cab HUD
+
+The panel is a dark desk with a round analogue speedometer (green limit tick, red needle, digital speed below), a
+vertical power/brake gauge with P7/N/B8 detents, a door diagram that lights the platform side, the AWS sunflower,
+the TPWS state (`OK`/`ARMED`/`TRIP`), a four-lamp next-signal repeater with distance and aspect, the stop tape and
+the score. It shrinks to fit a small window and scales with the panel slider.
 
 ## Panel
 
@@ -139,9 +152,9 @@ They are new client-config keys (`drivingAws`, `drivingTpws`, `drivingScoreHud`,
 - Only the three lamp heads MTR already has: no flashing aspects, shunt/position-light signals or theatre indicators.
 - AWS and TPWS infer their magnets from block boundaries. A colour change with no physical signal is ignored; a
   very long block gives only an approximate next-signal distance.
-- The HUD assumes a four-aspect head for the *next signal* display when the physical head cannot be found; the AWS
-  horn/bell uses the head it did find.
+- The HUD skips a block boundary when no physical signal head is found within the node scan, so the next signal
+  shown is the next one it could identify; the AWS horn/bell uses the head it did find.
 - MTR's notches are P1–P7 and B1–B8, not a specific class's P1–P4/B1–B7; the emergency brake is B8.
 - Door open-left/open-right gate MTR's single toggle, so a bay platform with both sides open opens all doors.
-- The stop board is geometry only, without a "4 car stop" plate.
+- The stop board is geometry with a billboard label, not a bespoke sign texture.
 - Sounds are synthesized, not recorded from a real AWS/TPWS installation.

@@ -6,16 +6,19 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.signal.PathSignals;
@@ -82,6 +85,9 @@ public final class DriverClient {
 	private static DoorSides.Side lastDoorSide = DoorSides.Side.NONE;
 	private static long lastHornMillis;
 	private static long lastBellMillis;
+	private static boolean tpwsArmed;
+	private static DoorSides.Side platformSide = DoorSides.Side.NONE;
+	private static int platformSideTicks;
 	@Nullable
 	private static PathData stopPath;
 	private static double stopDistance = Double.NaN;
@@ -99,6 +105,11 @@ public final class DriverClient {
 		ClientTickEvents.END_CLIENT_TICK.register(DriverClient::tick);
 		HudRenderCallback.EVENT.register((context, tickDelta) -> renderHud(context));
 		WorldRenderEvents.BEFORE_DEBUG_RENDER.register(DriverClient::renderStopMarker);
+	}
+
+	/** True while the player drives a train with a valid key, so the cab HUD (with its own speed) is up. */
+	public static boolean isDriving() {
+		return vehicle != null;
 	}
 
 	private static void tick(MinecraftClient client) {
@@ -152,6 +163,16 @@ public final class DriverClient {
 		final long now = System.currentTimeMillis();
 		final double speedMetresPerSecond = vehicle.getSpeed() * 1000;
 		final double limitMetresPerSecond = speedLimitMetresPerSecond();
+
+		if (speedMetresPerSecond <= MOVING) {
+			if (++platformSideTicks >= 10) {
+				platformSideTicks = 0;
+				platformSide = DoorSides.of(vehicle);
+			}
+		} else {
+			platformSide = DoorSides.Side.NONE;
+			platformSideTicks = 0;
+		}
 
 		// A signal boundary is where the next signal stands. The list was built last tick, before the head reached it,
 		// so it is not polluted by this train occupying the block it is entering. A stopped train refreshes it a few
@@ -218,7 +239,8 @@ public final class DriverClient {
 			AWS.clear();
 		}
 
-		final boolean overspeedArmed = nextAspect != null && nextAspect.isRestrictive() && !Double.isNaN(metresToNextSignal) && metresToNextSignal <= 400;
+		final boolean overspeedArmed = nextAspect != null && nextAspect.isRestrictive() && !Double.isNaN(metresToNextSignal) && metresToNextSignal <= TpwsProtection.OVERSPEED_WINDOW_METRES;
+		tpwsArmed = config.getDrivingTpws() && overspeedArmed;
 		final TpwsProtection.Trip trip = TPWS.update(config.getDrivingTpws(), speedMetresPerSecond, overspeedArmed ? limitMetresPerSecond : 0, spad);
 		if (trip != TpwsProtection.Trip.NONE) {
 			brake(EMERGENCY_BRAKE_LEVEL);
@@ -288,6 +310,7 @@ public final class DriverClient {
 		}
 
 		final DoorSides.Side side = DoorSides.of(vehicle);
+		platformSide = side;
 		if (openLeft && (side == DoorSides.Side.LEFT || side == DoorSides.Side.BOTH)) {
 			VehicleRidingMovement.requestAureliaDoors();
 			lastDoorSide = DoorSides.Side.LEFT;
@@ -371,6 +394,9 @@ public final class DriverClient {
 		overspeedLatched = false;
 		moving = false;
 		manualMode = false;
+		tpwsArmed = false;
+		platformSide = DoorSides.Side.NONE;
+		platformSideTicks = 0;
 		lastDoorSide = DoorSides.Side.NONE;
 	}
 
@@ -400,34 +426,16 @@ public final class DriverClient {
 
 		final Client config = Config.getClient();
 		final boolean score = config.getDrivingScoreHud();
-		final int baseWidth = 360;
-		final int baseHeight = score ? 98 : 82;
-		final double fit = Math.min(1, Math.min((context.getScaledWindowWidth() - 16) / (double) baseWidth, (context.getScaledWindowHeight() - 80) / (double) baseHeight));
-		final double scale = Math.max(0.4, config.getDrivingHudScale() * fit);
-		final int width = (int) (baseWidth * scale);
-		final int height = (int) (baseHeight * scale);
-		final int x = (context.getScaledWindowWidth() - width) / 2;
-		final int y = context.getScaledWindowHeight() - height - 24;
+		final DriverHudLayout.Fit fit = DriverHudLayout.fit(context.getScaledWindowWidth(), context.getScaledWindowHeight(), config.getDrivingHudScale(), score);
 
 		final MatrixStack matrices = context.getMatrices();
 		matrices.push();
-		matrices.translate(x, y, 0);
-		matrices.scale((float) scale, (float) scale, 1);
+		matrices.translate(fit.x(), fit.y(), 0);
+		matrices.scale((float) fit.scale(), (float) fit.scale(), 1);
 
-		context.fill(0, 0, baseWidth, baseHeight, PANEL_BG);
-		context.fill(0, 0, baseWidth, 1, PANEL_BORDER);
-		context.fill(0, baseHeight - 1, baseWidth, baseHeight, PANEL_BORDER);
-		context.fill(0, 0, 1, baseHeight, PANEL_BORDER);
-		context.fill(baseWidth - 1, 0, baseWidth, baseHeight, PANEL_BORDER);
-		context.fill(100, 4, 101, 62, PANEL_BORDER);
-		context.fill(156, 4, 157, 62, PANEL_BORDER);
-		context.fill(216, 4, 217, 62, PANEL_BORDER);
-		context.fill(262, 4, 263, 62, PANEL_BORDER);
-		context.fill(302, 4, 303, 62, PANEL_BORDER);
-		context.fill(8, 64, baseWidth - 8, 65, PANEL_BORDER);
-
+		drawPanel(context, score);
 		drawSpeed(context, client);
-		drawNotch(context, client);
+		drawPower(context, client);
 		drawDoors(context, client);
 		drawAws(context, client, config);
 		drawTpws(context, client, config);
@@ -440,21 +448,50 @@ public final class DriverClient {
 		matrices.pop();
 	}
 
+	private static void drawPanel(DrawContext context, boolean score) {
+		final int height = score ? DriverHudLayout.BASE_HEIGHT_SCORE : DriverHudLayout.BASE_HEIGHT;
+		context.fill(0, 0, DriverHudLayout.BASE_WIDTH, height, PANEL_BG);
+		context.fill(0, 0, DriverHudLayout.BASE_WIDTH, 2, 0xFF090909);
+		context.fill(0, 2, DriverHudLayout.BASE_WIDTH, 3, AureliaPalette.ACCENT);
+		context.fill(0, height - 1, DriverHudLayout.BASE_WIDTH, height, 0xFF000000);
+		context.fill(0, 0, 1, height, 0xFF000000);
+		context.fill(DriverHudLayout.BASE_WIDTH - 1, 0, DriverHudLayout.BASE_WIDTH, height, 0xFF000000);
+		for (final int separator : DriverHudLayout.SEPARATORS) {
+			context.fill(separator, 6, separator + 1, DriverHudLayout.TOP_HEIGHT - 4, PANEL_BORDER);
+		}
+		context.fill(6, DriverHudLayout.TOP_HEIGHT, DriverHudLayout.BASE_WIDTH - 6, DriverHudLayout.TOP_HEIGHT + 1, PANEL_BORDER);
+		if (score) {
+			context.fill(6, DriverHudLayout.SCORE_Y - 2, DriverHudLayout.BASE_WIDTH - 6, DriverHudLayout.SCORE_Y - 1, PANEL_BORDER);
+		}
+	}
+
 	private static void drawSpeed(DrawContext context, MinecraftClient client) {
 		final double kilometresPerHour = vehicle == null ? 0 : vehicle.getSpeed() * 3600;
 		final int limit = vehicle == null ? 0 : vehicle.getSpeedLimitKilometersPerHour();
-		final int color = limit > 0 && kilometresPerHour > limit ? YELLOW : AureliaPalette.FG;
-		context.drawText(client.textRenderer, "SPEED", 8, 6, AureliaPalette.FG_LIGHT, false);
-		context.getMatrices().push();
-		context.getMatrices().translate(8, 16, 0);
-		context.getMatrices().scale(2.2F, 2.2F, 1);
-		context.drawText(client.textRenderer, String.valueOf(Math.round(kilometresPerHour)), 0, 0, color, false);
-		context.getMatrices().pop();
-		context.drawText(client.textRenderer, "km/h", 8, 45, AureliaPalette.FG_LIGHT, false);
-		context.drawText(client.textRenderer, limit > 0 ? "LIMIT " + limit : "LIMIT -", 8, 55, YELLOW, false);
+		final double manual = vehicle == null ? 0 : vehicle.vehicleExtraData.getMaxManualSpeed() * 3600;
+		final int maxSpeed = DriverHudLayout.maxDialSpeed(limit, manual);
+		final int centreX = DriverHudLayout.DIAL_CENTER_X;
+		final int centreY = DriverHudLayout.DIAL_CENTER_Y;
+		final int radius = DriverHudLayout.DIAL_RADIUS;
+		final boolean overLimit = limit > 0 && kilometresPerHour > limit;
+
+		filledCircle(context, centreX, centreY, radius + 3, 0xFF050505);
+		filledCircle(context, centreX, centreY, radius, 0xFF101010);
+		for (int value = 0; value <= maxSpeed; value += 10) {
+			final boolean major = value % 20 == 0;
+			radial(context, centreX, centreY, DriverHudLayout.dialDegrees(value, maxSpeed), radius - (major ? 9 : 6), radius - 2, 1, major ? 0xFFE6E6E6 : 0xFF777777);
+		}
+		if (limit > 0) {
+			radial(context, centreX, centreY, DriverHudLayout.dialDegrees(limit, maxSpeed), radius - 10, radius - 1, 2, GREEN);
+		}
+		radial(context, centreX, centreY, DriverHudLayout.dialDegrees(Math.min(kilometresPerHour, maxSpeed), maxSpeed), -3, radius - 7, 1, overLimit ? YELLOW : RED);
+		filledCircle(context, centreX, centreY, 3, 0xFFB0B0B0);
+		context.drawCenteredTextWithShadow(client.textRenderer, String.valueOf(Math.round(kilometresPerHour)), centreX, centreY + radius + 2, overLimit ? YELLOW : AureliaPalette.FG);
+		context.drawText(client.textRenderer, "km/h", centreX + 10, centreY + radius + 2, AureliaPalette.FG_LIGHT, false);
+		context.drawText(client.textRenderer, limit > 0 ? "LIMIT " + limit : "LIMIT -", 8, 80, YELLOW, false);
 	}
 
-	private static void drawNotch(DrawContext context, MinecraftClient client) {
+	private static void drawPower(DrawContext context, MinecraftClient client) {
 		final int level = vehicle == null ? 0 : vehicle.vehicleExtraData.getPowerLevel();
 		final String text;
 		final int color;
@@ -471,16 +508,33 @@ public final class DriverClient {
 			text = "N";
 			color = AureliaPalette.FG;
 		}
-		context.drawText(client.textRenderer, "POWER / BRAKE", 104, 6, AureliaPalette.FG_LIGHT, false);
+
+		context.drawText(client.textRenderer, "POWER", 108, 4, AureliaPalette.FG_LIGHT, false);
+		context.fill(DriverHudLayout.POWER_X, DriverHudLayout.POWER_TOP, DriverHudLayout.POWER_X + 6, DriverHudLayout.POWER_BOTTOM, TRACK);
+		for (int notch = -8; notch <= 7; notch++) {
+			final int y = powerY(notch);
+			context.fill(DriverHudLayout.POWER_X - 4, y, DriverHudLayout.POWER_X, y + 1, notch == 0 ? 0xFFBBBBBB : 0xFF3A3A3A);
+		}
+		final int neutralY = powerY(0);
+		final int levelY = powerY(level);
+		if (levelY < neutralY) {
+			context.fill(DriverHudLayout.POWER_X, levelY, DriverHudLayout.POWER_X + 6, neutralY, color);
+		} else {
+			context.fill(DriverHudLayout.POWER_X, neutralY, DriverHudLayout.POWER_X + 6, levelY, color);
+		}
+
 		context.getMatrices().push();
-		context.getMatrices().translate(104, 18, 0);
-		context.getMatrices().scale(2.0F, 2.0F, 1);
+		context.getMatrices().translate(126, 28, 0);
+		context.getMatrices().scale(1.6F, 1.6F, 1);
 		context.drawText(client.textRenderer, text, 0, 0, color, false);
 		context.getMatrices().pop();
-		context.fill(104, 42, 152, 45, TRACK);
-		final int notchWidth = (int) ((level + 8) / 15D * 48);
-		context.fill(104, 42, 104 + Math.min(48, Math.max(0, notchWidth)), 45, color);
-		context.drawText(client.textRenderer, manualMode ? "MANUAL" : "ATO", 104, 52, manualMode ? AureliaPalette.FG_LIGHT : GREEN, false);
+		context.drawText(client.textRenderer, "P7", 126, 14, AureliaPalette.FG_LIGHT, false);
+		context.drawText(client.textRenderer, "N", 126, 48, AureliaPalette.FG_LIGHT, false);
+		context.drawText(client.textRenderer, "B8", 126, 72, AureliaPalette.FG_LIGHT, false);
+	}
+
+	private static int powerY(int notch) {
+		return DriverHudLayout.POWER_BOTTOM - (int) Math.round(DriverHudLayout.notchFraction(notch) * (DriverHudLayout.POWER_BOTTOM - DriverHudLayout.POWER_TOP));
 	}
 
 	private static void drawDoors(DrawContext context, MinecraftClient client) {
@@ -491,36 +545,92 @@ public final class DriverClient {
 		} else {
 			state = "CLOSED";
 		}
-		context.drawText(client.textRenderer, "DOORS", 160, 6, AureliaPalette.FG_LIGHT, false);
-		context.drawText(client.textRenderer, state, 160, 18, open ? GREEN : AureliaPalette.FG, false);
-		if (vehicle != null) {
-			final int width = (int) (Math.min(1, vehicle.persistentVehicleData.getDoorValue()) * 48);
-			context.fill(160, 32, 208, 35, TRACK);
-			context.fill(160, 32, 160 + width, 35, GREEN);
+		context.drawText(client.textRenderer, "DOORS", 174, 4, AureliaPalette.FG_LIGHT, false);
+		context.drawText(client.textRenderer, state, 174, 16, open ? GREEN : AureliaPalette.FG, false);
+		context.fill(174, 32, 216, 42, AureliaPalette.FIELD);
+		context.fill(176, 34, 182, 40, doorLamp(DoorSides.Side.LEFT, open));
+		context.fill(208, 34, 214, 40, doorLamp(DoorSides.Side.RIGHT, open));
+		context.fill(186, 35, 204, 39, 0xFF333333);
+		context.drawText(client.textRenderer, platformText(), 174, 46, platformColour(), false);
+		context.drawText(client.textRenderer, carsText(vehicle == null ? 0 : vehicle.vehicleExtraData.immutableVehicleCars.size()), 174, 58, AureliaPalette.FG_LIGHT, false);
+		context.drawText(client.textRenderer, (vehicle == null ? 0 : Math.round(vehicle.vehicleExtraData.getTotalVehicleLength())) + " m", 174, 70, AureliaPalette.FG_LIGHT, false);
+	}
+
+	private static int doorLamp(DoorSides.Side side, boolean open) {
+		final boolean platformed = platformSide == side || platformSide == DoorSides.Side.BOTH;
+		if (open && platformed) {
+			return GREEN;
 		}
-		context.drawText(client.textRenderer, "CARS " + (vehicle == null ? 0 : vehicle.vehicleExtraData.immutableVehicleCars.size()), 160, 44, AureliaPalette.FG_LIGHT, false);
-		context.drawText(client.textRenderer, "LEN " + (vehicle == null ? 0 : Math.round(vehicle.vehicleExtraData.getTotalVehicleLength())) + " m", 160, 54, AureliaPalette.FG_LIGHT, false);
+		return platformed ? 0xFF2E7D32 : 0xFF333333;
+	}
+
+	private static String platformText() {
+		switch (platformSide) {
+			case LEFT:
+				return "PLATFORM L";
+			case RIGHT:
+				return "PLATFORM R";
+			case BOTH:
+				return "PLATFORM B";
+			default:
+				return "PLATFORM -";
+		}
+	}
+
+	private static int platformColour() {
+		return platformSide == DoorSides.Side.NONE ? AureliaPalette.FG_LIGHT : GREEN;
+	}
+
+	private static void drawAws(DrawContext context, MinecraftClient client, Client config) {
+		final boolean warning = config.getDrivingAws() && AWS.isWarning();
+		final boolean brake = config.getDrivingAws() && AWS.isBrakeApplied();
+		context.drawText(client.textRenderer, "AWS", 238, 4, AureliaPalette.FG_LIGHT, false);
+		sunflower(context, 240, 16, 16, warning ? YELLOW : LAMP_OFF);
+		context.drawText(client.textRenderer, !config.getDrivingAws() ? "OFF" : warning ? "HORN" : "OK", 260, 18, !config.getDrivingAws() ? AureliaPalette.FG_LIGHT : warning ? YELLOW : GREEN, false);
+		if (brake) {
+			context.drawText(client.textRenderer, "BRAKE", 260, 32, RED, false);
+		} else if (warning) {
+			context.drawText(client.textRenderer, "ACK", 260, 32, YELLOW, false);
+		}
+	}
+
+	private static void drawTpws(DrawContext context, MinecraftClient client, Client config) {
+		final boolean enabled = config.getDrivingTpws();
+		final boolean tripped = enabled && TPWS.isBraking();
+		final boolean armed = enabled && tpwsArmed && !tripped;
+		context.drawText(client.textRenderer, "TPWS", 292, 4, AureliaPalette.FG_LIGHT, false);
+		context.drawText(client.textRenderer, !enabled ? "OFF" : tripped ? "TRIP" : armed ? "ARMED" : "OK", 292, 18, !enabled ? AureliaPalette.FG_LIGHT : tripped ? RED : armed ? YELLOW : GREEN, false);
+		if (tripped) {
+			context.drawText(client.textRenderer, "STOP", 292, 32, RED, false);
+			context.drawText(client.textRenderer, "RST", 292, 44, RED, false);
+		}
+	}
+
+	private static void sunflower(DrawContext context, int x, int y, int size, int color) {
+		final int radius = size / 2;
+		filledCircle(context, x + radius, y + radius, radius, color);
+		for (int angle = 0; angle < 180; angle += 45) {
+			radial(context, x + radius, y + radius, angle, 0, radius, 1, 0xFF111111);
+		}
+		filledCircle(context, x + radius, y + radius, 2, 0xFF111111);
 	}
 
 	private static void drawSignal(DrawContext context, MinecraftClient client) {
-		context.drawText(client.textRenderer, "NEXT", 306, 6, AureliaPalette.FG_LIGHT, false);
-		final boolean red = nextAspect == SignalAspect.RED;
-		final boolean yellow = nextAspect == SignalAspect.YELLOW || nextAspect == SignalAspect.DOUBLE_YELLOW;
-		final boolean doubleYellow = nextAspect == SignalAspect.DOUBLE_YELLOW;
-		final boolean green = nextAspect == SignalAspect.GREEN;
-
-		lamp(context, 342, 16, red, RED);
-		lamp(context, 342, 28, yellow, YELLOW);
-		lamp(context, 342, 40, doubleYellow, YELLOW);
-		lamp(context, 342, 52, green, GREEN);
-
+		context.drawText(client.textRenderer, "NEXT", 334, 4, AureliaPalette.FG_LIGHT, false);
+		lamp(context, 362, 18, nextAspect == SignalAspect.RED, RED);
+		lamp(context, 362, 30, nextAspect == SignalAspect.YELLOW || nextAspect == SignalAspect.DOUBLE_YELLOW, YELLOW);
+		lamp(context, 362, 42, nextAspect == SignalAspect.DOUBLE_YELLOW, YELLOW);
+		lamp(context, 362, 54, nextAspect == SignalAspect.GREEN, GREEN);
 		if (!Double.isNaN(metresToNextSignal)) {
-			final String distance = metresToNextSignal >= 1000 ? String.format("%.1f km", metresToNextSignal / 1000) : Math.round(metresToNextSignal) + " m";
-			context.drawText(client.textRenderer, distance, 306, 20, AureliaPalette.FG, false);
-			context.drawText(client.textRenderer, aspectName(), 306, 34, nextAspect != null && nextAspect.isRestrictive() ? YELLOW : GREEN, false);
+			context.drawText(client.textRenderer, distanceText(), 334, 68, AureliaPalette.FG, false);
+			context.drawText(client.textRenderer, aspectName(), 334, 80, nextAspect != null && nextAspect.isRestrictive() ? YELLOW : GREEN, false);
 		} else {
-			context.drawText(client.textRenderer, "-", 306, 24, AureliaPalette.FG_LIGHT, false);
+			context.drawText(client.textRenderer, "-", 334, 72, AureliaPalette.FG_LIGHT, false);
 		}
+	}
+
+	private static String distanceText() {
+		return metresToNextSignal >= 1000 ? String.format("%.1f km", metresToNextSignal / 1000) : Math.round(metresToNextSignal) + " m";
 	}
 
 	private static String aspectName() {
@@ -531,94 +641,82 @@ public final class DriverClient {
 			case RED:
 				return "RED";
 			case YELLOW:
-				return "CAUTION";
+				return "YEL";
 			case DOUBLE_YELLOW:
-				return "DOUBLE";
+				return "D-YEL";
 			default:
-				return "CLEAR";
+				return "GRN";
 		}
 	}
 
 	private static void lamp(DrawContext context, int x, int y, boolean lit, int color) {
-		context.fill(x, y, x + 14, y + 9, lit ? color : LAMP_OFF);
-		context.fill(x, y, x + 14, y + 1, lit ? 0xFFFFFFFF : PANEL_BORDER);
-	}
-
-	private static void drawAws(DrawContext context, MinecraftClient client, Client config) {
-		final boolean warning = config.getDrivingAws() && AWS.isWarning();
-		final boolean brake = config.getDrivingAws() && AWS.isBrakeApplied();
-		context.drawText(client.textRenderer, "AWS", 220, 6, AureliaPalette.FG_LIGHT, false);
-		sunflower(context, 220, 17, 13, warning ? YELLOW : LAMP_OFF);
-		context.drawText(client.textRenderer, warning ? "HORN" : "OK", 236, 19, warning ? YELLOW : GREEN, false);
-		if (brake) {
-			context.drawText(client.textRenderer, "BRAKE", 236, 32, RED, false);
-		} else if (warning) {
-			context.drawText(client.textRenderer, "ACK", 236, 32, YELLOW, false);
-		}
-	}
-
-	private static void drawTpws(DrawContext context, MinecraftClient client, Client config) {
-		final boolean tripped = config.getDrivingTpws() && TPWS.isBraking();
-		context.drawText(client.textRenderer, "TPWS", 266, 6, AureliaPalette.FG_LIGHT, false);
-		context.drawText(client.textRenderer, tripped ? "TRIP" : "OK", 266, 19, tripped ? RED : GREEN, false);
-		if (tripped) {
-			context.drawText(client.textRenderer, "STOP", 266, 32, RED, false);
-			context.drawText(client.textRenderer, "RST", 266, 44, RED, false);
-		}
-	}
-
-	private static void sunflower(DrawContext context, int x, int y, int size, int color) {
-		final int radius = size / 2;
-		for (int row = -radius; row <= radius; row++) {
-			final int half = (int) Math.sqrt(Math.max(0, radius * radius - row * row));
-			context.fill(x + radius - half, y + radius + row, x + radius + half + 1, y + radius + row + 1, color);
-		}
-		context.fill(x + 2, y + radius, x + size - 2, y + radius + 1, 0xFF111111);
-		context.fill(x + radius, y + 2, x + radius + 1, y + size - 2, 0xFF111111);
+		filledCircle(context, x, y, 6, 0xFF000000);
+		filledCircle(context, x, y, 5, lit ? color : LAMP_OFF);
 	}
 
 	private static void drawStop(DrawContext context, MinecraftClient client) {
 		if (vehicle == null) {
 			return;
 		}
+		final int cars = vehicle.vehicleExtraData.immutableVehicleCars.size();
+		final int length = (int) Math.round(vehicle.vehicleExtraData.getTotalVehicleLength());
+		context.drawText(client.textRenderer, carsText(cars) + " / " + length + " m", 6, 94, AureliaPalette.FG_LIGHT, false);
+
 		final DoubleObjectImmutablePair<DoubleDoubleImmutablePair> details = vehicle.getPlatformStoppingDetails();
 		if (details == null) {
-			context.drawText(client.textRenderer, "STOP -", 110, 68, AureliaPalette.FG_LIGHT, false);
+			context.drawText(client.textRenderer, "STOP -", 120, 94, AureliaPalette.FG_LIGHT, false);
 			return;
 		}
-
 		final double distance = details.leftDouble();
 		if (distance < -5 || distance > 600) {
-			context.drawText(client.textRenderer, "STOP -", 110, 68, AureliaPalette.FG_LIGHT, false);
+			context.drawText(client.textRenderer, "STOP -", 120, 94, AureliaPalette.FG_LIGHT, false);
 			return;
 		}
 
 		final boolean atStop = Math.abs(distance) <= 0.5;
 		final int color = atStop ? GREEN : Math.abs(distance) <= 5 ? YELLOW : AureliaPalette.FG;
-		context.drawText(client.textRenderer, atStop ? "STOP" : "STOP " + Math.round(distance) + " m", 110, 68, color, false);
-		context.fill(200, 73, 352, 77, TRACK);
-		context.fill(346, 71, 352, 79, GREEN);
-		final int pointer = 200 + (int) Math.round(Math.min(1, Math.max(0, 1 - distance / 300)) * 150);
-		context.fill(pointer, 70, pointer + 2, 80, color);
+		context.drawText(client.textRenderer, atStop ? "STOP" : "STOP " + Math.round(distance) + " m", 120, 94, color, false);
+		context.fill(DriverHudLayout.STOP_TAPE_LEFT, 98, DriverHudLayout.STOP_TAPE_RIGHT, 102, TRACK);
+		context.fill(366, 96, 372, 104, GREEN);
+		final int pointer = DriverHudLayout.STOP_TAPE_LEFT + (int) Math.round(DriverHudLayout.stopPointerFraction(distance) * (DriverHudLayout.STOP_TAPE_RIGHT - DriverHudLayout.STOP_TAPE_LEFT));
+		context.fill(pointer, 95, pointer + 2, 105, color);
 	}
 
 	private static void drawScore(DrawContext context, MinecraftClient client) {
-		context.fill(8, 80, 352, 81, PANEL_BORDER);
 		final DriverScore.Run last = SCORE.getLastRun();
 		if (SCORE.isRunning()) {
 			final long elapsed = System.currentTimeMillis() - SCORE.runStartedMillis();
-			context.drawText(client.textRenderer, "RUN " + time(elapsed) + "   " + SCORE.currentSpads() + " SPAD   " + SCORE.currentOverspeeds() + " OVS", 8, 84, AureliaPalette.FG, false);
+			context.drawText(client.textRenderer, "RUN " + time(elapsed) + "   " + SCORE.currentSpads() + " SPAD   " + SCORE.currentOverspeeds() + " OVS", 8, 114, AureliaPalette.FG, false);
 		} else if (last != null) {
 			final String accuracy = Double.isNaN(last.stopErrorMetres()) ? "no platform" : String.format("%.1f m", last.stopErrorMetres());
-			context.drawText(client.textRenderer, "LAST " + last.points() + " pts   " + accuracy + "   " + last.spads() + " SPAD   " + last.overspeeds() + " OVS   " + time(last.elapsedMillis()), 8, 84, AureliaPalette.FG, false);
+			context.drawText(client.textRenderer, "LAST " + last.points() + " pts   " + accuracy + "   " + last.spads() + " SPAD   " + last.overspeeds() + " OVS   " + time(last.elapsedMillis()), 8, 114, AureliaPalette.FG, false);
 		} else {
-			context.drawText(client.textRenderer, "NO RUN YET", 8, 84, AureliaPalette.FG_LIGHT, false);
+			context.drawText(client.textRenderer, "NO RUN YET", 8, 114, AureliaPalette.FG_LIGHT, false);
 		}
+	}
+
+	private static String carsText(int cars) {
+		return cars + (cars == 1 ? " CAR" : " CARS");
 	}
 
 	private static String time(long millis) {
 		final long seconds = Math.max(0, millis) / 1000;
 		return String.format("%d:%02d", seconds / 60, seconds % 60);
+	}
+
+	private static void filledCircle(DrawContext context, int x, int y, int radius, int color) {
+		for (int row = -radius; row <= radius; row++) {
+			final int half = (int) Math.sqrt(Math.max(0, radius * radius - row * row));
+			context.fill(x - half, y + row, x + half + 1, y + row + 1, color);
+		}
+	}
+
+	private static void radial(DrawContext context, int x, int y, double degrees, int inner, int outer, int thickness, int color) {
+		context.getMatrices().push();
+		context.getMatrices().translate(x, y, 0);
+		context.getMatrices().multiply(new Quaternionf().rotateZ((float) Math.toRadians(degrees)));
+		context.fill(inner, -thickness, outer, thickness, color);
+		context.getMatrices().pop();
 	}
 
 	// ---------------------------------------------------------------------------------------------------------------
@@ -650,25 +748,47 @@ public final class DriverClient {
 		final VertexConsumer quads = context.consumers().getBuffer(RenderLayer.getDebugQuads());
 
 		// A stop board beside the track, facing the driver: a yellow board on a black post, geometry only.
-		final double sideX = end.x + acrossX * 2.4;
-		final double sideZ = end.z + acrossZ * 2.4;
+		final double sideX = end.x + acrossX * 2.6;
+		final double sideZ = end.z + acrossZ * 2.6;
 		final double boardY = end.y + 2.15;
 		quad(quads, matrix,
-				sideX - acrossX * 0.8 - alongX * 0.04, boardY - 0.45, sideZ - acrossZ * 0.8 - alongZ * 0.04,
-				sideX + acrossX * 0.8 - alongX * 0.04, boardY - 0.45, sideZ + acrossZ * 0.8 - alongZ * 0.04,
-				sideX + acrossX * 0.8 + alongX * 0.04, boardY + 0.45, sideZ + acrossZ * 0.8 + alongZ * 0.04,
-				sideX - acrossX * 0.8 + alongX * 0.04, boardY + 0.45, sideZ - acrossZ * 0.8 + alongZ * 0.04,
+				sideX - acrossX * 0.95 - alongX * 0.04, boardY - 0.45, sideZ - acrossZ * 0.95 - alongZ * 0.04,
+				sideX + acrossX * 0.95 - alongX * 0.04, boardY - 0.45, sideZ + acrossZ * 0.95 - alongZ * 0.04,
+				sideX + acrossX * 0.95 + alongX * 0.04, boardY + 0.45, sideZ + acrossZ * 0.95 + alongZ * 0.04,
+				sideX - acrossX * 0.95 + alongX * 0.04, boardY + 0.45, sideZ - acrossZ * 0.95 + alongZ * 0.04,
 				250, 200, 30, 255);
 		quad(quads, matrix,
-				sideX - acrossX * 0.8 - alongX * 0.06, boardY - 0.08, sideZ - acrossZ * 0.8 - alongZ * 0.06,
-				sideX + acrossX * 0.8 - alongX * 0.06, boardY - 0.08, sideZ + acrossZ * 0.8 - alongZ * 0.06,
-				sideX + acrossX * 0.8 - alongX * 0.06, boardY + 0.08, sideZ + acrossZ * 0.8 - alongZ * 0.06,
-				sideX - acrossX * 0.8 - alongX * 0.06, boardY + 0.08, sideZ - acrossZ * 0.8 - alongZ * 0.06,
+				sideX - acrossX * 0.95 - alongX * 0.06, boardY - 0.08, sideZ - acrossZ * 0.95 - alongZ * 0.06,
+				sideX + acrossX * 0.95 - alongX * 0.06, boardY - 0.08, sideZ + acrossZ * 0.95 - alongZ * 0.06,
+				sideX + acrossX * 0.95 - alongX * 0.06, boardY + 0.08, sideZ + acrossZ * 0.95 - alongZ * 0.06,
+				sideX - acrossX * 0.95 - alongX * 0.06, boardY + 0.08, sideZ - acrossZ * 0.95 - alongZ * 0.06,
 				20, 20, 20, 255);
 		box(quads, matrix, camera,
 				sideX - 0.06, end.y + 0.9, sideZ - 0.06,
 				sideX + 0.06, end.y + 1.7, sideZ + 0.06,
 				30, 30, 30, 255);
+
+		// The car count on the board, billboarded so the driver can read it from the cab.
+		final TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+		if (textRenderer != null) {
+			final String label = (vehicle == null ? 0 : vehicle.vehicleExtraData.immutableVehicleCars.size()) + " CAR STOP";
+			final Vec3d toCamera = camera.subtract(sideX, boardY, sideZ);
+			final double distanceToCamera = Math.max(0.01, toCamera.length());
+			final double textX = sideX + toCamera.x * 0.08 / distanceToCamera;
+			final double textY = boardY + toCamera.y * 0.08 / distanceToCamera;
+			final double textZ = sideZ + toCamera.z * 0.08 / distanceToCamera;
+			final MatrixStack matrices = context.matrixStack();
+			matrices.push();
+			matrices.translate(textX - camera.x, textY - camera.y, textZ - camera.z);
+			matrices.multiply(context.camera().getRotation());
+			matrices.scale(-0.025F, -0.025F, 0.025F);
+			final int width = textRenderer.getWidth(label);
+			textRenderer.draw(label, -width / 2F, -4, 0xFF101010, false, matrices.peek().getPositionMatrix(), context.consumers(), TextRenderer.TextLayerType.NORMAL, 0, 0xF000F0);
+			matrices.pop();
+			if (context.consumers() instanceof VertexConsumerProvider.Immediate immediate) {
+				immediate.draw();
+			}
+		}
 	}
 
 	private static void box(VertexConsumer quads, Matrix4f matrix, Vec3d camera, double x1, double y1, double z1, double x2, double y2, double z2, int r, int g, int b, int a) {

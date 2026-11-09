@@ -27,8 +27,9 @@ import java.util.List;
  * a set of signal colours, which is how MTR stores signal blocks.</p>
  *
  * <p>MTR has no interlocking, so "route set" means a rail exists on the signal's facing side. At a junction the
- * straightest matching rail is followed; a set route would choose the branch instead. Results are cached for a few
- * hundred milliseconds per head so this is not computed per frame.</p>
+ * straightest matching rail is followed; when a train has already reserved a route (MTR's pre-blocked signal
+ * colours), that route wins. Results are cached for a few hundred milliseconds per head so this is not computed per
+ * frame.</p>
  */
 public final class SignalLookahead {
 
@@ -158,9 +159,13 @@ public final class SignalLookahead {
 			if (difference >= 90) {
 				continue;
 			}
+			final IntAVLTreeSet colors = rail.getSignalColors();
 			double score = difference;
-			if (!filterColors.isEmpty() && intersects(rail.getSignalColors(), filterColors)) {
+			if (!filterColors.isEmpty() && intersects(colors, filterColors)) {
 				score -= 360;
+			}
+			if (preBlocked(data, rail, filterColors.isEmpty() ? colors : filterColors)) {
+				score -= 180;
 			}
 			if (score < bestScore) {
 				bestScore = score;
@@ -190,12 +195,16 @@ public final class SignalLookahead {
 			if (difference >= 90) {
 				continue;
 			}
+			final IntAVLTreeSet candidateColors = candidate.getSignalColors();
 			double score = difference;
-			if (signature(candidate) == currentSignature) {
+			if (signature(candidateColors) == currentSignature) {
 				score -= 360;
 			}
-			if (!filterColors.isEmpty() && intersects(candidate.getSignalColors(), filterColors)) {
+			if (!filterColors.isEmpty() && intersects(candidateColors, filterColors)) {
 				score -= 180;
+			}
+			if (preBlocked(data, candidate, filterColors.isEmpty() ? candidateColors : filterColors)) {
+				score -= 480;
 			}
 			if (score < bestScore) {
 				bestScore = score;
@@ -236,6 +245,20 @@ public final class SignalLookahead {
 			return false;
 		}
 		for (final long color : blockedColors) {
+			if (colors.contains((int) color)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** A train has reserved this colour, so the interlocking route is set this way. */
+	public static boolean preBlocked(MinecraftClientData data, Rail rail, IntAVLTreeSet colors) {
+		final LongArrayList preBlockedColors = data.railIdToPreBlockedSignalColors.get(rail.getHexId());
+		if (preBlockedColors == null) {
+			return false;
+		}
+		for (final long color : preBlockedColors) {
 			if (colors.contains((int) color)) {
 				return true;
 			}

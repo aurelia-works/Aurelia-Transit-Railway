@@ -17,6 +17,8 @@ public final class TpwsProtection {
 	/** Five per cent over the limit, plus 1 km/h, before an overspeed trip. */
 	public static final double OVERSPEED_FRACTION = 0.05;
 	public static final double OVERSPEED_MARGIN_METRES_PER_SECOND = 1 / 3.6;
+	/** An overspeed sensor is only assumed in the last stretch before a restrictive signal. */
+	public static final double OVERSPEED_WINDOW_METRES = 150;
 	/** Below this the train counts as at a stand for the reset. */
 	public static final double STANDSTILL_METRES_PER_SECOND = 0.1;
 

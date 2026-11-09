@@ -131,8 +131,8 @@ public final class PathSignals {
 		final BlockPos pos = new BlockPos((int) start.getX(), (int) start.getY(), (int) start.getZ());
 		int closest = Integer.MAX_VALUE;
 		int aspects = 0;
-		for (int x = -4; x <= 4; x++) {
-			for (int z = -4; z <= 4; z++) {
+		for (int x = -5; x <= 5; x++) {
+			for (int z = -5; z <= 5; z++) {
 				for (int y = -5; y <= 5; y++) {
 					final BlockPos checkPos = pos.add(x, y, z);
 					final Block block = world.getBlockState(checkPos).getBlock();

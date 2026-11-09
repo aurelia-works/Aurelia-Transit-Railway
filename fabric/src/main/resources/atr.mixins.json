@@ -18,6 +18,7 @@
 	"client": [
 		"BlockEntityCounterMixin",
 		"DebugHudMixin",
+		"DriverSpeedMessageMixin",
 		"WeatherInsideVehicleMixin",
 		"SitCameraMixin",
 		"SitDropMixin",
