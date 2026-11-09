@@ -6,7 +6,7 @@ import com.aureliatransit.architecture.block.FacingShapedBlock;
 import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.block.ShapedBlock;
 import com.aureliatransit.architecture.block.TextLayout;
-import com.aureliatransit.architecture.block.TextSignBlock;
+import com.aureliatransit.architecture.block.NameSignBlock;
 import com.aureliatransit.architecture.block.mtr.MtrPlatformContract;
 import com.aureliatransit.architecture.text.SignStyle;
 import net.minecraft.block.Block;
@@ -94,7 +94,7 @@ public final class StationBlocksDeIt {
 	public static final Block SBAHN_SHELTER = ModBlocks.register("sbahn_shelter", BlockFamily.STATIONS_DE_IT, RenderKind.TRANSLUCENT,
 			new FacingShapedBlock(ModBlocks.glass(), Placement.TOWARD_PLAYER, SHELTER), TIP + "faces_you");
 	public static final Block GERMAN_STATION_SIGN = ModBlocks.register("german_station_sign", BlockFamily.STATIONS_DE_IT, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 6),
+			new NameSignBlock(ModBlocks.metal().luminance(state -> 6),
 					new TextLayout(11.5F, 8, 16, 6.5F, 9.5F, true, SignStyle.GERMAN_STATION),
 					union(box(0, 7, 6.5, 16, 16, 9.5), box(1, 0, 7, 3, 7, 9), box(13, 0, 7, 15, 7, 9))),
 			TIP + "editable", TIP + "joins");

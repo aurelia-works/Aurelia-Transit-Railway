@@ -50,8 +50,9 @@ public final class StationGuide {
 							+ "Sneak + right-click the air: outline again."),
 					Page.of("Plan, check, build", "Placing builds nothing yet. Chat shows the station with Build it, Cancel and Details buttons, and "
 							+ "particles outline it for 30 seconds.\n\nA plan that fails a check cannot be built."),
-					Page.of("Terrain", "A normal build never changes terrain. Grass, water or gaps on the site are listed in the plan.\n\n"
-							+ "Clear and build (in chat) approves those changes."),
+					Page.of("Terrain", "A build changes the ground it stands on: grass, water or gaps are cleared or filled, and the plan "
+							+ "shows how many cells. Every build saves what was there before, and Undo puts it back block for block, even "
+							+ "after a restart."),
 					Page.of("Station Studio", Line.text("A web page on this computer with the wrench's controls and a 3D preview. Its buttons "
 							+ "plan, build, cancel and undo in the world as you.\n\nOpen it from the wrench screen or with:"),
 							Line.run("/ata_studio", "Opens Station Studio in your browser")))),
@@ -98,13 +99,17 @@ public final class StationGuide {
 							Line.run("/ata_station preview", "Outlines the plan again"),
 							Line.run("/ata_station details", "The plan in detail"),
 							Line.run("/ata_station status", "What you have planned or building"),
-							Line.chat("/ata_station confirm", "Builds the plan"),
-							Line.chat("/ata_station confirm replace_terrain", "Builds it and approves the terrain changes")),
-					Page.of("More commands",
+							Line.chat("/ata_station confirm", "Builds the plan, changing the ground it stands on"),
+							Line.chat("/ata_station confirm replace_terrain", "The old word; still confirms")),
+					Page.of("Undo and rebuild",
 							Line.chat("/ata_station cancel", "Drops the plan or stops the build"),
-							Line.chat("/ata_station undo", "Reverts your last build, until a restart"),
+							Line.chat("/ata_station undo", "Reverts your last build, even after a restart"),
+							Line.chat("/ata_station override <block|clear>", "Saves a fine edit of the block you look at"),
 							Line.chat("/ata_station rebuild", "Builds the plan where your last station stands, changing only what differs"),
-							Line.chat("/ata_station rebuild replace_terrain", "Rebuilds and approves the terrain changes"),
+							Line.chat("/ata_station rebuild replace_terrain", "The old word; still rebuilds")),
+					Page.of("More commands",
+							Line.run("/ata_station pace", "Shows how many cells a build changes per tick"),
+							Line.chat("/ata_station pace <blocks>", false, "/ata_station pace 256", "Sets how many cells all builds and undo change per tick"),
 							Line.run("/ata_station verify", "Reads the world back against the plan"),
 							Line.chat("/ata_station verify paste", "Checks a schematic pasted at your feet"),
 							Line.run("/ata_guide", "Gives you the Codex again"),

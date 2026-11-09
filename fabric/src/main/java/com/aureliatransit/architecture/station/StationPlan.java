@@ -1,8 +1,11 @@
 package com.aureliatransit.architecture.station;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+
+import com.aureliatransit.architecture.station.StationPlanner.Cell;
 
 /**
  * A complete, styled station in local coordinates, ready to be validated ({@link LayoutValidator}), surveyed against the
@@ -18,13 +21,21 @@ import java.util.Map;
  * @param foundationId   block used to fill unsupported ground when terrain changes are approved
  */
 public record StationPlan(StationSpec spec, TrackLayout layout, List<PlannedBlock> blocks, List<Box> trackEnvelopes, List<Box> headroom,
-		List<Box> supportAreas, String foundationId) {
+		List<Box> supportAreas, String foundationId, List<SkippedBlock> skipped, Map<String, Integer> skippedByBlock) {
 
 	public StationPlan {
 		blocks = List.copyOf(blocks);
 		trackEnvelopes = List.copyOf(trackEnvelopes);
 		headroom = List.copyOf(headroom);
 		supportAreas = List.copyOf(supportAreas);
+		skipped = List.copyOf(skipped);
+		skippedByBlock = java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(skippedByBlock));
+	}
+
+	/** A plan from before skipped blocks were recorded (no losses, no counts). */
+	public StationPlan(StationSpec spec, TrackLayout layout, List<PlannedBlock> blocks, List<Box> trackEnvelopes, List<Box> headroom,
+			List<Box> supportAreas, String foundationId) {
+		this(spec, layout, blocks, trackEnvelopes, headroom, supportAreas, foundationId, List.of(), Map.of());
 	}
 
 	/** Highest y used by any planned block (at least the top of the track envelopes). */
@@ -47,5 +58,34 @@ public record StationPlan(StationSpec spec, TrackLayout layout, List<PlannedBloc
 			counts.merge(block.role(), 1, Integer::sum);
 		}
 		return counts;
+	}
+
+	/**
+	 * This plan with the player's per-cell edits applied last: an override replaces whatever the planner put in that cell, and
+	 * a new cell is added with the role of the block it replaces (fixture when the cell was empty). An override of
+	 * {@code minecraft:air} clears the cell. The plan stays deterministic and every other cell is untouched.
+	 */
+	public StationPlan withOverrides(Map<Cell, StationOverride> overrides) {
+		if (overrides.isEmpty()) {
+			return this;
+		}
+		final Map<Cell, PlannedBlock> merged = new java.util.LinkedHashMap<>();
+		for (final PlannedBlock block : blocks) {
+			merged.put(new Cell(block.u(), block.y(), block.v()), block);
+		}
+		for (final Map.Entry<Cell, StationOverride> entry : overrides.entrySet()) {
+			final Cell cell = entry.getKey();
+			final StationOverride override = entry.getValue();
+			if (override.blockId().equals("minecraft:air")) {
+				merged.remove(cell);
+				continue;
+			}
+			final PlannedBlock old = merged.get(cell);
+			merged.put(cell, new PlannedBlock(cell.u(), cell.y(), cell.v(), old == null ? Role.FIXTURE : old.role(), override.blockId(),
+					override.front(), old == null ? "" : old.text(), override.state()));
+		}
+		final List<PlannedBlock> edited = new ArrayList<>(merged.values());
+		edited.sort(StationPlanner.BUILD_ORDER);
+		return new StationPlan(spec, layout, edited, trackEnvelopes, headroom, supportAreas, foundationId, skipped, skippedByBlock);
 	}
 }

@@ -106,8 +106,8 @@ final class StationText {
 	}
 
 	/**
-	 * The plan in a few lines: what it is, whether it can be built here and why not, and buttons to build, clear the ground
-	 * and build, cancel, or show the details.
+	 * The plan in a few lines: what it is, whether it can be built here and why not, and buttons to build, cancel, or show the
+	 * details. A build changes the ground it stands on, and the undo button puts it back.
 	 */
 	static void shortSummary(StationSessions.Pending pending, BlockStateResolver.Check check, Consumer<Text> out) {
 		final ParseResult parse = pending.parse();
@@ -133,13 +133,9 @@ final class StationText {
 			return;
 		}
 		final int blocks = pending.plan().blocks().size();
-		if (!pending.report().buildable()) {
-			out.accept(Text.literal("Ground, plants or blocks are in the way (" + pending.report().terrainChanges()
-					+ " cells). Undo puts them back.").formatted(Formatting.YELLOW));
-			out.accept(button("Clear and build", "/ata_station confirm " + StationCommand.REPLACE_TERRAIN, Formatting.GOLD,
-					"Replaces what is in the way, then builds " + blocks + " blocks").append(Text.literal(" ")).append(cancel)
-					.append(Text.literal(" ")).append(details));
-			return;
+		if (pending.report().replaceTerrain() && pending.report().terrainChanges() > 0) {
+			out.accept(Text.literal("Changes the ground in " + pending.report().terrainChanges() + " cells; undo puts them back.")
+					.formatted(Formatting.GRAY));
 		}
 		out.accept(Text.literal("Ready: " + blocks + " blocks. The outline shows where it goes.").formatted(Formatting.GREEN));
 		out.accept(button("Build it", "/ata_station confirm", Formatting.GREEN, "Build " + blocks + " blocks (undo takes it away again)")
@@ -297,9 +293,9 @@ final class StationText {
 		if (report.hasHardIssue()) {
 			out.accept(Text.literal("Cannot build here: protected blocks, unloaded chunks, the world limit or a deep gap are in the way.")
 					.formatted(Formatting.RED));
-		} else if (!report.replaceTerrain()) {
-			out.accept(Text.literal("/ata_station confirm " + StationCommand.REPLACE_TERRAIN + " approves " + report.terrainChanges()
-					+ " terrain changes (undo restores them)").formatted(Formatting.YELLOW));
+		} else if (report.replaceTerrain() && report.terrainChanges() > 0) {
+			out.accept(Text.literal("The build changes " + report.terrainChanges() + " cells of ground; /ata_station undo puts them back.")
+					.formatted(Formatting.GRAY));
 		}
 	}
 

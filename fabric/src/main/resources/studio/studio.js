@@ -19,7 +19,7 @@
 
 	// ---- controls -------------------------------------------------------------------------------------------------------
 
-	const fields = ["text", "mode", "layout", "tracks", "length", "look", "mix", "roof", "building", "size", "name", "platforms", "bed", "esc", "walls", "trav", "class", "era", "facing", "operator", "gates", "door", "swaps"];
+	const fields = ["text", "mode", "layout", "tracks", "length", "look", "mix", "roof", "building", "size", "name", "platforms", "bed", "esc", "walls", "trav", "class", "era", "facing", "operator", "gates", "door", "swaps", "height"];
 
 	function fillSelect(select, pairs, extra) {
 		select.innerHTML = "";
@@ -45,6 +45,12 @@
 		// the generator seed: the dice's, or the one kept while Details is locked
 		q.seed = seeds.detail;
 		q.page = PAGE;
+		// dev-panel switches: every visible fitting can be turned off without losing the station
+		q.cctv = $("cctv").checked ? "1" : "0";
+		q.edgeLines = $("edgeLines").checked ? "1" : "0";
+		q.overheadLine = $("overheadLine").checked ? "1" : "0";
+		q.fence = $("fence").checked ? "1" : "0";
+		q.square = $("square").checked ? "1" : "0";
 		return q;
 	}
 
@@ -88,6 +94,21 @@
 		}
 		// only the controls the player had changed stay pinned: every select has a value, so having one says nothing
 		// what the player or the dice set (saved whole: "pinned" is filtered by the class and the locks)
+		if (saved.cctv !== undefined) {
+			$("cctv").checked = saved.cctv !== "0";
+		}
+		if (saved.edgeLines !== undefined) {
+			$("edgeLines").checked = saved.edgeLines !== "0";
+		}
+		if (saved.overheadLine !== undefined) {
+			$("overheadLine").checked = saved.overheadLine !== "0";
+		}
+		if (saved.fence !== undefined) {
+			$("fence").checked = saved.fence !== "0";
+		}
+		if (saved.square !== undefined) {
+			$("square").checked = saved.square !== "0";
+		}
 		for (const f of saved.touched || (saved.pinned || "").split(",")) {
 			if (fields.includes(f) && f !== "text") {
 				touched.add(f);
@@ -971,6 +992,10 @@
 
 	async function init() {
 		options = await (await fetch("api/options")).json();
+		if (PAGE === "airport") {
+			// the airport's words are its main input, not an advanced fold
+			$("wordsAdvanced").open = true;
+		}
 		fillSelect($("layout"), options.layouts);
 		// "Custom", as on the wrench: no city look, the plain station or whatever the words describe
 		options.looks = options.looks.map(([v, l]) => [v, v === "AUTO" ? "Custom" : l]);

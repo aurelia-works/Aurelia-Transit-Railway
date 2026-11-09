@@ -16,7 +16,8 @@ import java.util.regex.Pattern;
  * Turns a short English description ("two track island station, 64 blocks long, dutch style, glass canopy, named Leidsche Rijn")
  * into a {@link StationSpec}. Deterministic, local and bounded: a fixed vocabulary, no randomness, no network.
  *
- * <p>Terrain changes are never approved by the description, whatever it says; only the confirm command's literal token does.
+ * <p>The description never decides what happens to the ground; a station or airport builds anywhere the player confirms, and
+ * undo puts the previous blocks and block entity data back.
  */
 public final class StationDescriptionParser {
 
@@ -285,6 +286,8 @@ public final class StationDescriptionParser {
 		private SurfaceMaterial surface;
 		private Boolean stepFree;
 		private Boolean tactile;
+		/** The visible fittings the words turned on or off (cameras, edge lines, tactile rows, platform height). */
+		private StationFeatures features = StationFeatures.DEFAULTS;
 		private TrackBed trackBed;
 		private Operator operator;
 		/** The real station named ("utrecht centraal"), or null. */
@@ -1098,6 +1101,22 @@ public final class StationDescriptionParser {
 				} else if (word.equals("tactile")) {
 					tactile = false;
 					note(i, "no tactile paving");
+				} else if (word.equals("cctv") || word.equals("cameras") || word.equals("camera")) {
+					features = features.withCctv(false);
+					note(i, "no CCTV cameras");
+				} else if (word.equals("catenary") || word.equals("wires")) {
+					features = features.withOverheadLine(false);
+					note(i, "no overhead line");
+				} else if (word.equals("fence") || word.equals("fences") || word.equals("fencing")) {
+					features = features.withFence(false);
+					note(i, "no lineside fence");
+				} else if (word.equals("square") || word.equals("plein") || word.equals("stationsplein")
+						|| (word.equals("bike") || word.equals("cycle") || word.equals("bicycle")) && at(j + 1).equals("parking")) {
+					features = features.withSquare(false);
+					note(i, "no station square");
+				} else if (word.equals("lines") || word.equals("line") && at(j + 1).equals("lines")) {
+					features = features.withEdgeLines(false);
+					note(i, "no white platform edge lines");
 				} else if (word.equals("furniture") || word.equals("benches")) {
 					furniture = false;
 					note(i, "no furniture");
@@ -1113,6 +1132,18 @@ public final class StationDescriptionParser {
 					if (word.equals("rail")) {
 						j++;
 					}
+				} else if (word.equals("bed") || word.equals("beds") || word.equals("ballast") || word.equals("gravel") || word.equals("andesite")) {
+					trackBed = TrackBed.NONE;
+					note(i, "no track bed (the ground stays as it is)");
+					// "no gravel bed": the noun after a material belongs to it
+					if ((word.equals("gravel") || word.equals("andesite") || word.equals("ballast"))
+							&& (at(j + 1).equals("bed") || at(j + 1).equals("beds"))) {
+						j++;
+					}
+				} else if (word.equals("track") && (at(j + 1).equals("bed") || at(j + 1).equals("beds"))) {
+					trackBed = TrackBed.NONE;
+					note(i, "no track bed (the ground stays as it is)");
+					j++;
 				} else {
 					continue;
 				}
@@ -1255,7 +1286,7 @@ public final class StationDescriptionParser {
 				case "underpass":
 					if (!underpass) {
 						underpass = true;
-						note(i, "an underpass: a stairs-only pedestrian tunnel under the tracks to every platform (it digs: confirm with replace-terrain)");
+						note(i, "an underpass: a stairs-only pedestrian tunnel under the tracks to every platform (it digs; undo puts it back)");
 					}
 					use(i, i);
 					return true;
@@ -1478,7 +1509,7 @@ public final class StationDescriptionParser {
 			} else if (ELEVATED_WORDS.contains(token)) {
 				warn("elevated stations are not built yet; building at ground level");
 			} else if (TERRAIN_WORDS.contains(token)) {
-				warn("terrain changes are only approved with /ata_station confirm replace_terrain");
+				note(i, "the ground is changed; undo puts it back");
 			} else if (token.equals("island")) {
 				islandMention(i);
 			} else if (token.equals("side")) {
@@ -1541,6 +1572,20 @@ public final class StationDescriptionParser {
 					tactile = true;
 					note(i, "tactile paving");
 				}
+			} else if (token.equals("cctv") || token.equals("cameras") || token.equals("camera")) {
+				features = features.withCctv(true);
+				note(i, "CCTV cameras under the canopies and in the hall");
+			} else if (token.equals("edge") && (at(i + 1).equals("line") || at(i + 1).equals("lines"))) {
+				features = features.withEdgeLines(true);
+				use(i + 1, i + 1);
+				note(i, "white platform edge lines");
+			} else if ((token.equals("low") || token.equals("high") || token.equals("standard"))
+					&& (at(i + 1).equals("platform") || at(i + 1).equals("platforms"))) {
+				final StationFeatures.PlatformHeight height = token.equals("low") ? StationFeatures.PlatformHeight.LOW
+						: token.equals("high") ? StationFeatures.PlatformHeight.HIGH : StationFeatures.PlatformHeight.STANDARD;
+				features = features.withHeight(height);
+				use(i + 1, i + 1);
+				note(i, height.label() + " platform height");
 			} else if (token.equals("benches") || token.equals("furniture") || token.equals("furnished")) {
 				if (furniture == null) {
 					furniture = true;
@@ -2668,7 +2713,7 @@ public final class StationDescriptionParser {
 				builder.operator(operator);
 			}
 			builder.escalators(escalators).stairsBothWays(bothWays).enclosedStairs(enclosedStairs).travelators(travelators).parking(parking).underpass(underpass).tram(tram).mezzanine(mezzanine)
-					.options(options);
+					.options(options).features(features);
 			if (travelators) {
 				final List<TrackLayout.PlatformBand> built = StationGeometry.layout(builder.build()).platforms();
 				if (built.stream().noneMatch(b -> b.length() >= StationPlanner.TRAVELATOR_PLATFORM)) {

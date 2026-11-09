@@ -18,9 +18,9 @@ public record WorldOp(Kind kind, int x, int y, int z, Role role, String blockId,
 	}
 
 	public enum Kind {
-		/** Remove an obstruction (approved terrain change). */
+		/** Remove an obstruction (a terrain change the undo log keeps). */
 		CLEAR,
-		/** Fill unsupported ground (approved terrain change). */
+		/** Fill unsupported ground (a terrain change the undo log keeps). */
 		FILL,
 		/** Place a planned block. */
 		PLACE

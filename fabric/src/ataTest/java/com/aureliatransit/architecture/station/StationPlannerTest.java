@@ -129,7 +129,9 @@ class StationPlannerTest {
 			// fixtures name their own equipment (screens, help points), every other role takes the palette's block
 			// a hall's frame is the roof truss where the palette's beam is the plain girder; a ground-floor gate line is MTR's fence
 			final boolean substitute = (block.role() == Role.BEAM || block.role() == Role.RIB) && block.blockId().equals(StationPlanner.ROOF_TRUSS)
-					&& palette.blockId(block.role()).equals(StationPlanner.GIRDER) || block.role() == Role.BARRIER && block.blockId().equals(PlanState.MTR_FENCE);
+					&& palette.blockId(block.role()).equals(StationPlanner.GIRDER) || block.role() == Role.BARRIER && block.blockId().equals(PlanState.MTR_FENCE)
+					// an NS platform's guidance line one cell in from the edge
+					|| block.role() == Role.PLATFORM_SURFACE && block.blockId().equals(palette.guidanceId());
 			if (block.role() != Role.FIXTURE && !substitute && !block.blockId().equals(palette.blockId(block.role()))) {
 				scan.fail("palette ids", spec, "wrong id on " + block);
 			}
@@ -606,10 +608,11 @@ class StationPlannerTest {
 		expected.put(Role.BENCH, 12);
 		expected.put(Role.BIN, 6);
 		// per platform: two departure screens fixed to a column, two blocks wide on both faces of it (8), a help point and two
-		// speakers (one every 32 blocks)
-		expected.put(Role.FIXTURE, 22);
+		// speakers (one every 32 blocks), plus a CCTV camera every 20 rows (2 a platform); and the under-canopy light
+		// (invisible level-15 lights, a thin batten a line per half, thin chains to the frame: 404)
+		expected.put(Role.FIXTURE, 430);
 		assertEquals(expected, counts);
-		assertEquals(1278, plan(spec).blocks().size());
+		assertEquals(1686, plan(spec).blocks().size());
 	}
 
 	@Test

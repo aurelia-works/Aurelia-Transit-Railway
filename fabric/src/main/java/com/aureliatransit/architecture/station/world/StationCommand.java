@@ -14,6 +14,7 @@ import com.aureliatransit.architecture.station.SurveyReport;
 import com.aureliatransit.architecture.station.TrackLayout;
 import com.aureliatransit.architecture.station.Violation;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -32,12 +33,13 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * {@code /ata_station}: plan a station from a description, preview it, confirm (optionally approving terrain changes), cancel,
- * undo. Operators only (level 2), like the other ATA admin commands. Terrain approval comes only from the literal
- * {@code confirm replace_terrain}, never from the description.
+ * {@code /ata_station}: plan a station from a description, preview it, confirm, cancel, undo, set the build pace. Operators only
+ * (level 2), like the other ATA admin commands. A build changes the terrain it stands on; {@code replace_terrain} is still
+ * accepted after {@code confirm} and {@code rebuild} as a harmless alias for old scripts, and confirms like no word at all.
  */
 public final class StationCommand {
 
+	/** The old approval token: still accepted, does nothing different. */
 	public static final String REPLACE_TERRAIN = "replace_terrain";
 
 	private StationCommand() {
@@ -59,17 +61,22 @@ public final class StationCommand {
 						.then(CommandManager.literal(REPLACE_TERRAIN).executes(context -> run(context, player -> StationActions.rebuild(player, true)))))
 				.then(CommandManager.literal("verify").executes(context -> run(context, player -> StationActions.verify(player, false)))
 						.then(CommandManager.literal("paste").executes(context -> run(context, player -> StationActions.verify(player, true)))))
-				.then(CommandManager.literal("status").executes(context -> run(context, StationActions::status))));
+				.then(CommandManager.literal("status").executes(context -> run(context, StationActions::status)))
+				.then(CommandManager.literal("override").then(CommandManager.argument("block", StringArgumentType.greedyString())
+						.executes(context -> run(context, player -> StationActions.override(player, StringArgumentType.getString(context, "block"))))))
+				.then(CommandManager.literal("pace").executes(StationCommand::showPace)
+						.then(CommandManager.argument("blocks", IntegerArgumentType.integer(StationBuildSettings.MIN, StationBuildSettings.MAX))
+								.executes(StationCommand::setPace))));
 	}
 
 	// ---- shared with the game tests --------------------------------------------------------------------------------
 
-	/** Parses, plans, validates and surveys (without approval) a station in front of a player standing at {@code feet}. */
+	/** Parses, plans, validates and surveys (including the terrain changes a build makes) a station in front of a player standing at {@code feet}. */
 	public static StationSessions.Pending prepare(ServerWorld world, String description, BlockPos feet, Heading facing) {
 		return prepare(world, description, layout -> LocalFrame.inFrontOf(feet.getX(), feet.getY(), feet.getZ(), facing, layout));
 	}
 
-	/** Parses, plans, validates, audits and surveys (without approval) a station placed by {@code place}. */
+	/** Parses, plans, validates, audits and surveys (including the terrain changes) a station placed by {@code place}. */
 	public static StationSessions.Pending prepare(ServerWorld world, String description, Function<TrackLayout, LocalFrame> place) {
 		return place(world, design(StationDescriptionParser.parse(description)), place);
 	}
@@ -84,7 +91,7 @@ public final class StationCommand {
 		return new Design(parse, plan, LayoutValidator.validate(plan), StationAudit.audit(plan), BlockStateResolver.check(plan));
 	}
 
-	/** Places a design with {@code place} and surveys its site (without approval), all at once. On the server thread. */
+	/** Places a design with {@code place} and surveys its site (the plan may change the ground), all at once. On the server thread. */
 	public static StationSessions.Pending place(ServerWorld world, Design design, Function<TrackLayout, LocalFrame> place) {
 		final StationSessions.Pending[] pending = {null};
 		place(world, null, false, design, place, placed -> pending[0] = placed);
@@ -106,7 +113,7 @@ public final class StationCommand {
 			Consumer<StationSessions.Pending> then) {
 		final StationPlan plan = design.plan();
 		final LocalFrame frame = StationPlacement.sunk(design.parse().spec(), place.apply(plan.layout()));
-		survey(owner, later, WorldSiteProbe.loading(world), plan, frame, false, report -> then.accept(new StationSessions.Pending(design.parse(),
+		survey(owner, later, WorldSiteProbe.loading(world), plan, frame, true, report -> then.accept(new StationSessions.Pending(design.parse(),
 				design.parse().spec(), plan, frame, world.getRegistryKey(), design.violations(), design.audit(), report, design.check().railSkipped())));
 	}
 
@@ -142,7 +149,7 @@ public final class StationCommand {
 
 	/**
 	 * Re-surveys a pending plan where it was planned and starts its build, all at once; returns the job, or null after
-	 * explaining why not.
+	 * explaining why not. The build changes the ground it stands on; the undo log keeps it.
 	 */
 	public static StationBuildJob startBuild(ServerWorld world, UUID owner, StationSessions.Pending pending, boolean replaceTerrain, Consumer<Text> out) {
 		final StationBuildJob[] job = {null};
@@ -165,14 +172,14 @@ public final class StationCommand {
 			then.accept(null);
 			return;
 		}
-		survey(owner, later, WorldSiteProbe.loading(world), pending.plan(), pending.frame(), replaceTerrain, report -> {
+		survey(owner, later, WorldSiteProbe.loading(world), pending.plan(), pending.frame(), true, report -> {
 			if (!report.buildable()) {
-				out.accept(Text.literal("The site changed or needs approval:").formatted(Formatting.RED));
+				out.accept(Text.literal("The site cannot be built:").formatted(Formatting.RED));
 				StationText.site(report, out);
 				then.accept(null);
 				return;
 			}
-			final StationBuildJob job = StationBuildJob.build(world, owner, BlockStateResolver.resolve(report.ops()), replaceTerrain, out,
+			final StationBuildJob job = StationBuildJob.build(world, owner, BlockStateResolver.resolve(report.ops()), true, out,
 					zone(pending, pending.frame(), report));
 			if (!StationSessions.start(job)) {
 				stillBuilding(owner, out);
@@ -229,9 +236,9 @@ public final class StationCommand {
 				final java.util.Map<BlockPos, UndoLog.Entry> cells = walk.result();
 				final java.util.Map<BlockPos, net.minecraft.block.BlockState> site = new java.util.HashMap<>();
 				cells.forEach((pos, entry) -> site.put(pos, entry.previous()));
-				survey(owner, later, WorldSiteProbe.under(world, site), pending.plan(), frame, replaceTerrain, report -> {
+				survey(owner, later, WorldSiteProbe.under(world, site), pending.plan(), frame, true, report -> {
 					if (!report.buildable()) {
-						out.accept(Text.literal("The site changed or needs approval:").formatted(Formatting.RED));
+						out.accept(Text.literal("The site cannot be built:").formatted(Formatting.RED));
 						StationText.site(report, out);
 						then.accept(null);
 						return;
@@ -240,7 +247,7 @@ public final class StationCommand {
 						then.accept(null);
 						return;
 					}
-					final StationBuildJob job = StationBuildJob.rebuild(world, owner, BlockStateResolver.resolve(report.ops()), replaceTerrain, out,
+					final StationBuildJob job = StationBuildJob.rebuild(world, owner, BlockStateResolver.resolve(report.ops()), true, out,
 							zone(pending, frame, report), last, cells);
 					StationSessions.start(job);
 					then.accept(job);
@@ -295,10 +302,13 @@ public final class StationCommand {
 		final ServerCommandSource source = context.getSource();
 		source.sendFeedback(() -> Text.literal("ATA station generator").formatted(Formatting.GOLD), false);
 		source.sendFeedback(() -> Text.literal("/ata_station plan <description>: plan a station in front of you and preview it"), false);
-		source.sendFeedback(() -> Text.literal("/ata_station confirm [" + REPLACE_TERRAIN + "]: build it (the token approves terrain changes)"), false);
+		source.sendFeedback(() -> Text.literal("/ata_station confirm [" + REPLACE_TERRAIN + "]: build it (the old token is accepted and does nothing extra)"), false);
 		source.sendFeedback(() -> Text.literal("/ata_station rebuild [" + REPLACE_TERRAIN + "]: build the pending plan where your last station stands, changing only what differs"), false);
 		source.sendFeedback(() -> Text.literal("/ata_station verify [paste]: read the world back against the plan (paste: a schematic pasted at your feet)"), false);
+		source.sendFeedback(() -> Text.literal("/ata_station pace [blocks]: how many cells all builds change per tick (now "
+				+ StationBuildSettings.blocksPerTick(source.getServer()) + ")"), false);
 		source.sendFeedback(() -> Text.literal("/ata_station preview | cancel | undo | status"), false);
+		source.sendFeedback(() -> Text.literal("/ata_station override <block|clear>: save a fine edit of the block you look at in your last station"), false);
 		source.sendFeedback(() -> Text.literal("Or use the Station Wrench: right-click a block to plan, sneak + right-click the air to edit").formatted(Formatting.GRAY), false);
 		source.sendFeedback(() -> Text.literal("Examples:").formatted(Formatting.GRAY), false);
 		source.sendFeedback(() -> Text.literal("  two track dutch station, island platform, 64 long, glass canopy, named Leidsche Rijn").formatted(Formatting.GRAY), false);
@@ -309,6 +319,22 @@ public final class StationCommand {
 
 	private static int plan(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
 		return StationActions.plan(context.getSource().getPlayerOrThrow(), StringArgumentType.getString(context, "description"), null) ? 1 : 0;
+	}
+
+	private static int showPace(CommandContext<ServerCommandSource> context) {
+		final ServerCommandSource source = context.getSource();
+		source.sendFeedback(() -> Text.literal("Station builds and undo change up to " + StationBuildSettings.blocksPerTick(source.getServer())
+				+ " cells per tick.").formatted(Formatting.GRAY), false);
+		return 1;
+	}
+
+	private static int setPace(CommandContext<ServerCommandSource> context) {
+		final ServerCommandSource source = context.getSource();
+		final int blocks = IntegerArgumentType.getInteger(context, "blocks");
+		StationBuildSettings.set(source.getServer(), blocks);
+		final int now = StationBuildSettings.blocksPerTick(source.getServer());
+		source.sendFeedback(() -> Text.literal("Station builds and undo now change up to " + now + " cells per tick.").formatted(Formatting.GREEN), true);
+		return 1;
 	}
 
 	private static int run(CommandContext<ServerCommandSource> context, Predicate<ServerPlayerEntity> action) throws CommandSyntaxException {
