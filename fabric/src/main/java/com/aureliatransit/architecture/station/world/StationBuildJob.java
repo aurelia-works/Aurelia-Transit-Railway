@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station.world;
 
+import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
 import com.aureliatransit.architecture.station.CellKind;
@@ -15,6 +16,8 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.SpreadableBlock;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.state.property.Properties;
@@ -24,9 +27,11 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,12 +48,15 @@ import java.util.function.Consumer;
  * again just before it is written; the first surprise stops the job and keeps the undo log. The probe loads the chunks it
  * needs and holds a bounded window of them ({@link WorldSiteProbe}), so a station longer than the view distance builds and a
  * site of any size streams through; a batch ends after {@link #LOADS_PER_STEP} chunks that cost the server loading or
- * generation ({@link WorldSiteProbe#loads}), so a big build on fresh terrain is spread over ticks. The job only pauses if a chunk still is not loaded. Once every op is done, the finishing steps (escalator shapes,
- * screens, signs, lifts, MTR) run in batches too, and the job lets go of its chunks when it ends.
+ * generation ({@link WorldSiteProbe#loads}), so a big build on fresh terrain is spread over ticks. The job only pauses if a chunk still is not loaded. Ops go
+ * bottom up, one layer at a time, as a construction site would rise; the pace is capped by {@link StationBuildSettings} and
+ * every written cell's previous state and block entity data goes into {@link UndoLog}, whose file survives a restart. Once
+ * every op is done, the finishing steps (escalator shapes, screens, signs, lifts, MTR) run in batches too, and the job lets
+ * go of its chunks when it ends.
  */
 public final class StationBuildJob {
 
-	/** Ops one job runs in a batch; the sessions run batches until the tick's time budget is used. */
+	/** Ops one job runs in a batch; the sessions run batches until the tick's time budget or {@link StationBuildSettings} is used. */
 	public static final int OPS_PER_TICK = 64;
 	/**
 	 * Chunks a batch may make the server load or generate before it ends early (Jah 10-26: about 8 a tick keeps the server
@@ -93,7 +101,6 @@ public final class StationBuildJob {
 	private final UUID owner;
 	private final Consumer<Text> out;
 	private final List<Prepared> ops;
-	private final boolean approved;
 	private final UndoLog log;
 	/** The MTR station area to register when the build finishes; null for none (undo, or plain op lists). */
 	private final StationZone zone;
@@ -150,16 +157,28 @@ public final class StationBuildJob {
 		this.probe = WorldSiteProbe.loading(world);
 		this.owner = owner;
 		this.mode = mode;
-		this.ops = ops;
-		this.approved = approved;
+		this.ops = layerOrder(ops);
 		this.log = log;
 		this.total = total;
 		this.out = out;
+		if (mode != Mode.UNDO) {
+			log.attach(world, owner);
+		}
 		for (final Prepared prepared : all) {
 			if (prepared.op().kind() != WorldOp.Kind.CLEAR) {
 				planned.put(new BlockPos(prepared.op().x(), prepared.op().y(), prepared.op().z()), prepared.state());
 			}
 		}
+	}
+
+	/**
+	 * The ops bottom up, one y layer at a time, as a construction site rises; inside a layer the survey's order is kept (clears
+	 * before fills before planned blocks). The sort is stable, so nothing else about the build changes.
+	 */
+	private static List<Prepared> layerOrder(List<Prepared> ops) {
+		final List<Prepared> ordered = new ArrayList<>(ops);
+		ordered.sort(Comparator.comparingInt(prepared -> prepared.op().y()));
+		return ordered;
 	}
 
 	/** @throws IllegalArgumentException when an op names a block that does not exist */
@@ -394,9 +413,9 @@ public final class StationBuildJob {
 		return skipped;
 	}
 
-	/** Whether this build may change terrain (the player approved it explicitly). */
+	/** Every build may change terrain now; the method stays for callers and tests that read the old flag. */
 	public boolean approved() {
-		return approved;
+		return true;
 	}
 
 	/** Undo only: rail nodes left in place because the player connected them in MTR after the build. */
@@ -461,6 +480,9 @@ public final class StationBuildJob {
 				finish();
 			}
 		}
+		if (mode != Mode.UNDO) {
+			log.flush(world, false);
+		}
 		return used;
 	}
 
@@ -473,6 +495,7 @@ public final class StationBuildJob {
 		paused = false;
 		probe.release();
 		if (mode != Mode.UNDO) {
+			log.flush(world, true);
 			say(Formatting.YELLOW, "Build cancelled at " + done + "/" + total + ": " + placed + " blocks placed, " + terrainChanged
 					+ " terrain cells changed." + (log.isEmpty() ? "" : " /ata_station undo reverts them."));
 		} else {
@@ -505,6 +528,7 @@ public final class StationBuildJob {
 			return Step.STOP;
 		}
 		final BlockState before = original != null ? original : world.getBlockState(pos);
+		final NbtCompound previousEntity = original != null ? last.previousEntity() : blockEntity(world, pos, before);
 		final BlockState wanted = postProcessAsPlanned(prepared.state(), pos);
 		if (wanted.getBlock() != prepared.state().getBlock()) {
 			stop("Stopped at " + op.x() + " " + op.y() + " " + op.z() + ": " + op.blockId() + " would not stay there next to its neighbours; nothing more was placed. ", true);
@@ -516,7 +540,7 @@ public final class StationBuildJob {
 		}
 		world.setBlockState(pos, wanted, original != null ? removalFlags(world.getBlockState(pos)) : Block.NOTIFY_ALL);
 		final BlockState after = world.getBlockState(pos);
-		log.add(new UndoLog.Entry(pos, before, after), key(prepared));
+		log.add(new UndoLog.Entry(pos, before, after, previousEntity), key(prepared));
 		done++;
 		if (op.kind() != WorldOp.Kind.CLEAR) {
 			placed++;
@@ -542,6 +566,33 @@ public final class StationBuildJob {
 		return Step.DONE;
 	}
 
+	/** The block entity data a cell holds before a write, so undo can put it back with the block; null when it has none. */
+	@Nullable
+	private static NbtCompound blockEntity(ServerWorld world, BlockPos pos, BlockState state) {
+		if (!state.hasBlockEntity()) {
+			return null;
+		}
+		final BlockEntity entity = world.getBlockEntity(pos);
+		return entity == null ? null : entity.createNbtWithIdentifyingData();
+	}
+
+	/** Puts a previous cell's block entity data back into the block entity the restored state created. */
+	private static void restoreBlockEntity(ServerWorld world, BlockPos pos, @Nullable NbtCompound nbt) {
+		if (nbt == null) {
+			return;
+		}
+		final BlockEntity entity = world.getBlockEntity(pos);
+		if (entity == null) {
+			return;
+		}
+		try {
+			entity.readNbt(nbt.copy());
+			entity.markDirty();
+		} catch (RuntimeException e) {
+			AureliaTransitArchitecture.LOGGER.warn("Could not restore the block entity at {}; the block is back without its contents", pos, e);
+		}
+	}
+
 	/**
 	 * {@link Block#postProcessState} against the finished station: a neighbour cell that is still air but planned counts as its
 	 * planned block. Without this the lower half of a two-high block (MTR's ticket machine) turns to air before its upper half
@@ -564,17 +615,22 @@ public final class StationBuildJob {
 		return result;
 	}
 
+	/**
+	 * Any cell the survey planned may be written: the ground is changed and its previous state and block entity data go into
+	 * the undo log. Hard cells (protected blocks, rail nodes, unloaded chunks, the world edge) are never in an op list, and a
+	 * cell that became hard since the survey stops the job at {@link #buildNext}.
+	 */
 	private boolean allowed(WorldOp.Kind kind, CellKind cell) {
-		return switch (kind) {
-			case PLACE -> cell == CellKind.AIR || (approved && (cell == CellKind.SOFT || cell == CellKind.SOLID || cell == CellKind.FLUID));
-			case FILL, CLEAR -> approved && cell != CellKind.PROTECTED && cell != CellKind.RAIL_NODE && cell != CellKind.UNLOADED && cell != CellKind.OUT_OF_WORLD;
-		};
+		return cell == CellKind.AIR || cell == CellKind.SOFT || cell == CellKind.SOLID || cell == CellKind.FLUID;
 	}
 
 	private void stop(String reason, boolean undoHint) {
 		state = State.STOPPED;
 		paused = false;
 		probe.release();
+		if (mode != Mode.UNDO) {
+			log.flush(world, true);
+		}
 		final String tail = mode != Mode.UNDO
 				? done + " of " + total + " ops done." + (undoHint && !log.isEmpty() ? " /ata_station undo reverts them." : "")
 				: restored + " restored, " + skipped + " skipped, " + (total - done) + " left; /ata_station undo continues.";
@@ -629,13 +685,23 @@ public final class StationBuildJob {
 		paused = false;
 		probe.release();
 		if (mode != Mode.UNDO) {
+			log.flush(world, true);
 			out.accept(Text.literal((mode == Mode.REBUILD ? "Station rebuilt: " + kept + " cells kept as they stood, " + restored + " taken back, " : "Station built: ")
 					+ placed + " blocks placed, " + terrainChanged + " terrain cells changed. ").formatted(Formatting.GREEN)
 					.append(StationText.button("Undo", "/ata_station undo", Formatting.YELLOW, "Take the whole station away again")));
 		} else {
+			// this build's file has served its purpose; the next build starts a new one
+			UndoStore.done(world.getServer(), log);
 			say(Formatting.GREEN, "Undo finished: " + restored + " cells restored"
 					+ (keptNodes > 0 ? ", " + keptNodes + " rail nodes kept (connected in MTR since the build)" : "")
 					+ (skipped > 0 ? ", " + skipped + " skipped (changed since the build)" : "") + ".");
+		}
+	}
+
+	/** Writes the undo log now, for a server that is stopping between batches. */
+	public void flushUndo() {
+		if (mode != Mode.UNDO) {
+			log.flush(world, true);
 		}
 	}
 
@@ -801,6 +867,7 @@ public final class StationBuildJob {
 		} else if (stillPlaced(current, entry.placed())) {
 			final BlockState processed = Block.postProcessState(entry.previous(), world, pos);
 			world.setBlockState(pos, processed.getBlock() == entry.previous().getBlock() ? processed : entry.previous(), removalFlags(current));
+			restoreBlockEntity(world, pos, entry.previousEntity());
 			restored++;
 			restoreSoil(pos.down());
 		} else if (current.getBlock() == entry.previous().getBlock()) {

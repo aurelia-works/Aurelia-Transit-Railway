@@ -353,7 +353,6 @@ public class StationWrenchScreen extends Screen {
 
 	/** Platform lengths the length button steps through, then back to the first. */
 	private static final int[] LENGTHS = {32, 48, 64, 96, 128, 160, 200, 250, 300};
-
 	private static int nextLength(int length) {
 		for (final int option : LENGTHS) {
 			if (option > length) {
@@ -425,10 +424,7 @@ public class StationWrenchScreen extends Screen {
 		addDrawableChild(action(left, y, HALF, "plan", StationWrenchItem.Action.PLAN));
 		addDrawableChild(action(left + HALF + 4, y, HALF, "preview", StationWrenchItem.Action.PREVIEW));
 		y += 24;
-		addDrawableChild(action(left, y, HALF, "build", StationWrenchItem.Action.CONFIRM));
-		final ButtonWidget replace = action(left + HALF + 4, y, HALF, "build_replace", StationWrenchItem.Action.CONFIRM_REPLACE_TERRAIN);
-		replace.setTooltip(Tooltip.of(Text.translatable(KEY + "build_replace.tip")));
-		addDrawableChild(replace);
+		addDrawableChild(action(left, y, WIDTH, "build", StationWrenchItem.Action.CONFIRM));
 		y += 24;
 		addDrawableChild(action(left, y, HALF, "cancel", StationWrenchItem.Action.CANCEL));
 		addDrawableChild(action(left + HALF + 4, y, HALF, "undo", StationWrenchItem.Action.UNDO));

@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station.world;
 
+import com.aureliatransit.architecture.network.ModPackets;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -22,10 +23,15 @@ public final class StationSystems {
 			StationCommand.register(dispatcher);
 			StationGuide.register(dispatcher);
 		});
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> StationGuide.welcome(handler.getPlayer()));
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			StationGuide.welcome(handler.getPlayer());
+			ModPackets.sendStationPace(handler.getPlayer());
+		});
 		ServerTickEvents.END_SERVER_TICK.register(StationSessions::tick);
 		AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> StationWrenchItem.attack(player, world, hand));
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> StationSessions.forgetPlayer(handler.getPlayer().getUuid()));
+		// before the worlds save, so a build running when the server stops keeps its undo
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> StationSessions.flushUndo());
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> StationSessions.clear());
 	}
 }

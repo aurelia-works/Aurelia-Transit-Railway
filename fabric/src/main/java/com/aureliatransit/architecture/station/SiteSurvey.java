@@ -9,20 +9,21 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Checks a validated plan against the world and lists the changes a build would make. Terrain is preserved unless
- * {@code replaceTerrain} is set, which only an explicit confirmation token sets (never the description).
+ * Checks a validated plan against the world and lists the changes a build would make. Every build now changes the ground it
+ * stands on, so the generator surveys with {@code replaceTerrain} set; the flag stays for the direct callers and tests that
+ * want to see the site without its clearer and fill ops.
  *
  * <p>Rules, all in world coordinates through the frame:
  * <ol>
- *     <li>Planned cell: AIR is placed. SOFT, SOLID or FLUID is an {@link SiteIssue.Kind#OCCUPIED} issue; with approval the
- *     PLACE op replaces it (a terrain change). PROTECTED, UNLOADED or OUT_OF_WORLD is a hard issue. An existing MTR rail
+ *     <li>Planned cell: AIR is placed. SOFT, SOLID or FLUID is an {@link SiteIssue.Kind#OCCUPIED} issue; the build's PLACE op
+ *     replaces it (a terrain change). PROTECTED, UNLOADED or OUT_OF_WORLD is a hard issue. An existing MTR rail
  *     node ({@link CellKind#RAIL_NODE}) in a planned rail node cell is kept: no issue and no op, so a station can be planned
  *     onto a line that is already connected. In any other planned cell it is a hard {@link SiteIssue.Kind#PROTECTED} issue.</li>
  *     <li>Track envelope and headroom cells that are not planned cells: SOLID or FLUID is {@link SiteIssue.Kind#OBSTRUCTED};
- *     with approval a CLEAR op. AIR, SOFT and RAIL_NODE are left alone. PROTECTED, UNLOADED or OUT_OF_WORLD is a hard issue.</li>
+ *     the build's CLEAR op takes it away. AIR, SOFT and RAIL_NODE are left alone. PROTECTED, UNLOADED or OUT_OF_WORLD is a hard issue.</li>
  *     <li>Support cells (y = -1): sturdy top is fine. Otherwise look down for the first sturdy cell within
- *     {@link #MAX_FILL_DEPTH} cells (y = -1 down to y = -MAX_FILL_DEPTH). Found: {@link SiteIssue.Kind#UNSUPPORTED}, and with
- *     approval FILL ops (foundation) for every cell from y = -1 down to just above the sturdy one. Not found:
+ *     {@link #MAX_FILL_DEPTH} cells (y = -1 down to y = -MAX_FILL_DEPTH). Found: {@link SiteIssue.Kind#UNSUPPORTED}, and the
+ *     build's FILL ops (foundation) run for every cell from y = -1 down to just above the sturdy one. Not found:
  *     {@link SiteIssue.Kind#GAP_TOO_DEEP} (hard). A PROTECTED, RAIL_NODE, UNLOADED or OUT_OF_WORLD cell in a support cell or
  *     fill column is a hard issue.</li>
  * </ol>
@@ -31,7 +32,7 @@ import java.util.Set;
  * <p>Scan order (issues are listed in it): planned blocks in plan order; then every track envelope, then every headroom box
  * (cells in order v, u, y ascending); then the support boxes. Support cells use the same order, one column at a time.
  * The sturdy cell is looked for at y = -2 down to y = -(MAX_FILL_DEPTH + 1), so a fill column has 1..MAX_FILL_DEPTH cells.
- * Fill cells are worked out even without approval, because {@link SurveyReport#terrainChanges()} counts them.
+ * Fill cells are worked out even in a survey without the terrain ops, because {@link SurveyReport#terrainChanges()} counts them.
  */
 public final class SiteSurvey {
 

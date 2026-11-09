@@ -507,6 +507,8 @@
   "screen.aurelia_transit_architecture.station_wrench.roof.tip": "Auto uses the city's own roof. A train shed is one big roof over all the tracks",
   "screen.aurelia_transit_architecture.station_wrench.simple": "Back to buttons",
   "screen.aurelia_transit_architecture.station_wrench.simple.tip": "The buttons make their own description; your typed text stays here",
+  "screen.aurelia_transit_architecture.station_wrench.pace": "Build pace: %s cells/tick",
+  "screen.aurelia_transit_architecture.station_wrench.pace.tip": "How many cells every running station, airport or undo job changes each tick; lower means slower and smoother",
   "screen.aurelia_transit_architecture.station_wrench.step_look": "1. Pick a city look, then the size and roof",
   "screen.aurelia_transit_architecture.station_wrench.step_place": "2. Place it, check the outline, then Build it!",
   "screen.aurelia_transit_architecture.station_wrench.studio": "Station Studio",

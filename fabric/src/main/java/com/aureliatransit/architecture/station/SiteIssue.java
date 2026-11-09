@@ -8,11 +8,11 @@ package com.aureliatransit.architecture.station;
 public record SiteIssue(Kind kind, int x, int y, int z, String block) {
 
 	public enum Kind {
-		/** A planned cell is not air (terrain, plants, water or a player's build). Approval replaces it. */
+		/** A planned cell is not air (terrain, plants, water or a player's build). The build replaces it; undo puts it back. */
 		OCCUPIED(false),
-		/** Something solid or a fluid inside a track envelope or platform headroom. Approval clears it to air. */
+		/** Something solid or a fluid inside a track envelope or platform headroom. The build clears it to air; undo puts it back. */
 		OBSTRUCTED(false),
-		/** No sturdy ground under a platform, ramp or track. Approval fills down to sturdy ground with foundation. */
+		/** No sturdy ground under a platform, ramp or track. The build fills down to sturdy ground with foundation. */
 		UNSUPPORTED(false),
 		/** No sturdy ground within {@link SiteSurvey#MAX_FILL_DEPTH} cells below. Never built (would need a viaduct). */
 		GAP_TOO_DEEP(true),
@@ -29,7 +29,7 @@ public record SiteIssue(Kind kind, int x, int y, int z, String block) {
 			this.hard = hard;
 		}
 
-		/** True when no approval can fix it. */
+		/** True when the site cannot be built at all. */
 		public boolean hard() {
 			return hard;
 		}
