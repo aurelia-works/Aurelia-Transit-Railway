@@ -71,6 +71,8 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String TOWER_SHAFT = "minecraft:white_concrete";
 	static final String TOWER_FLOOR = "minecraft:light_gray_concrete";
 	static final String TOWER_GLASS = "minecraft:glass";
+	/** The control cab's glazing, tinted teal like Southend's (ap07). */
+	static final String CAB_GLASS = "minecraft:cyan_stained_glass";
 	/** The tower shaft's window band and recess, dark as at Southend. */
 	static final String TOWER_DARK_GLASS = "minecraft:gray_stained_glass";
 	/** The railing round the tower's balcony. */
@@ -88,6 +90,7 @@ abstract class PlanAirport extends PlanFitOut {
 	/** A plant box's barred vent: plain iron, no block entity. */
 	static final String PLANT_VENT = "minecraft:iron_bars";
 	static final String MAST_LAMP = "aurelia_transit_architecture:apron_floodlight";
+	static final String BOLLARD = "aurelia_transit_architecture:bollard";
 	static final String CHECK_IN_DESK = "aurelia_transit_architecture:check_in_desk";
 	static final String DEPARTURES_BOARD = "aurelia_transit_architecture:departures_board";
 	static final String JET_BRIDGE = "aurelia_transit_architecture:jet_bridge";
@@ -938,10 +941,10 @@ abstract class PlanAirport extends PlanFitOut {
 					}
 					final boolean corner = faceU && faceV;
 					final int along = faceU ? v - cv : u - cu;
-					final boolean band = detailed && y == bandY && !corner && Math.abs(along) < shaft - 1;
+					final boolean band = detailed && (y == bandY || y == bandY - 1) && !corner && Math.abs(along) < shaft - 1;
 					// the recess runs up the face looking at the terminal, off centre as at Southend
 					final boolean recess = detailed && u == cu - shaft && (v == cv + 1 || v == cv + 2)
-							&& y > StationGeometry.WALK_Y + 2 && y < bandY - 1;
+							&& y > StationGeometry.WALK_Y + 2 && y < bandY - 2;
 					final LocalDir face = faceU ? (u < cu ? LocalDir.MINUS_U : LocalDir.PLUS_U) : (v < cv ? LocalDir.MINUS_V : LocalDir.PLUS_V);
 					if (band || recess) {
 						put(Role.WINDOW, u, y, v, face, TOWER_DARK_GLASS);
@@ -969,7 +972,7 @@ abstract class PlanAirport extends PlanFitOut {
 					final boolean edgeV = v == cv - cab || v == cv + cab;
 					if (edgeU || edgeV) {
 						final boolean corner = edgeU && edgeV;
-						put(corner ? Role.WALL : Role.WINDOW, u, y, v, LocalDir.PLUS_V, corner ? TOWER_SHAFT : TOWER_GLASS);
+						put(corner ? Role.WALL : Role.WINDOW, u, y, v, LocalDir.PLUS_V, corner ? TOWER_SHAFT : CAB_GLASS);
 					}
 				}
 			}
@@ -1451,9 +1454,13 @@ abstract class PlanAirport extends PlanFitOut {
 				put(glass ? Role.WINDOW : Role.WALL, u0, y, v, LocalDir.MINUS_U,
 						plinth ? b.plinth() : glass ? b.window() : mullionLand || lintel ? b.trim() : b.wall());
 			}
+			// the gable ends: the landside band of glass wraps round them, mullions every four rows, solid two rows from each corner
 			for (int u = u0 + 1; u < u1; u++) {
-				put(Role.WALL, u, y, v0, LocalDir.MINUS_V, y == StationGeometry.WALK_Y ? b.plinth() : b.wall());
-				put(Role.WALL, u, y, v1, LocalDir.PLUS_V, y == StationGeometry.WALK_Y ? b.plinth() : b.wall());
+				final boolean endBand = y >= 2 && y <= top - 2 && u > u0 + 2 && u < u1 - 2;
+				final boolean endGlass = endBand && Math.floorMod(u - u0, 4) != 0;
+				final String end = y == StationGeometry.WALK_Y ? b.plinth() : endGlass ? b.window() : endBand ? b.trim() : b.wall();
+				put(endGlass ? Role.WINDOW : Role.WALL, u, y, v0, LocalDir.MINUS_V, end);
+				put(endGlass ? Role.WINDOW : Role.WALL, u, y, v1, LocalDir.PLUS_V, end);
 			}
 		}
 		// the roof's first overhang ring: one row over the forecourt, the apron and both gable ends; terminalRoofEdge adds the rest
@@ -2031,6 +2038,13 @@ abstract class PlanAirport extends PlanFitOut {
 				continue;
 			}
 			put(Role.LAMP, u0 + 1, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, TOWER_BEACON);
+		}
+		// a row of bollards on the terminal's footway behind the kerb (ap03), every four blocks, open at the crossing and the columns
+		for (int v = v0 + 2; v <= v1 - 2; v += 4) {
+			if (Math.abs(v - door) <= half + 2 || forecourtColumn(u1 - 1, v)) {
+				continue;
+			}
+			put(Role.FIXTURE, u1 - 1, StationGeometry.WALK_Y, v, LocalDir.MINUS_U, BOLLARD);
 		}
 	}
 
