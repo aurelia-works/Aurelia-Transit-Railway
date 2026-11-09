@@ -138,6 +138,12 @@ abstract class PlanBridges extends PlanConcourse {
 					}
 				}
 			}
+			// an NS footbridge carries the station's name in big letters along its fascia, as at Utrecht Leidsche Rijn (ref11);
+			// after the flights, whose roofs run on out of the corridor at the same height
+			if (palette.glassLiftHead() && !spec.name().isEmpty()) {
+				fasciaName(from, to, wallLo - 1, LocalDir.MINUS_V);
+				fasciaName(from, to, wallHi + 1, LocalDir.PLUS_V);
+			}
 		}
 		if (openDeck) {
 			// under a hall (or the street) the flights go down through openings in its floor: glass on both flanks from the platform up to
@@ -285,6 +291,33 @@ abstract class PlanBridges extends PlanConcourse {
 
 	/** The solid block under a real station's broad stairs, their side walls and the walls closing the space under its floor. */
 	static final String PLATEAU_WALL = ata("metro_pale_concrete");
+
+	/** The station's name along the longest free run of the bridge's roof edge on row {@code v}, facing {@code out}. */
+	private void fasciaName(int from, int to, int v, LocalDir out) {
+		final int y = StationGeometry.BUILDING_ROOF_Y;
+		int best = -1;
+		int bestLength = 0;
+		int start = -1;
+		for (int u = from + 1; u <= to; u++) {
+			final boolean free = u < to && !taken(u, y, v) && taken(u, y, v + (out == LocalDir.MINUS_V ? 1 : -1));
+			if (free && start < 0) {
+				start = u;
+			} else if (!free && start >= 0) {
+				if (u - start > bestLength) {
+					best = start;
+					bestLength = u - start;
+				}
+				start = -1;
+			}
+		}
+		// a short run would squeeze the name; leave the fascia plain there
+		if (bestLength < spec.name().length() / 2) {
+			return;
+		}
+		for (int u = best; u < best + bestLength; u++) {
+			putText(Role.FIXTURE, u, y, v, out, PlanFitOut.LETTERING, spec.name());
+		}
+	}
 
 	/**
 	 * The ends of a real station's hall (Utrecht Centraal: the Stationsplein and the Jaarbeursplein are at the hall's level,
