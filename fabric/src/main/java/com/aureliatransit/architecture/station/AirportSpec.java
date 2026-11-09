@@ -4,8 +4,10 @@ package com.aureliatransit.architecture.station;
  * What the player asked for when the words describe an airport ("airport with 2 runways and 6 gates"): a station of a different
  * kind, planned by the same pipeline. Kept in {@link StationOptions#airport()}; {@link #NONE} means a railway station.
  * <p>
- * Sizes are in blocks. Real airports are drawn at {@link #BLOCKS_PER_METRE} blocks to the metre, but this first version plans
- * every block into memory, so a runway is capped at {@link #MAX_RUNWAY_LENGTH} (the parser says so when words ask for more).
+ * Sizes are in blocks. Markings and the words' metres use {@link #BLOCKS_PER_METRE} blocks to the metre, but an airport is planned at
+ * game scale, not the size of its real counterpart: every block of the plan is held in memory, so new words are capped at
+ * {@link #MAX_PLANNED_RUNWAY_LENGTH} (the parser says so when they ask for more). {@link #MAX_RUNWAY_LENGTH} stays higher so a
+ * runway saved by an older version still loads.
  *
  * @param runways       parallel runways, {@code 0} for no airport, otherwise {@link #MAX_RUNWAYS} at most
  * @param runwayLength  paved length of each runway
@@ -21,9 +23,18 @@ package com.aureliatransit.architecture.station;
  * @param apronMarkings  paint the apron's stand lead-ins, stop bars, numbers and equipment-area lines
  * @param controlTower   build the control tower on the apron
  * @param forecourt      build the landside forecourt: pavement, kerbs, canopy, lane paint and street lamps
+ * @param taxiwaySigns   red runway-holding-position signs beside the hold bars
+ * @param turnPads       paved turning pads at both runway ends
+ * @param apronLanes     the apron's marked taxilane loop: two entrances, edge lights, stand signs and equipment boxes
+ * @param supportBuildings the fire station, one hangar with its apron link, and the bunded fuel farm
+ * @param perimeter      the perimeter service road, its fence and the landside gate
+ * @param approachLights approach light bars, PAPI units and the red runway end lights
+ * @param landTransit    the taxi rank and bus bays on the forecourt
  */
 public record AirportSpec(int runways, int runwayLength, int runwayWidth, int gates, boolean terminal, boolean rail, int heading,
-		boolean runwayMarkings, boolean taxiwayLights, boolean apronMarkings, boolean controlTower, boolean forecourt) {
+		boolean runwayMarkings, boolean taxiwayLights, boolean apronMarkings, boolean controlTower, boolean forecourt,
+		boolean taxiwaySigns, boolean turnPads, boolean apronLanes, boolean supportBuildings, boolean perimeter,
+		boolean approachLights, boolean landTransit) {
 
 	/** The runway numbers when the words give none: 09 at the low end, 27 at the high. */
 	public static final int DEFAULT_HEADING = 9;
@@ -39,27 +50,30 @@ public record AirportSpec(int runways, int runwayLength, int runwayWidth, int ga
 	}
 
 	public AirportSpec(int runways, int runwayLength, int runwayWidth, int gates, boolean terminal, boolean rail, int heading) {
-		this(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, FEATURE_ON, FEATURE_ON, FEATURE_ON, FEATURE_ON, FEATURE_ON);
+		this(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, FEATURE_ON, FEATURE_ON, FEATURE_ON, FEATURE_ON, FEATURE_ON,
+				FEATURE_ON, FEATURE_ON, FEATURE_ON, FEATURE_ON, FEATURE_ON, FEATURE_ON, FEATURE_ON);
 	}
 
 	/** Real airports are built at this many blocks to the metre. */
 	public static final double BLOCKS_PER_METRE = 1.5;
 	public static final int MAX_RUNWAYS = 2;
 	public static final int MIN_RUNWAY_LENGTH = 120;
-	/** The longest runway planned today (2,000 m at 1.5 blocks a metre): every block of the plan is held in memory. */
+	/** The longest runway a saved plan may hold (2,000 m at 1.5 blocks a metre); every block of the plan is held in memory. */
 	public static final int MAX_RUNWAY_LENGTH = 3000;
-	/** A regional airport's runway, 1,700 m at 1.5 blocks a metre. */
-	public static final int DEFAULT_RUNWAY_LENGTH = 2550;
+	/** The longest runway the words make for a new plan (800 m at 1.5 blocks a metre): a game-scale airport, not a real one. */
+	public static final int MAX_PLANNED_RUNWAY_LENGTH = 1200;
+	/** A game-scale airport's runway, 480 by 23 blocks: about 320 m by 15 m at {@link #BLOCKS_PER_METRE}. */
+	public static final int DEFAULT_RUNWAY_LENGTH = 480;
 	public static final int MIN_RUNWAY_WIDTH = 11;
-	/** 45 m at 1.5 blocks a metre: ICAO code E, the widest runway the plan holds. The default is 45 blocks (30 m, code C). */
+	/** 45 m at 1.5 blocks a metre: ICAO code E, the widest runway a saved plan holds. */
 	public static final int MAX_RUNWAY_WIDTH = 68;
 	/** ICAO code E's 45 m runway in blocks. */
 	public static final int CODE_E_WIDTH = 68;
-	/** 30 m at 1.5 blocks a metre. */
-	public static final int DEFAULT_RUNWAY_WIDTH = 45;
+	/** 15 m at 1.5 blocks a metre: a regional runway's width at game scale. */
+	public static final int DEFAULT_RUNWAY_WIDTH = 23;
 	public static final int MIN_GATES = 1;
 	public static final int MAX_GATES = 12;
-	public static final int DEFAULT_GATES = 4;
+	public static final int DEFAULT_GATES = 5;
 
 	public static final AirportSpec NONE = new AirportSpec(0, 0, 0, 0, false);
 
@@ -77,7 +91,7 @@ public record AirportSpec(int runways, int runwayLength, int runwayWidth, int ga
 		}
 	}
 
-	/** A regional airport: one runway 1,700 m by 30 m, a terminal and four gates. */
+	/** A game-scale airport: one runway 480 by 23 blocks, a terminal and five gates (the five that fit on the apron). */
 	public static AirportSpec defaults() {
 		return new AirportSpec(1, DEFAULT_RUNWAY_LENGTH, DEFAULT_RUNWAY_WIDTH, DEFAULT_GATES, true);
 	}
@@ -85,43 +99,85 @@ public record AirportSpec(int runways, int runwayLength, int runwayWidth, int ga
 	/** The same airport with or without a railway station under its terminal. */
 	public AirportSpec withRail(boolean value) {
 		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, value, heading, runwayMarkings, taxiwayLights,
-				apronMarkings, controlTower, forecourt);
+				apronMarkings, controlTower, forecourt, taxiwaySigns, turnPads, apronLanes, supportBuildings, perimeter, approachLights, landTransit);
 	}
 
 	/** The same airport with its runways numbered {@code value} (1..18) at the low end and {@code value + 18} at the high end. */
 	public AirportSpec withHeading(int value) {
 		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, value, runwayMarkings, taxiwayLights,
-				apronMarkings, controlTower, forecourt);
+				apronMarkings, controlTower, forecourt, taxiwaySigns, turnPads, apronLanes, supportBuildings, perimeter, approachLights, landTransit);
 	}
 
 	/** The same airport with the runway's painted markings on or off ({@link AirportFeatures}). */
 	public AirportSpec withRunwayMarkings(boolean value) {
 		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, value, taxiwayLights, apronMarkings,
-				controlTower, forecourt);
+				controlTower, forecourt, taxiwaySigns, turnPads, apronLanes, supportBuildings, perimeter, approachLights, landTransit);
 	}
 
 	/** The same airport with the taxiway lights on or off. */
 	public AirportSpec withTaxiwayLights(boolean value) {
 		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, value, apronMarkings,
-				controlTower, forecourt);
+				controlTower, forecourt, taxiwaySigns, turnPads, apronLanes, supportBuildings, perimeter, approachLights, landTransit);
 	}
 
 	/** The same airport with the apron's markings on or off. */
 	public AirportSpec withApronMarkings(boolean value) {
 		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights, value,
-				controlTower, forecourt);
+				controlTower, forecourt, taxiwaySigns, turnPads, apronLanes, supportBuildings, perimeter, approachLights, landTransit);
 	}
 
 	/** The same airport with or without its control tower. */
 	public AirportSpec withControlTower(boolean value) {
 		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
-				apronMarkings, value, forecourt);
+				apronMarkings, value, forecourt, taxiwaySigns, turnPads, apronLanes, supportBuildings, perimeter, approachLights, landTransit);
 	}
 
 	/** The same airport with or without its landside forecourt. */
 	public AirportSpec withForecourt(boolean value) {
 		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
-				apronMarkings, controlTower, value);
+				apronMarkings, controlTower, value, taxiwaySigns, turnPads, apronLanes, supportBuildings, perimeter, approachLights, landTransit);
+	}
+
+	/** The same airport with the runway-holding signs on or off. */
+	public AirportSpec withTaxiwaySigns(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
+				apronMarkings, controlTower, forecourt, value, turnPads, apronLanes, supportBuildings, perimeter, approachLights, landTransit);
+	}
+
+	/** The same airport with the runway-end turn pads on or off. */
+	public AirportSpec withTurnPads(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
+				apronMarkings, controlTower, forecourt, taxiwaySigns, value, apronLanes, supportBuildings, perimeter, approachLights, landTransit);
+	}
+
+	/** The same airport with the apron taxilane loop and its stand signs on or off. */
+	public AirportSpec withApronLanes(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
+				apronMarkings, controlTower, forecourt, taxiwaySigns, turnPads, value, supportBuildings, perimeter, approachLights, landTransit);
+	}
+
+	/** The same airport with its fire station, hangar and fuel farm on or off. */
+	public AirportSpec withSupportBuildings(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
+				apronMarkings, controlTower, forecourt, taxiwaySigns, turnPads, apronLanes, value, perimeter, approachLights, landTransit);
+	}
+
+	/** The same airport with its perimeter fence, service road and gate on or off. */
+	public AirportSpec withPerimeter(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
+				apronMarkings, controlTower, forecourt, taxiwaySigns, turnPads, apronLanes, supportBuildings, value, approachLights, landTransit);
+	}
+
+	/** The same airport with its approach lights, PAPI units and red end lights on or off. */
+	public AirportSpec withApproachLights(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
+				apronMarkings, controlTower, forecourt, taxiwaySigns, turnPads, apronLanes, supportBuildings, perimeter, value, landTransit);
+	}
+
+	/** The same airport with its forecourt taxi rank and bus bays on or off. */
+	public AirportSpec withLandTransit(boolean value) {
+		return new AirportSpec(runways, runwayLength, runwayWidth, gates, terminal, rail, heading, runwayMarkings, taxiwayLights,
+				apronMarkings, controlTower, forecourt, taxiwaySigns, turnPads, apronLanes, supportBuildings, perimeter, approachLights, value);
 	}
 
 	/** The two-digit number painted at the runways' low end ("05"), or with {@code high} at the high end ("23"). */

@@ -4,7 +4,7 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * The five airport features the dev panel can switch, and the plain words that carry the choice. Words are the airport's saved
+ * The airport features the dev panel can switch, and the plain words that carry the choice. Words are the airport's saved
  * form (the wrench keeps the description, not a separate options record), so a save from before these switches existed simply has
  * none of the "no ..." phrases and opens with every feature on.
  */
@@ -16,7 +16,14 @@ public final class AirportFeatures {
 		TAXIWAY_LIGHTS("taxiway_lights", "taxiway lights"),
 		APRON_MARKINGS("apron_markings", "apron markings"),
 		CONTROL_TOWER("control_tower", "control tower"),
-		FORECOURT("forecourt", "forecourt");
+		FORECOURT("forecourt", "forecourt"),
+		TAXIWAY_SIGNS("taxiway_signs", "taxiway signs"),
+		TURN_PADS("turn_pads", "turn pads"),
+		APRON_LANES("apron_lanes", "apron lanes"),
+		SUPPORT_BUILDINGS("support_buildings", "support buildings"),
+		PERIMETER("perimeter_fence", "perimeter fence"),
+		APPROACH_LIGHTS("approach_lights", "approach lights"),
+		LAND_TRANSIT("landside_transit", "landside transit");
 
 		private final String key;
 		private final String noun;

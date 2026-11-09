@@ -36,7 +36,7 @@ public class AirportWrenchScreen extends Screen {
 	private TextFieldWidget field;
 	/** Set once an action went to the server, which saves the words with it: closing then sends nothing more. */
 	private boolean sent;
-	/** The five feature switches, so their labels can follow the words. */
+	/** The feature switches, so their labels can follow the words. */
 	private final Map<AirportFeatures.Feature, ButtonWidget> toggles = new EnumMap<>(AirportFeatures.Feature.class);
 
 	public AirportWrenchScreen(Hand hand, String words) {
@@ -55,7 +55,7 @@ public class AirportWrenchScreen extends Screen {
 	@Override
 	protected void init() {
 		final int left = (width - WIDTH) / 2;
-		int y = Math.max(30, height / 2 - 110);
+		int y = Math.max(24, height / 2 - 110);
 		final int half = (WIDTH - 4) / 2;
 		for (int i = 0; i < AirportPresets.ALL.size(); i++) {
 			final AirportPresets.Preset preset = AirportPresets.ALL.get(i);
@@ -70,17 +70,18 @@ public class AirportWrenchScreen extends Screen {
 		addDrawableChild(field);
 		y += 26;
 		// one switch per visible feature; they write the same plain words the server parses, so an old save opens with all on
+		final int featureWidth = (WIDTH - 8) / 3;
 		int i = 0;
 		for (final AirportFeatures.Feature feature : AirportFeatures.Feature.values()) {
 			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(toggleLabel(feature), b -> {
 				words = AirportFeatures.set(words, feature, !AirportFeatures.enabled(words, feature));
 				field.setText(words);
 				refreshToggles();
-			}).dimensions(left + (i % 2) * (half + 4), y + (i / 2) * ROW, half, 20).build());
+			}).dimensions(left + (i % 3) * (featureWidth + 4), y + (i / 3) * 20, featureWidth, 18).build());
 			toggles.put(feature, button);
 			i++;
 		}
-		y += 3 * ROW + 6;
+		y += ((AirportFeatures.Feature.values().length + 2) / 3) * 20 + 6;
 		final int action = (WIDTH - 8) / 3;
 		action(StationWrenchItem.Action.PLAN, "plan", left, y, WIDTH);
 		y += ROW;

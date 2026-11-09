@@ -12,9 +12,10 @@ import static com.aureliatransit.architecture.station.StationPlanner.*;
  * runway, an apron with aircraft stands, and a terminal behind the apron with a boarding bridge to every stand, on the same
  * pipeline as a station. The geometry is {@link AirportGeometry}; this layer paints it. Nothing here runs for a railway station.
  * <p>
- * Pavement is {@link Role#PLATFORM_SURFACE} (a flat walkable floor), lights are {@link Role#LIGHT_PANEL}, the terminal and bridges
- * use the building roles; the block ids are chosen here, not by the style palette. Everything on the airfield is flush with the
- * ground (y = 0); only the terminal, the bridges and the floodlight masts stand up.
+ * Pavement is {@link Role#PLATFORM_SURFACE} (a flat walkable floor), lights are {@link Role#LIGHT_PANEL}, the terminal, bridges and
+ * support buildings use the building roles; the block ids are chosen here, not by the style palette. The airfield itself is flush
+ * with the ground (y = 0); the terminal, the bridges, the control tower, the fire station, the hangar, the fuel tanks and the
+ * floodlight masts stand up.
  * One layer of {@link Planning}: the layers extend one another in order, from {@code PlanState} down to {@code Planning}, and
  * share one set of planned cells.
  */
@@ -55,8 +56,16 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String EDGE_LIGHT = "aurelia_transit_architecture:runway_edge_light";
 	/** Runway threshold lights: green. */
 	static final String THRESHOLD_LIGHT = "aurelia_transit_architecture:runway_threshold_light";
+	/** Runway end lights: red, one row outside each threshold, glowing the other way down the approach. */
+	static final String END_LIGHT = "minecraft:redstone_lamp";
 	/** Taxiway edge lights: blue. */
 	static final String TAXI_LIGHT = "aurelia_transit_architecture:taxiway_edge_light";
+	/** The perimeter service road's darker asphalt, and the mown grass between the runway and taxiway. */
+	static final String SERVICE_SURFACE = "minecraft:andesite";
+	static final String GRASS_SURFACE = "minecraft:grass_block";
+	/** The perimeter fence: iron bars between stone brick posts. */
+	static final String FENCE_BAR = "minecraft:iron_bars";
+	static final String FENCE_POST = "minecraft:stone_brick_wall";
 	/** The control tower: a white shaft, a light grey cab floor and roof, and glass walls round the cab. */
 	static final String TOWER_SHAFT = "minecraft:white_concrete";
 	static final String TOWER_FLOOR = "minecraft:light_gray_concrete";
@@ -132,19 +141,41 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 		windsock();
 		masts();
+		if (spec.airport().supportBuildings()) {
+			supportBuildings();
+		}
+		if (spec.airport().perimeter()) {
+			perimeter();
+		}
 		if (spec.airport().apronMarkings()) {
 			standMarks();
 			equipmentLines();
+		}
+		if (spec.airport().apronLanes()) {
+			apronLanes();
+			apronLaneDetails();
 		}
 		gatePlatforms();
 		for (int i = 0; i < spec.airport().runways(); i++) {
 			runwayMarks(i);
 		}
 		taxiMarks();
+		if (spec.airport().turnPads()) {
+			turnPadMarks();
+		}
+		if (spec.airport().taxiwaySigns()) {
+			taxiwaySigns();
+		}
+		if (spec.airport().approachLights()) {
+			approachLights();
+		}
 		if (spec.airport().terminal() && spec.airport().forecourt()) {
 			// the access road first: its mouth takes the forecourt's outer footway and kerb
 			airportAccessRoad();
 			airportForecourt();
+			if (spec.airport().landTransit()) {
+				landTransit();
+			}
 			airportCarPark();
 		}
 		pavement();
@@ -162,6 +193,10 @@ abstract class PlanAirport extends PlanFitOut {
 
 	private void light(int u, int v, String id) {
 		flat(Role.LIGHT_PANEL, u, v, id);
+	}
+
+	private void light(int u, int v, String id, String state) {
+		put(Role.LIGHT_PANEL, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V, id, state);
 	}
 
 	private void rect(int u0, int u1, int v0, int v1, String id) {
@@ -233,6 +268,53 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 	}
 
+	/**
+	 * Approach lighting at both ends and the visual glidepath beside the touchdown zone: a line of white lights up the extended centreline
+	 * with five crossbars, a red end-light row one cell outside each threshold, and four PAPI boxes on the west side. The bars sit on
+	 * the narrow grass strips the geometry keeps clear for them; the red end lights sit on the blast pads, set flush.
+	 */
+	void approachLights() {
+		final int c = air.runwayCentre(0);
+		final int blink = air.dims().blast();
+		for (final boolean high : new boolean[]{false, true}) {
+			final int from = high ? air.runwayV1() + blink + 2 : air.runwayV0() - blink - 2;
+			final int step = high ? 1 : -1;
+			for (int k = 0; k <= 20; k++) {
+				final int v = from + step * k;
+				light(c, v, EDGE_LIGHT);
+				if (k % 4 == 0) {
+					for (int du = -2; du <= 2; du++) {
+						light(c + du, v, EDGE_LIGHT);
+					}
+				}
+			}
+			// the red runway end lights, one row beyond each green threshold line, every two cells across
+			final int end = high ? air.runwayV1() + 1 : air.runwayV0() - 1;
+			for (int u = air.runwayU0().get(0) + 1; u < air.runwayU1(0); u += 2) {
+				light(u, end, END_LIGHT, "lit=true");
+			}
+		}
+		// four PAPI boxes beside the touchdown zone, one cell outside the runway shoulder
+		final int u = air.runwayU0().get(0) - air.dims().shoulder() - 1;
+		int v0 = air.runwayV0() + Math.max(44, spec.airport().runwayLength() / 10);
+		for (int attempt = 0; attempt < 4; attempt++) {
+			boolean clear = true;
+			for (int k = 0; k < 4; k++) {
+				clear &= !onTaxiway(u, v0 + 4 * k);
+			}
+			if (clear) {
+				break;
+			}
+			v0 += 8;
+		}
+		for (int k = 0; k < 4; k++) {
+			final int v = v0 + 4 * k;
+			put(Role.FIXTURE, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_U, SIDEWALK);
+			put(Role.FIXTURE, u, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, "minecraft:white_concrete");
+			put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, v, LocalDir.PLUS_U, END_LIGHT, "lit=true");
+		}
+	}
+
 	/** The scale of a runway's painted numbers: as large as the runway is wide enough for. */
 	int numberScale() {
 		final int w = spec.airport().runwayWidth();
@@ -296,6 +378,9 @@ abstract class PlanAirport extends PlanFitOut {
 	 * one stripe 45 m by 6 m (30 m by 4 m on a runway under 1,200 m). Each runway gets its pairs as far as half its length.
 	 */
 	static List<Bars> touchdownBars(int runwayLength) {
+		if (runwayLength < 900) {
+			return shortRunwayBars(runwayLength);
+		}
 		final double metres = runwayLength / 1.5;
 		final int aim = metres < 800 ? 150 : metres < 1200 ? 250 : metres < 2400 ? 300 : 400;
 		final int pairs = metres < 900 ? 1 : metres < 1200 ? 2 : metres < 1500 ? 3 : metres < 2400 ? 4 : 6;
@@ -312,6 +397,20 @@ abstract class PlanAirport extends PlanFitOut {
 		return out;
 	}
 
+	/**
+	 * Marks for a game-scale runway under 900 blocks (600 m), where ICAO's distances leave no room: the aiming point at a tenth of the
+	 * runway and one pair of touchdown bars at a quarter, the bars a twelfth of the runway long (at most 34 blocks, the real 22.5 m
+	 * bar) and the aiming point in the short runway's 30 m by 4 m form.
+	 */
+	private static List<Bars> shortRunwayBars(int runwayLength) {
+		final int length = Math.max(8, Math.min(34, runwayLength / 12));
+		final int aim = Math.max(6, runwayLength / 10);
+		final List<Bars> out = new ArrayList<>();
+		out.add(new Bars(aim, 1, length + 11, 6));
+		out.add(new Bars(Math.max(aim + length + 12, runwayLength / 4), 3, length, 3));
+		return out;
+	}
+
 	private static int blocks(double metres) {
 		return (int) Math.round(metres * 1.5);
 	}
@@ -325,9 +424,6 @@ abstract class PlanAirport extends PlanFitOut {
 	}
 
 	private void touchdownMarks(int i) {
-		if (air.dims() != AirportGeometry.REAL) {
-			return;
-		}
 		final int c = air.runwayCentre(i);
 		final int u0 = air.runwayU0().get(i);
 		final int u1 = air.runwayU1(i);
@@ -437,8 +533,8 @@ abstract class PlanAirport extends PlanFitOut {
 				paint(u, link[0], PAINT_YELLOW);
 				paint(u, link[1], PAINT_YELLOW);
 			}
-			// the runway holding position: two solid and two dashed yellow lines, solid side to the runway
-			holdingPositionV(gapTo - 1, link[0], link[1]);
+			// the runway holding position: two solid and two dashed yellow lines, solid side to the runway, 14 cells outside the strip
+			holdingPositionV(air.holdU(), link[0], link[1]);
 		}
 		// rapid exits: the same centreline, edge lines, edge lights and hold-short bar as the links, along each exit's diagonal strip
 		final int half = air.exitHalf();
@@ -512,6 +608,80 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 	}
 
+	/**
+	 * The turning pads at the runway ends: a yellow edge line round the widening, broken where the end link joins it, and blue edge
+	 * lights every eight cells along its outer edge. The runway's own threshold, edge and centre paint keeps its cells.
+	 */
+	void turnPadMarks() {
+		final int runwayU0 = air.runwayU0().get(0);
+		final int runwayU1 = air.runwayU1(0);
+		for (final boolean high : new boolean[]{false, true}) {
+			final AirportGeometry.Area pad = air.turnPad(high);
+			final int edge = high ? pad.v1() : pad.v0();
+			for (int u = pad.u0(); u <= pad.u1(); u++) {
+				if (u < runwayU0 || u > runwayU1) {
+					paint(u, edge, PAINT_YELLOW);
+				}
+			}
+			for (int v = pad.v0(); v <= pad.v1(); v++) {
+				paint(pad.u0(), v, PAINT_YELLOW);
+				paint(pad.u1(), v, PAINT_YELLOW);
+				if (spec.airport().taxiwayLights() && Math.floorMod(v - pad.v0(), air.dims().taxiLightEvery()) == 0) {
+					light(pad.u0(), v, TAXI_LIGHT);
+					light(pad.u1(), v, TAXI_LIGHT);
+				}
+			}
+		}
+	}
+
+	/**
+	 * A red runway-holding-position sign beside each hold bar: a three-wide, two-high red panel with a white stripe, on two poles, set
+	 * one row outside the link on the grass. The panel reads as a red sign from the air and from the taxiway. A rapid exit's diagonal
+	 * strip can cross the first row beside a link, so the sign steps out until it is clear of every taxiway area.
+	 */
+	void taxiwaySigns() {
+		for (final int[] link : air.links()) {
+			final int u = air.holdU() + 2;
+			final int v = signV(link, u);
+			for (int du = 0; du <= 2; du += 2) {
+				put(Role.FIXTURE, u + du, StationGeometry.WALK_Y, v, LocalDir.MINUS_U, LAMP_POLE);
+			}
+			for (int du = 0; du <= 2; du++) {
+				put(Role.FIXTURE, u + du, StationGeometry.WALK_Y + 1, v, LocalDir.MINUS_U, PAINT_RED);
+				if (du == 1) {
+					put(Role.FIXTURE, u + du, StationGeometry.WALK_Y + 2, v, LocalDir.MINUS_U, PAINT_WHITE);
+				} else {
+					put(Role.FIXTURE, u + du, StationGeometry.WALK_Y + 2, v, LocalDir.MINUS_U, PAINT_RED);
+				}
+			}
+		}
+	}
+
+	/** The first row outside a link, on either side, where a three-wide sign at column {@code u} stays off every taxiway area. */
+	private int signV(int[] link, int u) {
+		for (int step = 1; step <= 4; step++) {
+			for (final int v : new int[]{link[1] + step, link[0] - step}) {
+				boolean clear = true;
+				for (int du = 0; du <= 2; du++) {
+					clear &= !onTaxiway(u + du, v);
+				}
+				if (clear) {
+					return v;
+				}
+			}
+		}
+		return link[1] + 1;
+	}
+
+	private boolean onTaxiway(int u, int v) {
+		for (final AirportGeometry.Area area : air.areas()) {
+			if (area.kind() == AirportGeometry.Kind.TAXIWAY && area.contains(u, v)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	// ---- apron and stands ---------------------------------------------------------------------------------------------
 
 	/** Where an aircraft's nose stops on stand: past the boarding bridge, or well in from the apron's edge without a terminal. */
@@ -522,16 +692,18 @@ abstract class PlanAirport extends PlanFitOut {
 	/** A yellow lead-in line to the stop bar on every stand, the bar, the stand's number, and white lines between stands. */
 	void standMarks() {
 		final int stop = stopU();
+		final int lane = air.laneU0();
 		final int first = air.standV().get(0) - air.dims().standPitch() / 2;
 		for (int i = 0; i <= spec.airport().gates(); i++) {
 			final int v = first + i * air.dims().standPitch();
-			for (int u = stop + 1; u <= air.apronU1(); u++) {
+			for (int u = stop + 1; u <= lane - 1; u++) {
 				paint(u, v, PAINT_WHITE);
 			}
 		}
 		for (int i = 0; i < air.standV().size(); i++) {
 			final int c = air.standV().get(i);
-			for (int u = stop; u <= air.taxiCentre(); u++) {
+			// the lead-in runs from the nose to the taxilane's centreline, so it reaches the lane without crossing a neighbour
+			for (int u = stop; u <= air.laneCentre(); u++) {
 				paint(u, c, PAINT_YELLOW);
 			}
 			final int bar = air.dims().bridgeWidth() / 2 + 1;
@@ -574,6 +746,81 @@ abstract class PlanAirport extends PlanFitOut {
 	}
 
 	/**
+	 * The apron's taxilane: a marked one-way lane along the airside edge, from one entrance at the apron's low end to another at its
+	 * high end, so the apron is a loop rather than a dead end. Yellow edge lines break at each stand lead-in and at the two entrances;
+	 * the centreline has green lights and the edges blue lights, as on the taxiway.
+	 */
+	void apronLanes() {
+		final int u0 = air.laneU0();
+		final int u1 = air.laneU1();
+		final int centre = air.laneCentre();
+		final int greenEvery = Math.max(1, air.dims().taxiLightEvery() / 2);
+		for (int v = air.laneV0(); v <= air.laneV1(); v++) {
+			final boolean entrance = v <= air.laneV0() + 8 || v >= air.laneV1() - 8;
+			boolean stand = false;
+			for (final int c : air.standV()) {
+				stand |= Math.abs(v - c) <= 1;
+			}
+			if (!stand) {
+				paint(u0, v, PAINT_YELLOW);
+				if (spec.airport().taxiwayLights() && Math.floorMod(v - air.laneV0(), air.dims().taxiLightEvery()) == 0) {
+					light(u0, v, TAXI_LIGHT);
+				}
+			}
+			if (!entrance && !stand) {
+				paint(u1, v, PAINT_YELLOW);
+				if (spec.airport().taxiwayLights() && Math.floorMod(v - air.laneV0(), air.dims().taxiLightEvery()) == 0) {
+					light(u1, v, TAXI_LIGHT);
+				}
+			}
+			if (!stand) {
+				paint(centre, v, PAINT_YELLOW);
+				if (spec.airport().taxiwayLights() && Math.floorMod(v - air.laneV0(), greenEvery) == 0) {
+					light(centre, v, THRESHOLD_LIGHT);
+				}
+			}
+		}
+	}
+
+	/**
+	 * The taxilane's stand furniture: a white number board on two poles at each stand's nose, and a white-lined ground-equipment box
+	 * with two carts between each pair of stands. Kept clear of the lead-ins and the equipment restraint line, so nothing covers an
+	 * aircraft's path.
+	 */
+	void apronLaneDetails() {
+		final int pitch = air.dims().standPitch();
+		final int first = air.standV().get(0) - pitch / 2;
+		for (int i = 0; i < air.standV().size(); i++) {
+			final int c = air.standV().get(i);
+			final int v = c - pitch / 4;
+			final int u = stopU() - 3;
+			for (int du = 0; du <= 1; du++) {
+				put(Role.FIXTURE, u + du, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, LAMP_POLE);
+				put(Role.FIXTURE, u + du, StationGeometry.WALK_Y + 1, v, LocalDir.PLUS_U, PAINT_WHITE);
+				put(Role.FIXTURE, u + du, StationGeometry.WALK_Y + 2, v, LocalDir.PLUS_U, PAINT_WHITE);
+			}
+		}
+		for (int i = 0; i <= spec.airport().gates(); i++) {
+			final int v = first + i * pitch + 3;
+			final int u = air.apronU0() + 12;
+			for (int du = 0; du <= 6; du++) {
+				paint(u + du, v, PAINT_WHITE);
+				paint(u + du, v + 3, PAINT_WHITE);
+			}
+			for (int dv = 0; dv <= 3; dv++) {
+				paint(u, v + dv, PAINT_WHITE);
+				paint(u + 6, v + dv, PAINT_WHITE);
+			}
+			for (int du = 1; du <= 5; du++) {
+				paint(u + du, v + 1, PAINT_YELLOW);
+			}
+			put(Role.FIXTURE, u + 2, StationGeometry.WALK_Y, v + 2, LocalDir.PLUS_U, TROLLEY);
+			put(Role.FIXTURE, u + 4, StationGeometry.WALK_Y, v + 2, LocalDir.MINUS_U, TROLLEY);
+		}
+	}
+
+
+	/**
 	 * MTR opens a plane's doors only beside a platform block, so both rows beside every stand's platform rail are the
 	 * apron's concrete as a platform block. After the stand marks: a cell keeps the first block planned in it, so the
 	 * stop bar keeps its paint. Ported from Aurelia Transit Architecture pull request 7.
@@ -597,7 +844,9 @@ abstract class PlanAirport extends PlanFitOut {
 		final int cu = (t.u0() + t.u1()) / 2;
 		final int cv = (t.v0() + t.v1()) / 2;
 		final int top = 2 * air.dims().mast();
-		final int shaft = (t.u1() - t.u0() + 1) >= 9 ? 2 : 1;
+		// a stout shaft as at Southend (ap07): 7 wide under an 11-wide cab, so the tower reads about 1:5, not a thin pole
+		final int width = t.u1() - t.u0() + 1;
+		final int shaft = width >= 11 ? 3 : width >= 9 ? 2 : 1;
 		for (int y = StationGeometry.WALK_Y; y <= top - 7; y++) {
 			for (int u = cu - shaft; u <= cu + shaft; u++) {
 				for (int v = cv - shaft; v <= cv + shaft; v++) {
@@ -658,10 +907,9 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 	}
 
-	/** A windsock on a pole at the apron's far corner, past the control tower, its cone blowing along +v. */
+	/** A windsock on a pole at the apron's south-west corner, clear of the control tower, its cone blowing along +v. */
 	void windsock() {
-		final AirportGeometry.Area t = air.tower();
-		final int u = t.u1();
+		final int u = air.apronU0() + 1;
 		final int v = air.apronV0() + 1;
 		for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + 4; y++) {
 			put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, LAMP_POLE);
@@ -685,6 +933,333 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 	}
 
+	// ---- support buildings and the perimeter ---------------------------------------------------------------------------------
+
+	/**
+	 * The three support buildings the study asks for: a fire station on the apron's north edge with its doors facing the taxiway and
+	 * two tenders ready in the open bays, a hangar with its own apron link, and a bunded fuel farm on the service road. Each stands
+	 * on an apron or service-road area, so nothing floats and every one is reached on foot or by road.
+	 */
+	void supportBuildings() {
+		fireStation();
+		if (deepApron()) {
+			hangar();
+			fuelFarm();
+		}
+	}
+
+	/** A compact apron is too shallow for a hangar and its link beside the fire station; those two wait for a regional apron. */
+	private boolean deepApron() {
+		return air.dims().standDepth() >= 40;
+	}
+
+	private void fireStation() {
+		final AirportGeometry.Area a = air.fireStation();
+		final int u0 = a.u0();
+		final int u1 = a.u1();
+		final int v0 = a.v0();
+		final int v1 = a.v1();
+		final int top = 8;
+		final int[][] bays = {{v0 + 1, v0 + 3}, {v0 + 5, v0 + 7}, {v0 + 9, v0 + 11}};
+		for (int y = StationGeometry.WALK_Y; y <= top; y++) {
+			for (int v = v0; v <= v1; v++) {
+				for (int u = u0; u <= u1; u++) {
+					if (u != u0 && u != u1 && v != v0 && v != v1) {
+						continue;
+					}
+					if (u == u1 && y <= top - 4 && inBay(bays, v)) {
+						// the engine bays: all three are openings; the first gets a red roller door below
+						continue;
+					}
+					final boolean plinth = y == StationGeometry.WALK_Y;
+					final boolean band = y == StationGeometry.WALK_Y + 5;
+					put(Role.WALL, u, y, v, LocalDir.PLUS_V, plinth ? "minecraft:gray_concrete" : band ? PAINT_RED : "minecraft:white_concrete");
+				}
+			}
+		}
+		// red roller door on the first bay, with a white lintel over all three
+		for (int v = bays[0][0]; v <= bays[0][1]; v++) {
+			for (int y = StationGeometry.WALK_Y; y <= top - 4; y++) {
+				put(Role.WALL, u1, y, v, LocalDir.PLUS_U, y == StationGeometry.WALK_Y ? "minecraft:gray_concrete" : PAINT_RED);
+			}
+		}
+		for (final int[] bay : bays) {
+			for (int v = bay[0]; v <= bay[1]; v++) {
+				put(Role.WALL, u1, top - 3, v, LocalDir.PLUS_U, PAINT_WHITE);
+			}
+		}
+		for (int v = v0; v <= v1; v++) {
+			for (int u = u0; u <= u1; u++) {
+				put(Role.BUILDING_ROOF, u, top, v, LocalDir.PLUS_V, "minecraft:light_gray_concrete");
+			}
+		}
+		for (int v = v0; v <= v1; v++) {
+			put(Role.BUILDING_ROOF, u0, top + 1, v, LocalDir.PLUS_V, "minecraft:gray_concrete");
+			put(Role.BUILDING_ROOF, u1, top + 1, v, LocalDir.PLUS_V, "minecraft:gray_concrete");
+		}
+		for (int u = u0; u <= u1; u++) {
+			put(Role.BUILDING_ROOF, u, top + 1, v0, LocalDir.PLUS_V, "minecraft:gray_concrete");
+			put(Role.BUILDING_ROOF, u, top + 1, v1, LocalDir.PLUS_V, "minecraft:gray_concrete");
+		}
+		// the hose tower at the south-west corner, red and white bands, with a beacon over it
+		for (int y = StationGeometry.WALK_Y; y <= top + 6; y++) {
+			for (int u = u0; u <= u0 + 3; u++) {
+				for (int v = v0; v <= v0 + 3; v++) {
+					if (u != u0 && u != u0 + 3 && v != v0 && v != v0 + 3) {
+						continue;
+					}
+					put(Role.WALL, u, y, v, LocalDir.PLUS_V, Math.floorMod(y, 6) < 3 ? "minecraft:white_concrete" : PAINT_RED);
+				}
+			}
+		}
+		for (int u = u0; u <= u0 + 3; u++) {
+			for (int v = v0; v <= v0 + 3; v++) {
+				put(Role.BUILDING_ROOF, u, top + 7, v, LocalDir.PLUS_V, "minecraft:gray_concrete");
+			}
+		}
+		put(Role.FIXTURE, u0 + 1, top + 8, v0 + 1, LocalDir.PLUS_V, LAMP_POLE);
+		put(Role.LAMP, u0 + 1, top + 9, v0 + 1, LocalDir.PLUS_V, TOWER_BEACON);
+		// two tenders in the open bays, one red body each, a white cab and black wheels
+		for (int b = 1; b < bays.length; b++) {
+			final int v = bays[b][0];
+			final int centre = (bays[b][0] + bays[b][1]) / 2;
+			for (int u = u1 - 6; u <= u1 - 2; u++) {
+				for (int dv = 0; dv <= 1; dv++) {
+					final int vv = Math.min(centre + dv, bays[b][1]);
+					put(Role.FIXTURE, u, StationGeometry.WALK_Y, vv, LocalDir.PLUS_U, "minecraft:black_concrete");
+					put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, vv, LocalDir.PLUS_U, PAINT_RED);
+					put(Role.FIXTURE, u, StationGeometry.WALK_Y + 2, vv, LocalDir.PLUS_U, PAINT_RED);
+				}
+			}
+			for (int dv = 0; dv <= 1; dv++) {
+				final int vv = Math.min(centre + dv, bays[b][1]);
+				put(Role.FIXTURE, u1 - 7, StationGeometry.WALK_Y + 1, vv, LocalDir.MINUS_U, PAINT_WHITE);
+				put(Role.FIXTURE, u1 - 7, StationGeometry.WALK_Y + 2, vv, LocalDir.MINUS_U, PAINT_WHITE);
+			}
+			put(Role.FIXTURE, u1 - 4, StationGeometry.WALK_Y + 3, v, LocalDir.PLUS_U, PAINT_WHITE);
+		}
+	}
+
+	private static boolean inBay(int[][] bays, int v) {
+		for (final int[] bay : bays) {
+			if (v >= bay[0] && v <= bay[1]) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private void hangar() {
+		final AirportGeometry.Area a = air.hangar();
+		final int u0 = a.u0();
+		final int u1 = a.u1();
+		final int v0 = a.v0();
+		final int v1 = a.v1();
+		final int top = 10;
+		final int doorU0 = u0 + 5;
+		final int doorU1 = u0 + 13;
+		for (int y = StationGeometry.WALK_Y; y <= top; y++) {
+			for (int v = v0; v <= v1; v++) {
+				for (int u = u0; u <= u1; u++) {
+					if (u != u0 && u != u1 && v != v0 && v != v1) {
+						continue;
+					}
+					if (v == v0 && u >= doorU0 && u <= doorU1 && y <= top - 1) {
+						// the big door, closed, with a red frame and a hazard strip at the bottom
+						final String id = y == StationGeometry.WALK_Y ? PAINT_YELLOW : y % 3 == 0 ? PAINT_RED : "minecraft:gray_concrete";
+						put(Role.WALL, u, y, v, LocalDir.MINUS_V, id);
+						continue;
+					}
+					final boolean plinth = y == StationGeometry.WALK_Y || y == top;
+					put(Role.WALL, u, y, v, LocalDir.PLUS_V, plinth ? "minecraft:gray_concrete" : "minecraft:light_gray_concrete");
+				}
+			}
+		}
+		// pilasters down the long walls, a shade darker, so the hangar reads as a shed from the ground
+		for (int v = v0 + 4; v < v1; v += 6) {
+			for (int y = StationGeometry.WALK_Y; y <= top; y++) {
+				put(Role.WALL, u0, y, v, LocalDir.MINUS_U, "minecraft:gray_concrete");
+				put(Role.WALL, u1, y, v, LocalDir.PLUS_U, "minecraft:gray_concrete");
+			}
+		}
+		// a shallow gable roof and its end walls
+		final int centre = (u0 + u1) / 2;
+		final int half = (u1 - u0) / 2;
+		for (int u = u0; u <= u1; u++) {
+			final int rise = Math.max(0, (half - Math.abs(u - centre)) / 5);
+			final int roofY = top + 1 + rise;
+			for (int v = v0; v <= v1; v++) {
+				put(Role.BUILDING_ROOF, u, roofY, v, LocalDir.PLUS_V, rise == 3 ? "minecraft:gray_concrete" : "minecraft:light_gray_concrete");
+			}
+			for (int y = top + 1; y <= roofY; y++) {
+				put(Role.WALL, u, y, v0, LocalDir.MINUS_V, "minecraft:light_gray_concrete");
+				put(Role.WALL, u, y, v1, LocalDir.PLUS_V, "minecraft:light_gray_concrete");
+			}
+		}
+		for (int v = v0 + 8; v < v1; v += 10) {
+			for (int y = top + 2; y <= top + 3; y++) {
+				put(Role.FIXTURE, centre, y, v, LocalDir.PLUS_V, PLANT_VENT);
+			}
+		}
+		// the apron link from the apron to the door, a yellow centreline and its green lead-on lights
+		final AirportGeometry.Area link = air.hangarLink();
+		final int linkCentre = (link.u0() + link.u1()) / 2;
+		for (int v = link.v0(); v <= link.v1(); v++) {
+			paint(linkCentre, v, PAINT_YELLOW);
+			paint(link.u0(), v, PAINT_YELLOW);
+			paint(link.u1(), v, PAINT_YELLOW);
+			if (spec.airport().taxiwayLights() && Math.floorMod(v - link.v0(), air.dims().taxiLightEvery()) == 0) {
+				light(link.u0(), v, TAXI_LIGHT);
+				light(link.u1(), v, TAXI_LIGHT);
+			}
+			if (spec.airport().taxiwayLights() && Math.floorMod(v - link.v0(), Math.max(1, air.dims().taxiLightEvery() / 2)) == 0) {
+				light(linkCentre, v, THRESHOLD_LIGHT);
+			}
+		}
+	}
+
+	private void fuelFarm() {
+		final AirportGeometry.Area a = air.fuelFarm();
+		final int u0 = a.u0();
+		final int u1 = a.u1();
+		final int v0 = a.v0();
+		final int v1 = a.v1();
+		final int gate0 = v0 + 7;
+		final int gate1 = gate0 + 3;
+		// the bund: a one-block concrete ring with a gate on the service-road side
+		for (int v = v0; v <= v1; v++) {
+			for (int u = u0; u <= u1; u++) {
+				if (u != u0 && u != u1 && v != v0 && v != v1) {
+					continue;
+				}
+				if (u == u0 && v >= gate0 && v <= gate1) {
+					continue;
+				}
+				put(Role.WALL, u, StationGeometry.WALK_Y, v, LocalDir.PLUS_V, "minecraft:light_gray_concrete");
+			}
+		}
+		for (final int v : new int[]{gate0, gate1}) {
+			for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 1; y++) {
+				put(Role.FIXTURE, u0, y, v, LocalDir.MINUS_U, PAINT_YELLOW);
+			}
+		}
+		final int[][] tanks = {{u0 + 4, v0 + 4}, {u0 + 12, v0 + 4}, {u0 + 4, v0 + 12}};
+		for (final int[] tank : tanks) {
+			final int tu = tank[0];
+			final int tv = tank[1];
+			for (int du = 0; du <= 4; du++) {
+				for (int dv = 0; dv <= 4; dv++) {
+					final boolean corner = (du == 0 || du == 4) && (dv == 0 || dv == 4);
+					put(Role.FIXTURE, tu + du, StationGeometry.WALK_Y, tv + dv, LocalDir.PLUS_V, "minecraft:iron_block");
+					if (!corner) {
+						put(Role.WALL, tu + du, StationGeometry.WALK_Y + 1, tv + dv, LocalDir.PLUS_V, "minecraft:white_concrete");
+						put(Role.WALL, tu + du, StationGeometry.WALK_Y + 2, tv + dv, LocalDir.PLUS_V, "minecraft:white_concrete");
+						put(Role.WALL, tu + du, StationGeometry.WALK_Y + 3, tv + dv, LocalDir.PLUS_V, PAINT_RED);
+						put(Role.WALL, tu + du, StationGeometry.WALK_Y + 4, tv + dv, LocalDir.PLUS_V, "minecraft:white_concrete");
+						put(Role.WALL, tu + du, StationGeometry.WALK_Y + 5, tv + dv, LocalDir.PLUS_V, "minecraft:white_concrete");
+					}
+				}
+			}
+			for (int du = 1; du <= 3; du++) {
+				for (int dv = 1; dv <= 3; dv++) {
+					put(Role.BUILDING_ROOF, tu + du, StationGeometry.WALK_Y + 6, tv + dv, LocalDir.PLUS_V, "minecraft:iron_block");
+				}
+			}
+			put(Role.FIXTURE, tu + 2, StationGeometry.WALK_Y + 7, tv + 2, LocalDir.PLUS_V, PLANT_VENT);
+		}
+	}
+
+	/**
+	 * The perimeter: a two-high iron fence on stone posts round the site, one landside gate where the public access road crosses it
+	 * and a pedestrian opening on the car park footpath, plus the service road's dashed centre lines and lamps. The road itself is a
+	 * SERVICE_ROAD area, so the fence posts stand on paved ground.
+	 */
+	void perimeter() {
+		final int fu0 = air.fenceU0();
+		final int fu1 = air.fenceU1();
+		final int fv0 = this.air.fenceV0();
+		final int fv1 = this.air.fenceV1();
+		final int gate0 = this.air.accessV0();
+		final int gate1 = this.air.accessV1();
+		final int walk = entranceV();
+		for (int v = fv0; v <= fv1; v++) {
+			if (v < gate0 || v > gate1) {
+				fenceCell(fu0, v);
+			}
+			fenceCell(fu1, v);
+		}
+		for (int u = fu0; u <= fu1; u++) {
+			fenceCell(u, fv0);
+			fenceCell(u, fv1);
+		}
+		// the gateposts, with a lantern on each
+		for (final int v : new int[]{gate0 - 1, gate1 + 1}) {
+			gatePost(fu0, v, 4);
+		}
+		// dashed white centre lines on the ring, the spine and the connector
+		final int westCentre = fu0 + 3;
+		final int eastCentre = fu1 - 3;
+		for (int v = fv0 + 2; v <= fv1 - 2; v++) {
+			if (Math.floorMod(v - fv0, 12) < 4) {
+				paint(westCentre, v, PAINT_WHITE);
+				paint(eastCentre, v, PAINT_WHITE);
+			}
+		}
+		for (int u = fu0 + 2; u <= fu1 - 2; u++) {
+			if (Math.floorMod(u - fu0, 12) < 4) {
+				paint(u, fv0 + 3, PAINT_WHITE);
+				paint(u, fv1 - 3, PAINT_WHITE);
+			}
+		}
+		if (spec.airport().supportBuildings() && deepApron()) {
+			final AirportGeometry.Area spine = air.serviceSpine();
+			final AirportGeometry.Area connector = air.serviceConnector();
+			for (int v = spine.v0(); v <= spine.v1(); v++) {
+			if (Math.floorMod(v - spine.v0(), 12) < 4) {
+				paint(spine.u0() + 3, v, PAINT_WHITE);
+			}
+		}
+			for (int u = connector.u0(); u <= connector.u1(); u++) {
+				if (Math.floorMod(u - connector.u0(), 12) < 4) {
+					paint(u, connector.v0() + 2, PAINT_WHITE);
+				}
+			}
+		}
+		// a lamp every 32 rows on the ring, on its inner edge
+		for (int v = fv0 + 16; v <= fv1 - 16; v += 32) {
+			streetLamp(fu0 + 1, v, LocalDir.PLUS_U);
+			streetLamp(fu1 - 1, v, LocalDir.MINUS_U);
+		}
+		for (int u = fu0 + 16; u <= fu1 - 16; u += 32) {
+			streetLamp(u, fv0 + 1, LocalDir.PLUS_V);
+			streetLamp(u, fv1 - 1, LocalDir.MINUS_V);
+		}
+	}
+
+	/** One cell of the perimeter fence: a stone post every eighth cell, iron bars between. */
+	private void fenceCell(int u, int v) {
+		final boolean post = Math.floorMod(u + v, 8) == 0;
+		if (post) {
+			for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 2; y++) {
+				put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, FENCE_POST);
+			}
+		} else {
+			for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 1; y++) {
+				put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, FENCE_BAR);
+			}
+		}
+	}
+
+	private void gatePost(int u, int v, int height) {
+		for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + height; y++) {
+			put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, FENCE_POST);
+		}
+		if (height > 2) {
+			put(Role.FIXTURE, u, StationGeometry.WALK_Y + height, v, LocalDir.PLUS_V, LAMP_POLE);
+			put(Role.LAMP, u, StationGeometry.WALK_Y + height + 1, v, LocalDir.PLUS_V, TOWER_BEACON);
+		}
+	}
+
 	// ---- pavement -----------------------------------------------------------------------------------------------------
 
 	/** The pavement under all of it: what the paint above left bare. The apron is laid in 8 m concrete slabs with darker joints. */
@@ -697,6 +1272,8 @@ abstract class PlanAirport extends PlanFitOut {
 				case TAXIWAY -> rect(area.u0(), area.u1(), area.v0(), area.v1(), TAXI_SURFACE);
 				case APRON -> apronPavement(area);
 				case ROAD -> rect(area.u0(), area.u1(), area.v0(), area.v1(), ROAD_SURFACE);
+				case SERVICE_ROAD -> rect(area.u0(), area.u1(), area.v0(), area.v1(), SERVICE_SURFACE);
+				case GRASS -> rect(area.u0(), area.u1(), area.v0(), area.v1(), GRASS_SURFACE);
 				case TERMINAL -> {
 				}
 			}
@@ -1301,6 +1878,57 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 	}
 
+	/**
+	 * The forecourt's transit frontage: a taxi rank on the arrivals side and three bus bays on the departures side, both in the outer
+	 * lane clear of the drop-off islands, with painted bay lines, the words TAXI and BUS on the ground, a bus shelter on the footway
+	 * and a rank sign. The footpath already runs from the car park to the terminal door across the zebra crossing.
+	 */
+	void landTransit() {
+		final int u0 = air.roadU0();
+		final int u1 = air.roadU1();
+		final int door = entranceV();
+		final int half = air.dims().entrance() / 2;
+		// a short forecourt has only the drop-off islands; the rank and bus bays need clear rows beyond them
+		if (air.apronV1() - air.apronV0() < 100) {
+			return;
+		}
+		// the taxi rank: four bays 5 rows each, south of the drop-off islands
+		final int taxiFrom = door + half + 31;
+		for (int v = taxiFrom; v <= taxiFrom + 20; v += 5) {
+			for (int u = u0 + 2; u <= u1 - 2; u++) {
+				paint(u, v, PAINT_WHITE);
+			}
+		}
+		paintText(List.of("TAXI"), 1, u0 + 3, taxiFrom + 5, 0, 1, PAINT_WHITE);
+		// three bus bays 6 rows each, north of the islands
+		final int busFrom = door - half - 46;
+		for (int k = 0; k <= 3; k++) {
+			for (int u = u0 + 2; u <= u1 - 2; u++) {
+				paint(u, busFrom + k * 6, PAINT_WHITE);
+			}
+		}
+		paintText(List.of("BUS"), 1, u0 + 3, busFrom + 8, 0, 1, PAINT_WHITE);
+		// the bus shelter on the outer footway, glazed at the back, with a roof
+		final StylePalette.Building b = palette.building();
+		for (int v = busFrom + 1; v <= busFrom + 6; v++) {
+			for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 2; y++) {
+				put(Role.FIXTURE, u0, y, v, LocalDir.PLUS_U, b.window());
+			}
+			put(Role.BUILDING_ROOF, u0, StationGeometry.WALK_Y + 3, v, LocalDir.PLUS_V, b.roof());
+			put(Role.BUILDING_ROOF, u0 + 1, StationGeometry.WALK_Y + 3, v, LocalDir.PLUS_V, b.roof());
+		}
+		for (final int v : new int[]{busFrom + 1, busFrom + 6}) {
+			for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 3; y++) {
+				put(Role.FIXTURE, u0 + 1, y, v, LocalDir.MINUS_U, LAMP_POLE);
+			}
+		}
+		// the rank sign by the outer kerb
+		for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 2; y++) {
+			put(Role.FIXTURE, u0 + 1, y, taxiFrom, LocalDir.PLUS_U, LAMP_POLE);
+		}
+		put(Role.FIXTURE, u0 + 1, StationGeometry.WALK_Y + 3, taxiFrom, LocalDir.PLUS_U, PAINT_WHITE);
+	}
+
 	// ---- the landside car park and access road -----------------------------------------------------------------------------
 
 	/** A street lamp: the station's sign pole for the post, a sea lantern on top. */
@@ -1368,25 +1996,29 @@ abstract class PlanAirport extends PlanFitOut {
 		final int v0 = air.carParkV0();
 		final int v1 = air.carParkV1();
 		final int walk = entranceV();
-		// the kerbed footpath from the site edge to the terminal doors, across the car park
+		final int landsideU0 = AirportGeometry.SITE;
+		final int landsideU1 = landsideU0 + AirportGeometry.LANDSIDE - 1;
+		// the kerbed footpath from the perimeter road to the terminal doors, across the car park (the fence has one vehicle
+		// gate, so the path starts inside it and joins the service road rather than making a second opening)
+		final int pathFrom = air.fenceU0() + 1;
 		for (int v = walk - 1; v <= walk + 1; v++) {
-			for (int u = 0; u < AirportGeometry.LANDSIDE; u++) {
+			for (int u = pathFrom; u <= landsideU1; u++) {
 				paint(u, v, SIDEWALK);
 			}
 		}
-		for (int u = 2; u < AirportGeometry.LANDSIDE - 2; u++) {
+		for (int u = landsideU0 + 2; u < landsideU1 - 1; u++) {
 			put(Role.FIXTURE, u, StationGeometry.WALK_Y, walk - 2, LocalDir.MINUS_V, KERB, "type=bottom");
 			put(Role.FIXTURE, u, StationGeometry.WALK_Y, walk + 2, LocalDir.PLUS_V, KERB, "type=bottom");
 		}
 		for (int v = v0; v <= v1; v++) {
-			paint(0, v, SIDEWALK);
-			paint(1, v, SIDEWALK);
+			paint(landsideU0, v, SIDEWALK);
+			paint(landsideU0 + 1, v, SIDEWALK);
 			// the kerbs give way where the footpath crosses them
 			if (Math.abs(v - walk) > 1) {
-				put(Role.FIXTURE, 2, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, KERB, "type=bottom");
-				put(Role.FIXTURE, AirportGeometry.LANDSIDE - 2, StationGeometry.WALK_Y, v, LocalDir.MINUS_U, KERB, "type=bottom");
+				put(Role.FIXTURE, landsideU0 + 2, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, KERB, "type=bottom");
+				put(Role.FIXTURE, landsideU1 - 1, StationGeometry.WALK_Y, v, LocalDir.MINUS_U, KERB, "type=bottom");
 			}
-			paint(AirportGeometry.LANDSIDE - 1, v, SIDEWALK);
+			paint(landsideU1, v, SIDEWALK);
 		}
 		for (int row = 0; row < 3; row++) {
 			final int bay = CAR_FIRST_BAY + row * (CAR_BAY + CAR_AISLE);
