@@ -21,7 +21,7 @@ import static com.aureliatransit.architecture.station.StationPlanner.*;
  */
 abstract class PlanAirport extends PlanFitOut {
 
-	static final String RUNWAY_SURFACE = "minecraft:black_concrete";
+	static final String RUNWAY_SURFACE = "minecraft:polished_blackstone";
 	/** A blast pad is asphalt like the taxiways, marked with yellow chevrons; polished andesite read as tiled paving. */
 	static final String BLAST_SURFACE = "minecraft:gray_concrete";
 	static final String TAXI_SURFACE = "minecraft:gray_concrete";
@@ -75,6 +75,8 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String CAB_GLASS = "minecraft:cyan_stained_glass";
 	/** The tower shaft's window band and recess, dark as at Southend. */
 	static final String TOWER_DARK_GLASS = "minecraft:gray_stained_glass";
+	/** The dark posts at the cab's corners. */
+	static final String CAB_FRAME = "minecraft:gray_concrete";
 	/** The railing round the tower's balcony. */
 	static final String TOWER_RAILING = "minecraft:iron_bars";
 	/** The tower's beacon on the cab roof. */
@@ -922,8 +924,8 @@ abstract class PlanAirport extends PlanFitOut {
 		// Southend's tower (ap07): a stout shaft about half as wide as it is tall, a dark recess up its face and a dark window
 		// band under a wide balcony, then a glazed cab narrower than the balcony under an overhanging roof
 		final int shaft = width >= 11 ? 4 : width >= 9 ? 3 : 1;
-		final int cab = width >= 11 ? 3 : maxHalf;
-		final int balconyY = top - 6;
+		final int cab = width >= 11 ? 4 : maxHalf;
+		final int balconyY = top - 7;
 		final int bandY = balconyY - 3;
 		final boolean detailed = shaft >= 3;
 		for (int y = StationGeometry.WALK_Y; y < balconyY; y++) {
@@ -941,7 +943,7 @@ abstract class PlanAirport extends PlanFitOut {
 					}
 					final boolean corner = faceU && faceV;
 					final int along = faceU ? v - cv : u - cu;
-					final boolean band = detailed && (y == bandY || y == bandY - 1) && !corner && Math.abs(along) < shaft - 1;
+					final boolean band = detailed && (y == bandY || y == bandY - 1) && !corner && Math.abs(along) < shaft;
 					// the recess runs up the face looking at the terminal, off centre as at Southend
 					final boolean recess = detailed && u == cu - shaft && (v == cv + 1 || v == cv + 2)
 							&& y > StationGeometry.WALK_Y + 2 && y < bandY - 2;
@@ -972,7 +974,7 @@ abstract class PlanAirport extends PlanFitOut {
 					final boolean edgeV = v == cv - cab || v == cv + cab;
 					if (edgeU || edgeV) {
 						final boolean corner = edgeU && edgeV;
-						put(corner ? Role.WALL : Role.WINDOW, u, y, v, LocalDir.PLUS_V, corner ? TOWER_SHAFT : CAB_GLASS);
+						put(corner ? Role.WALL : Role.WINDOW, u, y, v, LocalDir.PLUS_V, corner ? CAB_FRAME : CAB_GLASS);
 					}
 				}
 			}
@@ -2039,8 +2041,8 @@ abstract class PlanAirport extends PlanFitOut {
 			}
 			put(Role.LAMP, u0 + 1, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, TOWER_BEACON);
 		}
-		// a row of bollards on the terminal's footway behind the kerb (ap03), every four blocks, open at the crossing and the columns
-		for (int v = v0 + 2; v <= v1 - 2; v += 4) {
+		// a row of bollards on the terminal's footway behind the kerb (ap03), every three blocks, open at the crossing and the columns
+		for (int v = v0 + 2; v <= v1 - 2; v += 3) {
 			if (Math.abs(v - door) <= half + 2 || forecourtColumn(u1 - 1, v)) {
 				continue;
 			}
