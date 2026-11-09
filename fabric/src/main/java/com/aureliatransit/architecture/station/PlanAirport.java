@@ -95,6 +95,8 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String BOLLARD = "aurelia_transit_architecture:bollard";
 	/** The terminal's name, in navy block letters on the landside glass. */
 	static final String NAME_LETTER = "minecraft:blue_concrete";
+	/** How far the entrance pavilion's roof stands above the terminal's roof deck. */
+	static final int PAVILION_RISE = 3;
 	static final String CHECK_IN_DESK = "aurelia_transit_architecture:check_in_desk";
 	static final String DEPARTURES_BOARD = "aurelia_transit_architecture:departures_board";
 	static final String JET_BRIDGE = "aurelia_transit_architecture:jet_bridge";
@@ -557,22 +559,56 @@ abstract class PlanAirport extends PlanFitOut {
 	}
 
 	/**
-	 * The airport's name in block letters five rows tall, standing on the landside glass between the canopy and the eave (ap03),
-	 * centred on the entrance. False when there is no name, a letter the font lacks, or no room, so the caller letters a sign
-	 * instead. Placed before the canopy's braces, so a brace gives way to a letter.
+	 * The entrance pavilion (ap03): a glazed box standing on the landside canopy over the doors, wider than the entrance and
+	 * {@link #PAVILION_RISE} rows above the eave, so the way in reads from the forecourt. Its front is a solid panel at the canopy's
+	 * outer edge with the airport's name inlaid in block letters, where the canopy cannot hide it; glass sides, a closed back and a
+	 * flat roof, and nothing inside. Built before the walls and the roof, which give way to it. Only on terminals tall enough for
+	 * the letters above the canopy (not the compact one). True when it carried the name, so the caller hangs no other sign.
 	 */
-	private boolean nameInLetters(int u0, int v0, int v1, int door, int top) {
-		final String name = spec.name().toUpperCase(java.util.Locale.ROOT);
-		final int w = AirportGlyphs.width(name, 1);
-		if (name.isBlank() || !name.chars().allMatch(c -> AirportGlyphs.has((char) c))
-				|| top - AirportGlyphs.GLYPH_HEIGHT < landsideCanopyY() || w > v1 - v0 - 8) {
+	private boolean entrancePavilion(int u0, int v0, int v1, int door, int half) {
+		final int deckY = landsideCanopyY();
+		final int roofY = terminalRoofY() + PAVILION_RISE;
+		if (air.dims() == AirportGeometry.COMPACT || roofY - 1 - (deckY + 2) + 1 < AirportGlyphs.GLYPH_HEIGHT + 2) {
 			return false;
 		}
-		// read from the forecourt, looking +u: the reader's right is -v
-		for (final int[] px : AirportGlyphs.pixels(name, 1)) {
-			put(Role.FIXTURE, u0 - 1, top - px[1], door + w / 2 - px[0], LocalDir.MINUS_U, NAME_LETTER);
+		final StylePalette.Building b = palette.building();
+		final int outer = u0 - 5;
+		final String name = spec.name().toUpperCase(java.util.Locale.ROOT);
+		final boolean letters = !name.isBlank() && name.chars().allMatch(c -> AirportGlyphs.has((char) c));
+		final int w = letters ? AirportGlyphs.width(name, 1) : 0;
+		final int pw = Math.min(Math.max(half + 6, w / 2 + 3), (v1 - v0) / 2 - 4);
+		final boolean named = letters && w / 2 + 2 <= pw;
+		if (named) {
+			// inlaid in the front panel, one row clear of its top and of the canopy fascia below; read from the forecourt
+			// looking +u, so the reader's right is -v
+			for (final int[] px : AirportGlyphs.pixels(name, 1)) {
+				put(Role.WALL, outer, roofY - 2 - px[1], door + w / 2 - px[0], LocalDir.MINUS_U, NAME_LETTER);
+			}
 		}
-		return true;
+		for (int v = door - pw; v <= door + pw; v++) {
+			final boolean side = v == door - pw || v == door + pw;
+			for (int y = deckY + 1; y < roofY; y++) {
+				// the front panel stands on the canopy's two-block fascia
+				if (y >= deckY + 2) {
+					put(Role.WALL, outer, y, v, LocalDir.MINUS_U, b.trim());
+				}
+				// the back closes the box above the terminal's wall
+				if (y > air.dims().wallTop()) {
+					put(Role.WALL, u0, y, v, LocalDir.PLUS_U, b.trim());
+				}
+				for (int u = outer + 1; u < u0; u++) {
+					if (side) {
+						put(Role.WINDOW, u, y, v, v < door ? LocalDir.MINUS_V : LocalDir.PLUS_V, b.window());
+					} else {
+						keepClear(u, y, v);
+					}
+				}
+			}
+			for (int u = outer - 1; u <= u0; u++) {
+				put(Role.BUILDING_ROOF, u, roofY, v, LocalDir.MINUS_U, b.trim());
+			}
+		}
+		return named;
 	}
 
 	/** One approach light: a white lamp on a one-block post over the grass, or a flush lamp where it crosses pavement. */
@@ -1438,6 +1474,7 @@ abstract class PlanAirport extends PlanFitOut {
 				}
 			}
 		}
+		final boolean namedOnPavilion = entrancePavilion(u0, v0, v1, door, half);
 		// recessed lights in the ceiling, in rows between the column lines and clear of the skylight strips, so the hall is lit
 		// under the pitched roof (the deck's own skylights only light the strips under them)
 		final int span = u1 - u0 + 1;
@@ -1497,7 +1534,7 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 		// the name, over the entrance, fixed flat to the landside wall; a compact terminal's canopy sits just below it
 		final int nameY = Math.max(top - 1, landsideCanopyY() + 1);
-		if (!nameInLetters(u0, v0, v1, door, top) && !spec.name().isEmpty()) {
+		if (!namedOnPavilion && !spec.name().isEmpty()) {
 			for (int v = door - half - 3; v <= door + half + 3; v++) {
 				putText(Role.FIXTURE, u0 - 1, nameY, v, LocalDir.MINUS_U, LETTERING, spec.name());
 			}
