@@ -1541,6 +1541,11 @@ abstract class PlanAirport extends PlanFitOut {
 			for (int k = 1; k <= steps; k++) {
 				put(Role.RIB, u1 + k, roofY - 2 - steps + k, v, LocalDir.PLUS_U, VIADUCT_BRACE, "kind=diagonal");
 			}
+			// and one in the wall's plane, from the strut's foot up along the glass to the soffit, so the front reads as ap03's
+			// row of raked struts and not as plain mullions
+			for (int k = 1; k <= steps; k++) {
+				put(Role.RIB, u1 + 1, roofY - 2 - steps + k, v + k, LocalDir.PLUS_V, VIADUCT_BRACE, "kind=diagonal");
+			}
 		}
 	}
 
