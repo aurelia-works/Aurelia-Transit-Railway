@@ -77,8 +77,13 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String TOWER_RAILING = "minecraft:iron_bars";
 	/** The tower's beacon on the cab roof. */
 	static final String TOWER_BEACON = "minecraft:sea_lantern";
-	/** A rooftop plant box's grille and vent: plain iron, no block entity. */
-	static final String PLANT_GRILLE = "minecraft:iron_trapdoor";
+	/** The terminal's pitched metal roof, full steps and half steps, and how many blocks it rises from eave to clerestory. */
+	static final String ROOF_SHEET = "minecraft:smooth_stone";
+	static final String ROOF_SHEET_STEP = "minecraft:smooth_stone_slab";
+	static final int PITCH_RISE = 2;
+	/** Half the clerestory's width across the terminal, from its centre line to its glass sides. */
+	static final int CLERESTORY_HALF = 3;
+	/** A plant box's barred vent: plain iron, no block entity. */
 	static final String PLANT_VENT = "minecraft:iron_bars";
 	static final String MAST_LAMP = "aurelia_transit_architecture:apron_floodlight";
 	static final String CHECK_IN_DESK = "aurelia_transit_architecture:check_in_desk";
@@ -1400,24 +1405,6 @@ abstract class PlanAirport extends PlanFitOut {
 				}
 			}
 		}
-		// a parapet round the roof and a few plant boxes on the deck, so it reads as a building from above
-		for (int v = v0; v <= v1; v++) {
-			put(Role.BUILDING_ROOF, u0, terminalRoofY() + 1, v, LocalDir.PLUS_V, b.trim());
-			put(Role.BUILDING_ROOF, u1, terminalRoofY() + 1, v, LocalDir.PLUS_V, b.trim());
-		}
-		for (int u = u0; u <= u1; u++) {
-			put(Role.BUILDING_ROOF, u, terminalRoofY() + 1, v0, LocalDir.PLUS_V, b.trim());
-			put(Role.BUILDING_ROOF, u, terminalRoofY() + 1, v1, LocalDir.PLUS_V, b.trim());
-		}
-		for (int k = 0; k < 3; k++) {
-			final int bu = u0 + (k + 1) * (u1 - u0) / 4;
-			final int bv = v0 + (k + 1) * (v1 - v0) / 4;
-			for (int u = bu - 1; u <= bu + 1; u++) {
-				for (int v = bv - 1; v <= bv + 1; v++) {
-					put(Role.BUILDING_ROOF, u, terminalRoofY() + 1, v, LocalDir.PLUS_V, b.trim());
-				}
-			}
-		}
 		for (int y = StationGeometry.WALK_Y; y <= top; y++) {
 			for (int v = v0; v <= v1; v++) {
 				// airside: a full-height glass curtain wall on a solid plinth, a metal mullion every six rows (where the roof's struts
@@ -1511,9 +1498,9 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 		terminalRoofEdge();
 		terminalAirsideStruts();
-		terminalRoofPlant();
-		terminalSkylights();
 		terminalClerestory();
+		terminalPitchedRoof();
+		terminalSkylights();
 		terminalLandsideCanopy();
 	}
 
@@ -1550,14 +1537,41 @@ abstract class PlanAirport extends PlanFitOut {
 				put(Role.BUILDING_ROOF, u, roofY - 1, v, front, b.plinth());
 			}
 		}
-		// a low parapet on the outer rim, so the deck reads as a roof from the airside and the forecourt
-		for (int v = v0 - 2; v <= v1 + 2; v++) {
-			put(Role.BUILDING_ROOF, u0 - 2, roofY + 1, v, LocalDir.MINUS_U, b.trim());
-			put(Role.BUILDING_ROOF, u1 + 3, roofY + 1, v, LocalDir.PLUS_U, b.trim());
-		}
-		for (int u = u0 - 2; u <= u1 + 3; u++) {
-			put(Role.BUILDING_ROOF, u, roofY + 1, v0 - 2, LocalDir.MINUS_V, b.trim());
-			put(Role.BUILDING_ROOF, u, roofY + 1, v1 + 2, LocalDir.PLUS_V, b.trim());
+	}
+
+	/**
+	 * Southend's roof (ap03, ap04): light metal sheeting that rises in half-block steps from the thin eave on both long sides to
+	 * {@link #PITCH_RISE} blocks at the clerestory, so the terminal reads as a shallow pitched roof over glass and not as a flat
+	 * slab; the gable ends show the same stepped profile. The clerestory's glass stands on the ridge.
+	 */
+	void terminalPitchedRoof() {
+		final int roofY = terminalRoofY();
+		final int u0 = air.terminalU0() - 2;
+		final int u1 = air.terminalU1() + 3;
+		final int v0 = air.terminalV0() - 2;
+		final int v1 = air.terminalV1() + 2;
+		final int c = (air.terminalU0() + air.terminalU1()) / 2;
+		final int landSpan = Math.max(1, c - CLERESTORY_HALF - u0);
+		final int airSpan = Math.max(1, u1 - (c + CLERESTORY_HALF));
+		for (int u = u0; u <= u1; u++) {
+			// half-blocks above the deck: 0 at the eave, PITCH_RISE * 2 at the clerestory's walls and over the ridge between them
+			final int half = u <= c ? Math.min(2 * PITCH_RISE, 2 * PITCH_RISE * (u - u0) / landSpan)
+					: Math.min(2 * PITCH_RISE, 2 * PITCH_RISE * (u1 - u) / airSpan);
+			if (half == 0) {
+				continue;
+			}
+			final LocalDir front = u <= c ? LocalDir.MINUS_U : LocalDir.PLUS_U;
+			for (int v = v0; v <= v1; v++) {
+				if (insideClerestory(u, v)) {
+					continue;
+				}
+				for (int y = roofY + 1; y <= roofY + half / 2; y++) {
+					put(Role.BUILDING_ROOF, u, y, v, front, ROOF_SHEET);
+				}
+				if (half % 2 == 1) {
+					put(Role.BUILDING_ROOF, u, roofY + 1 + half / 2, v, front, ROOF_SHEET_STEP, "type=bottom");
+				}
+			}
 		}
 	}
 
@@ -1597,52 +1611,20 @@ abstract class PlanAirport extends PlanFitOut {
 	}
 
 	/**
-	 * A few plant boxes on the roof, two by three and three high: grey concrete bodies, an iron trapdoor grille on each long
-	 * side and a barred vent in the cap. Placed on the free deck either side of the skylights, clear of the older plant boxes.
-	 */
-	void terminalRoofPlant() {
-		final int deck = terminalRoofY() + 1;
-		final int u0 = air.terminalU0();
-		final int u1 = air.terminalU1();
-		final int v0 = air.terminalV0();
-		final int v1 = air.terminalV1();
-		final int du = u1 - u0 + 1;
-		final int dv = v1 - v0 + 1;
-		for (final int uu : new int[]{u0 + du / 5, u1 - du / 5 - 1}) {
-			for (final int vv : new int[]{v0 + dv / 6, v0 + 5 * dv / 6}) {
-				if (!roofFree(uu, uu + 1, deck, deck + 2, vv, vv + 2)) {
-					continue;
-				}
-				for (int u = uu; u <= uu + 1; u++) {
-					for (int v = vv; v <= vv + 2; v++) {
-						put(Role.WALL, u, deck, v, LocalDir.PLUS_V, TOWER_FLOOR);
-						final boolean grille = v == vv + 1;
-						final LocalDir front = u == uu ? LocalDir.MINUS_U : LocalDir.PLUS_U;
-						put(grille ? Role.FIXTURE : Role.WALL, u, deck + 1, v, front, grille ? PLANT_GRILLE : TOWER_FLOOR,
-								grille ? "open=true" : "");
-						final boolean vent = u == uu && v == vv + 1;
-						put(vent ? Role.FIXTURE : Role.BUILDING_ROOF, u, deck + 2, v, LocalDir.PLUS_V, vent ? PLANT_VENT : TAXI_SURFACE);
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * A raised strip along the roof's centre, two blocks up over a band of glass, with a trim edge overhanging it by a block:
-	 * the terminal's roof lifts over glass as at Southend (ap03, ap04) instead of reading as one flat-topped box. The skylights
+	 * A raised strip along the roof's ridge, two blocks of glass standing on the pitched roof, with a trim edge overhanging it by a
+	 * block: the terminal's roof lifts over glass as at Southend (ap03, ap04). The hall opens up into it, and the skylights
 	 * underneath stay inside it.
 	 */
 	void terminalClerestory() {
-		final StylePalette.Building b = palette.building();
-		final int deck = terminalRoofY() + 1;
-		final int c = (air.terminalU0() + air.terminalU1()) / 2;
-		final int half = 3;
-		final int v0 = air.terminalV0() + 4;
-		final int v1 = air.terminalV1() - 4;
-		if (v1 - v0 < 8 || air.terminalU1() - air.terminalU0() < 2 * half + 8) {
+		if (!hasClerestory()) {
 			return;
 		}
+		final StylePalette.Building b = palette.building();
+		final int deck = terminalRoofY() + 1 + PITCH_RISE;
+		final int c = (air.terminalU0() + air.terminalU1()) / 2;
+		final int half = CLERESTORY_HALF;
+		final int v0 = air.terminalV0() + 4;
+		final int v1 = air.terminalV1() - 4;
 		for (int v = v0; v <= v1; v++) {
 			for (int u = c - half; u <= c + half; u++) {
 				final boolean side = u == c - half || u == c + half;
@@ -1659,6 +1641,17 @@ abstract class PlanAirport extends PlanFitOut {
 			put(Role.BUILDING_ROOF, c - half - 1, deck + 2, v, LocalDir.MINUS_U, b.trim());
 			put(Role.BUILDING_ROOF, c + half + 1, deck + 2, v, LocalDir.PLUS_U, b.trim());
 		}
+	}
+
+	/** True when the terminal is big enough for the clerestory: eight rows long inside its ends, and wide enough beside it. */
+	private boolean hasClerestory() {
+		return air.terminalV1() - air.terminalV0() - 8 >= 8 && air.terminalU1() - air.terminalU0() >= 2 * CLERESTORY_HALF + 8;
+	}
+
+	/** True inside the clerestory's glass walls, where the hall below opens up into it. */
+	private boolean insideClerestory(int u, int v) {
+		final int c = (air.terminalU0() + air.terminalU1()) / 2;
+		return hasClerestory() && Math.abs(u - c) < CLERESTORY_HALF && v > air.terminalV0() + 4 && v < air.terminalV1() - 4;
 	}
 
 	/** A row of framed glass skylights on the roof's centre line, every 24 rows, wherever the deck is free. */
