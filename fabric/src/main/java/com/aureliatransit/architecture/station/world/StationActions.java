@@ -32,8 +32,8 @@ import java.util.function.Function;
 /**
  * What a player can do with the station generator, shared by {@code /ata_station}, the station wrench's clicks and its screen.
  * The callers gate access: the command through Brigadier's source level (so {@code /execute as} from an operator or a function
- * works), every wrench entry point through {@link #allowed} on the player. Terrain approval only ever comes from
- * {@link #confirm}'s explicit flag.
+ * works), every wrench entry point through {@link #allowed} on the player. A build changes the ground it stands on, and its undo
+ * log keeps the previous blocks and block entity data.
  */
 public final class StationActions {
 
@@ -201,7 +201,7 @@ public final class StationActions {
 		return true;
 	}
 
-	/** Builds the pending plan; {@code replaceTerrain} is the explicit approval and must come from a deliberate choice. */
+	/** Builds the pending plan. The plan changes the ground it stands on and the undo log can put it back; {@code replaceTerrain} is the old approval flag and is ignored. */
 	public static boolean confirm(ServerPlayerEntity player, boolean replaceTerrain) {
 		if (stillPlanning(player)) {
 			return false;
@@ -226,8 +226,8 @@ public final class StationActions {
 			}
 			StationSessions.setBuilt(id, pending);
 			StationSessions.discard(id);
-			out.accept(Text.literal("Building " + job.total() + " changes, " + StationBuildJob.OPS_PER_TICK + " per tick. Cancel stops it.")
-					.formatted(Formatting.GREEN));
+			out.accept(Text.literal("Building " + job.total() + " changes, " + StationBuildSettings.blocksPerTick(player.getServer())
+					+ " per tick. Cancel stops it.").formatted(Formatting.GREEN));
 		});
 		if (StationSessions.task(id) != null) {
 			out.accept(Text.literal("Surveying a big site before building; cancel stops it.").formatted(Formatting.GRAY));
@@ -288,7 +288,7 @@ public final class StationActions {
 
 	public static boolean undo(ServerPlayerEntity player) {
 		final UUID id = player.getUuid();
-		final UndoLog log = StationSessions.undoLog(id);
+		final UndoLog log = StationSessions.undoLog(player.getServer(), id);
 		if (log == null || log.isEmpty()) {
 			error(player, "Nothing to undo.");
 			return false;
@@ -312,7 +312,8 @@ public final class StationActions {
 
 	/**
 	 * Builds the pending plan where the player's last station stands (same origin and facing), writing only what differs; the
-	 * pending plan's own place is not used. {@code replaceTerrain} is the explicit approval, as for {@link #confirm}.
+	 * pending plan's own place is not used. The build changes the ground it stands on; {@code replaceTerrain} is the old approval
+	 * flag and is ignored.
 	 */
 	public static boolean rebuild(ServerPlayerEntity player, boolean replaceTerrain) {
 		if (stillPlanning(player)) {
@@ -321,7 +322,7 @@ public final class StationActions {
 		final UUID id = player.getUuid();
 		final StationSessions.Pending pending = StationSessions.pending(id);
 		final StationSessions.Built built = StationSessions.built(id);
-		final UndoLog log = StationSessions.undoLog(id);
+		final UndoLog log = StationSessions.undoLog(player.getServer(), id);
 		if (pending == null) {
 			error(player, "Plan the new version first (/ata_station plan or the wrench); rebuild then builds it where your last station stands.");
 			return false;
@@ -358,7 +359,7 @@ public final class StationActions {
 		final UUID id = player.getUuid();
 		final StationSessions.Pending pending = StationSessions.pending(id);
 		final StationBuildJob job = StationSessions.job(id);
-		final UndoLog log = StationSessions.undoLog(id);
+		final UndoLog log = StationSessions.undoLog(player.getServer(), id);
 		player.sendMessage(Text.literal("Pending plan: " + (pending == null ? "none" : StationText.planLine(pending.spec()))
 				+ (StationSessions.task(id) != null ? " (surveying a site)" : "")), false);
 		player.sendMessage(Text.literal("Job: " + (job == null ? "none"

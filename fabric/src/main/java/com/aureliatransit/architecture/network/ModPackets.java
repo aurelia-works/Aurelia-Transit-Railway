@@ -6,6 +6,8 @@ import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.block.entity.InfoDisplayBlockEntity;
 import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
+import com.aureliatransit.architecture.station.world.StationActions;
+import com.aureliatransit.architecture.station.world.StationBuildSettings;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
 import com.aureliatransit.architecture.text.ConfigurableTextData;
 import com.aureliatransit.architecture.text.SignData;
@@ -40,6 +42,8 @@ public final class ModPackets {
 	public static final Identifier STATION_WRENCH = AureliaTransitArchitecture.id("station_wrench");
 	/** Station Studio (the browser page the client hosts): action + description + controls, run for the player without a wrench. */
 	public static final Identifier STATION_STUDIO = AureliaTransitArchitecture.id("station_studio");
+	/** Station build pace: blocks per tick, client asks and the server sends the current value (and on join). */
+	public static final Identifier STATION_PACE = AureliaTransitArchitecture.id("station_pace");
 
 	private ModPackets() {
 	}
@@ -89,7 +93,37 @@ public final class ModPackets {
 		return buf;
 	}
 
+	public static PacketByteBuf writeStationPace(int blocksPerTick) {
+		final PacketByteBuf buf = PacketByteBufs.create();
+		buf.writeVarInt(blocksPerTick);
+		return buf;
+	}
+
+	/** Tells one player the server's current build pace (on join and after a change), when their client knows the channel. */
+	public static void sendStationPace(ServerPlayerEntity player) {
+		if (ServerPlayNetworking.canSend(player, STATION_PACE)) {
+			ServerPlayNetworking.send(player, STATION_PACE, writeStationPace(StationBuildSettings.blocksPerTick(player.getServer())));
+		}
+	}
+
 	public static void registerServerReceivers() {
+		ServerPlayNetworking.registerGlobalReceiver(STATION_PACE, (server, player, handler, buf, responseSender) -> {
+			final int pace;
+			try {
+				pace = buf.readVarInt();
+			} catch (RuntimeException e) {
+				return;
+			}
+			server.execute(() -> {
+				if (!player.hasPermissionLevel(StationActions.PERMISSION_LEVEL)) {
+					return;
+				}
+				StationBuildSettings.set(server, pace);
+				for (final ServerPlayerEntity online : server.getPlayerManager().getPlayerList()) {
+					sendStationPace(online);
+				}
+			});
+		});
 		ServerPlayNetworking.registerGlobalReceiver(STATION_STUDIO, (server, player, handler, buf, responseSender) -> {
 			final StationWrenchItem.Action action;
 			final String description;

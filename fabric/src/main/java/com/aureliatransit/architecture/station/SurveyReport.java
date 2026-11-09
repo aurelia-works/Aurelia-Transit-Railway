@@ -10,10 +10,10 @@ import java.util.Map;
  * @param issues         the first {@link SiteSurvey#MAX_LISTED} issues in scan order (for chat and preview markers)
  * @param counts         every issue counted by kind (kinds with no issue are absent)
  * @param ops            CLEAR ops (top-down), then FILL ops (bottom-up), then PLACE ops in plan order. CLEAR and FILL ops are
- *                       only listed when terrain changes are approved
+ *                       listed only in a survey that includes terrain changes; the generator's builds always do
  * @param terrainChanges cells whose existing non-air content the ops would change (clears, fills of non-air cells, placements
  *                       over non-air cells)
- * @param replaceTerrain whether the survey assumed approved terrain changes
+ * @param replaceTerrain whether the survey included the terrain changes (always true for a build the generator starts)
  */
 public record SurveyReport(List<SiteIssue> issues, Map<SiteIssue.Kind, Integer> counts, List<WorldOp> ops, int terrainChanges,
 		boolean replaceTerrain) {

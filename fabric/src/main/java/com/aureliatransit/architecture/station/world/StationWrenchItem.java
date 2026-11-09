@@ -30,7 +30,7 @@ import java.util.function.Consumer;
  *     <li>right-click the air: open the screen (pick a look, size and roof; place, build, undo)</li>
  *     <li>right-click a block: plan the station on top of it, facing the way you look (the outline shows, and chat offers
  *     Build it / Cancel buttons)</li>
- *     <li>sneak + right-click a block: build the pending plan (never approves terrain changes)</li>
+ *     <li>sneak + right-click a block: build the pending plan (the ground it stands on is changed; undo puts it back)</li>
  *     <li>sneak + right-click the air: show the outline again</li>
  *     <li>left-click a block: cancel the running build or discard the plan</li>
  * </ul>
