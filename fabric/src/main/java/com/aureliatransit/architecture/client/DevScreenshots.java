@@ -23,7 +23,8 @@ import java.util.regex.Pattern;
  * screenshot for every file dropped into {@code <run dir>/screenshot-requests/}, so a script can capture the view while the
  * window stays in the background. The request's file name names the screenshot ({@code screenshots/<name>.png}); a request
  * containing {@code nohud} hides the HUD and chat for that shot, and {@code fov=<degrees>} sets the field of view for it.
- * Both are restored afterwards. {@code open=wrench} opens the station wrench screen for the wrench in the main hand, and
+ * Both are restored afterwards. {@code open=menu} opens the one ATR menu, {@code open=wrench} opens the wrench screen for the
+ * wrench in the main hand, and
  * {@code open=book page=<n>} the written book in the main hand at that page, {@code open=codex} the Station Codex, {@code open=airport_wrench} the airport wrench; the screen is
  * closed after the shot. Without a
  * wrench in hand, {@code open=wrench} opens the screen anyway with {@code recipe=<encoded choices>} (or the defaults), for its
@@ -125,7 +126,9 @@ final class DevScreenshots {
 
 	/** Opens the screen a request names; returns whether one was opened. */
 	private static boolean openScreen(MinecraftClient client, String content) {
-		if (content.contains("open=wrench")) {
+		if (content.contains("open=menu")) {
+			AtrMenuScreen.open(client.currentScreen, AtrMenuScreen.Tab.BUILD);
+		} else if (content.contains("open=wrench")) {
 			StationWrenchScreen.open(Hand.MAIN_HAND);
 			if (client.currentScreen == null) {
 				final Matcher recipe = RECIPE.matcher(content);

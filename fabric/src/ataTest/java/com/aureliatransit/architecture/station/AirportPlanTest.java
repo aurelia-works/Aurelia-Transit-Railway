@@ -24,11 +24,11 @@ class AirportPlanTest {
 		final AirportSpec a = StationDescriptionParser.parse("airport").spec().airport();
 		assertTrue(a.present());
 		assertEquals(AirportSpec.defaults(), a);
-		assertEquals(2550, a.runwayLength());
-		final AirportSpec b = StationDescriptionParser.parse("airport with 2 runways, 6 gates and a 1000 m runway, 30 wide").spec().airport();
+		assertEquals(480, a.runwayLength());
+		final AirportSpec b = StationDescriptionParser.parse("airport with 2 runways, 6 gates and a 750 m runway, 30 wide").spec().airport();
 		assertEquals(2, b.runways());
 		assertEquals(6, b.gates());
-		assertEquals(1500, b.runwayLength());
+		assertEquals(1125, b.runwayLength());
 		assertEquals(30, b.runwayWidth());
 		assertFalse(StationDescriptionParser.parse("airport, no terminal").spec().airport().terminal());
 		assertFalse(StationDescriptionParser.parse("2 tracks").spec().isAirport());
@@ -38,7 +38,7 @@ class AirportPlanTest {
 	void unknownWordsAreIgnoredAndLimitsWarn() {
 		final ParseResult parsed = StationDescriptionParser.parse("airport banana, 9000 m runway, 30 gates");
 		assertTrue(parsed.ignored().contains("banana"));
-		assertEquals(AirportSpec.MAX_RUNWAY_LENGTH, parsed.spec().airport().runwayLength());
+		assertEquals(AirportSpec.MAX_PLANNED_RUNWAY_LENGTH, parsed.spec().airport().runwayLength());
 		assertTrue(parsed.warnings().stream().anyMatch(w -> w.contains("runway")), parsed.warnings().toString());
 		assertTrue(parsed.warnings().stream().anyMatch(w -> w.contains("gates")), parsed.warnings().toString());
 	}
@@ -222,7 +222,7 @@ class AirportPlanTest {
 			}
 		}
 		assertTrue(blocks > 0, "the tower is planned");
-		assertEquals(2 * g.dims().mast(), top, "the cab's roof is the tower's top");
+		assertEquals(g.towerTop(), top, "the beacon on the cab's roof is the tower's top");
 	}
 
 	@Test
@@ -269,8 +269,8 @@ class AirportPlanTest {
 		final String words = AirportPresets.ALL.stream().filter(p -> p.key().equals("southend")).findFirst().orElseThrow().description();
 		final AirportSpec spec = StationDescriptionParser.parse(words).spec().airport();
 		assertEquals(1, spec.runways());
-		// 1,856 m at 1.5 blocks a metre
-		assertEquals(2784, spec.runwayLength());
+		// 750 m at 1.5 blocks a metre
+		assertEquals(1125, spec.runwayLength());
 		assertEquals(5, spec.gates());
 		assertTrue(spec.terminal());
 		assertEquals(List.of(), LayoutValidator.validate(plan(words)));
@@ -283,9 +283,9 @@ class AirportPlanTest {
 		assertEquals(5, StationDescriptionParser.parse("airport, runway 23/05").spec().airport().heading());
 		assertEquals(5, StationDescriptionParser.parse("airport, runway 05").spec().airport().heading());
 		assertEquals(18, StationDescriptionParser.parse("airport, runway 18/36").spec().airport().heading());
-		final ParseResult southend = StationDescriptionParser.parse("airport, one 1856 m runway 05/23");
+		final ParseResult southend = StationDescriptionParser.parse("airport, one 750 m runway 05/23");
 		assertEquals(5, southend.spec().airport().heading());
-		assertEquals(2784, southend.spec().airport().runwayLength());
+		assertEquals(1125, southend.spec().airport().runwayLength());
 		assertTrue(southend.ignored().isEmpty() && southend.warnings().isEmpty(), southend.ignored() + " " + southend.warnings());
 		// a number after "runway" with no partner 18 apart and no leading zero is still its length
 		assertEquals(9, StationDescriptionParser.parse("small airport, runway 200 long").spec().airport().heading());
@@ -303,7 +303,7 @@ class AirportPlanTest {
 				white.add(b.u() + "," + b.v());
 			}
 		}
-		final int scale = 3;
+		final int scale = 2; // the default runway is 23 wide, so its numbers are at scale 2
 		final int c = air.runwayCentre(0);
 		for (final int[] cell : PlanAirport.textCells(List.of("05"), scale, c, air.runwayV0() + air.dims().numberOffset(), 0, 1)) {
 			assertTrue(white.contains(cell[0] + "," + cell[1]), "05 at the low end: " + cell[0] + "," + cell[1]);

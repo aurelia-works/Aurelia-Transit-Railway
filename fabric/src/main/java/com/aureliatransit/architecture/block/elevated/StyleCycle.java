@@ -1,6 +1,7 @@
 package com.aureliatransit.architecture.block.elevated;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
+import com.aureliatransit.architecture.block.MtrBrush;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
@@ -35,7 +36,7 @@ public final class StyleCycle {
 	 */
 	public static <E extends Enum<E> & StringIdentifiable> ActionResult use(String blockId, Property<E> property, BlockState state, World world, BlockPos pos,
 																			  PlayerEntity player, Hand hand) {
-		if (hand != Hand.MAIN_HAND || !player.getStackInHand(hand).isEmpty() || !player.canModifyBlocks()) {
+		if (hand != Hand.MAIN_HAND || !MtrBrush.held(player, hand) || !player.canModifyBlocks()) {
 			return ActionResult.PASS;
 		}
 		if (!world.isClient) {

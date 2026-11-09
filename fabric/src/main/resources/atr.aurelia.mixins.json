@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "com.aureliatransit.architecture.mixin",
+	"compatibilityLevel": "JAVA_8",
+	"refmap": "mtr.refmap.json",
+	"client": [
+		"WrenchScrollMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

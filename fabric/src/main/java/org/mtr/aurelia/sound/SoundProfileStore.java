@@ -11,7 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Which profile each train uses and the volume of each sound part, in {@code config/aurelia/sound-profiles.json}. The
@@ -36,7 +38,10 @@ public final class SoundProfileStore {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("ATR Aurelia");
 	private static final Map<Long, Settings> SETTINGS = new HashMap<>();
+	private static final Set<String> WARNED_UNKNOWN_DEFAULTS = new HashSet<>();
 	private static Path file;
+	/** Whether trains use the default profile their pack names when the player picked none. New key, defaults to on. */
+	private static boolean useTrainDefaults = true;
 
 	private SoundProfileStore() {
 	}
@@ -50,6 +55,45 @@ public final class SoundProfileStore {
 	@Nullable
 	public static SoundProfile resolve(Settings settings) {
 		return SoundProfileRegistry.find(settings.profileId);
+	}
+
+	/**
+	 * The profile that actually plays: the player's own choice wins, even when it names a profile that is gone (then
+	 * the train keeps its own sound and the tag is not used as a fallback). With no choice and the toggle on, the
+	 * pack's default from the {@code aurelia_sound:} tag plays. An unknown id in the tag is ignored with one warning.
+	 */
+	@Nullable
+	public static SoundProfile resolveWithDefault(Settings settings, @Nullable String defaultProfileId) {
+		if (!settings.profileId.isEmpty()) {
+			return SoundProfileRegistry.find(settings.profileId);
+		}
+		if (!useTrainDefaults) {
+			return null;
+		}
+		final String id = defaultProfileId == null ? "" : defaultProfileId.trim();
+		if (id.isEmpty()) {
+			return null;
+		}
+		final SoundProfile profile = SoundProfileRegistry.find(id);
+		if (profile == null && WARNED_UNKNOWN_DEFAULTS.add(id)) {
+			LOGGER.warn("[ATR] Unknown sound profile in aurelia_sound tag: {}; train keeps its own sound", id);
+		}
+		return profile;
+	}
+
+	/** The profile that actually plays for one train entity, from the player's choice and the pack's default tag. */
+	@Nullable
+	public static SoundProfile effectiveProfile(long vehicleId, @Nullable String defaultProfileId) {
+		return resolveWithDefault(settings(vehicleId), defaultProfileId);
+	}
+
+	public static boolean useTrainDefaults() {
+		return useTrainDefaults;
+	}
+
+	public static void setUseTrainDefaults(boolean use) {
+		useTrainDefaults = use;
+		save();
 	}
 
 	/** The next profile id for this train, cycling back to none. */
@@ -72,6 +116,7 @@ public final class SoundProfileStore {
 	public static void load(Path configDir) {
 		file = configDir.resolve("aurelia").resolve("sound-profiles.json");
 		SETTINGS.clear();
+		useTrainDefaults = true;
 		if (!Files.isRegularFile(file)) {
 			return;
 		}
@@ -79,6 +124,10 @@ public final class SoundProfileStore {
 			final JsonElement root = JsonParser.parseString(Files.readString(file));
 			if (!root.isJsonObject()) {
 				return;
+			}
+			final JsonElement useDefaults = root.getAsJsonObject().get("use_train_defaults");
+			if (useDefaults != null && useDefaults.isJsonPrimitive() && useDefaults.getAsJsonPrimitive().isBoolean()) {
+				useTrainDefaults = useDefaults.getAsBoolean();
 			}
 			final JsonElement vehicles = root.getAsJsonObject().get("vehicles");
 			if (vehicles == null || !vehicles.isJsonObject()) {
@@ -114,6 +163,7 @@ public final class SoundProfileStore {
 				vehicles.add(String.valueOf(entry.getKey()), entry.getValue().toJson());
 			}
 			final JsonObject root = new JsonObject();
+			root.addProperty("use_train_defaults", useTrainDefaults);
 			root.add("vehicles", vehicles);
 			Files.writeString(file, root.toString());
 		} catch (Exception e) {

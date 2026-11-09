@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The bounded description grammar: numbers, layouts, sizes, styles, roofs, materials, accessibility, names, clamping,
- * conflicts, ignored words, and that terrain approval can never come from text.
+ * conflicts, ignored words, and that terrain words grant nothing.
  */
 class StationDescriptionParserTest {
 
@@ -97,14 +97,14 @@ class StationDescriptionParserTest {
 
 	@Test
 	void trackCountsAreClampedWithWarnings() {
-		final ParseResult many = StationDescriptionParser.parse("14 tracks");
+		final ParseResult many = StationDescriptionParser.parse("20 tracks");
 		assertEquals(StationSpec.MAX_TRACKS, many.spec().trackCount());
 		assertTrue(warned(many, "more than " + StationSpec.MAX_TRACKS));
 		assertEquals(9, spec("9 tracks").trackCount());
 		final ParseResult none = StationDescriptionParser.parse("0 tracks");
 		assertEquals(StationSpec.MIN_TRACKS, none.spec().trackCount());
 		assertTrue(warned(none, "too few"));
-		assertEquals(StationSpec.MAX_TRACKS, spec("six island platforms").trackCount());
+		assertEquals(StationSpec.MAX_TRACKS, spec("nine island platforms").trackCount());
 	}
 
 	@Test
@@ -159,9 +159,9 @@ class StationDescriptionParserTest {
 
 	@Test
 	void sizesAreClampedWithWarnings() {
-		final ParseResult longOne = StationDescriptionParser.parse("400 m long");
+		final ParseResult longOne = StationDescriptionParser.parse("500 m long");
 		assertEquals(StationSpec.MAX_LENGTH, longOne.spec().platformLength());
-		assertTrue(warned(longOne, "length 400 is too large; using " + StationSpec.MAX_LENGTH));
+		assertTrue(warned(longOne, "length 500 is too large; using " + StationSpec.MAX_LENGTH));
 		assertEquals(StationSpec.MIN_LENGTH, spec("length 4").platformLength());
 		assertEquals(StationSpec.MAX_WIDTH, spec("30 wide").platformWidth());
 		final ParseResult thin = StationDescriptionParser.parse("width 1");
@@ -310,8 +310,9 @@ class StationDescriptionParserTest {
 		final ParseResult plain = StationDescriptionParser.parse("2 tracks");
 		final ParseResult result = StationDescriptionParser.parse("2 tracks, clear the trees and flatten the hill");
 		assertEquals(plain.spec(), result.spec());
-		assertTrue(warned(result, "only approved with /ata_station confirm replace_terrain"));
-		assertEquals(1, result.warnings().size());
+		assertTrue(result.warnings().isEmpty(), result.warnings().toString());
+		assertTrue(result.understood().stream().anyMatch(note -> note.contains("the ground is changed; undo puts it back")),
+				result.understood().toString());
 		assertFalse(result.ignored().contains("clear"));
 		assertFalse(result.ignored().contains("flatten"));
 	}

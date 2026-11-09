@@ -30,7 +30,7 @@ public class TextSignBlockEntity extends BlockEntity {
 	}
 
 	public TextLayout getLayout() {
-		return getCachedState().getBlock() instanceof TextSignBlock sign ? sign.getLayout() : null;
+		return getCachedState().getBlock() instanceof TextSignBlock sign ? sign.getLayout(getCachedState()) : null;
 	}
 
 	public SignStyle getStyle() {

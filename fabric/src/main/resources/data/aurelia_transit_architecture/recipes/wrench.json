@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "aurelia_transit_architecture:station_wrench"
+    },
+    {
+      "item": "aurelia_transit_architecture:airport_wrench"
+    }
+  ],
+  "result": {
+    "item": "aurelia_transit_architecture:wrench",
+    "count": 1
+  }
+}

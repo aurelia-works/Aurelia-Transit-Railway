@@ -27,7 +27,8 @@ public final class StationAudit {
 	public enum Topic {
 		TRACKS("Tracks"), FACES("Boarding edges"), RAIL_NODES("Rail nodes"), ROOF("Roof cover"), HEADROOM("Headroom"), ACCESS("Step-free access"),
 		NAME_SIGNS("Name signs"), GROUNDED("Nothing floating"), FALLS("No falls"), SIZE("Size"), LIGHTING("Lighting"), FURNISHING("Furnishing"),
-		RUNWAYS("Runways"), TAXIWAYS("Taxiways"), GATES("Gates"), TERMINAL("Terminal");
+		RUNWAYS("Runways"), TAXIWAYS("Taxiways"), GATES("Gates"), TERMINAL("Terminal"), SKIPPED("Skipped blocks"),
+		TRAIN_LENGTH("Train fit"), PLATFORM_HEIGHT("Platform height"), REAL("Real station fit");
 
 		private final String title;
 
@@ -215,6 +216,10 @@ public final class StationAudit {
 			falls();
 			lighting();
 			furnishing();
+			skippedBlocks();
+			trainFit();
+			platformHeight();
+			realFit();
 			return size();
 		}
 
@@ -367,7 +372,7 @@ public final class StationAudit {
 				if (block.role().platformFloor()) {
 					final TrackLayout.PlatformBand band = bandAt(block.u());
 					// the street entrance's paving is not a platform: no roof was asked for over it
-					if (band == null && StationGeometry.streetEntrance(spec) && (block.u() < StationGeometry.streetWidth(spec)
+					if (band == null && StationGeometry.streetEntrance(spec) && (block.u() < StationGeometry.squareDepth(spec) + StationGeometry.streetWidth(spec)
 							|| spec.real().hallOverTracks() && block.u() >= plan.layout().width() - StationGeometry.streetWidth(spec))) {
 						continue;
 					}
@@ -1529,6 +1534,117 @@ public final class StationAudit {
 			} else {
 				fail(Topic.FURNISHING, "The station building is missing " + String.join(", ", missing), "Choose a bigger building (city or grand) so the ticket office, gates, boards and benches have room.");
 			}
+		}
+
+		/**
+		 * The blocks planning rules asked for but an earlier rule had already taken. These used to vanish silently; the audit
+		 * names the most frequent so a player (or the generator's author) can see what the plan lost and where.
+		 */
+		private void skippedBlocks() {
+			final List<Map.Entry<String, Integer>> top = new ArrayList<>(plan.skippedByBlock().entrySet());
+			if (top.isEmpty()) {
+				pass(Topic.SKIPPED, "Every block a rule placed found its cell; nothing was skipped");
+				return;
+			}
+			top.sort(Map.Entry.<String, Integer>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()));
+			final StringBuilder names = new StringBuilder();
+			for (int i = 0; i < Math.min(5, top.size()); i++) {
+				final Map.Entry<String, Integer> entry = top.get(i);
+				names.append(i == 0 ? "" : ", ").append(shortId(entry.getKey())).append(" ×").append(entry.getValue());
+			}
+			int total = 0;
+			for (final int count : plan.skippedByBlock().values()) {
+				total += count;
+			}
+			pass(Topic.SKIPPED, total + (total == 1 ? " block was" : " blocks were") + " skipped where an earlier rule had taken the cell: " + names
+					+ " (the earlier block stays; nothing is broken)");
+		}
+
+		/** A block id without its namespace, for a compact audit line. */
+		private static String shortId(String blockId) {
+			final int colon = blockId.indexOf(':');
+			return colon < 0 ? blockId : blockId.substring(colon + 1);
+		}
+
+		/**
+		 * Whether a platform holds a whole formation of about {@link StationGeometry#CAR_LENGTH}-block cars, the way a real
+		 * platform is dimensioned for its trains. A platform between formations is a warning, not a failure: MTR accepts it,
+		 * but trains will not stop with every door on the platform.
+		 */
+		private void trainFit() {
+			if (faces.isEmpty()) {
+				return;
+			}
+			int shortest = Integer.MAX_VALUE;
+			for (final Face face : faces) {
+				shortest = Math.min(shortest, face.length());
+			}
+			final int cars = StationGeometry.cars(shortest);
+			final int spare = StationGeometry.trainSpare(shortest, cars);
+			if (shortest < StationGeometry.MIN_TRAIN_PLATFORM) {
+				pass(Topic.TRAIN_LENGTH, "The shortest platform is " + shortest + " blocks, shorter than a 2-car train ("
+						+ StationGeometry.MIN_TRAIN_PLATFORM + "): only a short train stops here");
+			} else if (Math.abs(spare) > StationGeometry.CAR_LENGTH / 2) {
+				pass(Topic.TRAIN_LENGTH, "The shortest platform is " + shortest + " blocks, between a " + cars + "-car formation ("
+						+ cars * StationGeometry.CAR_LENGTH + " blocks) and a " + (cars + 1) + "-car one ("
+						+ (cars + 1) * StationGeometry.CAR_LENGTH + "): aim for a whole number of cars so every door opens");
+			} else {
+				pass(Topic.TRAIN_LENGTH, "Platforms of " + shortest + " blocks hold a " + cars + "-car formation ("
+						+ cars * StationGeometry.CAR_LENGTH + " blocks, " + (spare >= 0 ? spare + " to spare" : Math.abs(spare) + " short") + ")");
+			}
+		}
+
+		/** The country's platform height and the layout the plan uses for it; MTR fixes the boarding level itself. */
+		private void platformHeight() {
+			final StationFeatures.PlatformHeight height = StationFeatures.PlatformHeight.of(spec);
+			final double built = 1.0 / StationGeometry.BLOCKS_PER_METRE;
+			pass(Topic.PLATFORM_HEIGHT, height.label() + " platforms (" + String.format(java.util.Locale.ROOT, "%.2f m", height.metres())
+					+ " above the rail); MTR fixes the boarding level at one block (" + String.format(java.util.Locale.ROOT, "%.2f m", built)
+					+ "), and " + (spec.tactile() ? "the tactile warning is part of the edge paving" : "no tactile warning was asked for"));
+		}
+
+		/**
+		 * How far the plan is from the real station its name matches, in the numbers the research sheets measured: tracks, platform
+		 * length and platform width. Reported as a pass with signed deviations; the source of truth is the ATA-research sheet, so
+		 * a generated station scaled down or capped is shown as the deviation it is, not hidden.
+		 */
+		private void realFit() {
+			final MeasuredStation real = MeasuredStation.of(spec.name());
+			if (real == null) {
+				return;
+			}
+			final StringBuilder message = new StringBuilder(real.label()).append(" measured: ");
+			final StringBuilder built = new StringBuilder("built: ");
+			boolean any = false;
+			if (real.tracks() > 0) {
+				message.append(any ? ", " : "").append(real.tracks()).append(" tracks");
+				built.append(any ? ", " : "").append(spec.trackCount()).append(" tracks (").append(deviation(spec.trackCount(), real.tracks())).append(')');
+				any = true;
+			}
+			if (real.lengthMetres() > 0) {
+				final double metres = spec.platformLength() / StationGeometry.BLOCKS_PER_METRE;
+				message.append(any ? ", " : "").append(real.lengthMetres()).append(" m platform");
+				built.append(any ? ", " : "").append(Math.round(metres)).append(" m (").append(deviation(metres, real.lengthMetres())).append(')');
+				any = true;
+			}
+			if (real.widthMetres() > 0) {
+				final double metres = spec.platformWidth() / StationGeometry.BLOCKS_PER_METRE;
+				message.append(any ? ", " : "").append(String.format(java.util.Locale.ROOT, "%.1f m", real.widthMetres())).append(" platform width");
+				built.append(any ? ", " : "").append(String.format(java.util.Locale.ROOT, "%.1f m", metres)).append(" (")
+						.append(deviation(metres, real.widthMetres())).append(')');
+				any = true;
+			}
+			if (!any) {
+				pass(Topic.REAL, real.label() + " has a research sheet, but its sources give no track or platform dimensions to compare");
+				return;
+			}
+			pass(Topic.REAL, message.append("; ").append(built).toString());
+		}
+
+		/** A signed percentage deviation from a measured value, or "0%" when it matches. */
+		private static String deviation(double built, double measured) {
+			final int percent = (int) Math.round((built - measured) * 100 / measured);
+			return percent > 0 ? "+" + percent + "%" : percent == 0 ? "0%" : percent + "%";
 		}
 
 		private Result size() {

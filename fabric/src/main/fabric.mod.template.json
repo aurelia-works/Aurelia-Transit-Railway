@@ -44,6 +44,7 @@
 	"mixins": [
 		"mtr.mixins.json",
 		"atr.mixins.json",
+		"atr.aurelia.mixins.json",
 		"mtr.models.mixins.json"
 	],
 	"breaks": {

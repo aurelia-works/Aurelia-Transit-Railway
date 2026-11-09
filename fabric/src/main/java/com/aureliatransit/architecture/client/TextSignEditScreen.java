@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.client;
 
+import com.aureliatransit.architecture.block.NameSignBlock;
 import com.aureliatransit.architecture.block.TextLayout;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
@@ -21,6 +22,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.registry.Registries;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
@@ -57,6 +59,10 @@ public class TextSignEditScreen extends Screen {
 	/** Lift status panel only (A8); null for every other sign. */
 	private final ElevatedKinds.LiftStatus initialStatus;
 	private ElevatedKinds.LiftStatus status;
+	/** Name signs only: the look (operator board) and mount the row is switched to when the screen closes; null otherwise. */
+	private final NameSignBlock initialLook;
+	private NameSignBlock look;
+	private boolean wall;
 
 	private PanelLayout.Panel preview = PanelLayout.Panel.EMPTY;
 	private boolean previewDirty = true;
@@ -75,6 +81,9 @@ public class TextSignEditScreen extends Screen {
 		this.auto = initial.autoName();
 		this.initialStatus = sign.getCachedState().getBlock() instanceof LiftStatusPanelBlock ? sign.getCachedState().get(LiftStatusPanelBlock.STATUS) : null;
 		this.status = initialStatus;
+		this.initialLook = sign.getCachedState().getBlock() instanceof NameSignBlock name ? name : null;
+		this.look = initialLook;
+		this.wall = initialLook != null && sign.getCachedState().get(NameSignBlock.WALL);
 		for (int i = 0; i < routeState.length; i++) {
 			routeState[i] = i < initial.routes().size() ? initial.routes().get(i) : new RouteBadge("", AccentPalette.NONE);
 		}
@@ -167,6 +176,12 @@ public class TextSignEditScreen extends Screen {
 						}));
 			}
 		}
+		if (look != null) {
+			y += 22;
+			addDrawableChild(EditorWidgets.cycler(left, y, half, NameSignBlock.looks(), look, NameSignBlock::getName, value -> look = value));
+			addDrawableChild(EditorWidgets.cycler(left + half + 4, y, half, List.of(Boolean.FALSE, Boolean.TRUE), wall,
+					value -> Text.translatable(EditorWidgets.KEY + (value ? "mount_wall" : "mount_stand")), value -> wall = value));
+		}
 		y += 24;
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions(left, y, WIDTH, 20).build());
 		setInitialFocus(primaryField);
@@ -234,6 +249,9 @@ public class TextSignEditScreen extends Screen {
 		final SignData data = current();
 		if (!data.equals(initial)) {
 			ClientPlayNetworking.send(ModPackets.UPDATE_SIGN, ModPackets.writeSign(pos, data));
+		}
+		if (look != null && (look != initialLook || wall != sign.getCachedState().get(NameSignBlock.WALL))) {
+			ClientPlayNetworking.send(ModPackets.UPDATE_NAME_SIGN_LOOK, ModPackets.writeNameSignLook(pos, Registries.BLOCK.getId(look), wall));
 		}
 		if (status != null && status != initialStatus) {
 			ClientPlayNetworking.send(ModPackets.UPDATE_LIFT_STATUS, ModPackets.writeLiftStatus(pos, status));
