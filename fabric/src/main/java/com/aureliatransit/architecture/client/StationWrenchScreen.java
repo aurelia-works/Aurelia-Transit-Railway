@@ -167,7 +167,7 @@ public class StationWrenchScreen extends Screen {
 		final WrenchMode[] modes = WrenchMode.values();
 		for (int i = 0; i < modes.length; i++) {
 			final WrenchMode target = modes[i];
-			final ButtonWidget widget = ButtonWidget.builder(mode.label(), b -> switchMode(target))
+			final ButtonWidget widget = ButtonWidget.builder(target.label(), b -> switchMode(target))
 					.dimensions(left + i * (button + 3), 8, button, 18).build();
 			widget.active = target != mode;
 			addDrawableChild(widget);
