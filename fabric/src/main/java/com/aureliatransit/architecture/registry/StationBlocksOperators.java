@@ -50,7 +50,7 @@ public final class StationBlocksOperators {
 	 * dark band fixed flat to the wall with white letters, joining along a row like the name signs. No legs, one face.
 	 */
 	public static final Block STATION_LETTERING = ModBlocks.register("station_lettering", BlockFamily.SIGNAGE, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 8), new TextLayout(8F, 8, 16, 14.5F, -1F, true, SignStyle.STATION_LETTERING),
+			new TextSignBlock(ModBlocks.metal().luminance(state -> 8), new TextLayout(8F, 9.5F, 16, 14.5F, -1F, true, SignStyle.STATION_LETTERING),
 					box(0, 3, 14.5, 16, 13, 16)), TIP_EDITABLE, TIP_JOINS);
 
 	private static TextLayout layout(SignStyle style) {

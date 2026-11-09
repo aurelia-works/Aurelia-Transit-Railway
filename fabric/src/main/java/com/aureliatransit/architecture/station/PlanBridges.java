@@ -293,6 +293,9 @@ abstract class PlanBridges extends PlanConcourse {
 	static final String PLATEAU_WALL = ata("metro_pale_concrete");
 
 	/** The station's name along the longest free run of the bridge's roof edge on row {@code v}, facing {@code out}. */
+	/** Cells of free fascia below which a bridge carries no name. */
+	private static final int MIN_FASCIA_NAME = 4;
+
 	private void fasciaName(int from, int to, int v, LocalDir out) {
 		final int y = StationGeometry.BUILDING_ROOF_Y;
 		int best = -1;
@@ -310,8 +313,9 @@ abstract class PlanBridges extends PlanConcourse {
 				start = -1;
 			}
 		}
-		// a short run would squeeze the name; leave the fascia plain there
-		if (bestLength < spec.name().length() / 2) {
+		// the band scales its text to fit, so only a stub too short to read is left plain (an 8-cell run between the stair
+		// roofs dropped "Utrecht Leidsche Rijn" when the floor was half the name's length)
+		if (bestLength < MIN_FASCIA_NAME) {
 			return;
 		}
 		for (int u = best; u < best + bestLength; u++) {
