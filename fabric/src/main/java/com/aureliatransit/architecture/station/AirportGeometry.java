@@ -196,6 +196,14 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 	 * The control tower's footprint: an 11 by 11 cab on a 5 by 5 shaft (5 by 5 on a compact airport), on the apron's south margin beside
 	 * the terminal and west of the taxilane, so no aircraft taxis through it. It is apron only, so it stays out of the runway strip.
 	 */
+	/**
+	 * The control tower's top (its beacon): twice a floodlight mast on a compact field; on the larger ones ten above a mast, so
+	 * the shaft stands about twice as tall as it is wide, as at Southend (ap07), instead of a thin pole.
+	 */
+	public int towerTop() {
+		return dims.mast() >= 16 ? dims.mast() + 10 : 2 * dims.mast();
+	}
+
 	public Area tower() {
 		final int size = dims.mast() >= 16 ? 11 : 5;
 		return new Area(Kind.APRON, apronU1 - 8 - size, apronU1 - 9, apronV0, apronV0 + size - 1, 0);

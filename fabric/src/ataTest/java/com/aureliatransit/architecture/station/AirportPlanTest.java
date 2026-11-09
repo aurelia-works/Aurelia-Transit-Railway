@@ -222,7 +222,7 @@ class AirportPlanTest {
 			}
 		}
 		assertTrue(blocks > 0, "the tower is planned");
-		assertEquals(2 * g.dims().mast(), top, "the cab's roof is the tower's top");
+		assertEquals(g.towerTop(), top, "the beacon on the cab's roof is the tower's top");
 	}
 
 	@Test

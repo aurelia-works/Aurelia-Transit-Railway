@@ -70,6 +70,10 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String TOWER_SHAFT = "minecraft:white_concrete";
 	static final String TOWER_FLOOR = "minecraft:light_gray_concrete";
 	static final String TOWER_GLASS = "minecraft:glass";
+	/** The tower shaft's window band and recess, dark as at Southend. */
+	static final String TOWER_DARK_GLASS = "minecraft:gray_stained_glass";
+	/** The railing round the tower's balcony. */
+	static final String TOWER_RAILING = "minecraft:iron_bars";
 	/** The tower's beacon on the cab roof. */
 	static final String TOWER_BEACON = "minecraft:sea_lantern";
 	/** A rooftop plant box's grille and vent: plain iron, no block entity. */
@@ -850,68 +854,79 @@ abstract class PlanAirport extends PlanFitOut {
 		final AirportGeometry.Area t = air.tower();
 		final int cu = (t.u0() + t.u1()) / 2;
 		final int cv = (t.v0() + t.v1()) / 2;
-		final int top = 2 * air.dims().mast();
-		// a stout shaft as at Southend (ap07): 7 wide under an 11-wide cab, so the tower reads about 1:5, not a thin pole
+		final int top = air.towerTop();
 		final int width = t.u1() - t.u0() + 1;
-		final int shaft = width >= 11 ? 3 : width >= 9 ? 2 : 1;
-		for (int y = StationGeometry.WALK_Y; y <= top - 7; y++) {
+		final int maxHalf = (t.u1() - t.u0()) / 2;
+		// Southend's tower (ap07): a stout shaft about half as wide as it is tall, a dark recess up its face and a dark window
+		// band under a wide balcony, then a glazed cab narrower than the balcony under an overhanging roof
+		final int shaft = width >= 11 ? 4 : width >= 9 ? 3 : 1;
+		final int cab = width >= 11 ? 3 : maxHalf;
+		final int balconyY = top - 6;
+		final int bandY = balconyY - 3;
+		final boolean detailed = shaft >= 3;
+		for (int y = StationGeometry.WALK_Y; y < balconyY; y++) {
 			for (int u = cu - shaft; u <= cu + shaft; u++) {
 				for (int v = cv - shaft; v <= cv + shaft; v++) {
+					final boolean faceU = u == cu - shaft || u == cu + shaft;
+					final boolean faceV = v == cv - shaft || v == cv + shaft;
+					if (!faceU && !faceV) {
+						continue;
+					}
 					if (u == cu - shaft && v == cv && y <= StationGeometry.WALK_Y + 2) {
 						// the doorway, facing the terminal
 						put(Role.WINDOW, u, y, v, LocalDir.MINUS_U, TOWER_GLASS);
 						continue;
 					}
-					final boolean corner = (u == cu - shaft || u == cu + shaft) && (v == cv - shaft || v == cv + shaft);
-					final boolean band = u == cu - shaft && v == cv && Math.floorMod(y - StationGeometry.WALK_Y, 12) == 0;
-					final boolean marking = Math.floorMod(y - StationGeometry.WALK_Y, 16) == 0;
-					put(Role.WALL, u, y, v, LocalDir.PLUS_V, marking ? PAINT_RED : corner || band ? TOWER_FLOOR : TOWER_SHAFT);
-				}
-			}
-		}
-		for (int u = t.u0(); u <= t.u1(); u++) {
-			for (int v = t.v0(); v <= t.v1(); v++) {
-				put(Role.BUILDING_ROOF, u, top - 6, v, LocalDir.PLUS_V, TOWER_FLOOR);
-			}
-		}
-		// the glazed cab: a wide glass drum, its rings 7, 9 and 11 wide and five blocks tall
-		final int maxHalf = (t.u1() - t.u0()) / 2;
-		final int base = maxHalf >= 6 ? 4 : maxHalf >= 5 ? 3 : 2;
-		for (int y = top - 5; y <= top - 1; y++) {
-			final int ring = y >= top - 1 ? 2 : y >= top - 3 ? 1 : 0;
-			final int half = Math.min(base + ring, maxHalf);
-			for (int u = cu - half; u <= cu + half; u++) {
-				for (int v = cv - half; v <= cv + half; v++) {
-					final boolean edge = u == cu - half || u == cu + half || v == cv - half || v == cv + half;
-					final boolean corner = (u == cu - half || u == cu + half) && (v == cv - half || v == cv + half);
-					if (edge) {
-						put(corner ? Role.WALL : Role.WINDOW, u, y, v, LocalDir.PLUS_V, corner ? TOWER_SHAFT : TOWER_GLASS);
-					} else if (y == top - 1) {
-						// the cab's ceiling, with a short pole for the beacon
-						if (u == cu && v == cv) {
-							put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, LAMP_POLE);
-						} else {
-							put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, TOWER_FLOOR);
-						}
+					final boolean corner = faceU && faceV;
+					final int along = faceU ? v - cv : u - cu;
+					final boolean band = detailed && y == bandY && !corner && Math.abs(along) < shaft - 1;
+					// the recess runs up the face looking at the terminal, off centre as at Southend
+					final boolean recess = detailed && u == cu - shaft && (v == cv + 1 || v == cv + 2)
+							&& y > StationGeometry.WALK_Y + 2 && y < bandY - 1;
+					final LocalDir face = faceU ? (u < cu ? LocalDir.MINUS_U : LocalDir.PLUS_U) : (v < cv ? LocalDir.MINUS_V : LocalDir.PLUS_V);
+					if (band || recess) {
+						put(Role.WINDOW, u, y, v, face, TOWER_DARK_GLASS);
+					} else {
+						put(Role.WALL, u, y, v, face, corner ? TOWER_FLOOR : TOWER_SHAFT);
 					}
 				}
 			}
 		}
-		put(Role.LAMP, cu, top, cv, LocalDir.PLUS_V, TOWER_BEACON);
-		for (int u = cu - 2; u <= cu + 2; u++) {
-			for (int v = cv - 2; v <= cv + 2; v++) {
-				if (Math.abs(u - cu) == 2 || Math.abs(v - cv) == 2) {
-					put(Role.BUILDING_ROOF, u, top, v, LocalDir.PLUS_V, PAINT_RED);
-				}
-			}
-		}
+		// the balcony: the full tower area, wider than the shaft and the cab, with a railing round its open edge
 		for (int u = t.u0(); u <= t.u1(); u++) {
 			for (int v = t.v0(); v <= t.v1(); v++) {
-				if (u != cu || v != cv) {
-					put(Role.BUILDING_ROOF, u, top, v, LocalDir.PLUS_V, TOWER_FLOOR);
+				put(Role.BUILDING_ROOF, u, balconyY, v, LocalDir.PLUS_V, TOWER_FLOOR);
+				final boolean edge = u == t.u0() || u == t.u1() || v == t.v0() || v == t.v1();
+				if (edge && (Math.abs(u - cu) > cab || Math.abs(v - cv) > cab)) {
+					put(Role.FIXTURE, u, balconyY + 1, v, LocalDir.PLUS_V, TOWER_RAILING);
 				}
 			}
 		}
+		// the glazed cab, framed at its corners
+		for (int y = balconyY + 1; y <= top - 2; y++) {
+			for (int u = cu - cab; u <= cu + cab; u++) {
+				for (int v = cv - cab; v <= cv + cab; v++) {
+					final boolean edgeU = u == cu - cab || u == cu + cab;
+					final boolean edgeV = v == cv - cab || v == cv + cab;
+					if (edgeU || edgeV) {
+						final boolean corner = edgeU && edgeV;
+						put(corner ? Role.WALL : Role.WINDOW, u, y, v, LocalDir.PLUS_V, corner ? TOWER_SHAFT : TOWER_GLASS);
+					}
+				}
+			}
+		}
+		// the cab's roof overhangs it by a block, with a short pole for the beacon
+		final int roof = Math.min(cab + 1, maxHalf);
+		for (int u = cu - roof; u <= cu + roof; u++) {
+			for (int v = cv - roof; v <= cv + roof; v++) {
+				if (u == cu && v == cv) {
+					put(Role.FIXTURE, u, top - 1, v, LocalDir.PLUS_V, LAMP_POLE);
+				} else {
+					put(Role.BUILDING_ROOF, u, top - 1, v, LocalDir.PLUS_V, TOWER_FLOOR);
+				}
+			}
+		}
+		put(Role.LAMP, cu, top, cv, LocalDir.PLUS_V, TOWER_BEACON);
 	}
 
 	/** A windsock on a pole at the apron's south-west corner, clear of the control tower, its cone blowing along +v. */
@@ -1460,6 +1475,7 @@ abstract class PlanAirport extends PlanFitOut {
 		terminalRoofEdge();
 		terminalRoofPlant();
 		terminalSkylights();
+		terminalClerestory();
 		terminalLandsideCanopy();
 	}
 
@@ -1550,6 +1566,39 @@ abstract class PlanAirport extends PlanFitOut {
 					}
 				}
 			}
+		}
+	}
+
+	/**
+	 * A raised strip along the roof's centre, two blocks up over a band of glass, with a trim edge overhanging it by a block:
+	 * the terminal's roof lifts over glass as at Southend (ap03, ap04) instead of reading as one flat-topped box. The skylights
+	 * underneath stay inside it.
+	 */
+	void terminalClerestory() {
+		final StylePalette.Building b = palette.building();
+		final int deck = terminalRoofY() + 1;
+		final int c = (air.terminalU0() + air.terminalU1()) / 2;
+		final int half = 3;
+		final int v0 = air.terminalV0() + 4;
+		final int v1 = air.terminalV1() - 4;
+		if (v1 - v0 < 8 || air.terminalU1() - air.terminalU0() < 2 * half + 8) {
+			return;
+		}
+		for (int v = v0; v <= v1; v++) {
+			for (int u = c - half; u <= c + half; u++) {
+				final boolean side = u == c - half || u == c + half;
+				final boolean end = v == v0 || v == v1;
+				if (side || end) {
+					final LocalDir out = side ? (u < c ? LocalDir.MINUS_U : LocalDir.PLUS_U) : (v == v0 ? LocalDir.MINUS_V : LocalDir.PLUS_V);
+					final boolean post = side && (end || Math.floorMod(v - v0, 6) == 0);
+					for (int y = deck; y <= deck + 1; y++) {
+						put(post ? Role.WALL : Role.WINDOW, u, y, v, out, post ? b.trim() : b.window());
+					}
+				}
+				put(Role.BUILDING_ROOF, u, deck + 2, v, LocalDir.PLUS_V, b.roof());
+			}
+			put(Role.BUILDING_ROOF, c - half - 1, deck + 2, v, LocalDir.MINUS_U, b.trim());
+			put(Role.BUILDING_ROOF, c + half + 1, deck + 2, v, LocalDir.PLUS_U, b.trim());
 		}
 	}
 
