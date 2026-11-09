@@ -2,6 +2,7 @@
 
 Approved by Jah 2026-11-07 as one plan ("Everything looks good"). Stop only at review checkpoints and the check-in page, not per phase.
 Direction v2 (interview 2026-11-08, "Yes, write it up"): see "Direction v2" below and the new phases W, H, E, EW, AE, L. No code for v2 until Jah says go.
+Picks (2026-11-09, Jah's in-game look at Utrecht Leidsche Rijn and Studio): 18 items in `docs/handoffs/PICKS-2026-11-09-station.md`, planned below as phases UI, S2, FG, AP2 and T0, ahead of E1. Waiting on his go.
 Old plan and handoffs: `archive/2026-10/`. Research behind this plan: `docs/research-2026-11-07/` (player wishlist, livery gaps, station generator review, Indus Gaming notes).
 
 ## What ATR is
@@ -55,6 +56,11 @@ Agent time is rough. Jah expects about 4-5 h of agent time with parallel workers
 | PK | Private pack format | 2-4 h | 2 | merged (#56) |
 | W | One wrench with modes, one ATR menu, remove the word command | 3-5 h | 4 | merged (#67, 8fc27bed0) |
 | H | Hologram preview (Litematica style) | 4-6 h | 4 | merged (#68, 26bbe93dc) |
+| UI | Menus that fit: wrench Station tab, Bridge tab wording, Aurelia panel restyle | 4-6 h | 4b | not started (picks 12-13, check-in 2026-11-09) |
+| S2 | Station connections: fence, noise barrier, girders, help points, clock, lift tower, pylon | 4-6 h | 4b | not started (picks 1-9) |
+| FG | Fare line: readers that block, station sealed with glass | 3-5 h | 4b | not started (picks 10-11) |
+| AP2 | Airport one block into the ground; default A320 model pass (Blockbench) | 3-6 h | 4b | not started (picks 15-16) |
+| T0 | Short guided look at UI, S2, FG, AP2 and today's merges, with Jah | 1-2 h | 4b | not started (pick 18) |
 | E1 | Editor screen: 2D plan, 3D pane, shared station file with Studio | 6-10 h | 5 | not started |
 | E2 | Freehand tracks that become real MTR rails (Opus only) | 6-10 h | 5 | not started |
 | E3 | Freehand platforms and buildings, auto-detail fills them | 6-10 h | 5 | not started |
@@ -62,7 +68,7 @@ Agent time is rough. Jah expects about 4-5 h of agent time with parallel workers
 | EW2 | Earthworks: level/slopes, retaining walls, dig, viaducts | 6-10 h | 6 | not started |
 | AE | Airports in the editor: runways, taxiways, terminals | 5-8 h | 7 | not started |
 | L1 | Guard, dispatcher and signaller roles | 6-10 h | 8 | not started |
-| L2 | Bike share | 3-5 h | 8 | not started |
+| L2 | Drivable vehicle base, then free-driving cars and rideable bike share (picks 17, 19) | 13-24 h | 8 | not started |
 | L3 | Journey planner extras | 2-4 h | 8 | not started |
 | L4 | In-game map (1d.4) | 5-8 h | 8 | not started |
 | T | Full in-game test pass | 4-6 h | 9 | not started |
@@ -139,6 +145,40 @@ From `docs/research-2026-11-07/station-generator-review.md`. Creative/ops only. 
 - Client-side see-through copies of the planned blocks, shown only to the planning player. In the More drawer: a red tint on blocks that replace existing ones, and a one-level layer slider. The particle outline stays as a dev panel fallback for slow PCs. Detail drops with distance.
 - Done when: before/after screenshots of the same station, frame time with the hologram on a big station.
 
+### Picks round (wave 4b, before E1; from `docs/handoffs/PICKS-2026-11-09-station.md`)
+One thread and one PR each, in this order. Every fix is shown with same-camera before/after shots in a copy of "ATR Visual".
+
+**UI. Menus that fit** (4-6 h; Sonnet, skill `ui-critique` with a Haiku reviewer; needs nothing)
+- Wrench Station tab: every row is on screen at 854x480 and at 1920x1080 on automatic GUI scale (scroll or two columns); no clipped labels ("Kuala Lumpur").
+- Bridge tab: plain words in place of "Capture bridge" and the preview wording, and fewer buttons. Airport tab and the Earthworks "coming soon" stay.
+- Aurelia panel: tab rows no longer cover the counter line, the ATR menu buttons no longer cover the setting labels, and the whole panel is restyled (Jah: "the UI is terrible"). Use the notes in `~/.t3/worktrees/mod/ui-study`.
+- Done when: screenshots of every tab at both sizes with no overlap or clipping, and Jah has looked at them.
+
+**S2. Station connections** (4-6 h; Claude itself, no worker; needs nothing)
+- First: rebuild the pre-#65 station (x 304-368, z 56/70) on master and show the platform rails straight, before/after.
+- The line-side fence runs unbroken past catenary masts. The noise barrier joins the mast.
+- Girders reach the square steel column. Help points hang under the platform PIDS on the round steel column.
+- The analog clock is more realistic and hangs from, or stands on, something.
+- NS lift tower: its pole lands on a full block; above the canopy the tower is the dark steel panel only; inside the tower, and at the entrance looking in, the full block replaces the post.
+- The entrance pylon no longer stands beside the ticket machine (turned 90 degrees or moved).
+- Done when: before/after shots of each item on a fresh Leidsche Rijn build, and 9/10 from Claude and a blind reviewer.
+
+**FG. Fare line** (3-5 h; Opus-class, it is game logic plus geometry; after S2, same files)
+- A player who has not tapped in cannot pass the card readers; tapping lets them through.
+- The paid area is closed all the way round with glass, so there is no way in past the readers on foot. Studio's Checks list gains "Fare line sealed".
+- Dev panel: a switch for blocking, off for stations that should stay open.
+- Open point: creative and op players can still fly or break in. The seal is for survival and adventure players.
+- Done when: in game, a survival player without a tap is stopped at every entrance and gets through after tapping; the new check passes on every station type.
+
+**AP2. Airport in the ground, A320** (3-6 h; airport: DeepSeek worker with an Opus review; A320: Claude itself in Blockbench; needs nothing)
+- Runways, taxiways and aprons sit one block into the ground, not raised. Old saved airports are not moved.
+- The default A320 model gets a Blockbench pass against photos.
+- Done when: before/after shots of the airport edge at ground level; the A320 beside a reference photo, 9/10.
+
+**T0. Guided look** (1-2 h; Jah plays, the agent moves him between spots; after the four above)
+- Jah walks UI, S2, FG, AP2 and the 2026-11-09 merges (W, H, RT, SG, AP) in the dev client and picks again. New picks go in a new picks file, not straight into code.
+- Done when: his picks are written down and each is either planned or dropped.
+
 ### E. In-game editor (wave 5; split in three)
 - E1: native screen from the wrench with a 2D top-down plan and a 3D pane, and the same station file as browser Studio (both ways).
 - E2: draw curved tracks freehand. They become real MTR rail nodes and connections, snapping to nearby lines. Opus only, with a geometry check that platform rails stay straight (#65).
@@ -154,4 +194,13 @@ From `docs/research-2026-11-07/station-generator-review.md`. Creative/ops only. 
 - Runways, taxiways, aprons and terminals drawn in the same editor; auto-detail from AP fills them.
 
 ### L. Former Later list (wave 8, launch-required)
-- L1 guard, dispatcher and signaller roles (on top of SG). L2 bike share. L3 journey planner extras. L4 in-game map 1d.4. Terrain movers are now EW.
+- L1 guard, dispatcher and signaller roles (on top of SG). L3 journey planner extras. L4 in-game map 1d.4. Terrain movers are now EW.
+- L2 (Jah 2026-11-09): one drivable-vehicle base (a new entity with real steering, separate from MTR's rail vehicles), then free-driving cars and rideable bicycles for bike share on it. Our own code and models only: MTR Traffic Addon is all rights reserved, nothing is copied from it. Done when: a player drives a car and rides a hired bike in survival, both saved and reloaded, with shots.
+
+## Unattended run (Jah 2026-11-09)
+- The loop runs every open phase in table order until launch, without stopping for Jah. State: `LOOP-atr-finish.md`.
+- Every phase is built by Claude Opus 5.5 (Jah's pick; no DeepSeek workers in this run). Subagents as useful.
+- The loop starts and closes its own perf-bench client for shots, in world copies only, and never touches a client Jah started.
+- Each PR merges by itself after green CI and a Sonnet verify-pr PASS on the head commit.
+- No fixed try cap. When usage passes 90%, write the handoff, wait for the window to reset, then resume.
+- T0 and T: Jah plays when he can; the loop does not wait for them before moving on to E1.
