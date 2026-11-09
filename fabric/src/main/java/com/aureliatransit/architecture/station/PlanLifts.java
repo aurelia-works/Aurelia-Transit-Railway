@@ -107,13 +107,15 @@ abstract class PlanLifts extends PlanBuilding {
 
 	void liftButtons() {
 		final String post = palette.building().pier();
+		// an NS tower's slim corner post is clad in its dark frame panel instead of the building's plinth
+		final String towerPost = palette.liftFrame(true);
 		for (final LiftButton button : buttons) {
 			final int landing = button.v() - button.o();
 			Integer at = null;
 			for (final boolean onPost : new boolean[]{true, false}) {
 				for (final int u : new int[]{button.u(), button.otherU()}) {
 					final PlannedBlock holder = cells.get(new Cell(u, button.y(), button.v()));
-					if (at == null && holder != null && (!onPost || holder.blockId().equals(post)) && !taken(u, button.y(), landing)) {
+					if (at == null && holder != null && (!onPost || holder.blockId().equals(post) || holder.blockId().equals(towerPost)) && !taken(u, button.y(), landing)) {
 						at = u;
 					}
 				}
@@ -124,10 +126,11 @@ abstract class PlanLifts extends PlanBuilding {
 				for (final int step : new int[]{-1, 1}) {
 					for (int y = step < 0 ? button.y() : button.y() + 1; ; y += step) {
 						final PlannedBlock holder = cells.get(new Cell(at, y, button.v()));
-						if (holder == null || !holder.blockId().equals(post)) {
+						if (holder == null || !holder.blockId().equals(post) && !holder.blockId().equals(towerPost)) {
 							break;
 						}
-						cells.put(new Cell(at, y, button.v()), new PlannedBlock(at, y, button.v(), holder.role(), palette.building().plinth(),
+						final String clad = holder.blockId().equals(post) ? palette.building().plinth() : palette.liftFrame(false);
+						cells.put(new Cell(at, y, button.v()), new PlannedBlock(at, y, button.v(), holder.role(), clad,
 								holder.front(), holder.text(), holder.state()));
 					}
 				}
@@ -209,11 +212,19 @@ abstract class PlanLifts extends PlanBuilding {
 			buttons.add(new LiftButton(c1 + 1, low + 1, vBack, -o, in.opposite(), c0 - 1));
 		}
 		final int cMax = farWall ? c1 + 1 : c1;
+		// a free-standing tower is framed like a real one: a band of cladding at the upper floor and a slim clad head under
+		// the roof, where the lift's machinery sits, so the glass runs between frame members instead of up to the roof (a
+		// head of three rows read as a solid silo above the bridge: Jah's judge, 11-08)
+		final boolean tower = farWall && roofId != null;
+		// an NS tower's glass reads as framed panes from outside (Utrecht Leidsche Rijn), not as a dark hole onto the shaft
+		final String glass = tower && palette.glassLiftHead() ? LIFT_CURTAIN : wallId;
+		final String clad = tower ? palette.liftFrame(false) : palette.building().trim();
 		for (int y = low; y < roof; y++) {
+			final boolean band = tower && (y == StationGeometry.UPPER_FLOOR_Y || y == roof - 1 && !palette.glassLiftHead());
 			for (int c = c0 - 1; c <= cMax; c++) {
 				// a glass shaft stands on solid corner posts: the panes end on them and the call buttons are fixed to them
 				final boolean corner = farWall && (c == c0 - 1 || c == cMax);
-				final String id = corner ? palette.building().pier() : wallId;
+				final String id = corner ? (tower ? palette.liftFrame(true) : palette.building().pier()) : band ? clad : glass;
 				// the door row's floor at the upper level is the deck or the slab
 				if (y != StationGeometry.UPPER_FLOOR_Y) {
 					put(Role.WALL, c, y, vD, in.opposite(), id);
@@ -223,20 +234,47 @@ abstract class PlanLifts extends PlanBuilding {
 				}
 			}
 			for (int v = vD + o; v != vBack; v += o) {
-				put(Role.WALL, c0 - 1, y, v, LocalDir.MINUS_U, wallId);
+				put(Role.WALL, c0 - 1, y, v, LocalDir.MINUS_U, band ? clad : glass);
 				if (farWall) {
-					put(Role.WALL, c1 + 1, y, v, LocalDir.PLUS_U, wallId);
+					put(Role.WALL, c1 + 1, y, v, LocalDir.PLUS_U, band ? clad : glass);
 				}
 			}
 		}
 		if (roofId != null) {
 			for (int c = c0 - 1; c <= c1 + 1; c++) {
 				for (int v = vD + o; v != vBack + o; v += o) {
-					put(Role.BUILDING_ROOF, c, roof, v, LocalDir.PLUS_V, roofId);
+					// a tower's shaft is lit from its head, so the glass box glows at night and the car shows through it
+					final boolean shaftLight = tower && c >= c0 && c <= c1 && v != vBack;
+					put(Role.BUILDING_ROOF, c, roof, v, LocalDir.PLUS_V, shaftLight ? palette.building().light() : tower ? clad : roofId);
 				}
 			}
 		}
+		if (tower) {
+			// a coping round the flat roof's edge, over the door row too where nothing else roofs it
+			for (int c = c0 - 1; c <= c1 + 1; c++) {
+				for (int v = vD; v != vBack + o; v += o) {
+					if (at(c, roof, v) == null) {
+						put(Role.BUILDING_ROOF, c, roof, v, LocalDir.PLUS_V, clad);
+					}
+					if (c == c0 - 1 || c == c1 + 1 || v == vD || v == vBack) {
+						put(Role.BUILDING_ROOF, c, roof + 1, v, LocalDir.PLUS_V, LIFT_COPING, "type=bottom");
+					}
+				}
+			}
+			if (palette.glassLiftHead() && at(c0, roof - 1, vBack + o) == null) {
+				put(Role.FIXTURE, c0, roof - 1, vBack + o, in, LIFT_CLOCK);
+			}
+		}
 	}
+
+	/** The station clock high on an NS lift tower's back face, as at Utrecht Leidsche Rijn. */
+	static final String LIFT_CLOCK = "aurelia_transit_architecture:station_analog_clock";
+
+	/** Framed glass panes for an NS lift tower's walls. */
+	static final String LIFT_CURTAIN = "aurelia_transit_architecture:curtain_wall_glass";
+
+	/** The thin coping round a lift tower's roof. */
+	static final String LIFT_COPING = "minecraft:smooth_stone_slab";
 
 	/** True when the platform ends at a terminus head's gate line, which carries its big number. */
 	boolean gateNumbered(TrackLayout.PlatformBand band) {

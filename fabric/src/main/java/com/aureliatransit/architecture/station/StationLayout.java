@@ -129,7 +129,7 @@ public record StationLayout(boolean building, int bays, int vStart, int vEnd, in
 		int deckTo = 0;
 		if (bridge) {
 			// a real station's floor starts past the broad stairs up from the squares at both ends
-			deckFrom = building ? layout.buildingWidth() : street ? (hall ? StationGeometry.PLATEAU_STAIR : 0) : layout.platforms().get(0).uMin();
+			deckFrom = building ? layout.buildingWidth() : street ? (hall ? StationGeometry.PLATEAU_STAIR : StationGeometry.squareDepth(spec)) : layout.platforms().get(0).uMin();
 			deckTo = hall ? layout.width() - 1 - StationGeometry.PLATEAU_STAIR : layout.platforms().get(layout.platforms().size() - 1).uMax();
 		}
 		if (stairSide == 0) {
@@ -138,11 +138,12 @@ public record StationLayout(boolean building, int bays, int vStart, int vEnd, in
 		// the street entrance runs along the first track as far as the footbridge's stairs and lift reach; under a real
 		// station's hall, the whole depth of the hall, and a second one along the last track
 		final int streetWidth = StationGeometry.streetWidth(spec);
+		final int square = StationGeometry.squareDepth(spec);
 		final int reach = hall ? StationGeometry.bridgeWallOffset(bridgeWidth) : StationGeometry.BRIDGE_REACH;
 		final int streetFrom = Math.max(0, bridgeV - reach);
 		final int streetTo = Math.min(length - 1, bridgeV + reach);
 		final TrackLayout.PlatformBand streetBand = bridge && street
-				? new TrackLayout.PlatformBand(0, 0, streetWidth - 1, false, true, streetFrom, streetTo, false)
+				? new TrackLayout.PlatformBand(0, square, square + streetWidth - 1, false, true, streetFrom, streetTo, false)
 				: null;
 		final TrackLayout.PlatformBand farStreet = bridge && street && hall
 				? new TrackLayout.PlatformBand(0, layout.width() - streetWidth, layout.width() - 1, true, false, streetFrom, streetTo, false)

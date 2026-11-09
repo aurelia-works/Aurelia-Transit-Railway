@@ -4,3 +4,7 @@ the License. You may obtain a copy of the License at http://www.apache.org/licen
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
 "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific
 language governing permissions and limitations under the License.
+
+Modified by Aurelia Transit (2026-11-08): every left side bearing in the hmtx table is set to 0. Minecraft 1.20.1 adds a
+glyph's left side bearing to its bitmap box, which already includes it, so each glyph sat out of place (a "j" slid under
+the "i" before it). The outlines and advances are unchanged.

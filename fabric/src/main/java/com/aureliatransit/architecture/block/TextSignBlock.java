@@ -7,7 +7,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
@@ -124,6 +123,11 @@ public class TextSignBlock extends FacingShapedBlock implements BlockEntityProvi
 		return layout;
 	}
 
+	/** Where the text sits on this sign in {@code state}: a {@link NameSignBlock} on a wall moves it back. */
+	public TextLayout getLayout(BlockState state) {
+		return layout;
+	}
+
 	@Override
 	protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
 		super.appendProperties(builder);
@@ -185,7 +189,7 @@ public class TextSignBlock extends FacingShapedBlock implements BlockEntityProvi
 
 	@Override
 	public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-		if (player.getStackInHand(hand).getItem() instanceof BlockItem || !player.canModifyBlocks()) {
+		if (!MtrBrush.held(player, hand) || !player.canModifyBlocks()) {
 			return ActionResult.PASS;
 		}
 		if (world.isClient) {

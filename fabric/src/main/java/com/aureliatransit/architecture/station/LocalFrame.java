@@ -51,4 +51,15 @@ public record LocalFrame(int ox, int oy, int oz, Heading forward) {
 			case MINUS_U -> forward.left();
 		};
 	}
+
+	/** Local column u of a world x/z (the station's own frame, for naming a cell a player clicked). */
+	public int u(int x, int z) {
+		final Heading right = forward.right();
+		return (x - ox) * right.dx() + (z - oz) * right.dz();
+	}
+
+	/** Local row v of a world x/z. */
+	public int v(int x, int z) {
+		return (x - ox) * forward.dx() + (z - oz) * forward.dz();
+	}
 }

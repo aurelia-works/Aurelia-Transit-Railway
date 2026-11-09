@@ -1,12 +1,12 @@
 package com.aureliatransit.architecture.live;
 
 import com.aureliatransit.architecture.block.FacingShapedBlock;
+import com.aureliatransit.architecture.block.MtrBrush;
 import com.aureliatransit.architecture.block.Placement;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -34,7 +34,7 @@ public class SpeakerBlock extends FacingShapedBlock implements BlockEntityProvid
 
 	@Override
 	public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-		if (player.getStackInHand(hand).getItem() instanceof BlockItem || !player.canModifyBlocks()) {
+		if (!MtrBrush.held(player, hand) || !player.canModifyBlocks()) {
 			return ActionResult.PASS;
 		}
 		if (world.isClient) {

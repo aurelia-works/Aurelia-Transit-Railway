@@ -53,13 +53,19 @@
 				<section class="group" aria-labelledby="g-words">
 					<h2 class="label" id="g-words">What do you want to build?</h2>
 					<div id="words">
-						<p class="help st-only">Type it like you would say it, for example: <i>six-track Amsterdam station</i>.</p>
+						<p class="help st-only">Pick a preset, then tune it with the settings below. The words box is under Advanced.</p>
 						<div class="chips presets" id="presets" role="group" aria-label="Presets"></div>
 						<p class="help ap-only">Pick one, or say it: <i>airport with 2 runways, 6 gates and a terminal</i>. Sizes in blocks or metres (1.5 blocks a metre).</p>
 						<div class="chips airports ap-only" id="airports" role="group" aria-label="Airports"></div>
-						<textarea id="text" rows="3" aria-label="Station description" placeholder="e.g. six-track Amsterdam station with a big glass roof"></textarea>
-						<div class="clash" id="clash" hidden role="status"><span id="clashText"></span></div>
-						<div class="field-foot"><span id="count"></span></div>
+						<details class="adv" id="wordsAdvanced">
+							<summary class="st-only">Advanced: describe it in words</summary>
+							<div class="adv-body">
+								<p class="help st-only">Type it like you would say it, for example: <i>six-track Amsterdam station</i>.</p>
+								<textarea id="text" rows="3" aria-label="Station description" placeholder="e.g. six-track Amsterdam station with a big glass roof"></textarea>
+								<div class="clash" id="clash" hidden role="status"><span id="clashText"></span></div>
+								<div class="field-foot"><span id="count"></span></div>
+							</div>
+						</details>
 						<div class="photo-row st-only">
 							<button type="button" class="chip-btn" id="photoBtn" title="Claude looks at a photo of a station and writes the description for you">From a photo</button>
 							<input type="file" id="photoFile" accept="image/jpeg,image/png,image/webp" hidden>
@@ -181,7 +187,7 @@
 					<div class="field">
 						<span class="f-name" id="bedLabel">Track bed</span>
 						<div class="seg" id="bedSeg" role="group" aria-labelledby="bedLabel"></div>
-						<select id="bed" hidden><option value="">Ground</option><option value="gravel">Gravel</option><option value="andesite">Andesite</option></select>
+						<select id="bed" hidden><option value="">Ground</option><option value="gravel" selected>Gravel</option><option value="andesite">Andesite</option></select>
 					</div>
 					<div class="field switch-row">
 						<div><span class="f-name" id="travLabel">Travelators</span><p class="help">Moving walkways on platforms 71 or longer</p></div>
@@ -223,6 +229,20 @@
 						</div>
 						<input type="hidden" id="platforms">
 					</details>
+					</div>
+				</details>
+				<details class="adv extra st-only" id="devPanel">
+					<summary>Dev panel: visible fittings</summary>
+					<div class="extra-body">
+						<label class="check"><input type="checkbox" id="cctv" checked> CCTV cameras under the canopies and in the hall</label>
+						<label class="check"><input type="checkbox" id="edgeLines" checked> White line along every platform edge</label>
+						<label class="check"><input type="checkbox" id="overheadLine" checked> Overhead line: masts, arms and contact wire</label>
+						<label class="check"><input type="checkbox" id="fence" checked> Lineside fence along the open outer tracks</label>
+						<label class="check"><input type="checkbox" id="square" checked> Station square by a Dutch street entrance: street, cycle path, trees, bike parking</label>
+						<label class="field row" for="height"><span class="f-name">Platform height</span>
+							<select id="height"><option value="auto">Auto (by country)</option><option value="low">Low (0.55 m)</option><option value="standard">Standard (0.76 m)</option><option value="high">High (0.92 m)</option></select>
+						</label>
+						<p class="help">Fine edits saved with /ata_station override are applied last when the station is built or rebuilt.</p>
 					</div>
 				</details>
 			</div>
