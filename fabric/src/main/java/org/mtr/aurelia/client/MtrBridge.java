@@ -554,6 +554,87 @@ public final class MtrBridge {
 		return name == null ? "" : name.replace('|', ' ');
 	}
 
+	/** This client's copy of one route's route-control data (empty when the route has none). */
+	public static org.mtr.aurelia.route.RouteControl routeControl(long routeId) {
+		return org.mtr.mod.data.RouteControlOptions.client(routeId);
+	}
+
+	/** Sends one route's route-control data to the server. Caller checked {@link #canEdit()}. */
+	public static void sendRouteControl(long routeId, org.mtr.aurelia.route.RouteControl control) {
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(org.mtr.mod.data.RouteControlSync.SET, org.mtr.mod.data.RouteControlSync.request(routeId, control));
+	}
+
+	/**
+	 * Platforms with a train on them or heading to them right now, from the live client data (not the dashboard
+	 * copy). Used to resolve fallback platforms; empty when nothing is loaded.
+	 */
+	public static Set<Long> occupiedPlatforms() {
+		final Set<Long> occupied = new HashSet<>();
+		MinecraftClientData.getInstance().vehicles.forEach(vehicle -> {
+			final long current = vehicle.vehicleExtraData.getThisPlatformId();
+			final long next = vehicle.vehicleExtraData.getNextPlatformId();
+			if (current != 0) {
+				occupied.add(current);
+			}
+			if (next != 0) {
+				occupied.add(next);
+			}
+		});
+		return occupied;
+	}
+
+	/**
+	 * The ids of one platform's station mates (same station, same transport mode), the platform itself first, then
+	 * nearest first. For the per-stop platform choice in the route editor.
+	 */
+	public static List<Long> sameStationPlatformIds(Platform platform, org.mtr.core.data.TransportMode transportMode) {
+		final List<Long> options = new ArrayList<>();
+		if (platform == null) {
+			return options;
+		}
+		options.add(platform.getId());
+		if (platform.area == null) {
+			return options;
+		}
+		final long stationId = platform.area.getId();
+		final Position mid = platform.getMidPosition();
+		final List<Platform> others = new ArrayList<>();
+		dashboardData().platforms.forEach(other -> {
+			if (other.getId() != platform.getId() && other.area != null && other.area.getId() == stationId && other.isTransportMode(transportMode)) {
+				others.add(other);
+			}
+		});
+		others.sort(Comparator.comparingDouble((Platform other) -> {
+			final Position otherMid = other.getMidPosition();
+			final double dx = mid.getX() - otherMid.getX();
+			final double dz = mid.getZ() - otherMid.getZ();
+			return dx * dx + dz * dz;
+		}).thenComparingLong(Platform::getId));
+		others.forEach(other -> options.add(other.getId()));
+		return options;
+	}
+
+	/**
+	 * The middle of the loaded rail nearest to {@code (x, y, z)}, rounded to blocks, or null when none is within
+	 * {@code maxDistance}. For dropping a route waypoint on the rails the player stands next to.
+	 */
+	@javax.annotation.Nullable
+	public static long[] nearestRailNode(double x, double y, double z, double maxDistance) {
+		long[] best = null;
+		double bestDistance = maxDistance * maxDistance;
+		for (final org.mtr.aurelia.speed.SpeedAudit.Rail rail : loadedRails()) {
+			final double dx = rail.x() - x;
+			final double dy = rail.y() - y;
+			final double dz = rail.z() - z;
+			final double distance = dx * dx + dy * dy + dz * dz;
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				best = new long[]{Math.round(rail.x()), Math.round(rail.y()), Math.round(rail.z())};
+			}
+		}
+		return best;
+	}
+
 	/** One train's default sound profile from its first car's {@code aurelia_sound:} tag, or empty. */
 	private static String defaultSoundProfile(VehicleExtension vehicle) {
 		final VehicleExtraData extra = vehicle.vehicleExtraData;

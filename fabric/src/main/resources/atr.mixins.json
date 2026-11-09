@@ -9,7 +9,11 @@
 		"AirplanePositionMixin",
 		"AirplaneRepeatMixin",
 		"LiveDestinationMixin",
-		"CancelledRunMixin"
+		"CancelledRunMixin",
+		"DepotRouteControlMixin",
+		"SidingRouteControlMixin",
+		"SidingPathFinderAccessor",
+		"SidingPathFinderRouteControlMixin"
 	],
 	"client": [
 		"BlockEntityCounterMixin",
