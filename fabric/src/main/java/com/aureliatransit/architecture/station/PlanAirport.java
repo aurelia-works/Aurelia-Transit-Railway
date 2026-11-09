@@ -565,7 +565,7 @@ abstract class PlanAirport extends PlanFitOut {
 		final String name = spec.name().toUpperCase(java.util.Locale.ROOT);
 		final int w = AirportGlyphs.width(name, 1);
 		if (name.isBlank() || !name.chars().allMatch(c -> AirportGlyphs.has((char) c))
-				|| top - AirportGlyphs.GLYPH_HEIGHT < landsideCanopyY() + 1 || w > v1 - v0 - 8) {
+				|| top - AirportGlyphs.GLYPH_HEIGHT < landsideCanopyY() || w > v1 - v0 - 8) {
 			return false;
 		}
 		// read from the forecourt, looking +u: the reader's right is -v
