@@ -52,8 +52,7 @@ public final class ModItemGroups {
 							if (tab == BlockFamily.Tab.PASSENGER_EQUIPMENT) {
 								entries.add(ModItems.TRANSIT_CARD);
 								entries.add(ModItems.POCKET_TIMETABLE);
-								entries.add(ModItems.STATION_WRENCH);
-								entries.add(ModItems.AIRPORT_WRENCH);
+								entries.add(ModItems.WRENCH);
 								entries.add(ModItems.STATION_CODEX);
 								entries.add(org.mtr.mod.zip.ZipContent.POLE_ITEM);
 								entries.add(org.mtr.mod.zip.ZipContent.HANDLE);

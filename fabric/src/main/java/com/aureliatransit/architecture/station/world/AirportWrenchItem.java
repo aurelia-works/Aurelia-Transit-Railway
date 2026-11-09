@@ -3,13 +3,10 @@ package com.aureliatransit.architecture.station.world;
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
 import net.minecraft.client.item.TooltipContext;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,10 +14,11 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * The airport wrench: the airport generator in the game, as the station wrench is the station generator. It works the same way
- * (right-click the air for its screen, right-click a block to plan an airport there, sneak + right-click to build, left-click to
- * cancel; operators only, checked on the server by {@link StationActions#allowed}) and goes through the same parser, planner, survey
- * and build, but whatever its words say, what it plans is an airport ({@link StationDescriptionParser#airportWords}).
+ * The old airport wrench id, kept so old worlds load: it is the one ATR wrench with Airport as its own mode. It works the same
+ * way (right-click the air for its screen, right-click a block to plan an airport there, sneak + right-click to build, left-click
+ * to cancel; operators only, checked on the server by {@link StationActions#allowed}) and goes through the same parser, planner,
+ * survey and build, but whatever its words say, what it plans is an airport
+ * ({@link StationDescriptionParser#airportWords}).
  */
 public class AirportWrenchItem extends StationWrenchItem {
 
@@ -35,25 +33,13 @@ public class AirportWrenchItem extends StationWrenchItem {
 	}
 
 	@Override
-	protected String wordsToPlan(String description) {
-		return StationDescriptionParser.airportWords(description);
+	protected WrenchMode defaultMode() {
+		return WrenchMode.AIRPORT;
 	}
 
 	@Override
-	public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
-		final ItemStack stack = player.getStackInHand(hand);
-		if (!player.isSneaking()) {
-			if (world.isClient) {
-				if (player.hasPermissionLevel(StationActions.PERMISSION_LEVEL)) {
-					openAirportScreen.accept(hand);
-				} else {
-					player.sendMessage(Text.literal("Only operators can use the airport generator.").formatted(Formatting.RED), true);
-				}
-			}
-		} else if (player instanceof ServerPlayerEntity server && StationActions.allowed(server)) {
-			StationActions.preview(server);
-		}
-		return TypedActionResult.success(stack, world.isClient);
+	protected String wordsToPlan(String description) {
+		return StationDescriptionParser.airportWords(description);
 	}
 
 	@Override

@@ -43,6 +43,8 @@ public class StationWrenchItem extends Item {
 	public static final String DESCRIPTION = "Description";
 	/** Stack NBT key of the screen's choices ({@link StationRecipe#encode}); bounded like the description. */
 	public static final String RECIPE = "Recipe";
+	/** New stack NBT key of the chosen mode; old stacks have none and open in their item's own mode. */
+	public static final String MODE = "WrenchMode";
 	public static final int MAX_RECIPE = 160;
 	/** Server ticks between two left-click cancels, so holding the button down does not repeat it. */
 	static final int CANCEL_COOLDOWN_TICKS = 20;
@@ -54,16 +56,48 @@ public class StationWrenchItem extends Item {
 
 	/** What the wrench screen asks the server to do (after saving its description). */
 	public enum Action {
-		SAVE, PLAN, PREVIEW, CONFIRM, CONFIRM_REPLACE_TERRAIN, CANCEL, UNDO
+		SAVE, PLAN, PREVIEW, CONFIRM, CONFIRM_REPLACE_TERRAIN, CANCEL, UNDO, MODE
 	}
 
 	public StationWrenchItem(Settings settings) {
 		super(settings);
 	}
 
+	/** The mode an old stack of this item opens in when it has no mode saved yet. */
+	protected WrenchMode defaultMode() {
+		return WrenchMode.STATION;
+	}
+
 	/** The words a plan is made from: the remembered description. The airport wrench makes sure they describe an airport. */
 	protected String wordsToPlan(String description) {
 		return description;
+	}
+
+	public static WrenchMode mode(ItemStack stack) {
+		if (!(stack.getItem() instanceof StationWrenchItem wrench)) {
+			return WrenchMode.STATION;
+		}
+		final NbtCompound nbt = stack.getNbt();
+		return nbt == null ? wrench.defaultMode() : WrenchMode.byName(nbt.getString(MODE), wrench.defaultMode());
+	}
+
+	/** Saves {@code mode} on the stack; its item's own mode removes the key, so an untouched stack stays as it always was. */
+	public static void setMode(ItemStack stack, WrenchMode mode) {
+		if (!(stack.getItem() instanceof StationWrenchItem wrench)) {
+			return;
+		}
+		if (mode == wrench.defaultMode()) {
+			stack.removeSubNbt(MODE);
+		} else {
+			stack.getOrCreateNbt().putString(MODE, mode.name());
+		}
+	}
+
+	/** Switches the stack's mode by {@code step} (scroll up is -1) and returns the new one. */
+	public static WrenchMode cycleMode(ItemStack stack, int step) {
+		final WrenchMode next = mode(stack).next(step);
+		setMode(stack, next);
+		return next;
 	}
 
 	public static String description(ItemStack stack) {
@@ -104,23 +138,52 @@ public class StationWrenchItem extends Item {
 
 	/**
 	 * Server side of the screen: saves the description to the wrench in {@code hand}, then runs {@code action}. Ignored unless
-	 * that hand holds a wrench or the player is not an operator.
+	 * that hand holds a wrench or the player is not an operator. Uses the mode already saved on the stack.
 	 */
 	public static void perform(ServerPlayerEntity player, Hand hand, Action action, String description, String recipe) {
+		perform(player, hand, action, description, recipe, mode(player.getStackInHand(hand)));
+	}
+
+	/** {@link #perform(ServerPlayerEntity, Hand, Action, String, String)} in an explicit mode, as the screen sends it. */
+	public static void perform(ServerPlayerEntity player, Hand hand, Action action, String description, String recipe, WrenchMode mode) {
 		final ItemStack stack = player.getStackInHand(hand);
 		if (!(stack.getItem() instanceof StationWrenchItem) || !StationActions.allowed(player)) {
 			return;
 		}
 		setDescription(stack, description);
 		setRecipe(stack, recipe);
+		setMode(stack, mode);
 		switch (action) {
-			case SAVE -> player.sendMessage(Text.literal("Station description saved on the wrench.").formatted(Formatting.GRAY), true);
-			case PLAN -> StationActions.plan(player, ((StationWrenchItem) stack.getItem()).wordsToPlan(description(stack)), null);
-			case PREVIEW -> StationActions.preview(player);
-			case CONFIRM -> StationActions.confirm(player, false);
-			case CONFIRM_REPLACE_TERRAIN -> StationActions.confirm(player, true);
+			case SAVE -> player.sendMessage(Text.literal("Wrench saved.").formatted(Formatting.GRAY), true);
+			case MODE -> {
+			}
+			case PLAN -> plan(player, description(stack), mode);
+			case PREVIEW -> preview(player, mode);
+			case CONFIRM -> confirm(player, mode, false);
+			case CONFIRM_REPLACE_TERRAIN -> confirm(player, mode, true);
 			case CANCEL -> StationActions.cancel(player);
 			case UNDO -> StationActions.undo(player);
+		}
+	}
+
+	/** Station or airport planning only; the bridge and earthworks modes do not build from words. */
+	private static void plan(ServerPlayerEntity player, String description, WrenchMode mode) {
+		if (mode == WrenchMode.STATION || mode == WrenchMode.AIRPORT) {
+			StationActions.plan(player, mode.words(description), null);
+		} else {
+			player.sendMessage(Text.literal("The bridge tools are in the wrench menu; earthworks is coming soon.").formatted(Formatting.YELLOW), true);
+		}
+	}
+
+	private static void preview(ServerPlayerEntity player, WrenchMode mode) {
+		if (mode == WrenchMode.STATION || mode == WrenchMode.AIRPORT) {
+			StationActions.preview(player);
+		}
+	}
+
+	private static void confirm(ServerPlayerEntity player, WrenchMode mode, boolean replaceTerrain) {
+		if (mode == WrenchMode.STATION || mode == WrenchMode.AIRPORT) {
+			StationActions.confirm(player, replaceTerrain);
 		}
 	}
 
@@ -138,6 +201,7 @@ public class StationWrenchItem extends Item {
 			if (stack.getItem() instanceof StationWrenchItem) {
 				setDescription(stack, text);
 				setRecipe(stack, recipe);
+				setMode(stack, WrenchMode.STATION);
 			}
 		}
 		switch (action) {
@@ -157,11 +221,18 @@ public class StationWrenchItem extends Item {
 		if (player == null) {
 			return ActionResult.PASS;
 		}
+		final WrenchMode mode = mode(context.getStack());
 		if (player instanceof ServerPlayerEntity server && StationActions.allowed(server)) {
-			if (player.isSneaking()) {
-				StationActions.confirm(server, false);
+			if (mode == WrenchMode.STATION || mode == WrenchMode.AIRPORT) {
+				if (player.isSneaking()) {
+					StationActions.confirm(server, false);
+				} else {
+					StationActions.plan(server, mode.words(description(context.getStack())), context.getBlockPos());
+				}
+			} else if (player.isSneaking()) {
+				server.sendMessage(mode.label(), true);
 			} else {
-				StationActions.plan(server, wordsToPlan(description(context.getStack())), context.getBlockPos());
+				server.sendMessage(Text.literal("Open the wrench menu for the bridge tools; earthworks is coming soon.").formatted(Formatting.YELLOW), true);
 			}
 		}
 		// success on both sides, so use() (the screen) does not also fire
@@ -171,15 +242,17 @@ public class StationWrenchItem extends Item {
 	@Override
 	public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
 		final ItemStack stack = player.getStackInHand(hand);
+		final WrenchMode mode = mode(stack);
 		if (!player.isSneaking()) {
 			if (world.isClient) {
 				if (player.hasPermissionLevel(StationActions.PERMISSION_LEVEL)) {
 					openScreen.accept(hand);
 				} else {
-					player.sendMessage(Text.literal("Only operators can use the station generator.").formatted(Formatting.RED), true);
+					player.sendMessage(Text.literal("Only operators can use the ATR wrench.").formatted(Formatting.RED), true);
 				}
 			}
-		} else if (player instanceof ServerPlayerEntity server && StationActions.allowed(server)) {
+		} else if (player instanceof ServerPlayerEntity server && StationActions.allowed(server)
+				&& (mode == WrenchMode.STATION || mode == WrenchMode.AIRPORT)) {
 			StationActions.preview(server);
 		}
 		return TypedActionResult.success(stack, world.isClient);
@@ -207,6 +280,7 @@ public class StationWrenchItem extends Item {
 
 	@Override
 	public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
+		tooltip.add(Text.translatable(TIP + ".mode", mode(stack).label()).formatted(Formatting.GOLD));
 		final String description = description(stack);
 		if (!description.isEmpty()) {
 			final StationRecipe recipe = recipe(stack);
@@ -216,6 +290,7 @@ public class StationWrenchItem extends Item {
 		tooltip.add(Text.translatable(TIP + ".plan").formatted(Formatting.GRAY));
 		tooltip.add(Text.translatable(TIP + ".build").formatted(Formatting.GRAY));
 		tooltip.add(Text.translatable(TIP + ".cancel").formatted(Formatting.GRAY));
+		tooltip.add(Text.translatable(TIP + ".switch").formatted(Formatting.GRAY));
 		tooltip.add(Text.translatable(TIP + ".ops").formatted(Formatting.DARK_GRAY));
 	}
 }

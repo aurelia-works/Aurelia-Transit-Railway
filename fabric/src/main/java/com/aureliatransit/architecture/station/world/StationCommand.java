@@ -45,12 +45,24 @@ public final class StationCommand {
 	private StationCommand() {
 	}
 
+	/** The full dev tree, including the word command; also what the guide test enumerates. */
 	static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
-		dispatcher.register(CommandManager.literal("ata_station").requires(source -> source.hasPermissionLevel(2))
+		register(dispatcher, true);
+	}
+
+	/**
+	 * Registers the tree. The word command ({@code /ata_station plan <words>}) is dev-only now: the wrench and the menu are the
+	 * player path, and the scripted visual shots pass {@code -Datr.visualshots=...} so their {@code ata_station plan} steps work.
+	 */
+	static void register(CommandDispatcher<ServerCommandSource> dispatcher, boolean withPlan) {
+		final var root = CommandManager.literal("ata_station").requires(source -> source.hasPermissionLevel(2))
 				.executes(StationCommand::help)
-				.then(CommandManager.literal("help").executes(StationCommand::help))
-				.then(CommandManager.literal("plan").then(CommandManager.argument("description", StringArgumentType.greedyString())
-						.executes(StationCommand::plan)))
+				.then(CommandManager.literal("help").executes(StationCommand::help));
+		if (withPlan) {
+			root.then(CommandManager.literal("plan").then(CommandManager.argument("description", StringArgumentType.greedyString())
+					.executes(StationCommand::plan)));
+		}
+		dispatcher.register(root
 				.then(CommandManager.literal("preview").executes(context -> run(context, StationActions::preview)))
 				.then(CommandManager.literal("details").executes(context -> run(context, StationActions::details)))
 				.then(CommandManager.literal("confirm").executes(context -> run(context, player -> StationActions.confirm(player, false)))
@@ -301,7 +313,7 @@ public final class StationCommand {
 	private static int help(CommandContext<ServerCommandSource> context) {
 		final ServerCommandSource source = context.getSource();
 		source.sendFeedback(() -> Text.literal("ATA station generator").formatted(Formatting.GOLD), false);
-		source.sendFeedback(() -> Text.literal("/ata_station plan <description>: plan a station in front of you and preview it"), false);
+		source.sendFeedback(() -> Text.literal("Plan with the ATR wrench (right-click a block) or the ATR menu; the word command is dev-only now."), false);
 		source.sendFeedback(() -> Text.literal("/ata_station confirm [" + REPLACE_TERRAIN + "]: build it (the old token is accepted and does nothing extra)"), false);
 		source.sendFeedback(() -> Text.literal("/ata_station rebuild [" + REPLACE_TERRAIN + "]: build the pending plan where your last station stands, changing only what differs"), false);
 		source.sendFeedback(() -> Text.literal("/ata_station verify [paste]: read the world back against the plan (paste: a schematic pasted at your feet)"), false);

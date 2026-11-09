@@ -19,10 +19,13 @@ public final class ModItems {
 			new TransitCardItem(new Item.Settings().maxCount(1)));
 	public static final Item POCKET_TIMETABLE = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("pocket_timetable"),
 			new PocketTimetableItem(new Item.Settings().maxCount(1)));
-	/** Station generator tool; operators only (checked on the server for every action). */
+	/** The one ATR wrench: Station, Airport, Bridge and Earthworks modes; operators only. */
+	public static final Item WRENCH = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("wrench"),
+			new StationWrenchItem(new Item.Settings().maxCount(1)));
+	/** Old station wrench id: kept registered so old worlds load; it is the same wrench, opening in Station mode. */
 	public static final Item STATION_WRENCH = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("station_wrench"),
 			new StationWrenchItem(new Item.Settings().maxCount(1)));
-	/** Airport generator tool: the station wrench's way of working, planning airports; operators only. */
+	/** Old airport wrench id: kept registered so old worlds load; it is the same wrench, opening in Airport mode. */
 	public static final Item AIRPORT_WRENCH = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("airport_wrench"),
 			new AirportWrenchItem(new Item.Settings().maxCount(1)));
 	/** The station generator's guide; opens the Codex screen. */
