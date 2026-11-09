@@ -59,11 +59,25 @@ abstract class PlanPlatforms extends PlanState {
 			if (u < lo || u > hi || isEdge(band, u)) {
 				continue;
 			}
-			final int y = ceiling(u, v) - 1;
+			final int y = underside(u, v) - 1;
 			if (y >= StationGeometry.WALK_Y + 2 && numberSign(u, y, v, LocalDir.PLUS_V, Integer.toString(number))) {
 				return;
 			}
 		}
+	}
+
+	/**
+	 * The lowest thing hanging over cell (u, v) under its roof: a light strip or batten counts, so a plate hangs below it
+	 * where people see it instead of in the roof void above it. -1 when nothing covers the cell.
+	 */
+	int underside(int u, int v) {
+		final int roof = ceiling(u, v);
+		for (int y = StationGeometry.WALK_Y + 1; y < roof; y++) {
+			if (cells.containsKey(new Cell(u, y, v))) {
+				return y;
+			}
+		}
+		return roof;
 	}
 
 	/** A big platform number plate hung from the structure above; double-sided, so it reads from both ways. */
