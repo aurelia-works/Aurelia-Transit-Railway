@@ -1,0 +1,214 @@
+{
+  "variants": {
+    "facing=north,kind=level_0": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_0"
+    },
+    "facing=north,kind=level_1": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_1"
+    },
+    "facing=north,kind=level_2": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_2"
+    },
+    "facing=north,kind=level_3": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_3"
+    },
+    "facing=north,kind=level_4": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_4"
+    },
+    "facing=north,kind=level_5": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_5"
+    },
+    "facing=north,kind=level_6": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_6"
+    },
+    "facing=north,kind=dropper_0": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_0"
+    },
+    "facing=north,kind=dropper_1": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_1"
+    },
+    "facing=north,kind=dropper_2": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_2"
+    },
+    "facing=north,kind=dropper_3": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_3"
+    },
+    "facing=north,kind=dropper_4": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_4"
+    },
+    "facing=north,kind=dropper_5": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_5"
+    },
+    "facing=north,kind=dropper_6": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_6"
+    },
+    "facing=east,kind=level_0": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_0",
+      "y": 90
+    },
+    "facing=east,kind=level_1": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_1",
+      "y": 90
+    },
+    "facing=east,kind=level_2": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_2",
+      "y": 90
+    },
+    "facing=east,kind=level_3": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_3",
+      "y": 90
+    },
+    "facing=east,kind=level_4": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_4",
+      "y": 90
+    },
+    "facing=east,kind=level_5": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_5",
+      "y": 90
+    },
+    "facing=east,kind=level_6": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_6",
+      "y": 90
+    },
+    "facing=east,kind=dropper_0": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_0",
+      "y": 90
+    },
+    "facing=east,kind=dropper_1": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_1",
+      "y": 90
+    },
+    "facing=east,kind=dropper_2": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_2",
+      "y": 90
+    },
+    "facing=east,kind=dropper_3": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_3",
+      "y": 90
+    },
+    "facing=east,kind=dropper_4": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_4",
+      "y": 90
+    },
+    "facing=east,kind=dropper_5": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_5",
+      "y": 90
+    },
+    "facing=east,kind=dropper_6": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_6",
+      "y": 90
+    },
+    "facing=south,kind=level_0": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_0",
+      "y": 180
+    },
+    "facing=south,kind=level_1": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_1",
+      "y": 180
+    },
+    "facing=south,kind=level_2": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_2",
+      "y": 180
+    },
+    "facing=south,kind=level_3": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_3",
+      "y": 180
+    },
+    "facing=south,kind=level_4": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_4",
+      "y": 180
+    },
+    "facing=south,kind=level_5": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_5",
+      "y": 180
+    },
+    "facing=south,kind=level_6": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_6",
+      "y": 180
+    },
+    "facing=south,kind=dropper_0": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_0",
+      "y": 180
+    },
+    "facing=south,kind=dropper_1": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_1",
+      "y": 180
+    },
+    "facing=south,kind=dropper_2": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_2",
+      "y": 180
+    },
+    "facing=south,kind=dropper_3": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_3",
+      "y": 180
+    },
+    "facing=south,kind=dropper_4": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_4",
+      "y": 180
+    },
+    "facing=south,kind=dropper_5": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_5",
+      "y": 180
+    },
+    "facing=south,kind=dropper_6": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_6",
+      "y": 180
+    },
+    "facing=west,kind=level_0": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_0",
+      "y": 270
+    },
+    "facing=west,kind=level_1": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_1",
+      "y": 270
+    },
+    "facing=west,kind=level_2": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_2",
+      "y": 270
+    },
+    "facing=west,kind=level_3": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_3",
+      "y": 270
+    },
+    "facing=west,kind=level_4": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_4",
+      "y": 270
+    },
+    "facing=west,kind=level_5": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_5",
+      "y": 270
+    },
+    "facing=west,kind=level_6": {
+      "model": "aurelia_transit_architecture:block/contact_wire_level_6",
+      "y": 270
+    },
+    "facing=west,kind=dropper_0": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_0",
+      "y": 270
+    },
+    "facing=west,kind=dropper_1": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_1",
+      "y": 270
+    },
+    "facing=west,kind=dropper_2": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_2",
+      "y": 270
+    },
+    "facing=west,kind=dropper_3": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_3",
+      "y": 270
+    },
+    "facing=west,kind=dropper_4": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_4",
+      "y": 270
+    },
+    "facing=west,kind=dropper_5": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_5",
+      "y": 270
+    },
+    "facing=west,kind=dropper_6": {
+      "model": "aurelia_transit_architecture:block/contact_wire_dropper_6",
+      "y": 270
+    }
+  }
+}

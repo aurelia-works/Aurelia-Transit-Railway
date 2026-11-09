@@ -464,7 +464,7 @@ abstract class PlanColumns extends PlanMovingWalks {
 		if (spec.roof() != RoofType.HALL || !spec.shed().arched()) {
 			return null;
 		}
-		final int u0 = site.street() != null ? StationGeometry.STREET_WIDTH : layout.buildingWidth();
+		final int u0 = site.street() != null ? site.street().uMax() + 1 : layout.buildingWidth();
 		final int n = layout.width() - u0;
 		final Landmark.Shed real = landmark == null ? null : landmark.shed();
 		final List<Integer> valleys = new ArrayList<>();

@@ -1,63 +1,123 @@
 {
   "variants": {
-    "facing=north,left=false,right=false": {
+    "facing=north,left=false,right=false,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign"
     },
-    "facing=north,left=false,right=true": {
+    "facing=north,left=false,right=false,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_wall"
+    },
+    "facing=north,left=false,right=true,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_r"
     },
-    "facing=north,left=true,right=false": {
+    "facing=north,left=false,right=true,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_r_wall"
+    },
+    "facing=north,left=true,right=false,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_l"
     },
-    "facing=north,left=true,right=true": {
+    "facing=north,left=true,right=false,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_l_wall"
+    },
+    "facing=north,left=true,right=true,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_l_r"
     },
-    "facing=east,left=false,right=false": {
+    "facing=north,left=true,right=true,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_l_r_wall"
+    },
+    "facing=east,left=false,right=false,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign",
       "y": 90
     },
-    "facing=east,left=false,right=true": {
+    "facing=east,left=false,right=false,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_wall",
+      "y": 90
+    },
+    "facing=east,left=false,right=true,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_r",
       "y": 90
     },
-    "facing=east,left=true,right=false": {
+    "facing=east,left=false,right=true,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_r_wall",
+      "y": 90
+    },
+    "facing=east,left=true,right=false,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_l",
       "y": 90
     },
-    "facing=east,left=true,right=true": {
+    "facing=east,left=true,right=false,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_l_wall",
+      "y": 90
+    },
+    "facing=east,left=true,right=true,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_l_r",
       "y": 90
     },
-    "facing=south,left=false,right=false": {
+    "facing=east,left=true,right=true,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_l_r_wall",
+      "y": 90
+    },
+    "facing=south,left=false,right=false,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign",
       "y": 180
     },
-    "facing=south,left=false,right=true": {
+    "facing=south,left=false,right=false,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_wall",
+      "y": 180
+    },
+    "facing=south,left=false,right=true,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_r",
       "y": 180
     },
-    "facing=south,left=true,right=false": {
+    "facing=south,left=false,right=true,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_r_wall",
+      "y": 180
+    },
+    "facing=south,left=true,right=false,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_l",
       "y": 180
     },
-    "facing=south,left=true,right=true": {
+    "facing=south,left=true,right=false,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_l_wall",
+      "y": 180
+    },
+    "facing=south,left=true,right=true,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_l_r",
       "y": 180
     },
-    "facing=west,left=false,right=false": {
+    "facing=south,left=true,right=true,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_l_r_wall",
+      "y": 180
+    },
+    "facing=west,left=false,right=false,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign",
       "y": 270
     },
-    "facing=west,left=false,right=true": {
+    "facing=west,left=false,right=false,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_wall",
+      "y": 270
+    },
+    "facing=west,left=false,right=true,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_r",
       "y": 270
     },
-    "facing=west,left=true,right=false": {
+    "facing=west,left=false,right=true,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_r_wall",
+      "y": 270
+    },
+    "facing=west,left=true,right=false,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_l",
       "y": 270
     },
-    "facing=west,left=true,right=true": {
+    "facing=west,left=true,right=false,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_l_wall",
+      "y": 270
+    },
+    "facing=west,left=true,right=true,wall=false": {
       "model": "aurelia_transit_architecture:block/station_name_sign_l_r",
+      "y": 270
+    },
+    "facing=west,left=true,right=true,wall=true": {
+      "model": "aurelia_transit_architecture:block/station_name_sign_l_r_wall",
       "y": 270
     }
   }

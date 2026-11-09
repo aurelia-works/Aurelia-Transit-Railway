@@ -66,6 +66,8 @@ public final class StationSessions {
 
 	private static final Map<UUID, Pending> PENDING = new HashMap<>();
 	private static final Map<UUID, StationPreview> PREVIEWS = new HashMap<>();
+	/** Players who chose the old particle outline instead of the hologram on the dev panel. */
+	private static final Map<UUID, Boolean> PARTICLE_PREVIEW = new HashMap<>();
 	private static final Map<UUID, Built> BUILT = new HashMap<>();
 	private static final Map<UUID, StationBuildJob> JOBS = new LinkedHashMap<>();
 	private static final Map<UUID, Task> TASKS = new LinkedHashMap<>();
@@ -74,6 +76,8 @@ public final class StationSessions {
 	private static final Map<UUID, UndoLog> UNDO = new HashMap<>();
 	/** Server tick of each player's last wrench cancel, so a held left-click does not repeat it. */
 	private static final Map<UUID, Integer> LAST_CANCEL = new HashMap<>();
+	/** Cells all running jobs together may change this tick; {@link StationBuildSettings} sets it each tick when a server ticks. */
+	private static int blocksPerTick = Integer.MAX_VALUE;
 
 	private StationSessions() {
 	}
@@ -111,12 +115,31 @@ public final class StationSessions {
 		return PREVIEWS.get(player);
 	}
 
+	/** Stops a running particle outline without touching the pending plan. */
+	public static void stopPreview(UUID player) {
+		PREVIEWS.remove(player);
+	}
+
+	/** True when the player chose the old particle outline instead of the hologram. */
+	public static boolean particlePreview(UUID player) {
+		return Boolean.TRUE.equals(PARTICLE_PREVIEW.get(player));
+	}
+
+	public static void setParticlePreview(UUID player, boolean on) {
+		if (on) {
+			PARTICLE_PREVIEW.put(player, Boolean.TRUE);
+		} else {
+			PARTICLE_PREVIEW.remove(player);
+		}
+	}
+
 	/** A player left: their pending plan, preview and site task go, a running job keeps going. */
 	public static void forgetPlayer(UUID player) {
 		cancelTask(player);
 		discard(player);
 		BUILT.remove(player);
 		LAST_CANCEL.remove(player);
+		PARTICLE_PREVIEW.remove(player);
 	}
 
 	/** True (and starts the cooldown) when the player's last wrench cancel is at least {@code cooldown} ticks old. */
@@ -200,6 +223,30 @@ public final class StationSessions {
 		return UNDO.get(player);
 	}
 
+	/**
+	 * The player's last build's undo log, from memory or from its file when the server has restarted since. Null when neither
+	 * has one.
+	 */
+	public static UndoLog undoLog(MinecraftServer server, UUID player) {
+		final UndoLog log = UNDO.get(player);
+		if (log != null && !log.isEmpty()) {
+			return log;
+		}
+		final UndoLog loaded = UndoStore.latest(server, player);
+		if (loaded != null) {
+			UNDO.put(player, loaded);
+			return loaded;
+		}
+		return log;
+	}
+
+	/** Writes every running job's undo log now; called before the server stops. */
+	public static void flushUndo() {
+		for (final StationBuildJob job : JOBS.values()) {
+			job.flushUndo();
+		}
+	}
+
 	/** A chat sender for a player who may be offline by the time a job speaks. */
 	public static Consumer<Text> messenger(MinecraftServer server, UUID player) {
 		return text -> {
@@ -231,6 +278,7 @@ public final class StationSessions {
 	public static void clear() {
 		PENDING.clear();
 		PREVIEWS.clear();
+		PARTICLE_PREVIEW.clear();
 		BUILT.clear();
 		JOBS.clear();
 		TASKS.values().forEach(Task::cancel);
@@ -250,6 +298,7 @@ public final class StationSessions {
 			tickTasks();
 		}
 		if (!JOBS.isEmpty()) {
+			blocksPerTick = StationBuildSettings.blocksPerTick(server);
 			tickJobs();
 		}
 		if (!PREVIEWS.isEmpty()) {
@@ -293,13 +342,13 @@ public final class StationSessions {
 	}
 
 	/**
-	 * One tick's work: runs the jobs in batches, taking turns, until {@code nanos} of server time or {@code ops} ops are used. A
-	 * job that did less than a full batch (finished, stopped or waiting for a chunk) is not asked again, so a wait still counts
-	 * once per tick. True if the budget ran out with work left. Public for the game tests.
+	 * One tick's work: runs the jobs in batches, taking turns, until {@code nanos} of server time, {@code ops} ops or the
+	 * configured blocks-per-tick are used. A job that did less than a full batch (finished, stopped or waiting for a chunk) is
+	 * not asked again, so a wait still counts once per tick. True if the budget ran out with work left. Public for the game tests.
 	 */
 	public static boolean runBatches(List<StationBuildJob> jobs, long nanos, int ops) {
 		final long deadline = System.nanoTime() + nanos;
-		int budget = ops;
+		int budget = Math.min(ops, blocksPerTick);
 		final List<StationBuildJob> active = new ArrayList<>(jobs);
 		while (!active.isEmpty()) {
 			for (final java.util.Iterator<StationBuildJob> it = active.iterator(); it.hasNext(); ) {

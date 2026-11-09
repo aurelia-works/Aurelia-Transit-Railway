@@ -17,8 +17,9 @@ import java.util.EnumMap;
 import java.util.UUID;
 
 /**
- * A 30 second particle outline of a pending plan, shown to the planning player only. It changes nothing in the world:
- * white footprint, blue track centre lines, yellow platform edges, green rail nodes, red site issues.
+ * A 30 second particle blueprint of a pending plan, shown to the planning player only. It changes nothing in the world:
+ * white footprint, blue track centre lines, yellow platform edges, cyan platform decks, white roof, orange walls, green rail
+ * nodes and red site issues.
  */
 public final class StationPreview {
 
@@ -31,6 +32,9 @@ public final class StationPreview {
 		COLOURS.put(Layer.OUTLINE, dust(1.0F, 1.0F, 1.0F));
 		COLOURS.put(Layer.TRACK, dust(0.2F, 0.4F, 1.0F));
 		COLOURS.put(Layer.EDGE, dust(1.0F, 0.9F, 0.1F));
+		COLOURS.put(Layer.PLATFORM, dust(0.35F, 0.75F, 0.95F));
+		COLOURS.put(Layer.ROOF, dust(0.9F, 0.9F, 0.95F));
+		COLOURS.put(Layer.WALL, dust(0.95F, 0.55F, 0.2F));
 		COLOURS.put(Layer.NODE, dust(0.2F, 1.0F, 0.3F));
 		COLOURS.put(Layer.ISSUE, dust(1.0F, 0.1F, 0.1F));
 	}

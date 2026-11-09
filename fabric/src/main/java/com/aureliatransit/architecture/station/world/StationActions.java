@@ -3,10 +3,13 @@ package com.aureliatransit.architecture.station.world;
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.station.Facing;
 import com.aureliatransit.architecture.station.Heading;
+import com.aureliatransit.architecture.station.LocalDir;
 import com.aureliatransit.architecture.station.LocalFrame;
 import com.aureliatransit.architecture.station.ParseResult;
+import com.aureliatransit.architecture.station.StationOverride;
 import com.aureliatransit.architecture.station.StationPlacement;
 import com.aureliatransit.architecture.station.StationPlan;
+import com.aureliatransit.architecture.station.StationPlanner;
 import com.aureliatransit.architecture.station.StationSpec;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
 import com.aureliatransit.architecture.station.TrackLayout;
@@ -15,6 +18,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,8 +36,8 @@ import java.util.function.Function;
 /**
  * What a player can do with the station generator, shared by {@code /ata_station}, the station wrench's clicks and its screen.
  * The callers gate access: the command through Brigadier's source level (so {@code /execute as} from an operator or a function
- * works), every wrench entry point through {@link #allowed} on the player. Terrain approval only ever comes from
- * {@link #confirm}'s explicit flag.
+ * works), every wrench entry point through {@link #allowed} on the player. A build changes the ground it stands on, and its undo
+ * log keeps the previous blocks and block entity data.
  */
 public final class StationActions {
 
@@ -154,7 +158,11 @@ public final class StationActions {
 				StationSessions.discard(id);
 				StationSessions.setPending(id, pending);
 				StationText.shortSummary(pending, design.check(), out);
-				StationSessions.startPreview(new StationPreview(id, pending.dimension(), pending.plan(), pending.frame(), pending.report()));
+				if (StationSessions.particlePreview(id)) {
+					StationSessions.startPreview(new StationPreview(id, pending.dimension(), pending.plan(), pending.frame(), pending.report()));
+				} else {
+					StationHologram.show(player, pending);
+				}
 			});
 		} catch (IllegalArgumentException e) {
 			out.accept(Text.literal("Cannot plan that station: " + e.getMessage()).formatted(Formatting.RED));
@@ -196,12 +204,17 @@ public final class StationActions {
 			error(player, "No pending plan. Plan one with /ata_station plan or the station wrench.");
 			return false;
 		}
-		StationSessions.startPreview(new StationPreview(player.getUuid(), pending.dimension(), pending.plan(), pending.frame(), pending.report()));
-		player.sendMessage(Text.literal("Showing the plan outline for " + StationPreview.DURATION_TICKS / 20 + " s.").formatted(Formatting.GRAY), false);
+		if (StationSessions.particlePreview(player.getUuid())) {
+			StationSessions.startPreview(new StationPreview(player.getUuid(), pending.dimension(), pending.plan(), pending.frame(), pending.report()));
+			player.sendMessage(Text.literal("Showing the blueprint for " + StationPreview.DURATION_TICKS / 20 + " s.").formatted(Formatting.GRAY), false);
+		} else {
+			StationHologram.show(player, pending);
+			player.sendMessage(Text.literal("Showing the plan hologram.").formatted(Formatting.GRAY), false);
+		}
 		return true;
 	}
 
-	/** Builds the pending plan; {@code replaceTerrain} is the explicit approval and must come from a deliberate choice. */
+	/** Builds the pending plan. The plan changes the ground it stands on and the undo log can put it back; {@code replaceTerrain} is the old approval flag and is ignored. */
 	public static boolean confirm(ServerPlayerEntity player, boolean replaceTerrain) {
 		if (stillPlanning(player)) {
 			return false;
@@ -219,20 +232,84 @@ public final class StationActions {
 		}
 		final Consumer<Text> out = message(player);
 		final boolean[] failed = {false};
-		StationCommand.startBuildLater(world, id, pending, replaceTerrain, out, job -> {
+		final StationSessions.Pending edited = edited(world, pending, StationOverrides.apply(world, pending.plan(), pending.frame()));
+		StationCommand.startBuildLater(world, id, edited, replaceTerrain, out, job -> {
 			if (job == null) {
 				failed[0] = true;
 				return;
 			}
-			StationSessions.setBuilt(id, pending);
+			StationSessions.setBuilt(id, edited);
 			StationSessions.discard(id);
-			out.accept(Text.literal("Building " + job.total() + " changes, " + StationBuildJob.OPS_PER_TICK + " per tick. Cancel stops it.")
-					.formatted(Formatting.GREEN));
+			StationHologram.clear(player);
+			out.accept(Text.literal("Building " + job.total() + " changes, " + StationBuildSettings.blocksPerTick(player.getServer())
+					+ " per tick. Cancel stops it.").formatted(Formatting.GREEN));
 		});
 		if (StationSessions.task(id) != null) {
 			out.accept(Text.literal("Surveying a big site before building; cancel stops it.").formatted(Formatting.GRAY));
 		}
 		return !failed[0];
+	}
+
+	/**
+	 * Saves one fine edit of the player's last built station: the block they are looking at becomes {@code blockId} (or a clear),
+	 * stored in the station's override file and applied after planning the next time it is confirmed or rebuilt. A world block
+	 * is mapped back into the station's own frame, so moving the plan's settings never shifts the edit.
+	 */
+	public static boolean override(ServerPlayerEntity player, String blockId) {
+		final UUID id = player.getUuid();
+		final StationSessions.Built built = StationSessions.built(id);
+		if (built == null) {
+			error(player, "Build a station first; fine edits belong to a built station.");
+			return false;
+		}
+		final ServerWorld world = player.getServer().getWorld(built.dimension());
+		if (world == null || player.getServerWorld() != world) {
+			error(player, "Your last station is in " + built.dimension().getValue() + "; go there to edit it.");
+			return false;
+		}
+		if (player.raycast(24, 0, false) instanceof BlockHitResult hit) {
+			final BlockPos pos = hit.getBlockPos();
+			final LocalFrame frame = built.frame();
+			final StationPlanner.Cell cell = new StationPlanner.Cell(frame.u(pos.getX(), pos.getZ()), pos.getY() - frame.oy(), frame.v(pos.getX(), pos.getZ()));
+			final boolean outside = cell.u() < 0 || cell.u() >= built.plan().layout().width() || cell.v() < built.plan().layout().vMin()
+					|| cell.v() > built.plan().layout().vMax();
+			if (outside) {
+				error(player, "That block is not part of your last station.");
+				return false;
+			}
+			final boolean clear = blockId.equals("clear") || blockId.equals("minecraft:air");
+			if (clear) {
+				final boolean removed = StationOverrides.remove(world, frame, cell);
+				player.sendMessage(Text.literal(removed ? "Fine edit removed for that cell." : "That cell had no fine edit.").formatted(removed ? Formatting.GREEN : Formatting.YELLOW), false);
+				return removed;
+			}
+			if (!blockId.matches("[a-z0-9_.-]+:[a-z0-9_./-]+")
+					|| net.minecraft.registry.Registries.BLOCK.get(net.minecraft.util.Identifier.tryParse(blockId)) == net.minecraft.block.Blocks.AIR) {
+				error(player, "Unknown block: " + blockId);
+				return false;
+			}
+			final LocalDir front = built.plan().blocks().stream()
+					.filter(b -> b.u() == cell.u() && b.y() == cell.y() && b.v() == cell.v())
+					.map(com.aureliatransit.architecture.station.PlannedBlock::front).findFirst().orElse(LocalDir.PLUS_V);
+			if (!StationOverrides.put(world, frame, cell, new StationOverride(blockId, front))) {
+				error(player, "This station has too many fine edits; remove one first.");
+				return false;
+			}
+			player.sendMessage(Text.literal("Fine edit saved: " + blockId + " at cell " + cell.u() + ", " + cell.y() + ", " + cell.v()
+					+ ". Rebuild the station to apply it; " + StationOverrides.count(world, frame) + " edit(s) saved here.").formatted(Formatting.GREEN), false);
+			return true;
+		}
+		error(player, "Look at a block of your last station (within 24 blocks).");
+		return false;
+	}
+
+	/** A pending plan with the player's saved fine edits applied last. */
+	private static StationSessions.Pending edited(ServerWorld world, StationSessions.Pending pending, StationPlan plan) {
+		if (plan == pending.plan()) {
+			return pending;
+		}
+		return new StationSessions.Pending(pending.parse(), pending.spec(), plan, pending.frame(), pending.dimension(), pending.violations(),
+				pending.audit(), pending.report(), pending.railSkipped());
 	}
 
 	/**
@@ -279,6 +356,7 @@ public final class StationActions {
 			return true;
 		}
 		if (StationSessions.discard(player.getUuid())) {
+			StationHologram.clear(player);
 			player.sendMessage(Text.literal("Plan discarded.").formatted(Formatting.YELLOW), false);
 			return true;
 		}
@@ -288,7 +366,7 @@ public final class StationActions {
 
 	public static boolean undo(ServerPlayerEntity player) {
 		final UUID id = player.getUuid();
-		final UndoLog log = StationSessions.undoLog(id);
+		final UndoLog log = StationSessions.undoLog(player.getServer(), id);
 		if (log == null || log.isEmpty()) {
 			error(player, "Nothing to undo.");
 			return false;
@@ -312,7 +390,8 @@ public final class StationActions {
 
 	/**
 	 * Builds the pending plan where the player's last station stands (same origin and facing), writing only what differs; the
-	 * pending plan's own place is not used. {@code replaceTerrain} is the explicit approval, as for {@link #confirm}.
+	 * pending plan's own place is not used. The build changes the ground it stands on; {@code replaceTerrain} is the old approval
+	 * flag and is ignored.
 	 */
 	public static boolean rebuild(ServerPlayerEntity player, boolean replaceTerrain) {
 		if (stillPlanning(player)) {
@@ -321,7 +400,7 @@ public final class StationActions {
 		final UUID id = player.getUuid();
 		final StationSessions.Pending pending = StationSessions.pending(id);
 		final StationSessions.Built built = StationSessions.built(id);
-		final UndoLog log = StationSessions.undoLog(id);
+		final UndoLog log = StationSessions.undoLog(player.getServer(), id);
 		if (pending == null) {
 			error(player, "Plan the new version first (/ata_station plan or the wrench); rebuild then builds it where your last station stands.");
 			return false;
@@ -335,7 +414,8 @@ public final class StationActions {
 			error(player, "Your last station is in " + log.dimension().getValue() + "; go there to rebuild it.");
 			return false;
 		}
-		final StationSessions.Pending there = new StationSessions.Pending(pending.parse(), pending.spec(), pending.plan(), built.frame(),
+		final StationPlan plan = StationOverrides.apply(world, pending.plan(), built.frame());
+		final StationSessions.Pending there = new StationSessions.Pending(pending.parse(), pending.spec(), plan, built.frame(),
 				pending.dimension(), pending.violations(), pending.audit(), pending.report(), pending.railSkipped());
 		final Consumer<Text> out = message(player);
 		final boolean[] failed = {false};
@@ -346,6 +426,7 @@ public final class StationActions {
 			}
 			StationSessions.setBuilt(id, there);
 			StationSessions.discard(id);
+			StationHologram.clear(player);
 			out.accept(Text.literal("Rebuilding: " + job.kept() + " cells stay as they are, " + job.total() + " changes.").formatted(Formatting.GREEN));
 		});
 		if (StationSessions.task(id) != null) {
@@ -358,7 +439,7 @@ public final class StationActions {
 		final UUID id = player.getUuid();
 		final StationSessions.Pending pending = StationSessions.pending(id);
 		final StationBuildJob job = StationSessions.job(id);
-		final UndoLog log = StationSessions.undoLog(id);
+		final UndoLog log = StationSessions.undoLog(player.getServer(), id);
 		player.sendMessage(Text.literal("Pending plan: " + (pending == null ? "none" : StationText.planLine(pending.spec()))
 				+ (StationSessions.task(id) != null ? " (surveying a site)" : "")), false);
 		player.sendMessage(Text.literal("Job: " + (job == null ? "none"

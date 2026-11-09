@@ -1,6 +1,8 @@
 package org.mtr.aurelia.client.screen;
 
 import com.aureliatransit.architecture.client.AirportWrenchScreen;
+import com.aureliatransit.architecture.client.HologramSettings;
+import com.aureliatransit.architecture.client.StationHologramRenderer;
 import com.aureliatransit.architecture.client.StationStudioClient;
 import com.aureliatransit.architecture.client.StationWrenchScreen;
 import com.aureliatransit.architecture.registry.ModItems;
@@ -14,6 +16,7 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import org.mtr.aurelia.client.Announcer;
+import org.mtr.aurelia.client.AureliaExamplePack;
 import org.mtr.aurelia.client.ui.AureliaUiSettings;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.PassengerClient;
@@ -23,7 +26,12 @@ import org.mtr.aurelia.client.PassengerRenderer;
 import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.ScriptingHandshake;
 import org.mtr.aurelia.client.TrainView;
+import org.mtr.aurelia.pack.AureliaPacks;
+import org.mtr.aurelia.pack.LoadedPack;
+import org.mtr.aurelia.pack.PackDiagnostic;
+import org.mtr.aurelia.pack.PackSettings;
 import org.mtr.aurelia.sound.SoundProfile;
+import org.mtr.aurelia.sound.SoundProfileRegistry;
 import org.mtr.aurelia.sound.SoundProfileStore;
 import org.mtr.mod.InitClient;
 import org.mtr.mod.Items;
@@ -41,6 +49,7 @@ import org.mtr.mod.zip.ZipSettings;
 import org.mtr.mod.resource.PantographEnd;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleConsumer;
@@ -58,7 +67,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING}
+	public enum Tab {RENDERING, TOOLS, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS}
 
 	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
@@ -128,12 +137,17 @@ public final class AureliaPanelScreen extends Screen {
 	private int firstRow;
 	private int passengerFirst;
 	private int lookFirst;
+	private int packsFirst;
 	private static final AureliaUiSettings.ScreenId[] LOOK_IDS = AureliaUiSettings.ScreenId.values();
 	private static final Text LOOK_HINT = Text.translatable("gui.aurelia.look.hint");
 	private int trainSoundFirst;
-	private static final int TRAIN_SOUND_ROWS = 13;
+	private static final int TRAIN_SOUND_ROWS = 15;
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
+	/** The Architecture tab's rows: studio, the two wrenches, hologram, fallback, More, tint and layer. */
+	private int architectureFirst;
+	private static final int ARCHITECTURE_ROWS = 8;
+	private boolean hologramMore;
 	private int drivingFirst;
 	private static final int DRIVING_ROWS = 6;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
@@ -160,7 +174,9 @@ public final class AureliaPanelScreen extends Screen {
 				firstRow = 0;
 				lookFirst = 0;
 				buildFirst = 0;
+				architectureFirst = 0;
 				trainSoundFirst = 0;
+				packsFirst = 0;
 				clearAndInit();
 			}).dimensions(tabsLeft + (i % columns) * (tabWidth + 4), 28 + (i / columns) * TAB_ROW, tabWidth, 18).build());
 			button.active = target != tab;
@@ -179,6 +195,7 @@ public final class AureliaPanelScreen extends Screen {
 			case BUILD -> initBuild();
 			case LOOK -> initLook();
 			case DRIVING -> initDriving();
+			case PACKS -> initPacks();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
 	}
@@ -316,39 +333,51 @@ public final class AureliaPanelScreen extends Screen {
 			profile.active = train != null;
 			profile.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.profile.tooltip")));
 		}
-		addTrainVolumeSlider(left, 1, train, SoundProfileStore.Part.MOTOR);
-		addTrainVolumeSlider(left, 2, train, SoundProfileStore.Part.DOOR);
-		addTrainVolumeSlider(left, 3, train, SoundProfileStore.Part.CHIME);
-		addTrainVolumeSlider(left, 4, train, SoundProfileStore.Part.BRAKE);
-		addTrainVolumeSlider(left, 5, train, SoundProfileStore.Part.COMPRESSOR);
-		addTrainVolumeSlider(left, 6, train, SoundProfileStore.Part.FLANGE);
-		if (trainSoundRow(7)) {
+		if (trainSoundRow(1)) {
+			final ButtonWidget fallback = addDrawableChild(ButtonWidget.builder(trainDefaultLabel(train), b -> {
+			}).dimensions(left, trainSoundY(1), BUTTON_WIDTH, 20).build());
+			fallback.active = false;
+			fallback.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.default.tooltip")));
+		}
+		if (trainSoundRow(2)) {
+			addDrawableChild(ButtonWidget.builder(useTrainDefaultsLabel(), b -> {
+				SoundProfileStore.setUseTrainDefaults(!SoundProfileStore.useTrainDefaults());
+				clearAndInit();
+			}).dimensions(left, trainSoundY(2), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.use_defaults.tooltip")));
+		}
+		addTrainVolumeSlider(left, 3, train, SoundProfileStore.Part.MOTOR);
+		addTrainVolumeSlider(left, 4, train, SoundProfileStore.Part.DOOR);
+		addTrainVolumeSlider(left, 5, train, SoundProfileStore.Part.CHIME);
+		addTrainVolumeSlider(left, 6, train, SoundProfileStore.Part.BRAKE);
+		addTrainVolumeSlider(left, 7, train, SoundProfileStore.Part.COMPRESSOR);
+		addTrainVolumeSlider(left, 8, train, SoundProfileStore.Part.FLANGE);
+		if (trainSoundRow(9)) {
 			addDrawableChild(ButtonWidget.builder(widePitchLabel(), b -> {
 				config.toggleSoundWidePitch();
 				b.setMessage(widePitchLabel());
-			}).dimensions(left, trainSoundY(7), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.wide_pitch.tooltip")));
+			}).dimensions(left, trainSoundY(9), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.wide_pitch.tooltip")));
 		}
-		if (trainSoundRow(8)) {
-			addDrawableChild(new RangeSlider(left, trainSoundY(8), Client.SOUND_MAX_PITCH_MIN, Client.SOUND_MAX_PITCH_MAX, 0.25, config::getSoundMaxPitch, config::setSoundMaxPitch,
+		if (trainSoundRow(10)) {
+			addDrawableChild(new RangeSlider(left, trainSoundY(10), Client.SOUND_MAX_PITCH_MIN, Client.SOUND_MAX_PITCH_MAX, 0.25, config::getSoundMaxPitch, config::setSoundMaxPitch,
 					pitch -> Text.translatable("gui.aurelia.train_sound.max_pitch", String.format("%.2f", pitch))));
 		}
-		if (trainSoundRow(9)) {
-			addDrawableChild(new RangeSlider(left, trainSoundY(9), 0, Client.MOTOR_PITCH_SMOOTHING_MAX, 0.05, config::getMotorPitchSmoothing, config::setMotorPitchSmoothing,
+		if (trainSoundRow(11)) {
+			addDrawableChild(new RangeSlider(left, trainSoundY(11), 0, Client.MOTOR_PITCH_SMOOTHING_MAX, 0.05, config::getMotorPitchSmoothing, config::setMotorPitchSmoothing,
 					spread -> spread == 0 ? Text.translatable("gui.aurelia.train_sound.motor_smoothing.off") : Text.translatable("gui.aurelia.train_sound.motor_smoothing", Math.round(spread * 100))))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.motor_smoothing.tooltip")));
 		}
-		if (trainSoundRow(10)) {
+		if (trainSoundRow(12)) {
 			addDrawableChild(ButtonWidget.builder(doorChimeLabel(), b -> {
 				config.cycleDoorChime();
 				b.setMessage(doorChimeLabel());
-			}).dimensions(left, trainSoundY(10), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.door_chime.tooltip")));
+			}).dimensions(left, trainSoundY(12), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.train_sound.door_chime.tooltip")));
 		}
-		if (trainSoundRow(11)) {
-			addDrawableChild(new RangeSlider(left, trainSoundY(11), 0, 1, 0.05, config::getDoorChimeVolume, config::setDoorChimeVolume,
+		if (trainSoundRow(13)) {
+			addDrawableChild(new RangeSlider(left, trainSoundY(13), 0, 1, 0.05, config::getDoorChimeVolume, config::setDoorChimeVolume,
 					volume -> Text.translatable("gui.aurelia.train_sound.door_chime_volume", Math.round(volume * 100))));
 		}
-		if (trainSoundRow(12)) {
-			addDrawableChild(new RangeSlider(left, trainSoundY(12), 0, 1, 0.05, config::getFlangeVolume, config::setFlangeVolume,
+		if (trainSoundRow(14)) {
+			addDrawableChild(new RangeSlider(left, trainSoundY(14), 0, 1, 0.05, config::getFlangeVolume, config::setFlangeVolume,
 					volume -> volume == 0 ? Text.translatable("gui.aurelia.train_sound.flange_volume.off") : Text.translatable("gui.aurelia.train_sound.flange_volume", Math.round(volume * 100))));
 		}
 	}
@@ -390,10 +419,25 @@ public final class AureliaPanelScreen extends Screen {
 		if (train == null) {
 			value = Text.translatable("gui.aurelia.train_sound.profile.no_train");
 		} else {
-			final SoundProfile profile = SoundProfileStore.resolve(SoundProfileStore.settings(train.id()));
+			final SoundProfile profile = SoundProfileStore.effectiveProfile(train.id(), train.defaultSoundProfile());
 			value = profile == null ? Text.translatable("gui.aurelia.train_sound.profile.none") : Text.literal(profile.displayName());
 		}
 		return Text.translatable("gui.aurelia.train_sound.profile", value);
+	}
+
+	private static Text trainDefaultLabel(@Nullable TrainView train) {
+		final Text value;
+		if (train == null || train.defaultSoundProfile().isBlank()) {
+			value = Text.translatable("gui.aurelia.train_sound.default.none");
+		} else {
+			final SoundProfile profile = SoundProfileRegistry.find(train.defaultSoundProfile().trim());
+			value = profile == null ? Text.translatable("gui.aurelia.train_sound.default.missing", train.defaultSoundProfile().trim()) : Text.literal(profile.displayName());
+		}
+		return Text.translatable("gui.aurelia.train_sound.default", value);
+	}
+
+	private static Text useTrainDefaultsLabel() {
+		return Text.translatable("gui.aurelia.train_sound.use_defaults", ScreenTexts.onOrOff(SoundProfileStore.useTrainDefaults()));
 	}
 
 	private Text widePitchLabel() {
@@ -443,6 +487,68 @@ public final class AureliaPanelScreen extends Screen {
 
 	private static Text lookLabel(AureliaUiSettings.ScreenId id) {
 		return Text.translatable("gui.aurelia.look." + id.key, ScreenTexts.onOrOff(AureliaUiSettings.enabled(id)));
+	}
+
+	/**
+	 * Private packs: a master switch that reloads resources when flipped, the built-in example pack, and the list drawn
+	 * by {@link #renderPacks}. The list has no buttons of its own; a pack with errors is skipped by the loader, not here.
+	 */
+	private void initPacks() {
+		final int left = (width - BUTTON_WIDTH) / 2;
+		addDrawableChild(ButtonWidget.builder(packsEnabledLabel(), b -> {
+			PackSettings.setEnabled(!PackSettings.enabled());
+			packsFirst = 0;
+			b.setMessage(packsEnabledLabel());
+			if (client != null) {
+				client.reloadResources();
+			}
+		}).dimensions(left, top, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.panel.pack.enabled.tooltip")));
+		addDrawableChild(ButtonWidget.builder(examplePackLabel(), b -> {
+			AureliaExamplePack.toggle();
+			b.setMessage(examplePackLabel());
+		}).dimensions(left, top + ROW, BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.panel.pack.example.tooltip")));
+	}
+
+	private static Text packsEnabledLabel() {
+		return Text.translatable("gui.aurelia.panel.pack.enabled", ScreenTexts.onOrOff(PackSettings.enabled()));
+	}
+
+	private static Text examplePackLabel() {
+		return Text.translatable("gui.aurelia.panel.pack.example", ScreenTexts.onOrOff(AureliaExamplePack.enabled()));
+	}
+
+	/** One row per loaded pack, then every diagnostic. Scrolls with the mouse wheel. */
+	private static List<PackLine> packLines() {
+		final List<PackLine> lines = new ArrayList<>();
+		final List<PackDiagnostic> diagnostics = AureliaPacks.diagnostics();
+		for (final LoadedPack pack : AureliaPacks.packs()) {
+			int errors = 0;
+			int warnings = 0;
+			for (final PackDiagnostic diagnostic : diagnostics) {
+				if (diagnostic.file().equals(pack.file())) {
+					if (diagnostic.severity() == PackDiagnostic.Severity.ERROR) {
+						errors++;
+					} else {
+						warnings++;
+					}
+				}
+			}
+			lines.add(new PackLine(Text.translatable("gui.aurelia.panel.pack.entry", pack.name(), errors, warnings).getString(), errors > 0 ? 0xFF5555 : 0xFFFFFF));
+			lines.add(new PackLine("  " + pack.file() + "  ·  " + Text.translatable("gui.aurelia.panel.pack.counts", pack.operators().size(), pack.liveries().size(), pack.sounds().size(), pack.stationPresets().size(), pack.timetables().size()).getString(), 0xAAAAAA));
+		}
+		if (lines.isEmpty()) {
+			lines.add(new PackLine(Text.translatable("gui.aurelia.panel.pack.none").getString(), 0xAAAAAA));
+		}
+		if (!diagnostics.isEmpty()) {
+			lines.add(new PackLine("", 0xAAAAAA));
+			for (final PackDiagnostic diagnostic : diagnostics) {
+				lines.add(new PackLine(diagnostic.text(), diagnostic.severity() == PackDiagnostic.Severity.ERROR ? 0xFF5555 : 0xFFAA00));
+			}
+		}
+		return lines;
+	}
+
+	private record PackLine(String text, int colour) {
 	}
 
 	/** Building tools: station guide, rail stylus and the box tunnel. Operators only; the dig is shared. */
@@ -738,11 +844,68 @@ public final class AureliaPanelScreen extends Screen {
 	/** ATA's tools: Station Studio opens in the browser; each wrench screen edits the wrench in the player's hand. */
 	private void initArchitecture() {
 		final int left = (width - BUTTON_WIDTH) / 2;
-		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.studio"), b -> StationStudioClient.open())
-				.dimensions(left, top, BUTTON_WIDTH, 20).build())
-				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.studio.tooltip")));
-		addWrenchButton("station", ModItems.STATION_WRENCH, StationWrenchScreen::open, top + ROW);
-		addWrenchButton("airport", ModItems.AIRPORT_WRENCH, AirportWrenchScreen::open, top + ROW * 2);
+		architectureFirst = Math.max(0, Math.min(architectureFirst, architectureRows() - visibleRows()));
+		if (architectureRow(0)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.studio"), b -> StationStudioClient.open())
+					.dimensions(left, architectureY(0), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.studio.tooltip")));
+		}
+		if (architectureRow(1)) {
+			addWrenchButton("station", ModItems.STATION_WRENCH, StationWrenchScreen::open, architectureY(1));
+		}
+		if (architectureRow(2)) {
+			addWrenchButton("airport", ModItems.AIRPORT_WRENCH, AirportWrenchScreen::open, architectureY(2));
+		}
+		if (architectureRow(3)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram", ScreenTexts.onOrOff(HologramSettings.enabled())), b -> {
+				HologramSettings.setEnabled(!HologramSettings.enabled());
+				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram", ScreenTexts.onOrOff(HologramSettings.enabled())));
+			}).dimensions(left, architectureY(3), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.tooltip")));
+		}
+		if (architectureRow(4)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram.fallback", ScreenTexts.onOrOff(HologramSettings.particles())), b -> {
+				HologramSettings.setParticles(!HologramSettings.particles());
+				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram.fallback", ScreenTexts.onOrOff(HologramSettings.particles())));
+			}).dimensions(left, architectureY(4), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.fallback.tooltip")));
+		}
+		if (architectureRow(5)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram." + (hologramMore ? "less" : "more")), b -> {
+				hologramMore = !hologramMore;
+				clearAndInit();
+			}).dimensions(left, architectureY(5), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.more.tooltip")));
+		}
+		if (hologramMore && architectureRow(6)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram.tint", ScreenTexts.onOrOff(HologramSettings.tint())), b -> {
+				HologramSettings.setTint(!HologramSettings.tint());
+				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram.tint", ScreenTexts.onOrOff(HologramSettings.tint())));
+			}).dimensions(left, architectureY(6), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.tint.tooltip")));
+		}
+		if (hologramMore && architectureRow(7)) {
+			final int all = StationHologramRenderer.minLayer() - 1;
+			final int highest = Math.max(all + 1, StationHologramRenderer.maxLayer());
+			addDrawableChild(new RangeSlider(left, architectureY(7), all, highest, 1,
+					() -> HologramSettings.layer() == HologramSettings.ALL_LAYERS ? all : HologramSettings.layer(),
+					value -> HologramSettings.setLayer(value <= all ? HologramSettings.ALL_LAYERS : (int) Math.round(value)),
+					value -> value <= all ? Text.translatable("gui.aurelia.architecture.hologram.layer.all")
+							: Text.translatable("gui.aurelia.architecture.hologram.layer", value.intValue())))
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.layer.tooltip")));
+		}
+	}
+
+	private int architectureRows() {
+		return hologramMore ? ARCHITECTURE_ROWS : 6;
+	}
+
+	private boolean architectureRow(int row) {
+		return row >= architectureFirst && row < architectureFirst + visibleRows();
+	}
+
+	private int architectureY(int row) {
+		return top + (row - architectureFirst) * ROW;
 	}
 
 	private void addWrenchButton(String key, Item wrench, Consumer<Hand> open, int y) {
@@ -804,6 +967,14 @@ public final class AureliaPanelScreen extends Screen {
 			}
 			return true;
 		}
+		if (tab == Tab.ARCHITECTURE) {
+			final int newFirstRow = Math.max(0, Math.min(architectureRows() - visibleRows(), architectureFirst - (int) Math.signum(amount)));
+			if (newFirstRow != architectureFirst) {
+				architectureFirst = newFirstRow;
+				clearAndInit();
+			}
+			return true;
+		}
 		if (tab == Tab.BUILD) {
 			final int newFirstRow = Math.max(0, Math.min(BUILD_ROWS - passengerVisible(), buildFirst - (int) Math.signum(amount)));
 			if (newFirstRow != buildFirst) {
@@ -833,6 +1004,14 @@ public final class AureliaPanelScreen extends Screen {
 			if (newFirstRow != trainSoundFirst) {
 				trainSoundFirst = newFirstRow;
 				clearAndInit();
+			}
+			return true;
+		}
+		if (tab == Tab.PACKS) {
+			final int visible = packsVisible();
+			final int newFirst = Math.max(0, Math.min(Math.max(0, packLines().size() - visible), packsFirst - (int) Math.signum(amount)));
+			if (newFirst != packsFirst) {
+				packsFirst = newFirst;
 			}
 			return true;
 		}
@@ -875,8 +1054,36 @@ public final class AureliaPanelScreen extends Screen {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", drivingFirst + 1, Math.min(DRIVING_ROWS, drivingFirst + visibleRows()), DRIVING_ROWS), width / 2, height - 44, 0xAAAAAA);
 		} else if (tab == Tab.BUILDER && !isRailBuilder(client.player.getMainHandStack()) && !isRailBuilder(client.player.getOffHandStack())) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), width / 2, top + 6, 0xAAAAAA);
+		} else if (tab == Tab.PACKS) {
+			renderPacks(context);
 		}
 		super.render(context, mouseX, mouseY, delta);
+	}
+
+	/** Packs header, then the list. A bad file and its line sit under the pack rows in red. */
+	private void renderPacks(DrawContext context) {
+		final int errors = AureliaPacks.errorCount();
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.summary", AureliaPacks.packs().size(), AureliaPacks.entryCount(), errors, AureliaPacks.warningCount()), width / 2, top - 10, errors > 0 ? 0xFF5555 : 0xAAAAAA);
+		if (!PackSettings.enabled()) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.off"), width / 2, top + ROW * 2 + 8, 0xAAAAAA);
+			return;
+		}
+		final List<PackLine> lines = packLines();
+		final int listTop = top + ROW * 2 + 4;
+		final int visible = packsVisible();
+		packsFirst = Math.max(0, Math.min(packsFirst, Math.max(0, lines.size() - visible)));
+		for (int i = packsFirst; i < Math.min(lines.size(), packsFirst + visible); i++) {
+			final PackLine line = lines.get(i);
+			final String text = textRenderer.trimToWidth(line.text(), width - 32);
+			context.drawTextWithShadow(textRenderer, Text.literal(text), 16, listTop + (i - packsFirst) * 10, line.colour());
+		}
+		if (lines.size() > visible) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", packsFirst + 1, Math.min(lines.size(), packsFirst + visible), lines.size()), width / 2, height - 44, 0xAAAAAA);
+		}
+	}
+
+	private int packsVisible() {
+		return Math.max(1, (height - 36 - (top + ROW * 2 + 4)) / 10);
 	}
 
 	/** The block entities drawn in the last frame, red past the player's warning threshold. */

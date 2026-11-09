@@ -3,13 +3,16 @@ package com.aureliatransit.architecture.client;
 import com.aureliatransit.architecture.block.elevated.StyleCycle;
 import com.aureliatransit.architecture.client.interactive.EditorWidgets;
 import com.aureliatransit.architecture.network.ModPackets;
+import com.aureliatransit.architecture.station.AirportPresets;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
 import com.aureliatransit.architecture.station.StationPresets;
 import com.aureliatransit.architecture.station.StationRecipe;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
+import com.aureliatransit.architecture.station.world.WrenchMode;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -54,11 +57,15 @@ public class StationWrenchScreen extends Screen {
 	private static final int MAX_PREVIEW = 480;
 	/** Typing waits this long before the preview replans. */
 	private static final long PREVIEW_DELAY_MS = 350;
+	private static final int MODE_ROW = 22;
+	private static final int AIRPORT_COLUMNS = 3;
+	private static final int AIRPORT_GRID_ROW = 20;
 
 	private final Hand hand;
 	private final String initial;
 	private final StationRecipe initialRecipe;
 	private StationRecipe recipe;
+	private WrenchMode mode;
 	private boolean advanced;
 	/** The advanced page's text; {@code custom} once the player typed or picked a preset, else it follows the choices. */
 	private String typed;
@@ -67,43 +74,150 @@ public class StationWrenchScreen extends Screen {
 	private final StationPreview preview = new StationPreview();
 	private long editedAt;
 	private boolean dragging;
+	/** Bridge and airport: whether the secondary tools are open under More. */
+	private boolean more;
 
 	public StationWrenchScreen(Hand hand, String description, StationRecipe recipe) {
+		this(hand, description, recipe, modeOf(hand));
+	}
+
+	public StationWrenchScreen(Hand hand, String description, StationRecipe recipe, WrenchMode mode) {
 		super(Text.translatable(KEY + "title"));
 		this.hand = hand;
 		this.initialRecipe = recipe;
 		this.recipe = recipe;
 		this.typed = description;
+		this.mode = mode;
 		// a description typed on the advanced page (not the one the choices make) reopens there
-		this.custom = !description.isEmpty() && !description.equals(recipe.description());
+		this.custom = mode == WrenchMode.STATION && !description.isEmpty() && !description.equals(recipe.description());
 		this.advanced = custom;
 		this.initial = description();
 	}
 
-	/** Opens the screen for the wrench in {@code hand} of the local player. */
+	/** The stack's own mode, or Station when the screen is opened without a wrench in hand (the dev screenshot hook). */
+	private static WrenchMode modeOf(Hand hand) {
+		final MinecraftClient client = MinecraftClient.getInstance();
+		return client.player == null ? WrenchMode.STATION : StationWrenchItem.mode(client.player.getStackInHand(hand));
+	}
+
+	/** Opens the screen for the wrench in {@code hand} of the local player, in the mode saved on that stack. */
 	public static void open(Hand hand) {
 		final MinecraftClient client = MinecraftClient.getInstance();
 		if (client.player != null && client.player.getStackInHand(hand).getItem() instanceof StationWrenchItem) {
 			final ItemStack stack = client.player.getStackInHand(hand);
-			client.setScreen(new StationWrenchScreen(hand, StationWrenchItem.description(stack), StationWrenchItem.recipe(stack)));
+			client.setScreen(new StationWrenchScreen(hand, StationWrenchItem.description(stack), StationWrenchItem.recipe(stack),
+					StationWrenchItem.mode(stack)));
 		}
+	}
+
+	/** Opens the wrench in a named mode, saving it on the stack and telling the server; used by the old ids and the ATR menu. */
+	public static void openMode(Hand hand, WrenchMode mode) {
+		final MinecraftClient client = MinecraftClient.getInstance();
+		if (client.player != null && client.player.getStackInHand(hand).getItem() instanceof StationWrenchItem) {
+			final ItemStack stack = client.player.getStackInHand(hand);
+			StationWrenchItem.setMode(stack, mode);
+			if (ClientPlayNetworking.canSend(ModPackets.STATION_WRENCH)) {
+				ClientPlayNetworking.send(ModPackets.STATION_WRENCH, ModPackets.writeStationWrench(hand, StationWrenchItem.Action.MODE,
+						StationWrenchItem.description(stack), StationWrenchItem.recipe(stack).encode(), mode));
+			}
+		}
+		open(hand);
+	}
+
+	public static void openStation(Hand hand) {
+		openMode(hand, WrenchMode.STATION);
+	}
+
+	public static void openAirport(Hand hand) {
+		openMode(hand, WrenchMode.AIRPORT);
+	}
+
+	public static void openBridge(Hand hand) {
+		openMode(hand, WrenchMode.BRIDGE);
+	}
+
+	public static void openEarthworks(Hand hand) {
+		openMode(hand, WrenchMode.EARTHWORKS);
 	}
 
 	@Override
 	protected void init() {
-		if (advanced) {
-			initAdvanced();
-		} else {
-			initSimple();
+		switch (mode) {
+			case AIRPORT -> initAirport();
+			case BRIDGE -> initBridge();
+			case EARTHWORKS -> initEarthworks();
+			case STATION -> {
+				if (advanced) {
+					initAdvanced();
+				} else {
+					initSimple();
+				}
+			}
 		}
-		if (previewWidth() > 0) {
+		initModes();
+		if (mode == WrenchMode.STATION && previewWidth() > 0) {
 			preview.show(description());
 		}
+	}
+
+	/** The four modes along the top; the active one is lit and the others switch the stack and redraw the page. */
+	private void initModes() {
+		final int left = left();
+		final int button = (WIDTH - 9) / 4;
+		final WrenchMode[] modes = WrenchMode.values();
+		for (int i = 0; i < modes.length; i++) {
+			final WrenchMode target = modes[i];
+			final ButtonWidget widget = ButtonWidget.builder(target.label(), b -> switchMode(target))
+					.dimensions(left + i * (button + 3), 8, button, 18).build();
+			widget.active = target != mode;
+			addDrawableChild(widget);
+		}
+	}
+
+	private void switchMode(WrenchMode target) {
+		if (target == mode) {
+			return;
+		}
+		mode = target;
+		advanced = false;
+		more = false;
+		if (client != null && client.player != null) {
+			final ItemStack stack = client.player.getStackInHand(hand);
+			StationWrenchItem.setMode(stack, target);
+			if (ClientPlayNetworking.canSend(ModPackets.STATION_WRENCH)) {
+				ClientPlayNetworking.send(ModPackets.STATION_WRENCH, ModPackets.writeStationWrench(hand, StationWrenchItem.Action.MODE,
+						description(), recipe.encode(), target));
+			}
+		}
+		clearAndInit();
+	}
+
+	/** Cycles the mode from the mouse wheel while sneaking, or the V key, and tells the server so its next click uses it. */
+	private void cycleMode(int step) {
+		final MinecraftClient client = MinecraftClient.getInstance();
+		if (client.player == null) {
+			return;
+		}
+		mode = mode.next(step);
+		advanced = false;
+		more = false;
+		StationWrenchItem.setMode(client.player.getStackInHand(hand), mode);
+		if (ClientPlayNetworking.canSend(ModPackets.STATION_WRENCH)) {
+			ClientPlayNetworking.send(ModPackets.STATION_WRENCH, ModPackets.writeStationWrench(hand, StationWrenchItem.Action.MODE,
+					description(), recipe.encode(), mode));
+		}
+		if (WrenchSettings.actionBar()) {
+			client.player.sendMessage(mode.label(), true);
+		}
+		clearAndInit();
 	}
 
 	// ---- preview --------------------------------------------------------------------------------------------------
 
 	private int previewWidth() {
+		if (mode != WrenchMode.STATION) {
+			return 0;
+		}
 		final int room = width - WIDTH - GAP - 16;
 		return room >= MIN_PREVIEW ? Math.min(room, MAX_PREVIEW) : 0;
 	}
@@ -133,7 +247,7 @@ public class StationWrenchScreen extends Screen {
 	@Override
 	public void tick() {
 		super.tick();
-		if (editedAt > 0 && System.currentTimeMillis() - editedAt >= PREVIEW_DELAY_MS && previewWidth() > 0) {
+		if (mode == WrenchMode.STATION && editedAt > 0 && System.currentTimeMillis() - editedAt >= PREVIEW_DELAY_MS && previewWidth() > 0) {
 			editedAt = 0;
 			preview.show(description());
 		}
@@ -165,6 +279,10 @@ public class StationWrenchScreen extends Screen {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+		if (client != null && client.player != null && client.player.isSneaking()) {
+			cycleMode(amount > 0 ? 1 : -1);
+			return true;
+		}
 		if (inPreview(mouseX, mouseY)) {
 			preview.zoom(amount);
 			return true;
@@ -175,8 +293,14 @@ public class StationWrenchScreen extends Screen {
 	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
 		// R resets the preview's camera when no text field is being typed in
-		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_R && !(getFocused() instanceof TextFieldWidget) && previewWidth() > 0) {
+		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_R && !(getFocused() instanceof TextFieldWidget) && mode == WrenchMode.STATION
+				&& previewWidth() > 0) {
 			preview.reset();
+			return true;
+		}
+		// V cycles the mode, like the keybinding while no screen is open
+		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_V && !(getFocused() instanceof TextFieldWidget)) {
+			cycleMode(1);
 			return true;
 		}
 		return super.keyPressed(keyCode, scanCode, modifiers);
@@ -272,11 +396,127 @@ public class StationWrenchScreen extends Screen {
 				typed = recipe.description();
 			}
 			clearAndInit();
-		}).dimensions(left, y, THIRD, 20).build();
+		}).dimensions(left, y, WIDTH, 20).build();
 		more.setTooltip(Tooltip.of(Text.translatable(KEY + "advanced.tip")));
 		addDrawableChild(more);
-		addDrawableChild(clearButton(left + THIRD + 4, y, THIRD));
-		addDrawableChild(studioButton(left + 2 * (THIRD + 4), y, THIRD));
+	}
+
+	// ---- airport page ----------------------------------------------------------------------------------------------
+
+	private int airportHeight() {
+		return 12 + (more ? 46 : 0) + 30 + ROW + ROW + 26;
+	}
+
+	private void initAirport() {
+		final int left = (width - WIDTH) / 2;
+		int y = top(airportHeight()) + 12;
+		if (more) {
+			final int presetWidth = (WIDTH - (AIRPORT_COLUMNS - 1) * 4) / AIRPORT_COLUMNS;
+			for (int i = 0; i < AirportPresets.ALL.size(); i++) {
+				final AirportPresets.Preset preset = AirportPresets.ALL.get(i);
+				addDrawableChild(ButtonWidget.builder(Text.translatable("screen.aurelia_transit_architecture.airport_wrench.preset." + preset.key()),
+								b -> airportText(preset.description()))
+						.dimensions(left + i % AIRPORT_COLUMNS * (presetWidth + 4), y + i / AIRPORT_COLUMNS * AIRPORT_GRID_ROW, presetWidth, 18)
+						.tooltip(Tooltip.of(Text.literal(preset.description()))).build());
+			}
+			y += ((AirportPresets.ALL.size() + AIRPORT_COLUMNS - 1) / AIRPORT_COLUMNS) * AIRPORT_GRID_ROW + 6;
+		}
+		final TextFieldWidget field = new TextFieldWidget(textRenderer, left, y, WIDTH, 18,
+				Text.translatable("screen.aurelia_transit_architecture.airport_wrench.description"));
+		field.setMaxLength(StationDescriptionParser.MAX_INPUT);
+		field.setText(typed);
+		field.setPlaceholder(Text.translatable("screen.aurelia_transit_architecture.airport_wrench.example").formatted(Formatting.DARK_GRAY));
+		field.setChangedListener(text -> {
+			typed = text;
+			editedAt = System.currentTimeMillis();
+		});
+		addDrawableChild(field);
+		y += 30;
+		addDrawableChild(airportAction(left, y, WIDTH, "plan", StationWrenchItem.Action.PLAN));
+		y += ROW;
+		final int third = (WIDTH - 8) / 3;
+		addDrawableChild(airportAction(left, y, third, "build", StationWrenchItem.Action.CONFIRM));
+		addDrawableChild(airportAction(left + third + 4, y, third, "undo", StationWrenchItem.Action.UNDO));
+		addDrawableChild(airportAction(left + 2 * (third + 4), y, third, "cancel", StationWrenchItem.Action.CANCEL));
+		y += ROW + 4;
+		addDrawableChild(ButtonWidget.builder(moreLabel(), b -> {
+			more = !more;
+			clearAndInit();
+		}).dimensions(left, y, WIDTH, 20).build());
+	}
+
+	private void airportText(String text) {
+		typed = text;
+		more = false;
+		clearAndInit();
+	}
+
+	// ---- bridge page -----------------------------------------------------------------------------------------------
+
+	private int bridgeHeight() {
+		return 12 + 2 * ROW + (more ? 2 * ROW : 0) + 24;
+	}
+
+	private void initBridge() {
+		final int left = (width - WIDTH) / 2;
+		int y = top(bridgeHeight()) + 12;
+		final int half = HALF;
+		commandButton(left, y, half, "bridge.capture", "atr_bridge capture ");
+		commandButton(left + half + 4, y, half, "bridge.preview", "atr_bridge preview ");
+		y += ROW;
+		commandButton(left, y, half, "bridge.build", "atr_bridge build ");
+		runButton(left + half + 4, y, half, "bridge.undo", "atr_bridge undo");
+		if (more) {
+			y += ROW + 4;
+			runButton(left, y, half, "bridge.list", "atr_bridge list");
+			commandButton(left + half + 4, y, half, "bridge.delete", "atr_bridge delete ");
+			y += ROW;
+			runButton(left, y, WIDTH, "bridge.help", "atr_bridge help");
+		}
+		y = top(bridgeHeight()) + bridgeHeight() - 20;
+		addDrawableChild(ButtonWidget.builder(moreLabel(), b -> {
+			more = !more;
+			clearAndInit();
+		}).dimensions(left, y, WIDTH, 20).build());
+	}
+
+	/** Puts a command in the chat box so the player can fill in its arguments. */
+	private void commandButton(int x, int y, int w, String key, String command) {
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + key), b -> {
+			sent = true;
+			close();
+			client.setScreen(new ChatScreen("/" + command));
+		}).dimensions(x, y, w, 20).build());
+	}
+
+	/** Runs a command with no arguments. */
+	private void runButton(int x, int y, int w, String key, String command) {
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + key), b -> {
+			sent = true;
+			close();
+			if (client != null && client.player != null) {
+				client.player.networkHandler.sendChatCommand(command);
+			}
+		}).dimensions(x, y, w, 20).build());
+	}
+
+	// ---- earthworks page -------------------------------------------------------------------------------------------
+
+	private static int earthworksHeight() {
+		return 12 + 24 + ROW + 16;
+	}
+
+	private void initEarthworks() {
+		final int left = (width - WIDTH) / 2;
+		final int top = top(earthworksHeight());
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "earthworks.guide"), b -> {
+			close();
+			CodexScreen.openChapter("Getting started");
+		}).dimensions(left, top + 12 + 24, WIDTH, 20).build());
+	}
+
+	private Text moreLabel() {
+		return Text.translatable(KEY + (more ? "less" : "more"));
 	}
 
 	/** Forgets everything the wrench remembers (choices, typed description, Studio design) and starts again from the defaults. */
@@ -353,7 +593,6 @@ public class StationWrenchScreen extends Screen {
 
 	/** Platform lengths the length button steps through, then back to the first. */
 	private static final int[] LENGTHS = {32, 48, 64, 96, 128, 160, 200, 250, 300};
-
 	private static int nextLength(int length) {
 		for (final int option : LENGTHS) {
 			if (option > length) {
@@ -425,10 +664,7 @@ public class StationWrenchScreen extends Screen {
 		addDrawableChild(action(left, y, HALF, "plan", StationWrenchItem.Action.PLAN));
 		addDrawableChild(action(left + HALF + 4, y, HALF, "preview", StationWrenchItem.Action.PREVIEW));
 		y += 24;
-		addDrawableChild(action(left, y, HALF, "build", StationWrenchItem.Action.CONFIRM));
-		final ButtonWidget replace = action(left + HALF + 4, y, HALF, "build_replace", StationWrenchItem.Action.CONFIRM_REPLACE_TERRAIN);
-		replace.setTooltip(Tooltip.of(Text.translatable(KEY + "build_replace.tip")));
-		addDrawableChild(replace);
+		addDrawableChild(action(left, y, WIDTH, "build", StationWrenchItem.Action.CONFIRM));
 		y += 24;
 		addDrawableChild(action(left, y, HALF, "cancel", StationWrenchItem.Action.CANCEL));
 		addDrawableChild(action(left + HALF + 4, y, HALF, "undo", StationWrenchItem.Action.UNDO));
@@ -456,48 +692,81 @@ public class StationWrenchScreen extends Screen {
 
 	// ---- shared ---------------------------------------------------------------------------------------------------
 
-	/** What the server plans: the typed text on the advanced page, the choices' description on the simple one. */
+	/** What the server plans: the typed text on the advanced and airport pages, the choices' description on the simple one. */
 	private String description() {
-		return advanced ? typed.strip() : recipe.description();
+		if (mode == WrenchMode.AIRPORT) {
+			return typed.strip();
+		}
+		return mode == WrenchMode.STATION && advanced ? typed.strip() : recipe.description();
 	}
 
 	private ButtonWidget action(int x, int y, int buttonWidth, String key, StationWrenchItem.Action action) {
 		return ButtonWidget.builder(Text.translatable(KEY + key), button -> send(action)).dimensions(x, y, buttonWidth, 20).build();
 	}
 
+	private ButtonWidget airportAction(int x, int y, int buttonWidth, String key, StationWrenchItem.Action action) {
+		return ButtonWidget.builder(Text.translatable("screen.aurelia_transit_architecture.airport_wrench." + key), button -> send(action))
+				.dimensions(x, y, buttonWidth, 20).build();
+	}
+
 	private void send(StationWrenchItem.Action action) {
 		sent = true;
-		ClientPlayNetworking.send(ModPackets.STATION_WRENCH, ModPackets.writeStationWrench(hand, action, description(), recipe.encode()));
+		ClientPlayNetworking.send(ModPackets.STATION_WRENCH, ModPackets.writeStationWrench(hand, action, description(), recipe.encode(), mode));
 		close();
+	}
+
+	@Override
+	public Text getTitle() {
+		return mode.label();
 	}
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		renderBackground(context);
-		if (previewWidth() > 0) {
+		if (mode == WrenchMode.STATION && previewWidth() > 0) {
 			final int[] box = previewBox();
 			preview.render(context, box[0], box[1], box[2], box[3]);
 		}
 		super.render(context, mouseX, mouseY, delta);
 		final int left = left();
-		if (advanced) {
-			final int top = top(advancedHeight());
-			context.drawCenteredTextWithShadow(textRenderer, title, left + WIDTH / 2, top - 16, 0xFFFFFF);
-			context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "example"), left, top + 22, 0x9AA0A6);
-			context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "hint"), left, top + 32, 0x9AA0A6);
-			return;
+		switch (mode) {
+			case AIRPORT -> {
+				final int top = top(airportHeight());
+				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + WIDTH / 2, top - 16, 0xFFFFFF);
+				context.drawTextWithShadow(textRenderer, Text.translatable("screen.aurelia_transit_architecture.airport_wrench.hint"), left, top, 0x9AA0A6);
+			}
+			case BRIDGE -> {
+				final int top = top(bridgeHeight());
+				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + WIDTH / 2, top - 16, 0xFFFFFF);
+				context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "bridge.hint"), left, top, 0x9AA0A6);
+			}
+			case EARTHWORKS -> {
+				final int top = top(earthworksHeight());
+				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + WIDTH / 2, top - 16, 0xFFFFFF);
+				context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.soon"), left + WIDTH / 2, top + 12, 0xE0C060);
+				context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.body"), left + WIDTH / 2, top + 12 + 12, 0x9AA0A6);
+			}
+			case STATION -> {
+				if (advanced) {
+					final int top = top(advancedHeight());
+					context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + WIDTH / 2, top - 16, 0xFFFFFF);
+					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "example"), left, top + 22, 0x9AA0A6);
+					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "hint"), left, top + 32, 0x9AA0A6);
+				} else {
+					final int top = top(simpleHeight());
+					context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + WIDTH / 2, top - 16, 0xFFFFFF);
+					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "step_look"), left, top, 0xE0C060);
+					final int summary = top + summaryOffset() + 1;
+					context.drawCenteredTextWithShadow(textRenderer, Text.literal(recipe.title()), left + WIDTH / 2, summary, 0xFFFFFF);
+					context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "step_place"), left + WIDTH / 2, summary + 11, 0x9AA0A6);
+				}
+			}
 		}
-		final int top = top(simpleHeight());
-		context.drawCenteredTextWithShadow(textRenderer, title, left + WIDTH / 2, top - 16, 0xFFFFFF);
-		context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "step_look"), left, top, 0xE0C060);
-		final int summary = top + summaryOffset() + 1;
-		context.drawCenteredTextWithShadow(textRenderer, Text.literal(recipe.title()), left + WIDTH / 2, summary, 0xFFFFFF);
-		context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "step_place"), left + WIDTH / 2, summary + 11, 0x9AA0A6);
 	}
 
-	/** The first row's y; the whole page is centred vertically. */
+	/** The first row's y; the whole page is centred vertically under the mode row and its title. */
 	private int top(int total) {
-		return Math.max(24, (height - total) / 2);
+		return Math.max(MODE_ROW + 22, (height - total) / 2);
 	}
 
 	@Override
@@ -508,10 +777,13 @@ public class StationWrenchScreen extends Screen {
 	@Override
 	public void removed() {
 		preview.close();
+		if (mode != WrenchMode.STATION && mode != WrenchMode.AIRPORT) {
+			return;
+		}
 		if (!sent && (!description().equals(initial) || !recipe.equals(initialRecipe))) {
 			sent = true;
 			ClientPlayNetworking.send(ModPackets.STATION_WRENCH,
-					ModPackets.writeStationWrench(hand, StationWrenchItem.Action.SAVE, description(), recipe.encode()));
+					ModPackets.writeStationWrench(hand, StationWrenchItem.Action.SAVE, description(), recipe.encode(), mode));
 		}
 	}
 }

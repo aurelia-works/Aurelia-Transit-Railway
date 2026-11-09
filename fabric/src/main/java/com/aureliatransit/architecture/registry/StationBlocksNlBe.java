@@ -5,7 +5,9 @@ import com.aureliatransit.architecture.block.FacingShapedBlock;
 import com.aureliatransit.architecture.block.GlassFacingBlock;
 import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.block.ShapedBlock;
+import com.aureliatransit.architecture.block.elevated.HandrailBlock;
 import com.aureliatransit.architecture.block.TextLayout;
+import com.aureliatransit.architecture.block.NameSignBlock;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.block.mtr.MtrPlatformContract;
 import com.aureliatransit.architecture.text.SignStyle;
@@ -114,7 +116,7 @@ public final class StationBlocksNlBe {
 	// ---- Dutch-style signage (colours only, no operator branding) --------------------------------------------------
 
 	public static final Block DUTCH_STATION_SIGN = ModBlocks.register("dutch_station_sign", BlockFamily.STATIONS_NL_BE, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 6),
+			new NameSignBlock(ModBlocks.metal().luminance(state -> 6),
 					new TextLayout(11.5F, 8, 16, 6.5F, 9.5F, true, SignStyle.DUTCH_STATION),
 					union(box(0, 7, 6.5, 16, 16, 9.5), box(1, 0, 7, 3, 7, 9), box(13, 0, 7, 15, 7, 9))),
 			TIP_EDITABLE, TIP_JOINS);
@@ -132,6 +134,22 @@ public final class StationBlocksNlBe {
 	private static AbstractBlock.Settings solid(MapColor color, BlockSoundGroup sounds) {
 		return AbstractBlock.Settings.create().mapColor(color).strength(2.0F, 6.0F).sounds(sounds);
 	}
+
+	/** An NS platform edge: a pale concrete coping on the track side, then dark paving with the white dashed safety line. */
+	public static final Block NS_PLATFORM_EDGE = ModBlocks.register("ns_platform_edge", BlockFamily.STATIONS_NL_BE, RenderKind.SOLID,
+			MtrPlatformContract.edge(ModBlocks.paving(MapColor.STONE_GRAY).nonOpaque(), Placement.AWAY_FROM_PLAYER,
+					union(box(0, 12, 0, 16, 16, 16), box(0, 0, 2, 16, 12, 16))), TIP + "points_away");
+	/** Dark NS platform paving with the white ribbed guidance lines for blind people, running along the platform. */
+	public static final Block NS_PLATFORM_GUIDANCE = ModBlocks.register("ns_platform_guidance", BlockFamily.STATIONS_NL_BE, RenderKind.SOLID,
+			MtrPlatformContract.edge(ModBlocks.paving(MapColor.STONE_GRAY), Placement.AWAY_FROM_PLAYER, box(0, 0, 0, 16, 16, 16)),
+			TIP + "points_away");
+
+	/** The slim anthracite corner post of an NS lift tower; the glass panes end on it. */
+	public static final Block NS_LIFT_POST = ModBlocks.register("ns_lift_post", BlockFamily.STATIONS_NL_BE, RenderKind.SOLID,
+			new ShapedBlock(ModBlocks.metal(), box(4, 0, 4, 12, 16, 12)));
+	/** NS stairs, ramps and platform ends carry red handrails; it joins every other railing like the steel one. */
+	public static final Block NS_HANDRAIL = ModBlocks.register("ns_handrail", BlockFamily.STATIONS_NL_BE, RenderKind.TRANSLUCENT,
+			new HandrailBlock(ModBlocks.metal()));
 
 	public static void init() {
 		// Class loading registers everything above.

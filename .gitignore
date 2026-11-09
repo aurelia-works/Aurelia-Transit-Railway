@@ -46,6 +46,8 @@ forge/src/main/resources/META-INF
 fabric.mod.json
 # The dev-only perf bench mod has no template; its fabric.mod.json is the source
 !fabric/src/perfbench/resources/fabric.mod.json
+# The dev-only trailer camera mod has no template either; same deal
+!fabric/src/camera/resources/fabric.mod.json
 mtr.accesswidener
 Keys.java
 Patreon.java

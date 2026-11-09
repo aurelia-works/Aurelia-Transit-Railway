@@ -11,8 +11,14 @@ final BuildTools buildTools = new BuildTools(minecraftVersion, "fabric", project
 
 // Dev-only perf bench mod (src/perfbench): never part of the release jar. `./gradlew :fabric:runPerfbench` boots into
 // fabric/run/perf/saves/ATU Test (a copy of ATU's bench folder: NS pack, Iris, Complementary) and writes perfbench.txt there.
+// Dev-only trailer camera recorder (src/camera): keyframes, Catmull-Rom playback and its panel. Never part of the
+// release jar; `./gradlew :fabric:runTrailer` loads it next to the main mod. `verifyNoCameraInReleaseJar` proves the jar is clean.
 sourceSets {
 	perfbench {
+		compileClasspath += main.compileClasspath + main.output
+		runtimeClasspath += main.runtimeClasspath + main.output
+	}
+	camera {
 		compileClasspath += main.compileClasspath + main.output
 		runtimeClasspath += main.runtimeClasspath + main.output
 	}
@@ -22,6 +28,13 @@ sourceSets {
 	}
 }
 
+// The recorder's pure-Java maths (src/camera) is covered by :fabric:test, so the test source set reads the dev-only output.
+// Tests never ship, and the release jar still packs main only.
+sourceSets.named("test") {
+	compileClasspath += sourceSets.getByName("camera").output
+	runtimeClasspath += sourceSets.getByName("camera").output
+}
+
 loom {
 	accessWidenerPath = file("src/main/resources/mtr.accesswidener")
 	runConfigs.configureEach { ideConfigGenerated = true }
@@ -29,6 +42,7 @@ loom {
 	mods {
 		mtr { sourceSet sourceSets.main }
 		atr_perfbench { sourceSet sourceSets.perfbench }
+		atr_camera { sourceSet sourceSets.camera }
 	}
 	runs {
 		perfbench {
@@ -48,6 +62,12 @@ loom {
 			programArgs "--quickPlaySingleplayer", "ATR Passenger Demo"
 			vmArg "-Dsodium.checks.issue2561=false"
 			vmArg "-Datr.passengerdemo=true"
+		}
+		trailer {
+			client()
+			name = "ATR trailer camera"
+			source sourceSets.camera
+			vmArg "-Dsodium.checks.issue2561=false"
 		}
 	}
 }
@@ -282,3 +302,23 @@ tasks.named("processGametestResources") {
 	}
 }
 tasks.named("check") { dependsOn("ataTest") }
+
+// TR-1: the dev-only camera recorder must never ship. Scans the built release jar for recorder classes.
+tasks.register("verifyNoCameraInReleaseJar") {
+	dependsOn("remapJar")
+	doLast {
+		final def jarFile = tasks.named("remapJar").get().archiveFile.get().asFile
+		final def bad = []
+		new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+			zip.entries().each { entry ->
+				if (entry.name.startsWith("org/mtr/camera/")) {
+					bad.add(entry.name)
+				}
+			}
+		}
+		if (!bad.isEmpty()) {
+			throw new GradleException("Release jar must not contain dev camera recorder classes: " + bad)
+		}
+	}
+}
+tasks.named("check") { dependsOn("verifyNoCameraInReleaseJar") }

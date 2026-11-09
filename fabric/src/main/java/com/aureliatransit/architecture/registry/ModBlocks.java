@@ -15,6 +15,7 @@ import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.block.ShapedBlock;
 import com.aureliatransit.architecture.block.SignPoleBlock;
 import com.aureliatransit.architecture.block.TextLayout;
+import com.aureliatransit.architecture.block.NameSignBlock;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.block.mtr.MtrPlatformContract;
 import com.aureliatransit.architecture.block.wayfinding.CarStopMarkerBlock;
@@ -110,7 +111,7 @@ public final class ModBlocks {
 	// ---- Signage ---------------------------------------------------------------------------------------------------
 
 	public static final Block STATION_NAME_SIGN = register("station_name_sign", BlockFamily.SIGNAGE, RenderKind.CUTOUT,
-			new TextSignBlock(metal().luminance(state -> 6),
+			new NameSignBlock(metal().luminance(state -> 6),
 					new TextLayout(11.5F, 8, 16, 6.5F, 9.5F, true, SignStyle.STATION),
 					union(box(0, 7, 6.5, 16, 16, 9.5), box(1, 0, 7, 3, 7, 9), box(13, 0, 7, 15, 7, 9))),
 			TIP_EDITABLE, TIP_JOINS);

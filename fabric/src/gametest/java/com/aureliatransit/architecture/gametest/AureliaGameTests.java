@@ -1,6 +1,7 @@
 package com.aureliatransit.architecture.gametest;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
+import com.aureliatransit.architecture.block.MtrBrush;
 import com.aureliatransit.architecture.block.SignPoleBlock;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.block.mtr.MtrFareContract;
@@ -373,8 +374,8 @@ public class AureliaGameTests implements FabricGameTest {
 				context.setBlockState(pos.west(), Blocks.STONE);
 				context.setBlockState(pos, board.getDefaultState().with(CarStopBlock.WALL, wall).with(CarStopBlock.FACING, Direction.EAST).with(cars, min));
 				player.setSneaking(false);
-				// the mod hands every new player a transit card; the cycle needs an empty hand
-				player.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
+				// the mod hands every new player a transit card; the cycle needs the MTR brush in hand
+				player.setStackInHand(Hand.MAIN_HAND, brush());
 				// right-click counts up through every number and wraps back to the lowest
 				for (int expected = min + 1; expected <= max; expected++) {
 					rightClick(context, player, pos);
@@ -396,7 +397,12 @@ public class AureliaGameTests implements FabricGameTest {
 				if (withBlock != ActionResult.PASS || context.getBlockState(pos).get(cars) != before) {
 					problems.add(entry.id() + ": a block in hand must not cycle the number (result " + withBlock + ")");
 				}
+				// an empty hand does nothing: only the brush edits
 				player.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
+				final ActionResult bare = use(context, player, pos);
+				if (bare != ActionResult.PASS || context.getBlockState(pos).get(cars) != before) {
+					problems.add(entry.id() + ": an empty hand must not cycle the number (result " + bare + ")");
+				}
 			}
 		}
 		Fixtures.removePlayer(context, player);
@@ -472,6 +478,11 @@ public class AureliaGameTests implements FabricGameTest {
 		}
 		failIfAny(problems, "screen arm");
 		context.complete();
+	}
+
+	/** MTR's brush, the tool every editable block answers to. */
+	private static ItemStack brush() {
+		return new ItemStack(Registries.ITEM.get(MtrBrush.ID));
 	}
 
 	private static ActionResult use(TestContext context, ServerPlayerEntity player, BlockPos pos) {
@@ -553,11 +564,15 @@ public class AureliaGameTests implements FabricGameTest {
 			if (!ModBlockEntities.TEXT_SIGN.supports(context.getBlockState(pos))) {
 				problems.add(id + ": TEXT_SIGN block entity type does not support it");
 			}
-			// empty hand: server side consumes the click (the client opens the editor); a block item in hand just places
+			// the MTR brush: server side consumes the click (the client opens the editor); an empty hand or a block item passes
+			player.setStackInHand(Hand.MAIN_HAND, brush());
+			final ActionResult withBrush = use(context, player, pos);
+			if (!withBrush.isAccepted()) {
+				problems.add(id + ": brush right-click returned " + withBrush + ", expected the click to be consumed (editor opens)");
+			}
 			player.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
-			final ActionResult empty = use(context, player, pos);
-			if (!empty.isAccepted()) {
-				problems.add(id + ": empty-hand right-click returned " + empty + ", expected the click to be consumed (editor opens)");
+			if (use(context, player, pos) != ActionResult.PASS) {
+				problems.add(id + ": an empty hand must pass; only the brush opens the editor");
 			}
 			player.setStackInHand(Hand.MAIN_HAND, new ItemStack(Items.STONE));
 			if (use(context, player, pos) != ActionResult.PASS) {

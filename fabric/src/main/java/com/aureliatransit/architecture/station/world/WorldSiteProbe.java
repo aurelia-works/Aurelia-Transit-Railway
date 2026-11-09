@@ -53,9 +53,13 @@ public final class WorldSiteProbe implements SiteProbe {
 		this.held = new ChunkHold(cap);
 	}
 
-	/** A loading probe that reads each cell of {@code under} as the state given there instead of the world's. */
+	/**
+	 * A loading probe that reads each cell of {@code under} as the state given there instead of the world's. Copied into a HashMap,
+	 * not {@code Map.copyOf}: the immutable map probes linearly, and the hash codes of an airport's dense flat cells cluster, so an
+	 * 800k-cell rebuild spent over an hour building and reading it.
+	 */
 	public static WorldSiteProbe under(ServerWorld world, Map<BlockPos, BlockState> under) {
-		return new WorldSiteProbe(world, true, Map.copyOf(under), ChunkHold.DEFAULT_CAP);
+		return new WorldSiteProbe(world, true, java.util.Collections.unmodifiableMap(new java.util.HashMap<>(under)), ChunkHold.DEFAULT_CAP);
 	}
 
 	private BlockState state(BlockPos pos) {

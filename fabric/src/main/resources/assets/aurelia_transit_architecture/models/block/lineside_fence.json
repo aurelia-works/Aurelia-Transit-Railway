@@ -1,0 +1,20 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "particle": "aurelia_transit_architecture:block/steel_dark",
+    "post": "aurelia_transit_architecture:block/steel_dark",
+    "mesh": "aurelia_transit_architecture:block/lineside_mesh"
+  },
+  "elements": [
+    {"from": [0, 0, 0.5], "to": [16, 15, 0.5], "faces": {
+      "north": {"uv": [0, 1, 16, 16], "texture": "#mesh"}, "south": {"uv": [0, 1, 16, 16], "texture": "#mesh"}}},
+    {"from": [0, 15, 0], "to": [16, 16, 1], "faces": {
+      "north": {"uv": [0, 0, 16, 1], "texture": "#post"}, "south": {"uv": [0, 0, 16, 1], "texture": "#post"},
+      "up": {"uv": [0, 0, 16, 1], "texture": "#post"}, "down": {"uv": [0, 0, 16, 1], "texture": "#post"},
+      "east": {"uv": [0, 0, 1, 1], "texture": "#post"}, "west": {"uv": [0, 0, 1, 1], "texture": "#post"}}},
+    {"from": [0, 0, 0], "to": [1, 16, 1], "faces": {
+      "north": {"uv": [0, 0, 1, 16], "texture": "#post"}, "south": {"uv": [0, 0, 1, 16], "texture": "#post"},
+      "east": {"uv": [0, 0, 1, 16], "texture": "#post"}, "west": {"uv": [0, 0, 1, 16], "texture": "#post"},
+      "up": {"uv": [0, 0, 1, 1], "texture": "#post"}}}
+  ]
+}

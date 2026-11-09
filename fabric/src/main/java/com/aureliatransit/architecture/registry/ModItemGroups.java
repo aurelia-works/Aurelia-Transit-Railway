@@ -1,6 +1,7 @@
 package com.aureliatransit.architecture.registry;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
+import com.aureliatransit.architecture.block.NameSignBlock;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemGroup;
@@ -44,13 +45,14 @@ public final class ModItemGroups {
 						.entries((context, entries) -> {
 							ModBlocks.entries().stream()
 									.filter(entry -> entry.family().tab() == tab)
+									// one name sign in the tab; its other looks are picked with the MTR brush
+									.filter(entry -> !(entry.block() instanceof NameSignBlock sign && sign.hiddenLook()))
 									.sorted(Comparator.comparing(ModBlocks.Entry::family))
 									.forEach(entry -> entries.add(entry.block()));
 							if (tab == BlockFamily.Tab.PASSENGER_EQUIPMENT) {
 								entries.add(ModItems.TRANSIT_CARD);
 								entries.add(ModItems.POCKET_TIMETABLE);
-								entries.add(ModItems.STATION_WRENCH);
-								entries.add(ModItems.AIRPORT_WRENCH);
+								entries.add(ModItems.WRENCH);
 								entries.add(ModItems.STATION_CODEX);
 								entries.add(org.mtr.mod.zip.ZipContent.POLE_ITEM);
 								entries.add(org.mtr.mod.zip.ZipContent.HANDLE);

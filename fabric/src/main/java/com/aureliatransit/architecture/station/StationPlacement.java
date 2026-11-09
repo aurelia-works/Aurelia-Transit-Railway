@@ -20,7 +20,7 @@ public final class StationPlacement {
 		if (spec.isAirport()) {
 			// beside the road in front of the terminal (or the apron), level with the middle of the gates
 			final AirportGeometry airport = AirportGeometry.of(spec.airport());
-			return new int[]{-1, 0, (airport.apronV0() + airport.apronV1()) / 2};
+			return new int[]{-1, depth(spec), (airport.apronV0() + airport.apronV1()) / 2};
 		}
 		if (layout.terminus()) {
 			return new int[]{(layout.headFrom() + layout.headTo()) / 2, 0, layout.vMax() + 1};
@@ -39,9 +39,13 @@ public final class StationPlacement {
 	/**
 	 * How far below the street an underground station's rail level is: the box's ceiling slab is the street's surface, so a
 	 * player standing on it (where the station is planned from) is at local {@link StationGeometry#UPPER_WALK_Y}; a deep station's street is {@link StationOptions#streetDepth} up. 0 for a
-	 * station at ground level.
+	 * station at ground level. An airport is 1: its pavement and grass replace the ground's top layer, flush with the field round
+	 * it, instead of standing a block proud of it with a dirt edge at every gap.
 	 */
 	public static int depth(StationSpec spec) {
+		if (spec.isAirport()) {
+			return 1;
+		}
 		if (spec.options().deepStation()) {
 			return spec.options().streetDepth();
 		}
