@@ -66,6 +66,8 @@ public final class StationSessions {
 
 	private static final Map<UUID, Pending> PENDING = new HashMap<>();
 	private static final Map<UUID, StationPreview> PREVIEWS = new HashMap<>();
+	/** Players who chose the old particle outline instead of the hologram on the dev panel. */
+	private static final Map<UUID, Boolean> PARTICLE_PREVIEW = new HashMap<>();
 	private static final Map<UUID, Built> BUILT = new HashMap<>();
 	private static final Map<UUID, StationBuildJob> JOBS = new LinkedHashMap<>();
 	private static final Map<UUID, Task> TASKS = new LinkedHashMap<>();
@@ -113,12 +115,31 @@ public final class StationSessions {
 		return PREVIEWS.get(player);
 	}
 
+	/** Stops a running particle outline without touching the pending plan. */
+	public static void stopPreview(UUID player) {
+		PREVIEWS.remove(player);
+	}
+
+	/** True when the player chose the old particle outline instead of the hologram. */
+	public static boolean particlePreview(UUID player) {
+		return Boolean.TRUE.equals(PARTICLE_PREVIEW.get(player));
+	}
+
+	public static void setParticlePreview(UUID player, boolean on) {
+		if (on) {
+			PARTICLE_PREVIEW.put(player, Boolean.TRUE);
+		} else {
+			PARTICLE_PREVIEW.remove(player);
+		}
+	}
+
 	/** A player left: their pending plan, preview and site task go, a running job keeps going. */
 	public static void forgetPlayer(UUID player) {
 		cancelTask(player);
 		discard(player);
 		BUILT.remove(player);
 		LAST_CANCEL.remove(player);
+		PARTICLE_PREVIEW.remove(player);
 	}
 
 	/** True (and starts the cooldown) when the player's last wrench cancel is at least {@code cooldown} ticks old. */
@@ -257,6 +278,7 @@ public final class StationSessions {
 	public static void clear() {
 		PENDING.clear();
 		PREVIEWS.clear();
+		PARTICLE_PREVIEW.clear();
 		BUILT.clear();
 		JOBS.clear();
 		TASKS.values().forEach(Task::cancel);
