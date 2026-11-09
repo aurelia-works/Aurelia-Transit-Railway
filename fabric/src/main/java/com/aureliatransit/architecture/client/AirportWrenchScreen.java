@@ -39,11 +39,9 @@ public class AirportWrenchScreen extends Screen {
 		this.words = words;
 	}
 
+	/** Old airport-wrench id: the same screen as the one wrench, opened in Airport mode. */
 	public static void open(Hand hand) {
-		final MinecraftClient client = MinecraftClient.getInstance();
-		if (client.player != null) {
-			client.setScreen(new AirportWrenchScreen(hand, StationWrenchItem.description(client.player.getStackInHand(hand))));
-		}
+		StationWrenchScreen.openAirport(hand);
 	}
 
 	@Override
@@ -77,7 +75,8 @@ public class AirportWrenchScreen extends Screen {
 
 	private void send(StationWrenchItem.Action action) {
 		words = field.getText();
-		ClientPlayNetworking.send(ModPackets.STATION_WRENCH, ModPackets.writeStationWrench(hand, action, words, ""));
+		ClientPlayNetworking.send(ModPackets.STATION_WRENCH, ModPackets.writeStationWrench(hand, action, words, "",
+				com.aureliatransit.architecture.station.world.WrenchMode.AIRPORT));
 		sent = true;
 		close();
 	}
@@ -94,7 +93,8 @@ public class AirportWrenchScreen extends Screen {
 	public void close() {
 		// closing without an action saves the words on the wrench, so its next click on the ground plans them
 		if (!sent && field != null && !field.getText().equals(StationWrenchItem.description(client.player.getStackInHand(hand)))) {
-			ClientPlayNetworking.send(ModPackets.STATION_WRENCH, ModPackets.writeStationWrench(hand, StationWrenchItem.Action.SAVE, field.getText(), ""));
+			ClientPlayNetworking.send(ModPackets.STATION_WRENCH, ModPackets.writeStationWrench(hand, StationWrenchItem.Action.SAVE, field.getText(), "",
+					com.aureliatransit.architecture.station.world.WrenchMode.AIRPORT));
 		}
 		super.close();
 	}

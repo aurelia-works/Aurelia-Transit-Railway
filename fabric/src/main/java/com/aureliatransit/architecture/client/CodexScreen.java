@@ -82,6 +82,18 @@ public final class CodexScreen extends Screen {
 		MinecraftClient.getInstance().setScreen(new CodexScreen());
 	}
 
+	/** Opens the Codex on the first page of the chapter with {@code title}, or the contents when there is no such chapter. */
+	public static void openChapter(String title) {
+		final int[] first = GuidePages.firstPages(StationGuide.CHAPTERS);
+		for (int i = 0; i < StationGuide.CHAPTERS.size(); i++) {
+			if (StationGuide.CHAPTERS.get(i).title().equals(title)) {
+				lastSpread = Math.max(0, first[i] - 1) & ~1;
+				break;
+			}
+		}
+		open();
+	}
+
 	private int left() {
 		return (width - 2 * PAGE_WIDTH - TAB_WIDTH) / 2;
 	}

@@ -8,10 +8,11 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 
 /**
- * Common/server init of the station generator: the {@code /ata_station} and {@code /ata_guide} commands, the guide book on an
- * operator's first join, one server tick listener (idle unless a
- * build or preview is running), the station wrench's left-click and cleanup when players leave or the server stops. The
- * wrench item is registered in {@code ModItems} and its screen packet in {@code ModPackets}.
+ * Common/server init of the station generator: the {@code /ata_station} actions and {@code /ata_guide} commands, the guide
+ * book on an operator's first join, one server tick listener (idle unless a build or preview is running), the wrench's
+ * left-click and cleanup when players leave or the server stops. The word command is registered only for the scripted visual
+ * shots ({@code -Datr.visualshots=...}); players plan from the wrench and the ATR menu. The wrench item is registered in
+ * {@code ModItems} and its screen packet in {@code ModPackets}.
  */
 public final class StationSystems {
 
@@ -20,7 +21,7 @@ public final class StationSystems {
 
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-			StationCommand.register(dispatcher);
+			StationCommand.register(dispatcher, System.getProperty("atr.visualshots") != null);
 			StationGuide.register(dispatcher);
 		});
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {

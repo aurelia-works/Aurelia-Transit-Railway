@@ -9,6 +9,7 @@ import com.aureliatransit.architecture.station.StationDescriptionParser;
 import com.aureliatransit.architecture.station.world.StationActions;
 import com.aureliatransit.architecture.station.world.StationBuildSettings;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
+import com.aureliatransit.architecture.station.world.WrenchMode;
 import com.aureliatransit.architecture.text.ConfigurableTextData;
 import com.aureliatransit.architecture.text.SignData;
 import com.aureliatransit.architecture.wayfinding.WayfindingData;
@@ -77,11 +78,16 @@ public final class ModPackets {
 	}
 
 	public static PacketByteBuf writeStationWrench(Hand hand, StationWrenchItem.Action action, String description, String recipe) {
+		return writeStationWrench(hand, action, description, recipe, WrenchMode.STATION);
+	}
+
+	public static PacketByteBuf writeStationWrench(Hand hand, StationWrenchItem.Action action, String description, String recipe, WrenchMode mode) {
 		final PacketByteBuf buf = PacketByteBufs.create();
 		buf.writeVarInt(hand.ordinal());
 		buf.writeVarInt(action.ordinal());
 		buf.writeString(description, StationDescriptionParser.MAX_INPUT);
 		buf.writeString(recipe, StationWrenchItem.MAX_RECIPE);
+		buf.writeVarInt(mode.ordinal());
 		return buf;
 	}
 
@@ -146,6 +152,7 @@ public final class ModPackets {
 			final StationWrenchItem.Action action;
 			final String description;
 			final String recipe;
+			final WrenchMode mode;
 			try {
 				final int handIndex = buf.readVarInt();
 				final int actionIndex = buf.readVarInt();
@@ -156,10 +163,12 @@ public final class ModPackets {
 				action = StationWrenchItem.Action.values()[actionIndex];
 				description = buf.readString(StationDescriptionParser.MAX_INPUT);
 				recipe = buf.readString(StationWrenchItem.MAX_RECIPE);
+				final int modeIndex = buf.readVarInt();
+				mode = modeIndex < 0 || modeIndex >= WrenchMode.values().length ? WrenchMode.STATION : WrenchMode.values()[modeIndex];
 			} catch (RuntimeException e) {
 				return;
 			}
-			server.execute(() -> StationWrenchItem.perform(player, hand, action, description, recipe));
+			server.execute(() -> StationWrenchItem.perform(player, hand, action, description, recipe, mode));
 		});
 		ServerPlayNetworking.registerGlobalReceiver(UPDATE_WAYFINDING, (server, player, handler, buf, responseSender) -> {
 			final BlockPos pos;
