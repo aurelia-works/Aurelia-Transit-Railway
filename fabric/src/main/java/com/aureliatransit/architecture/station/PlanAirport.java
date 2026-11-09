@@ -89,6 +89,8 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String BRIDGE_WHEEL = "minecraft:black_concrete";
 	/** The landside canopy's diagonal brace: a slim 45-degree steel bar that rises the way it faces. */
 	static final String VIADUCT_BRACE = "aurelia_transit_architecture:viaduct_brace";
+	/** Rows between the airside wall's mullions, each carrying a roof strut. */
+	static final int AIRSIDE_BAY = 6;
 	static final String BAGGAGE_BELT = "aurelia_transit_architecture:baggage_belt";
 	static final String WINDSOCK = "aurelia_transit_architecture:windsock";
 	static final String TERMINAL_FLOOR = "aurelia_transit_architecture:terminal_terrazzo";
@@ -1385,9 +1387,11 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 		for (int y = StationGeometry.WALK_Y; y <= top; y++) {
 			for (int v = v0; v <= v1; v++) {
-				// airside: a full-height glass curtain wall on a solid plinth, a light metal mullion every four rows
+				// airside: a full-height glass curtain wall on a solid plinth, a metal mullion every six rows (where the roof's struts
+				// meet it) and a transom at door height, so it reads as a glazed grid as at Southend (ap03), not a row of pillars
 				final boolean plinth = y == StationGeometry.WALK_Y;
-				final boolean mullionAir = Math.floorMod(v - v0, 4) == 0 || v == v1;
+				final boolean mullionAir = Math.floorMod(v - v0, AIRSIDE_BAY) == 0 || v == v1
+						|| y == StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT;
 				put(plinth || mullionAir ? Role.WALL : Role.WINDOW, u1, y, v, LocalDir.PLUS_U,
 						plinth ? b.plinth() : mullionAir ? b.trim() : b.window());
 				// landside: a plinth, a band of glass with the same rhythm, a fascia
@@ -1473,6 +1477,7 @@ abstract class PlanAirport extends PlanFitOut {
 			put(Role.BIN, u1 - 2, StationGeometry.WALK_Y, c + off + 4, LocalDir.PLUS_U);
 		}
 		terminalRoofEdge();
+		terminalAirsideStruts();
 		terminalRoofPlant();
 		terminalSkylights();
 		terminalClerestory();
@@ -1520,6 +1525,22 @@ abstract class PlanAirport extends PlanFitOut {
 		for (int u = u0 - 2; u <= u1 + 3; u++) {
 			put(Role.BUILDING_ROOF, u, roofY + 1, v0 - 2, LocalDir.MINUS_V, b.trim());
 			put(Role.BUILDING_ROOF, u, roofY + 1, v1 + 2, LocalDir.PLUS_V, b.trim());
+		}
+	}
+
+	/**
+	 * Southend's struts (ap03, ap04): from every airside mullion a 45-degree steel brace rises out to the overhang's rim, so the
+	 * three-deep roof edge over the apron is visibly carried instead of floating over a flat glass wall.
+	 */
+	void terminalAirsideStruts() {
+		final int roofY = terminalRoofY();
+		final int u1 = air.terminalU1();
+		// up to three steps, ending under the soffit; a compact terminal's low wall gets a shorter strut that keeps door headroom
+		final int steps = Math.min(3, roofY - 1 - (StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT));
+		for (int v = air.terminalV0() + AIRSIDE_BAY; v < air.terminalV1(); v += AIRSIDE_BAY) {
+			for (int k = 1; k <= steps; k++) {
+				put(Role.RIB, u1 + k, roofY - 2 - steps + k, v, LocalDir.PLUS_U, VIADUCT_BRACE, "kind=diagonal");
+			}
 		}
 	}
 
