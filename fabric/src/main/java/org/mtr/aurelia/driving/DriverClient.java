@@ -107,6 +107,11 @@ public final class DriverClient {
 		WorldRenderEvents.BEFORE_DEBUG_RENDER.register(DriverClient::renderStopMarker);
 	}
 
+	/** True while the player drives a train with a valid key, so the cab HUD (with its own speed) is up. */
+	public static boolean isDriving() {
+		return vehicle != null;
+	}
+
 	private static void tick(MinecraftClient client) {
 		final boolean acknowledge = drain(awsKey);
 		final boolean tpwsReset = drain(tpwsResetKey);
