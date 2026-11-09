@@ -326,7 +326,8 @@ abstract class PlanAirport extends PlanFitOut {
 
 	/**
 	 * Approach lighting at both ends and the visual glidepath beside the touchdown zone: white lights every third cell up the extended
-	 * centreline with one crossbar across the zone (a simple approach system; a lamp on every cell with many bars read as a ladder), a red end-light row one cell outside each threshold, and four PAPI boxes on the west side. The bars sit on
+	 * centreline with one crossbar across the zone, each a lamp on a short frangible post so it stands out of the grass (a simple
+	 * approach system; flush lamps on every cell with many bars read as a ladder of dark dots), a red end-light row one cell outside each threshold, and four PAPI boxes on the west side. The bars sit on
 	 * the narrow grass strips the geometry keeps clear for them; the red end lights sit on the blast pads, set flush.
 	 */
 	void approachLights() {
@@ -336,10 +337,12 @@ abstract class PlanAirport extends PlanFitOut {
 			final int from = high ? air.runwayV1() + blink + 2 : air.runwayV0() - blink - 2;
 			final int step = high ? 1 : -1;
 			for (int k = 0; k <= 18; k += 3) {
-				light(c, from + step * k, EDGE_LIGHT);
+				approachLight(c, from + step * k);
 			}
 			for (int du = -3; du <= 3; du++) {
-				light(c + du, from + step * 12, EDGE_LIGHT);
+				if (du != 0) {
+					approachLight(c + du, from + step * 12);
+				}
 			}
 			// the red runway end lights, one row beyond each green threshold line, every two cells across
 			final int end = high ? air.runwayV1() + 1 : air.runwayV0() - 1;
@@ -544,6 +547,18 @@ abstract class PlanAirport extends PlanFitOut {
 			row0 += h + gap;
 		}
 		return out;
+	}
+
+	/** One approach light: a white lamp on a one-block post over the grass, or a flush lamp where it crosses pavement. */
+	private void approachLight(int u, int v) {
+		for (final AirportGeometry.Area area : air.areas()) {
+			if (area.kind() != AirportGeometry.Kind.GRASS && area.contains(u, v)) {
+				light(u, v, EDGE_LIGHT);
+				return;
+			}
+		}
+		put(Role.FIXTURE, u, StationGeometry.WALK_Y, v, LocalDir.PLUS_V, LAMP_POLE);
+		put(Role.LAMP, u, StationGeometry.WALK_Y + 1, v, LocalDir.PLUS_V, TOWER_BEACON);
 	}
 
 	// ---- taxiways -----------------------------------------------------------------------------------------------------
@@ -763,9 +778,11 @@ abstract class PlanAirport extends PlanFitOut {
 			for (int v = c - bar; v <= c + bar; v++) {
 				paint(stop, v, PAINT_WHITE);
 			}
-			// the number, upright for someone on the terminal side of the stand facing out over the apron: up is +u, the near edge is the terminal side
+			// the number, readable from the cockpit of a plane taxiing in (ICAO stand identification): up is toward the terminal (-u),
+			// the near edge on the taxilane side; it covers the same cells as before, from stop + 4 out over the apron
 			final int scale = numberScale() > 1 ? 2 : 1;
-			paintText(List.of(Integer.toString(i + 1)), scale, stop + 4, c + air.dims().standPitch() / 4, 1, 0, PAINT_WHITE);
+			final int tall = AirportGlyphs.height(scale);
+			paintText(List.of(Integer.toString(i + 1)), scale, stop + 4 + tall - 1, c + air.dims().standPitch() / 4, -1, 0, PAINT_WHITE);
 			// the docking guidance post beside the nose, one per stand
 			final int postV = c + air.dims().bridgeWidth() / 2 + 2;
 			for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + 4; y++) {
