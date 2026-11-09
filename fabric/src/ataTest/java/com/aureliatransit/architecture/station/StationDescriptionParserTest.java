@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The bounded description grammar: numbers, layouts, sizes, styles, roofs, materials, accessibility, names, clamping,
- * conflicts, ignored words, and that terrain approval can never come from text.
+ * conflicts, ignored words, and that terrain words grant nothing.
  */
 class StationDescriptionParserTest {
 
@@ -310,8 +310,9 @@ class StationDescriptionParserTest {
 		final ParseResult plain = StationDescriptionParser.parse("2 tracks");
 		final ParseResult result = StationDescriptionParser.parse("2 tracks, clear the trees and flatten the hill");
 		assertEquals(plain.spec(), result.spec());
-		assertTrue(warned(result, "only approved with /ata_station confirm replace_terrain"));
-		assertEquals(1, result.warnings().size());
+		assertTrue(result.warnings().isEmpty(), result.warnings().toString());
+		assertTrue(result.understood().stream().anyMatch(note -> note.contains("the ground is changed; undo puts it back")),
+				result.understood().toString());
 		assertFalse(result.ignored().contains("clear"));
 		assertFalse(result.ignored().contains("flatten"));
 	}

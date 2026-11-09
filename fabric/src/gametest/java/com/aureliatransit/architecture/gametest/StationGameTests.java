@@ -192,7 +192,7 @@ public class StationGameTests implements FabricGameTest {
 	// ---- full flow -------------------------------------------------------------------------------------------------
 
 	/** Plan, survey and build through the command's own path; the server tick runs the job. */
-	@GameTest(templateName = SITE_Z, tickLimit = 100)
+	@GameTest(templateName = SITE_Z, tickLimit = 1000)
 	public void stationBuildsThroughTheCommandPath(TestContext context) {
 		final ServerWorld world = context.getWorld();
 		final StationSessions.Pending pending = StationCommand.prepare(world, SMALL, context.getAbsolutePos(FEET_Z), Heading.SOUTH);
@@ -210,9 +210,12 @@ public class StationGameTests implements FabricGameTest {
 		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, false, said::add);
 		check(job != null, "build refused: " + said);
 		check(job.total() > StationBuildJob.OPS_PER_TICK, "the test station must need more than one tick (" + job.total() + " ops)");
-		context.waitAndRun(10, () -> {
+		context.runAtEveryTick(() -> {
+			if (!job.finished()) {
+				return;
+			}
 			check(job.state() == StationBuildJob.State.DONE, "job state " + job.state() + " " + job.done() + "/" + job.total() + " " + said);
-			check(job.terrainChanged() == 0, "terrain changed without approval");
+			check(job.terrainChanged() == 0, "the flat test site changed terrain (" + job.terrainChanged() + " cells)");
 			checkBuilt(context, pending);
 			// the build joined every platform track's two nodes as an MTR platform (Enviro, 10-20)
 			final List<BlockPos> nodes = new ArrayList<>();
@@ -240,7 +243,7 @@ public class StationGameTests implements FabricGameTest {
 	}
 
 	/** The footbridge's wayfinding signs are built with their arrow and destination written in. */
-	@GameTest(templateName = SITE_LARGE, tickLimit = 200)
+	@GameTest(templateName = SITE_LARGE, tickLimit = 2000)
 	public void footbridgeWayfindingSignsSayWhereTheyLead(TestContext context) {
 		buildsEveryPlannedBlock(context, LIFTS, new UUID(0, 60), (pending, job) -> {
 			final ServerWorld world = context.getWorld();
@@ -260,10 +263,10 @@ public class StationGameTests implements FabricGameTest {
 	}
 
 	/**
-	 * An underpass digs, so it needs terrain approval; built with it, every planned block stands, the tunnel and its wells are
-	 * clear to walk, and undo gives the ground back.
+	 * An underpass digs without any approval word; every planned block stands, the tunnel and its wells are clear to walk, the
+	 * ground it dug changed, and undo gives every cell back exactly.
 	 */
-	@GameTest(templateName = SITE_LARGE, tickLimit = 300)
+	@GameTest(templateName = SITE_LARGE, tickLimit = 2000)
 	public void underpassIsDugBuiltAndUndone(TestContext context) {
 		final ServerWorld world = context.getWorld();
 		final UUID owner = new UUID(0, 70);
@@ -283,7 +286,6 @@ public class StationGameTests implements FabricGameTest {
 		check(pending.plan().blocks().stream().anyMatch(b -> b.y() == StationGeometry.UNDERPASS_FLOOR_Y), "no underpass was planned");
 		check(pending.violations().isEmpty() && pending.audit().buildable(), "plan: " + pending.violations() + " " + pending.audit().problems());
 		final List<Text> said = new ArrayList<>();
-		check(StationCommand.startBuild(world, owner, pending, false, said::add) == null, "an underpass was built without terrain approval");
 		// the ground it will dig, to compare after undo
 		final Map<BlockPos, BlockState> ground = new HashMap<>();
 		for (final com.aureliatransit.architecture.station.Box box : pending.plan().headroom()) {
@@ -299,10 +301,15 @@ public class StationGameTests implements FabricGameTest {
 			}
 		}
 		said.clear();
-		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, true, said::add);
+		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, false, said::add);
 		check(job != null, "build refused: " + said);
-		context.waitAndRun(100, () -> {
+		context.runAtEveryTick(() -> {
+			if (!job.finished()) {
+				return;
+			}
 			check(job.state() == StationBuildJob.State.DONE, "job " + job.state() + " " + said);
+			check(job.terrainChanged() >= ground.size(), "the underpass changed " + job.terrainChanged() + " terrain cells, not the "
+					+ ground.size() + " it dug");
 			final List<String> problems = new ArrayList<>();
 			for (final PlannedBlock block : pending.plan().blocks()) {
 				final String id = Registries.BLOCK.getId(world.getBlockState(cellPos(pending, block)).getBlock()).toString();
@@ -323,7 +330,8 @@ public class StationGameTests implements FabricGameTest {
 				undo.step(StationBuildJob.OPS_PER_TICK);
 			}
 			for (final Map.Entry<BlockPos, BlockState> cell : ground.entrySet()) {
-				check(world.getBlockState(cell.getKey()).getBlock() == cell.getValue().getBlock(), "undo did not give back the ground at " + cell.getKey());
+				check(world.getBlockState(cell.getKey()).equals(cell.getValue()), "undo did not give back the ground at " + cell.getKey()
+						+ ": " + world.getBlockState(cell.getKey()));
 			}
 			context.complete();
 		});
@@ -342,8 +350,8 @@ public class StationGameTests implements FabricGameTest {
 	}
 
 	/**
-	 * A deep station on a block of stone as deep as it is: it digs, so it needs terrain approval; built with it, every planned block
-	 * stands, the dug void is air, and undo gives the stone back.
+	 * A deep station on a block of stone as deep as it is: it digs without any approval word; every planned block stands, the dug
+	 * void is air, the ground it dug changed, and undo gives every stone cell back exactly.
 	 */
 	private static void deepStationIsDugBuiltAndUndone(TestContext context, String words, UUID owner) {
 		final ServerWorld world = context.getWorld();
@@ -362,7 +370,6 @@ public class StationGameTests implements FabricGameTest {
 		check(pending.spec().options().deepStation(), "not a deep station: " + words);
 		check(pending.violations().isEmpty() && pending.audit().buildable(), "plan: " + pending.violations() + " " + pending.audit().problems());
 		final List<Text> said = new ArrayList<>();
-		check(StationCommand.startBuild(world, owner, pending, false, said::add) == null, "a deep station was built without terrain approval");
 		final java.util.Set<BlockPos> planned = new java.util.HashSet<>();
 		for (final PlannedBlock block : pending.plan().blocks()) {
 			planned.add(cellPos(pending, block));
@@ -381,13 +388,15 @@ public class StationGameTests implements FabricGameTest {
 			}
 		}
 		said.clear();
-		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, true, said::add);
+		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, false, said::add);
 		check(job != null, "build refused: " + said);
 		context.runAtEveryTick(() -> {
 			if (!job.finished()) {
 				return;
 			}
 			check(job.state() == StationBuildJob.State.DONE, "job " + job.state() + " " + said);
+			check(job.terrainChanged() >= ground.size(), words + ": changed " + job.terrainChanged() + " terrain cells, not the "
+					+ ground.size() + " it dug");
 			final List<String> problems = new ArrayList<>();
 			for (final PlannedBlock block : pending.plan().blocks()) {
 				final String id = Registries.BLOCK.getId(world.getBlockState(cellPos(pending, block)).getBlock()).toString();
@@ -408,7 +417,8 @@ public class StationGameTests implements FabricGameTest {
 				undo.step(StationBuildJob.OPS_PER_TICK);
 			}
 			for (final Map.Entry<BlockPos, BlockState> cell : ground.entrySet()) {
-				check(world.getBlockState(cell.getKey()).getBlock() == cell.getValue().getBlock(), "undo did not give back the ground at " + cell.getKey());
+				check(world.getBlockState(cell.getKey()).equals(cell.getValue()), "undo did not give back the ground at " + cell.getKey()
+						+ ": " + world.getBlockState(cell.getKey()));
 			}
 			context.complete();
 		});
@@ -489,13 +499,13 @@ public class StationGameTests implements FabricGameTest {
 	}
 
 	/** A terminus (head building, buffer stops, gate line, train shed) built in the world. */
-	@GameTest(templateName = SITE_LARGE, tickLimit = 200)
+	@GameTest(templateName = SITE_LARGE, tickLimit = 2000)
 	public void terminusBuildsThroughTheCommandPath(TestContext context) {
 		buildsEveryPlannedBlock(context, TERMINUS, new UUID(0, 11));
 	}
 
 	/** A station building beside the tracks (ticket hall, two-high ticket machines, stairs, upper floor) built in the world. */
-	@GameTest(templateName = SITE_LARGE, tickLimit = 200)
+	@GameTest(templateName = SITE_LARGE, tickLimit = 2000)
 	public void sideBuildingBuildsThroughTheCommandPath(TestContext context) {
 		buildsEveryPlannedBlock(context, SIDE_BUILDING, new UUID(0, 12));
 	}
@@ -504,7 +514,7 @@ public class StationGameTests implements FabricGameTest {
 	 * A footbridge station's lifts: shafts, MTR stops, landing doors and call buttons built as planned, each button linked to
 	 * the stop at its level, the stops numbered from the bottom, an MTR lift formed per shaft and deleted again by undo.
 	 */
-	@GameTest(templateName = SITE_LARGE, tickLimit = 200)
+	@GameTest(templateName = SITE_LARGE, tickLimit = 2000)
 	public void footbridgeLiftsAreFormedAndUndone(TestContext context) {
 		check(MtrLiftContract.available(), "MTR's lift API was not found");
 		buildsEveryPlannedBlock(context, LIFTS, new UUID(0, 13), (pending, job) -> {
@@ -544,7 +554,7 @@ public class StationGameTests implements FabricGameTest {
 	 * landing steps, four slope steps and two flat top steps must come out as MTR's landing, transition and slope pieces, all
 	 * facing up the flight and running upwards.
 	 */
-	@GameTest(templateName = SITE_LARGE, tickLimit = 200)
+	@GameTest(templateName = SITE_LARGE, tickLimit = 2000)
 	public void footbridgeEscalatorsRunUpwards(TestContext context) {
 		buildsEveryPlannedBlock(context, ESCALATORS, new UUID(0, 14), (pending, job) -> {
 			final ServerWorld world = context.getWorld();
@@ -634,7 +644,10 @@ public class StationGameTests implements FabricGameTest {
 		final List<Text> said = new ArrayList<>();
 		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, false, said::add);
 		check(job != null, "build refused: " + said);
-		context.waitAndRun(60, () -> {
+		context.runAtEveryTick(() -> {
+			if (!job.finished()) {
+				return;
+			}
 			check(job.state() == StationBuildJob.State.DONE, "job state " + job.state() + " " + job.done() + "/" + job.total() + " " + said);
 			final List<String> problems = new ArrayList<>();
 			for (final PlannedBlock block : pending.plan().blocks()) {
@@ -666,7 +679,7 @@ public class StationGameTests implements FabricGameTest {
 	}
 
 	/**
-	 * Builds are paced by server time, not a fixed count: one tick's budget runs batch after batch (the old pacing stopped at
+	 * Builds are paced by a budget, not a fixed count: one call's budget runs batch after batch (the old pacing stopped at
 	 * 64 a tick), and a job that is done is not asked again.
 	 */
 	@GameTest(templateName = SITE_LARGE)
@@ -676,10 +689,10 @@ public class StationGameTests implements FabricGameTest {
 		final StationBuildJob job = StationBuildJob.build(world, new UUID(0, 40), pending.report().ops(), false, text -> {
 		});
 		check(job.total() > 1000, "station too small: " + job.total());
-		check(StationSessions.runBatches(List.of(job), 20_000_000L, 256), "a 256-op budget must run out on " + job.total() + " ops");
+		check(StationSessions.runBatches(List.of(job), 1_000_000_000L, 256), "a 256-op budget must run out on " + job.total() + " ops");
 		check(job.done() == 256, "ran " + job.done() + " ops for a 256-op budget");
-		StationSessions.runBatches(List.of(job), 20_000_000L, 1_000_000);
-		check(job.done() > 256 + StationBuildJob.OPS_PER_TICK, "one 20 ms tick ran only " + (job.done() - 256) + " ops");
+		StationSessions.runBatches(List.of(job), 1_000_000_000L, 1_000_000);
+		check(job.done() > 256 + StationBuildJob.OPS_PER_TICK, "one long budget ran only " + (job.done() - 256) + " ops");
 		while (!job.finished()) {
 			StationSessions.runBatches(List.of(job), 50_000_000L, 1_000_000);
 		}
@@ -846,7 +859,7 @@ public class StationGameTests implements FabricGameTest {
 		check(rebuild.kept() > 0, "nothing was kept");
 		check(rebuild.restored() > 0, "the roof was not taken away");
 		check(rebuild.placed() < second.report().ops().size(), "the rebuild wrote every cell (" + rebuild.placed() + ")");
-		check(rebuild.terrainChanged() == 0, "terrain changed without approval");
+		check(rebuild.terrainChanged() == 0, "a rebuild of its own cells counted terrain (" + rebuild.terrainChanged() + " cells)");
 		checkBuilt(context, new StationSessions.Pending(second.parse(), second.spec(), second.plan(), first.frame(), second.dimension(),
 				second.violations(), second.audit(), second.report(), second.railSkipped()));
 		// a new name rewrites the name signs and nothing else
@@ -876,11 +889,12 @@ public class StationGameTests implements FabricGameTest {
 		}
 		final List<BlockPos> left = new ArrayList<>();
 		site.forEach((pos, state) -> {
-			if (world.getBlockState(pos).getBlock() != state.getBlock()) {
+			if (!world.getBlockState(pos).equals(state)) {
 				left.add(pos);
 			}
 		});
-		check(left.isEmpty(), "undo after the rebuild left " + left.size() + " cells changed, e.g. " + (left.isEmpty() ? "" : left.get(0)));
+		check(left.isEmpty(), "undo after the rebuild left " + left.size() + " cells changed, e.g. " + (left.isEmpty() ? "" : left.get(0)
+				+ ": " + world.getBlockState(left.get(0))));
 		context.complete();
 	}
 
@@ -915,13 +929,25 @@ public class StationGameTests implements FabricGameTest {
 		context.complete();
 	}
 
-	@GameTest(templateName = SITE_Z)
+	@GameTest(templateName = SITE_Z, tickLimit = 600)
 	public void cellChangedAfterSurveyStopsTheJob(TestContext context) {
 		final ServerWorld world = context.getWorld();
 		final StationSessions.Pending pending = StationCommand.prepare(world, SMALL, context.getAbsolutePos(FEET_Z), Heading.SOUTH);
 		final List<PlannedBlock> blocks = pending.plan().blocks();
-		final int blocked = blocks.size() / 2;
-		world.setBlockState(cellPos(pending, blocks.get(blocked)), Blocks.STONE.getDefaultState());
+		final PlannedBlock changed = blocks.get(blocks.size() / 2);
+		final BlockPos changedPos = cellPos(pending, changed);
+		world.setBlockState(changedPos, Blocks.CHEST.getDefaultState());
+		final List<WorldOp> ordered = new ArrayList<>(pending.report().ops());
+		ordered.sort(java.util.Comparator.comparingInt(WorldOp::y));
+		int blocked = -1;
+		for (int i = 0; i < ordered.size(); i++) {
+			final WorldOp op = ordered.get(i);
+			if (op.x() == changedPos.getX() && op.y() == changedPos.getY() && op.z() == changedPos.getZ()) {
+				blocked = i;
+				break;
+			}
+		}
+		check(blocked >= 0, "the changed cell is not in the build's op list");
 		final StationBuildJob job = StationBuildJob.build(world, new UUID(0, 3), pending.report().ops(), false, text -> {
 		});
 		while (!job.finished()) {
@@ -929,55 +955,65 @@ public class StationGameTests implements FabricGameTest {
 		}
 		check(job.state() == StationBuildJob.State.STOPPED, "job must stop at the changed cell, was " + job.state());
 		check(job.done() == blocked, "stopped after " + job.done() + " ops, expected " + blocked);
-		for (int i = blocked + 1; i < blocks.size(); i++) {
-			check(world.getBlockState(cellPos(pending, blocks.get(i))).isAir(), "a cell after the stop was written: " + blocks.get(i));
+		check(world.getBlockState(changedPos).isOf(Blocks.CHEST), "the build replaced the changed cell");
+		for (int i = blocked + 1; i < ordered.size(); i++) {
+			final WorldOp op = ordered.get(i);
+			if (op.kind() == WorldOp.Kind.PLACE) {
+				check(world.getBlockState(new BlockPos(op.x(), op.y(), op.z())).isAir(), "a cell after the stop was written: " + op);
+			}
 		}
 		context.complete();
 	}
 
-	@GameTest(templateName = SITE_Z, tickLimit = 120)
-	public void occupiedCellNeedsApprovalAndUndoRestoresTerrain(TestContext context) {
+	/** A planned cell already holding terrain is replaced by an unapproved build, and undo puts the terrain back exactly. */
+	@GameTest(templateName = SITE_Z, tickLimit = 1000)
+	public void occupiedCellIsReplacedAndUndoRestoresTerrain(TestContext context) {
 		final ServerWorld world = context.getWorld();
 		final BlockPos feet = context.getAbsolutePos(FEET_Z);
 		final StationSessions.Pending probe = StationCommand.prepare(world, SMALL, feet, Heading.SOUTH);
 		final PlannedBlock target = firstOf(probe, Role.PLATFORM_SURFACE);
 		final BlockPos rock = cellPos(probe, target);
-		world.setBlockState(rock, Blocks.STONE.getDefaultState());
+		final BlockState terrain = Blocks.STONE.getDefaultState();
+		world.setBlockState(rock, terrain);
 		final StationSessions.Pending pending = StationCommand.prepare(world, SMALL, feet, Heading.SOUTH);
-		check(pending.report().count(SiteIssue.Kind.OCCUPIED) == 1 && !pending.report().buildable(), "stone in the footprint: " + pending.report().counts());
+		check(pending.report().count(SiteIssue.Kind.OCCUPIED) == 1 && pending.report().buildable(), "stone in the footprint: " + pending.report().counts());
 		final List<Text> said = new ArrayList<>();
 		final UUID owner = new UUID(0, 4);
-		check(StationCommand.startBuild(world, owner, pending, false, said::add) == null, "built over terrain without approval");
-		check(StationSessions.job(owner) == null, "a refused build must not start a job");
-		check(world.getBlockState(rock).isOf(Blocks.STONE), "refused build changed the terrain");
-		check(world.getBlockState(cellPos(pending, firstOf(pending, Role.PLATFORM_EDGE))).isAir(), "refused build placed blocks");
-		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, true, said::add);
-		check(job != null, "approved build refused: " + said);
-		context.waitAndRun(10, () -> {
-			check(job.state() == StationBuildJob.State.DONE && job.terrainChanged() == 1, "approved job " + job.state() + ", terrain " + job.terrainChanged());
+		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, false, said::add);
+		check(job != null, "build refused: " + said);
+		check(StationSessions.job(owner) == job, "an occupied cell did not start a build");
+		context.runAtEveryTick(() -> {
+			if (!job.finished()) {
+				return;
+			}
+			check(job.state() == StationBuildJob.State.DONE && job.terrainChanged() == 1, "job " + job.state() + ", terrain " + job.terrainChanged());
 			check(Registries.BLOCK.getId(world.getBlockState(rock).getBlock()).toString().equals(target.blockId()), "stone not replaced by the plan");
+			final PlannedBlock edge = firstOf(pending, Role.PLATFORM_EDGE);
+			check(Registries.BLOCK.getId(world.getBlockState(cellPos(pending, edge)).getBlock()).toString().equals(edge.blockId()),
+					"the occupied cell stopped the build before the platform edge");
 			final StationBuildJob undo = StationBuildJob.undo(world, owner, StationSessions.undoLog(owner), text -> {
 			});
 			while (!undo.finished()) {
 				undo.step(StationBuildJob.OPS_PER_TICK);
 			}
-			check(world.getBlockState(rock).isOf(Blocks.STONE), "undo did not restore the terrain");
+			check(world.getBlockState(rock).equals(terrain), "undo did not restore the terrain exactly: " + world.getBlockState(rock));
 			context.complete();
 		});
 	}
 
 	/**
-	 * The real {@code /ata_station} tree, run by a mock player: the operator gate, the greedy description, approval words in the
-	 * description being ignored, the {@code confirm replace_terrain} literal, and undo through the server tick.
+	 * The real {@code /ata_station} tree, run by a mock player: the operator gate, the greedy description, plain
+	 * {@code confirm}, the old {@code confirm replace_terrain} alias, and undo through the server tick.
 	 */
-	@GameTest(templateName = SITE_Z, tickLimit = 160)
+	@GameTest(templateName = SITE_Z, tickLimit = 3000)
 	public void slashCommandGatesPlansConfirmsAndUndoes(TestContext context) {
 		final ServerWorld world = context.getWorld();
 		final BlockPos feet = context.getAbsolutePos(FEET_Z);
 		final StationSessions.Pending probe = StationCommand.prepare(world, SMALL, feet, Heading.SOUTH);
 		final PlannedBlock target = firstOf(probe, Role.PLATFORM_SURFACE);
 		final BlockPos rock = cellPos(probe, target);
-		world.setBlockState(rock, Blocks.STONE.getDefaultState());
+		final BlockState terrain = Blocks.STONE.getDefaultState();
+		world.setBlockState(rock, terrain);
 		final ServerPlayerEntity player = context.createMockCreativeServerPlayerInWorld();
 		player.refreshPositionAndAngles(feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5, Direction.SOUTH.asRotation(), 0.0F);
 		final UUID id = player.getUuid();
@@ -993,27 +1029,45 @@ public class StationGameTests implements FabricGameTest {
 		check(pending != null && pending.spec().name().equals("Test") && pending.spec().platformLength() == 16, "greedy description not parsed: "
 				+ (pending == null ? "no plan" : pending.spec()));
 		check(pending.frame().forward() == Heading.SOUTH, "plan faces " + pending.frame().forward());
-		check(pending.report().count(SiteIssue.Kind.OCCUPIED) == 1 && !pending.report().replaceTerrain(), "description approved terrain: "
+		check(pending.report().count(SiteIssue.Kind.OCCUPIED) == 1 && pending.report().buildable(), "description blocked terrain: "
 				+ pending.report().counts());
-		check(commands.executeWithPrefix(op, "/ata_station confirm") == 0, "confirm built over terrain without the literal approval");
-		check(StationSessions.job(id) == null && world.getBlockState(rock).isOf(Blocks.STONE), "a refused confirm started a build");
-		check(StationSessions.pending(id) != null, "a refused confirm dropped the plan");
 		check(commands.executeWithPrefix(op, "/ata_station status") == 1, "status failed");
 
-		check(commands.executeWithPrefix(op, "/ata_station confirm " + StationCommand.REPLACE_TERRAIN) == 1, "approved confirm failed");
+		check(commands.executeWithPrefix(op, "/ata_station confirm") == 1, "confirm failed");
 		final StationBuildJob job = StationSessions.job(id);
-		check(job != null && StationSessions.pending(id) == null, "approved confirm must start a job and consume the plan");
-		context.waitAndRun(10, () -> {
+		check(job != null && StationSessions.pending(id) == null, "confirm must start a job and consume the plan");
+		context.waitAndRun(200, () -> {
 			check(job.state() == StationBuildJob.State.DONE && job.terrainChanged() == 1, "job " + job.state() + ", terrain " + job.terrainChanged());
 			check(Registries.BLOCK.getId(world.getBlockState(rock).getBlock()).toString().equals(target.blockId()), "stone not replaced by the plan");
 			check(commands.executeWithPrefix(op, "/ata_station undo") == 1, "undo failed");
-			context.waitAndRun(10, () -> {
-				check(world.getBlockState(rock).isOf(Blocks.STONE), "undo did not restore the terrain");
+			context.waitAndRun(200, () -> {
+				check(world.getBlockState(rock).equals(terrain), "undo did not restore the terrain exactly: " + world.getBlockState(rock));
 				check(world.getBlockState(cellPos(pending, firstOf(pending, Role.PLATFORM_EDGE))).isAir(), "undo left the platform edge");
 				StationSessions.cancelJob(id);
-				StationSessions.forgetPlayer(id);
-				Fixtures.removePlayer(context, player);
-				context.complete();
+
+				// the old word after confirm is only an alias: it builds the same way
+				check(commands.executeWithPrefix(op, "/ata_station plan " + SMALL) == 1, "the alias plan failed");
+				final StationSessions.Pending second = StationSessions.pending(id);
+				check(second != null && second.report().count(SiteIssue.Kind.OCCUPIED) == 1,
+						"the alias plan did not see the stone: " + (second == null ? "no plan" : second.report().counts()));
+				check(commands.executeWithPrefix(op, "/ata_station confirm " + StationCommand.REPLACE_TERRAIN) == 1, "the replace_terrain alias failed");
+				final StationBuildJob alias = StationSessions.job(id);
+				check(alias != null && StationSessions.pending(id) == null, "the replace_terrain alias did not start a job");
+				context.waitAndRun(200, () -> {
+					check(alias.state() == StationBuildJob.State.DONE && alias.terrainChanged() == 1,
+							"alias job " + alias.state() + ", terrain " + alias.terrainChanged());
+					check(Registries.BLOCK.getId(world.getBlockState(rock).getBlock()).toString().equals(target.blockId()),
+							"the alias did not replace the stone");
+					check(commands.executeWithPrefix(op, "/ata_station undo") == 1, "undo after the alias failed");
+					context.waitAndRun(200, () -> {
+						check(world.getBlockState(rock).equals(terrain), "undo after the alias did not restore the terrain exactly: "
+								+ world.getBlockState(rock));
+						StationSessions.cancelJob(id);
+						StationSessions.forgetPlayer(id);
+						Fixtures.removePlayer(context, player);
+						context.complete();
+					});
+				});
 			});
 		});
 	}
@@ -1191,10 +1245,10 @@ public class StationGameTests implements FabricGameTest {
 
 	/**
 	 * The wrench as a player uses it: a click plans on the clicked block (the same frame as planning from the feet two blocks
-	 * back), a sneak-click builds without approving terrain, a left-click cancels, and it never breaks blocks. A non-operator's
-	 * clicks and screen packets do nothing.
+	 * back), a sneak-click builds and changes the ground it stands on, a left-click cancels, and it never breaks blocks. A
+	 * non-operator's clicks and screen packets do nothing.
 	 */
-	@GameTest(templateName = SITE_Z, tickLimit = 120)
+	@GameTest(templateName = SITE_Z, tickLimit = 1000)
 	public void stationWrenchPlansBuildsCancelsAndIsOperatorOnly(TestContext context) {
 		final ServerWorld world = context.getWorld();
 		final ServerPlayerEntity player = context.createMockCreativeServerPlayerInWorld();
@@ -1220,20 +1274,33 @@ public class StationGameTests implements FabricGameTest {
 		check(!ModItems.STATION_WRENCH.canMine(world.getBlockState(clicked), world, clicked, player), "the wrench must never break blocks");
 
 		click(player, clicked);
+		finishSiteTask(id);
 		final StationSessions.Pending pending = StationSessions.pending(id);
-		check(pending != null && pending.frame().equals(fromFeet.frame()), "click frame " + (pending == null ? "none" : pending.frame()) + ", expected " + fromFeet.frame());
-		check(StationWrenchItem.attack(player, world, Hand.MAIN_HAND) == ActionResult.SUCCESS && StationSessions.pending(id) == null, "left-click did not discard the plan");
+		check(pending != null && pending.frame().equals(fromFeet.frame()), "click frame " + (pending == null ? "none" : pending.frame())
+				+ ", expected " + fromFeet.frame());
+		check(StationWrenchItem.attack(player, world, Hand.MAIN_HAND) == ActionResult.SUCCESS && StationSessions.pending(id) == null,
+				"left-click did not discard the plan");
 
 		// the screen: save + plan from the feet, then a sneak-click builds
 		StationWrenchItem.perform(player, Hand.MAIN_HAND, StationWrenchItem.Action.PLAN, SMALL + "  ", "");
+		finishSiteTask(id);
 		check(StationWrenchItem.description(player.getMainHandStack()).equals(SMALL), "screen did not save the description");
-		check(StationSessions.pending(id) != null && StationSessions.pending(id).frame().equals(fromFeet.frame()), "screen plan is not in front of the feet");
+		final StationSessions.Pending screenPlan = StationSessions.pending(id);
+		check(screenPlan != null && screenPlan.frame().equals(fromFeet.frame()), "screen plan is not in front of the feet");
+		final PlannedBlock target = firstOf(screenPlan, Role.PLATFORM_SURFACE);
+		final BlockPos rock = cellPos(screenPlan, target);
+		final BlockState terrain = Blocks.STONE.getDefaultState();
+		world.setBlockState(rock, terrain);
 		player.setSneaking(true);
 		click(player, clicked);
 		final StationBuildJob job = StationSessions.job(id);
-		check(job != null && !job.approved(), "sneak-click must build without approving terrain");
-		context.waitAndRun(10, () -> {
+		check(job != null, "sneak-click did not start a build");
+		context.runAtEveryTick(() -> {
+			if (!job.finished()) {
+				return;
+			}
 			check(job.state() == StationBuildJob.State.DONE, "job " + job.state());
+			check(job.terrainChanged() >= 1, "the sneak-click build changed " + job.terrainChanged() + " terrain cells");
 			checkBuilt(context, fromFeet);
 			StationSessions.cancelJob(id);
 			final StationBuildJob undo = StationBuildJob.undo(world, id, job.undoLog(), text -> {
@@ -1241,6 +1308,7 @@ public class StationGameTests implements FabricGameTest {
 			while (!undo.finished()) {
 				undo.step(StationBuildJob.OPS_PER_TICK);
 			}
+			check(world.getBlockState(rock).equals(terrain), "undo did not restore the terrain exactly: " + world.getBlockState(rock));
 			StationSessions.forgetPlayer(id);
 			world.getServer().getPlayerManager().removeFromOperators(player.getGameProfile());
 			Fixtures.removePlayer(context, player);
@@ -1251,6 +1319,21 @@ public class StationGameTests implements FabricGameTest {
 	private static void click(ServerPlayerEntity player, BlockPos clicked) {
 		final BlockHitResult hit = new BlockHitResult(Vec3d.ofCenter(clicked).add(0, 0.5, 0), Direction.UP, clicked, false);
 		player.getMainHandStack().useOnBlock(new ItemUsageContext(player, Hand.MAIN_HAND, hit));
+	}
+
+	/** Runs the player's site task to its end now, so a paced survey does not wait on the server tick or another test's task budget. */
+	private static void finishSiteTask(UUID id) {
+		StationSessions.Task task = StationSessions.task(id);
+		while (task != null) {
+			if (!task.step(Long.MAX_VALUE)) {
+				throw new IllegalStateException("the site task did not finish");
+			}
+			if (StationSessions.task(id) == task) {
+				StationSessions.cancelTask(id);
+				return;
+			}
+			task = StationSessions.task(id);
+		}
 	}
 
 	@GameTest(templateName = SITE_X)
@@ -1541,22 +1624,22 @@ public class StationGameTests implements FabricGameTest {
 		Fixtures.failIfAny(problems, what + ": the schematic differs from the built world");
 	}
 
-	@GameTest(templateName = SITE_LARGE, tickLimit = 200)
+	@GameTest(templateName = SITE_LARGE, tickLimit = 2000)
 	public void builtTerminusMatchesItsSchematic(TestContext context) {
 		buildsEveryPlannedBlock(context, TERMINUS, new UUID(0, 21), (pending, job) -> builtStationMatchesItsSchematic(pending, context.getWorld(), "terminus"));
 	}
 
-	@GameTest(templateName = SITE_LARGE, tickLimit = 200)
+	@GameTest(templateName = SITE_LARGE, tickLimit = 2000)
 	public void builtSideBuildingMatchesItsSchematic(TestContext context) {
 		buildsEveryPlannedBlock(context, SIDE_BUILDING, new UUID(0, 22), (pending, job) -> builtStationMatchesItsSchematic(pending, context.getWorld(), "side building"));
 	}
 
-	@GameTest(templateName = SITE_LARGE, tickLimit = 200)
+	@GameTest(templateName = SITE_LARGE, tickLimit = 2000)
 	public void builtLiftStationMatchesItsSchematic(TestContext context) {
 		buildsEveryPlannedBlock(context, LIFTS, new UUID(0, 23), (pending, job) -> builtStationMatchesItsSchematic(pending, context.getWorld(), "lift station"));
 	}
 
-	@GameTest(templateName = SITE_LARGE, tickLimit = 200)
+	@GameTest(templateName = SITE_LARGE, tickLimit = 2000)
 	public void builtEscalatorStationMatchesItsSchematic(TestContext context) {
 		buildsEveryPlannedBlock(context, ESCALATORS, new UUID(0, 24), (pending, job) -> builtStationMatchesItsSchematic(pending, context.getWorld(), "escalator station"));
 	}

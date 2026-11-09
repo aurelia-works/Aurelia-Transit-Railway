@@ -32,6 +32,8 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		WayfindingClient.init();
 		PocketTimetableClient.init();
 		StationStudioClient.init();
+		StationPaceClient.register();
+		StationDevPanel.register();
 		for (final ModBlocks.Entry entry : ModBlocks.entries()) {
 			switch (entry.renderKind()) {
 				case CUTOUT -> BlockRenderLayerMap.INSTANCE.putBlock(entry.block(), RenderLayer.getCutout());

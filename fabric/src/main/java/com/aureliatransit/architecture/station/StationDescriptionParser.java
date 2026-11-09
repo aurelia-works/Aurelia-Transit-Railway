@@ -16,7 +16,8 @@ import java.util.regex.Pattern;
  * Turns a short English description ("two track island station, 64 blocks long, dutch style, glass canopy, named Leidsche Rijn")
  * into a {@link StationSpec}. Deterministic, local and bounded: a fixed vocabulary, no randomness, no network.
  *
- * <p>Terrain changes are never approved by the description, whatever it says; only the confirm command's literal token does.
+ * <p>The description never decides what happens to the ground; a station or airport builds anywhere the player confirms, and
+ * undo puts the previous blocks and block entity data back.
  */
 public final class StationDescriptionParser {
 
@@ -1285,7 +1286,7 @@ public final class StationDescriptionParser {
 				case "underpass":
 					if (!underpass) {
 						underpass = true;
-						note(i, "an underpass: a stairs-only pedestrian tunnel under the tracks to every platform (it digs: confirm with replace-terrain)");
+						note(i, "an underpass: a stairs-only pedestrian tunnel under the tracks to every platform (it digs; undo puts it back)");
 					}
 					use(i, i);
 					return true;
@@ -1508,7 +1509,7 @@ public final class StationDescriptionParser {
 			} else if (ELEVATED_WORDS.contains(token)) {
 				warn("elevated stations are not built yet; building at ground level");
 			} else if (TERRAIN_WORDS.contains(token)) {
-				warn("terrain changes are only approved with /ata_station confirm replace_terrain");
+				note(i, "the ground is changed; undo puts it back");
 			} else if (token.equals("island")) {
 				islandMention(i);
 			} else if (token.equals("side")) {
