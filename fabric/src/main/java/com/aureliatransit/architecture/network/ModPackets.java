@@ -9,6 +9,9 @@ import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
 import com.aureliatransit.architecture.station.world.StationActions;
 import com.aureliatransit.architecture.station.world.StationBuildSettings;
+import com.aureliatransit.architecture.station.world.StationHologram;
+import com.aureliatransit.architecture.station.world.StationPreview;
+import com.aureliatransit.architecture.station.world.StationSessions;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
 import com.aureliatransit.architecture.station.world.WrenchMode;
 import com.aureliatransit.architecture.text.ConfigurableTextData;
@@ -49,6 +52,10 @@ public final class ModPackets {
 	public static final Identifier STATION_STUDIO = AureliaTransitArchitecture.id("station_studio");
 	/** Station build pace: blocks per tick, client asks and the server sends the current value (and on join). */
 	public static final Identifier STATION_PACE = AureliaTransitArchitecture.id("station_pace");
+	/** Server to client: a pending plan as a compressed hologram packet, or a clear. */
+	public static final Identifier STATION_HOLOGRAM = AureliaTransitArchitecture.id("station_hologram");
+	/** Client to server: whether this player wants the old particle outline instead of the hologram. */
+	public static final Identifier STATION_HOLOGRAM_SETTINGS = AureliaTransitArchitecture.id("station_hologram_settings");
 
 	private ModPackets() {
 	}
@@ -124,6 +131,12 @@ public final class ModPackets {
 		}
 	}
 
+	public static PacketByteBuf writeHologramSettings(boolean particles) {
+		final PacketByteBuf buf = PacketByteBufs.create();
+		buf.writeBoolean(particles);
+		return buf;
+	}
+
 	public static void registerServerReceivers() {
 		ServerPlayNetworking.registerGlobalReceiver(STATION_PACE, (server, player, handler, buf, responseSender) -> {
 			final int pace;
@@ -158,6 +171,15 @@ public final class ModPackets {
 				return;
 			}
 			server.execute(() -> StationWrenchItem.performFromStudio(player, action, description, recipe));
+		});
+		ServerPlayNetworking.registerGlobalReceiver(STATION_HOLOGRAM_SETTINGS, (server, player, handler, buf, responseSender) -> {
+			final boolean particles;
+			try {
+				particles = buf.readBoolean();
+			} catch (RuntimeException e) {
+				return;
+			}
+			server.execute(() -> applyHologramSettings(player, particles));
 		});
 		ServerPlayNetworking.registerGlobalReceiver(STATION_WRENCH, (server, player, handler, buf, responseSender) -> {
 			final Hand hand;
@@ -234,6 +256,22 @@ public final class ModPackets {
 			}
 			server.execute(() -> applyInfoText(player, pos, text));
 		});
+	}
+
+	/** Switches the planner between the hologram and the old particle outline; whichever is chosen is shown right away. */
+	private static void applyHologramSettings(ServerPlayerEntity player, boolean particles) {
+		StationSessions.setParticlePreview(player.getUuid(), particles);
+		StationSessions.stopPreview(player.getUuid());
+		final StationSessions.Pending pending = StationSessions.pending(player.getUuid());
+		if (pending == null) {
+			return;
+		}
+		if (particles) {
+			StationHologram.clear(player);
+			StationSessions.startPreview(new StationPreview(player.getUuid(), pending.dimension(), pending.plan(), pending.frame(), pending.report()));
+		} else {
+			StationHologram.show(player, pending);
+		}
 	}
 
 	private static void applySign(ServerPlayerEntity player, BlockPos pos, SignData data) {
