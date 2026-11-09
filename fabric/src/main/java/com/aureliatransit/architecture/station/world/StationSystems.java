@@ -11,7 +11,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
  * Common/server init of the station generator: the {@code /ata_station} actions and {@code /ata_guide} commands, the guide
  * book on an operator's first join, one server tick listener (idle unless a build or preview is running), the wrench's
  * left-click and cleanup when players leave or the server stops. The word command is registered only for the scripted visual
- * shots ({@code -Datr.visualshots=...}); players plan from the wrench and the ATR menu. The wrench item is registered in
+ * shots ({@code -Datr.visualshots=...}) and the game tests ({@code -Dfabric-api.gametest}); players plan from the wrench and
+ * the ATR menu. The wrench item is registered in
  * {@code ModItems} and its screen packet in {@code ModPackets}.
  */
 public final class StationSystems {
@@ -19,9 +20,14 @@ public final class StationSystems {
 	private StationSystems() {
 	}
 
+	/** True for the scripted visual shots and the game tests, which plan by words; players plan from the wrench. */
+	private static boolean wordPlans() {
+		return System.getProperty("atr.visualshots") != null || System.getProperty("fabric-api.gametest") != null;
+	}
+
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-			StationCommand.register(dispatcher, System.getProperty("atr.visualshots") != null);
+			StationCommand.register(dispatcher, wordPlans());
 			StationGuide.register(dispatcher);
 		});
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
