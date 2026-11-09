@@ -18,12 +18,33 @@ import java.util.Map;
 public final class RouteControlOptions {
 
 	private final Map<Long, RouteControl> controls = new HashMap<>();
+	private boolean fallbackMaster = true;
 
 	/** What this client was last sent by the server. */
 	private static volatile Map<Long, RouteControl> client = Map.of();
 
+	/**
+	 * The server's live copy, read by the path-generation mixin on the simulator thread. Replaced as a whole on every
+	 * change, so the simulator thread never sees a half-updated map.
+	 */
+	private static volatile Map<Long, RouteControl> server = Map.of();
+	private static volatile boolean serverFallbackMaster = true;
+
 	public RouteControl get(long routeId) {
 		return controls.getOrDefault(routeId, RouteControl.EMPTY);
+	}
+
+	public boolean fallbackMaster() {
+		return fallbackMaster;
+	}
+
+	/** @return whether the master switch changed */
+	public boolean setFallbackMaster(boolean value) {
+		if (fallbackMaster == value) {
+			return false;
+		}
+		fallbackMaster = value;
+		return true;
 	}
 
 	/** @return whether anything changed */
@@ -43,6 +64,8 @@ public final class RouteControlOptions {
 	}
 
 	public NbtCompound toNbt(NbtCompound nbt) {
+		// New key only: old files lack it and load with the default (on).
+		nbt.putBoolean("fallback_master", fallbackMaster);
 		final NbtList list = new NbtList();
 		controls.forEach((routeId, control) -> {
 			final NbtCompound entry = new NbtCompound();
@@ -74,6 +97,7 @@ public final class RouteControlOptions {
 
 	public static RouteControlOptions fromNbt(NbtCompound nbt) {
 		final RouteControlOptions options = new RouteControlOptions();
+		options.fallbackMaster = !nbt.contains("fallback_master") || nbt.getBoolean("fallback_master");
 		final NbtList list = nbt.getList("routes", NbtElement.COMPOUND_TYPE);
 		for (int i = 0; i < list.size(); i++) {
 			final NbtCompound entry = list.getCompound(i);
@@ -103,6 +127,7 @@ public final class RouteControlOptions {
 	}
 
 	public void write(PacketByteBuf buf) {
+		buf.writeBoolean(fallbackMaster);
 		buf.writeVarInt(controls.size());
 		controls.forEach((routeId, control) -> {
 			buf.writeLong(routeId);
@@ -110,7 +135,8 @@ public final class RouteControlOptions {
 		});
 	}
 
-	public static Map<Long, RouteControl> read(PacketByteBuf buf) {
+	public static Snapshot read(PacketByteBuf buf) {
+		final boolean fallbackMaster = buf.readBoolean();
 		final int count = buf.readVarInt();
 		final Map<Long, RouteControl> read = new HashMap<>();
 		for (int i = 0; i < count; i++) {
@@ -120,7 +146,7 @@ public final class RouteControlOptions {
 				read.put(routeId, control);
 			}
 		}
-		return read;
+		return new Snapshot(read, fallbackMaster);
 	}
 
 	public static void writeControl(PacketByteBuf buf, RouteControl control) {
@@ -164,11 +190,35 @@ public final class RouteControlOptions {
 		return new RouteControl(waypoints, choices, fallback);
 	}
 
-	public static void setClient(Map<Long, RouteControl> value) {
-		client = Map.copyOf(value);
+	public static void setClient(Snapshot snapshot) {
+		client = Map.copyOf(snapshot.controls());
 	}
 
 	public static RouteControl client(long routeId) {
 		return client.getOrDefault(routeId, RouteControl.EMPTY);
+	}
+
+	/** Server thread: make the saved options visible to the simulator thread. */
+	public static void publishServer(RouteControlOptions options) {
+		server = Map.copyOf(options.controls);
+		serverFallbackMaster = options.fallbackMaster;
+	}
+
+	public static void clearServer() {
+		server = Map.of();
+		serverFallbackMaster = true;
+	}
+
+	/** Simulator thread: one route's saved control, or empty when the route has none. */
+	public static RouteControl server(long routeId) {
+		return server.getOrDefault(routeId, RouteControl.EMPTY);
+	}
+
+	public static boolean serverFallbackMaster() {
+		return serverFallbackMaster;
+	}
+
+	/** What the server sent: every route's control plus the fallback master switch. */
+	public record Snapshot(Map<Long, RouteControl> controls, boolean fallbackMaster) {
 	}
 }

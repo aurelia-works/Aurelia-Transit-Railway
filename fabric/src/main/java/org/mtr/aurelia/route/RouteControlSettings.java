@@ -31,6 +31,17 @@ public final class RouteControlSettings {
 	public static void setFallbackMaster(boolean value) {
 		fallbackMaster = value;
 		save();
+		if (net.minecraft.client.MinecraftClient.getInstance().getNetworkHandler() != null) {
+			net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(org.mtr.mod.data.RouteControlSync.MASTER, org.mtr.mod.data.RouteControlSync.requestMaster(value));
+		}
+	}
+
+	/** The server's value after a sync; saved so the panel and the next edit send the same value. */
+	public static void applyRemote(boolean value) {
+		if (fallbackMaster != value) {
+			fallbackMaster = value;
+			save();
+		}
 	}
 
 	public static void load() {

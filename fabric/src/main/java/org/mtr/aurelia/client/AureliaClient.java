@@ -74,9 +74,10 @@ public final class AureliaClient implements ClientModInitializer {
 			client.execute(() -> org.mtr.mod.data.DepotSchedulesSync.setClient(read));
 		});
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(org.mtr.mod.data.RouteControlSync.SYNC, (client, handler, buf, response) -> {
-			final java.util.Map<Long, org.mtr.aurelia.route.RouteControl> read = org.mtr.mod.data.RouteControlOptions.read(buf);
+			final org.mtr.mod.data.RouteControlOptions.Snapshot read = org.mtr.mod.data.RouteControlOptions.read(buf);
 			client.execute(() -> {
 				org.mtr.mod.data.RouteControlOptions.setClient(read);
+				org.mtr.aurelia.route.RouteControlSettings.applyRemote(read.fallbackMaster());
 				org.mtr.aurelia.route.RouteControlStore.onControlSync();
 			});
 		});
