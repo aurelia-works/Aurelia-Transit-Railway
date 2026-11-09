@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Reads the words of an airport description ("small airport with 2 runways, 3000 m runway, 6 gates and a terminal") into an
+ * Reads the words of an airport description ("small airport with 2 runways, 750 m runway, 6 gates and a terminal") into an
  * {@link AirportSpec}. {@link StationDescriptionParser} hands its tokens here as soon as one of them names an airport, so a
  * description without those words is read exactly as before. Metres become blocks at {@link AirportSpec#BLOCKS_PER_METRE}; what
  * the plan cannot hold yet is clamped with a warning, never silently.
@@ -21,6 +21,19 @@ final class AirportWords {
 	private static final Set<String> GATE = Set.of("gate", "gates");
 	private static final Set<String> TERMINAL = Set.of("terminal", "terminals");
 	private static final Set<String> ALWAYS = Set.of("taxiway", "taxiways", "apron", "aprons", "stand", "stands");
+	private static final Set<String> MARKINGS = Set.of("marking", "markings");
+	private static final Set<String> LIGHTS = Set.of("light", "lights");
+	private static final Set<String> TOWER = Set.of("tower", "towers");
+	private static final Set<String> FORECOURT = Set.of("forecourt", "forecourts");
+	private static final Set<String> TURN_PADS = Set.of("pad", "pads");
+	private static final Set<String> SIGNS = Set.of("sign", "signs");
+	private static final Set<String> LANES = Set.of("lane", "lanes");
+	private static final Set<String> BUILDINGS = Set.of("building", "buildings");
+	private static final Set<String> FENCES = Set.of("fence", "fences");
+	private static final Set<String> APPROACH = Set.of("approach");
+	private static final Set<String> RANK = Set.of("rank");
+	private static final Set<String> LAND_TRANSIT = Set.of("transit");
+	private static final Set<String> BAYS = Set.of("bay", "bays");
 	private static final Set<String> SMALL = Set.of("small", "tiny", "regional", "minor", "local");
 	private static final Set<String> LARGE = Set.of("large", "big", "major", "international", "huge");
 	private static final Set<String> NO = Set.of("no", "without", "remote");
@@ -42,8 +55,8 @@ final class AirportWords {
 	private static final int SMALL_LENGTH = 240;
 	private static final int SMALL_WIDTH = 15;
 	private static final int SMALL_GATES = 2;
-	private static final int LARGE_LENGTH = AirportSpec.MAX_RUNWAY_LENGTH;
-	private static final int LARGE_WIDTH = AirportSpec.MAX_RUNWAY_WIDTH;
+	private static final int LARGE_LENGTH = 900;
+	private static final int LARGE_WIDTH = 31;
 	private static final int LARGE_GATES = 8;
 
 	private AirportWords() {
@@ -108,6 +121,18 @@ final class AirportWords {
 		private Boolean terminal;
 		private boolean rail;
 		private Integer heading;
+		private Boolean runwayMarkings;
+		private Boolean taxiwayLights;
+		private Boolean apronMarkings;
+		private Boolean controlTower;
+		private Boolean forecourt;
+		private Boolean taxiwaySigns;
+		private Boolean turnPads;
+		private Boolean apronLanes;
+		private Boolean supportBuildings;
+		private Boolean perimeter;
+		private Boolean approachLights;
+		private Boolean landTransit;
 		private int size;
 		private boolean always;
 
@@ -168,11 +193,37 @@ final class AirportWords {
 					gateWord(i);
 				} else if (TERMINAL.contains(token)) {
 					terminalWord(i);
+				} else if (LAND_TRANSIT.contains(token) && at(i - 1).equals("landside")) {
+					landTransit = feature(i - 1, i, landTransit, AirportFeatures.Feature.LAND_TRANSIT, "the landside transit");
 				} else if (RAIL.contains(token)) {
 					railWord(i);
 				} else if (ALWAYS.contains(token)) {
 					use(i, i);
 					always = true;
+				} else if (MARKINGS.contains(token)) {
+					markingsWord(i);
+				} else if (LIGHTS.contains(token)) {
+					lightsWord(i);
+				} else if (TOWER.contains(token)) {
+					towerWord(i);
+				} else if (FORECOURT.contains(token)) {
+					forecourt = feature(i, i, forecourt, AirportFeatures.Feature.FORECOURT, "the landside forecourt");
+				} else if (TURN_PADS.contains(token) && at(i - 1).equals("turn")) {
+					turnPads = feature(i - 1, i, turnPads, AirportFeatures.Feature.TURN_PADS, "the turn pads");
+				} else if (SIGNS.contains(token) && at(i - 1).equals("taxiway")) {
+					taxiwaySigns = feature(i - 1, i, taxiwaySigns, AirportFeatures.Feature.TAXIWAY_SIGNS, "the taxiway signs");
+				} else if (LANES.contains(token) && at(i - 1).equals("apron")) {
+					apronLanes = feature(i - 1, i, apronLanes, AirportFeatures.Feature.APRON_LANES, "the apron lanes");
+				} else if (BUILDINGS.contains(token) && at(i - 1).equals("support")) {
+					supportBuildings = feature(i - 1, i, supportBuildings, AirportFeatures.Feature.SUPPORT_BUILDINGS, "the support buildings");
+				} else if (FENCES.contains(token) && at(i - 1).equals("perimeter")) {
+					perimeter = feature(i - 1, i, perimeter, AirportFeatures.Feature.PERIMETER, "the perimeter fence");
+				} else if (APPROACH.contains(token) && LIGHTS.contains(at(i + 1))) {
+					approachLights = feature(i, i + 1, approachLights, AirportFeatures.Feature.APPROACH_LIGHTS, "the approach lights");
+				} else if (RANK.contains(token) && at(i - 1).equals("taxi")) {
+					landTransit = feature(i - 1, i, landTransit, AirportFeatures.Feature.LAND_TRANSIT, "the landside transit");
+				} else if (BAYS.contains(token) && (at(i - 1).equals("bus") || at(i - 1).equals("buses"))) {
+					landTransit = feature(i - 1, i, landTransit, AirportFeatures.Feature.LAND_TRANSIT, "the landside transit");
 				} else if (number(token) != null) {
 					numberWord(i);
 				}
@@ -304,6 +355,51 @@ final class AirportWords {
 			}
 		}
 
+		/**
+		 * "runway markings" or "no runway markings": the runway's paint. The switches are words so a description saved before
+		 * them still means every feature on ({@link AirportFeatures}).
+		 */
+		private void markingsWord(int i) {
+			final String noun = at(i - 1);
+			if (noun.equals("runway") || noun.equals("runways")) {
+				runwayMarkings = feature(i - 1, i, runwayMarkings, AirportFeatures.Feature.RUNWAY_MARKINGS, "the runway's markings");
+			} else if (noun.equals("apron") || noun.equals("aprons")) {
+				apronMarkings = feature(i - 1, i, apronMarkings, AirportFeatures.Feature.APRON_MARKINGS, "the apron's markings");
+			}
+		}
+
+		/** "taxiway lights" or "no taxiway lights": the blue edge and green centreline lights. */
+		private void lightsWord(int i) {
+			final String noun = at(i - 1);
+			if (noun.equals("taxiway") || noun.equals("taxiways")) {
+				taxiwayLights = feature(i - 1, i, taxiwayLights, AirportFeatures.Feature.TAXIWAY_LIGHTS, "the taxiway lights");
+			}
+		}
+
+		/** "control tower" or "no control tower": the tower on the apron. */
+		private void towerWord(int i) {
+			final int start = at(i - 1).equals("control") ? i - 1 : i;
+			controlTower = feature(start, i, controlTower, AirportFeatures.Feature.CONTROL_TOWER, "the control tower");
+		}
+
+		/**
+		 * One feature phrase from {@code from} to {@code to}: its "no"/"without" before {@code from} switches it off, and the
+		 * first phrase wins so a description that says it twice is not changed by the second.
+		 */
+		private Boolean feature(int from, int to, Boolean current, AirportFeatures.Feature which, String what) {
+			final int no = no(from);
+			final boolean none = no >= 0;
+			use(none ? no : from, to);
+			if (current == null) {
+				note(none ? no : from, none ? "no " + what : what);
+				return !none;
+			}
+			if (current == none) {
+				warn(which.noun() + " given twice; using " + (current ? "on" : "off"));
+			}
+			return current;
+		}
+
 		/** A number with its unit and noun: "2 runways", "6 gates", "3000 m runway", "480 long", "30 wide". */
 		private void numberWord(int i) {
 			final int n = number(tokens[i]);
@@ -417,10 +513,10 @@ final class AirportWords {
 			if (length != null) {
 				len = length;
 				final int least = AirportSpec.minLength(wid);
-				if (len < least || len > AirportSpec.MAX_RUNWAY_LENGTH) {
-					len = Math.max(least, Math.min(AirportSpec.MAX_RUNWAY_LENGTH, len));
-					warn("a runway " + length + " blocks long is outside " + least + ".." + AirportSpec.MAX_RUNWAY_LENGTH
-							+ " here (the plan holds every block in memory, so the longest runways of real airports do not fit yet); using " + len);
+				if (len < least || len > AirportSpec.MAX_PLANNED_RUNWAY_LENGTH) {
+					len = Math.max(least, Math.min(AirportSpec.MAX_PLANNED_RUNWAY_LENGTH, len));
+					warn("a runway " + length + " blocks long is outside " + least + ".." + AirportSpec.MAX_PLANNED_RUNWAY_LENGTH
+							+ " here (the plan holds every block in memory, so the longest runways of real airports do not fit); using " + len);
 				}
 			} else {
 				len = Math.max(len, AirportSpec.minLength(wid));
@@ -442,7 +538,20 @@ final class AirportWords {
 			if (terminal == null) {
 				defaulted.add("a terminal building (default)");
 			}
-			AirportSpec spec = new AirportSpec(r, len, wid, g, t).withHeading(heading == null ? AirportSpec.DEFAULT_HEADING : heading);
+			final boolean paint = runwayMarkings == null || runwayMarkings;
+			final boolean lights = taxiwayLights == null || taxiwayLights;
+			final boolean apronPaint = apronMarkings == null || apronMarkings;
+			final boolean tower = controlTower == null || controlTower;
+			final boolean fore = forecourt == null || forecourt;
+			final boolean signs = taxiwaySigns == null || taxiwaySigns;
+			final boolean pads = turnPads == null || turnPads;
+			final boolean lanes = apronLanes == null || apronLanes;
+			final boolean support = supportBuildings == null || supportBuildings;
+			final boolean fence = perimeter == null || perimeter;
+			final boolean approach = approachLights == null || approachLights;
+			final boolean transit = landTransit == null || landTransit;
+			AirportSpec spec = new AirportSpec(r, len, wid, g, t, false, heading == null ? AirportSpec.DEFAULT_HEADING : heading,
+					paint, lights, apronPaint, tower, fore, signs, pads, lanes, support, fence, approach, transit);
 			if (rail) {
 				if (!t) {
 					warn("a railway station needs the terminal over it; left out");

@@ -108,7 +108,7 @@ class AirportReviewFixesTest {
 		assertEquals(225, shortRunway.get(0).from());
 	}
 
-	/** The painted threshold of the default airport: 8 stripes of 3 across a row, plus the two edge lines. */
+	/** The painted threshold of the default airport: eight piano keys across a row, plus the two edge lines. */
 	@Test
 	void theDefaultRunwayIsPaintedWithEightThresholdStripes() {
 		final StationSpec spec = spec("airport");
@@ -117,7 +117,7 @@ class AirportReviewFixesTest {
 		final int row = air.runwayV0() + 10;
 		final long white = plan.blocks().stream().filter(b -> b.v() == row && b.blockId().equals(PlanAirport.PAINT_WHITE)
 				&& b.u() >= air.runwayU0().get(0) && b.u() <= air.runwayU1(0)).count();
-		assertEquals(8 * 3 + 2, white);
+		assertEquals(8 + 2, white);
 	}
 
 	/** Review 2: a comma parts "airport" from the station after it, and the platforms of the station under the terminal keep the airport. */
@@ -130,7 +130,7 @@ class AirportReviewFixesTest {
 		assertFalse(spec("airport train station, 4 platforms").isAirport());
 	}
 
-	/** Review 2: the default runway is 45 wide (odd); the first touchdown pair has 3 stripes each side, the same on both sides. */
+	/** Review 2: the default runway is 23 wide (odd); one of the first touchdown pair's stripes fits each side, the same both sides. */
 	@Test
 	void touchdownBarsMatchOnAnOddWidth() {
 		final StationSpec spec = spec("airport");
@@ -142,7 +142,7 @@ class AirportReviewFixesTest {
 				&& b.u() >= air.runwayU0().get(0) && b.u() < c).count();
 		final long right = plan.blocks().stream().filter(b -> b.v() == row && b.blockId().equals(PlanAirport.PAINT_WHITE)
 				&& b.u() > c && b.u() <= air.runwayU1(0)).count();
-		assertEquals(1 + 3 * 3, left, "edge line and three stripes of 3");
+		assertEquals(1 + 3, left, "edge line and one stripe of 3");
 		assertEquals(left, right);
 	}
 
