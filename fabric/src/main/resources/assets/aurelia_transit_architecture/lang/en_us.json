@@ -730,6 +730,7 @@
   "tooltip.aurelia_transit_architecture.buffer_joins": "Place several side by side across a track: they join into one buffer",
   "block.aurelia_transit_architecture.runway_edge_light": "Runway Edge Light",
   "block.aurelia_transit_architecture.runway_threshold_light": "Runway Threshold Light",
+  "block.aurelia_transit_architecture.runway_end_light": "Runway End Light",
   "block.aurelia_transit_architecture.taxiway_edge_light": "Taxiway Edge Light",
   "block.aurelia_transit_architecture.apron_floodlight": "Apron Floodlight",
   "block.aurelia_transit_architecture.apron_platform": "Apron Platform",

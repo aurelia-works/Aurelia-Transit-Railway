@@ -445,6 +445,7 @@
 		"aurelia_transit_architecture:utrecht_hall_beam",
 		"aurelia_transit_architecture:runway_edge_light",
 		"aurelia_transit_architecture:runway_threshold_light",
+		"aurelia_transit_architecture:runway_end_light",
 		"aurelia_transit_architecture:taxiway_edge_light",
 		"aurelia_transit_architecture:apron_floodlight",
 		"aurelia_transit_architecture:check_in_desk",

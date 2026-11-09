@@ -57,7 +57,7 @@ abstract class PlanAirport extends PlanFitOut {
 	/** Runway threshold lights: green. */
 	static final String THRESHOLD_LIGHT = "aurelia_transit_architecture:runway_threshold_light";
 	/** Runway end lights: red, one row outside each threshold, glowing the other way down the approach. */
-	static final String END_LIGHT = "minecraft:redstone_lamp";
+	static final String END_LIGHT = "aurelia_transit_architecture:runway_end_light";
 	/** Taxiway edge lights: blue. */
 	static final String TAXI_LIGHT = "aurelia_transit_architecture:taxiway_edge_light";
 	/** The perimeter service road's darker asphalt, and the mown grass between the runway and taxiway. */
@@ -304,7 +304,7 @@ abstract class PlanAirport extends PlanFitOut {
 			// the red runway end lights, one row beyond each green threshold line, every two cells across
 			final int end = high ? air.runwayV1() + 1 : air.runwayV0() - 1;
 			for (int u = air.runwayU0().get(0) + 1; u < air.runwayU1(0); u += 2) {
-				light(u, end, END_LIGHT, "lit=true");
+				light(u, end, END_LIGHT);
 			}
 		}
 		// four PAPI boxes beside the touchdown zone, one cell outside the runway shoulder
@@ -324,7 +324,7 @@ abstract class PlanAirport extends PlanFitOut {
 			final int v = v0 + 4 * k;
 			put(Role.FIXTURE, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_U, SIDEWALK);
 			put(Role.FIXTURE, u, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, "minecraft:white_concrete");
-			put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, v, LocalDir.PLUS_U, END_LIGHT, "lit=true");
+			put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, v, LocalDir.PLUS_U, END_LIGHT);
 		}
 	}
 
