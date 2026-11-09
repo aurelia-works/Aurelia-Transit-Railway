@@ -2,13 +2,13 @@ package com.aureliatransit.architecture.live;
 
 import com.aureliatransit.architecture.block.FacingShapedBlock;
 import com.aureliatransit.architecture.block.FreePlacement;
+import com.aureliatransit.architecture.block.MtrBrush;
 import com.aureliatransit.architecture.block.Placement;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
@@ -208,7 +208,7 @@ public class PidsBlock extends FacingShapedBlock implements BlockEntityProvider 
 
 	@Override
 	public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-		if (player.getStackInHand(hand).getItem() instanceof BlockItem || !player.canModifyBlocks()) {
+		if (!MtrBrush.held(player, hand) || !player.canModifyBlocks()) {
 			return ActionResult.PASS;
 		}
 		if (world.isClient) {

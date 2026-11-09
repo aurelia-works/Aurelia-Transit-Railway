@@ -88,9 +88,9 @@ class LiftDoorsTest {
 				final int dv = button.front() == LocalDir.PLUS_V ? 1 : button.front() == LocalDir.MINUS_V ? -1 : 0;
 				final PlannedBlock holder = plan.blocks().stream()
 						.filter(b -> b.u() == button.u() + du && b.y() == button.y() && b.v() == button.v() + dv).findFirst().orElse(null);
-				// a post is clad full width in the plinth block where a button is fixed to it, so the plate has a whole block behind
+				// a post is clad full width in the plinth block (an NS tower: its dark frame panel) where a button is fixed to it, so the plate has a whole block behind
 				assertTrue(holder != null && (holder.blockId().equals(building.pier()) || holder.blockId().equals(building.interiorWall())
-								|| holder.blockId().equals(building.plinth())),
+								|| holder.blockId().equals(building.plinth()) || holder.blockId().equals(StylePalette.of(spec).liftFrame(false))),
 						text + ": call button at " + button.u() + " " + button.y() + " " + button.v() + " is held by " + holder);
 			}
 			assertTrue(buttons > 0, text + ": the station has call buttons");

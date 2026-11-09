@@ -150,6 +150,23 @@ public final class StationGeometry {
 		return (int) Math.round(metres * BLOCKS_PER_METRE);
 	}
 
+	/** A typical MTR car in blocks: real cars of the stock MTR models are about 20-25 m, and one block is one car metre in
+	 * the vehicle models. Used only to report how many cars a platform holds. */
+	public static final int CAR_LENGTH = 24;
+
+	/** The cars of the formation whose length is nearest a platform of {@code blocks} between its rail nodes, at least one. */
+	public static int cars(int blocks) {
+		return Math.max(1, Math.round(blocks / (float) CAR_LENGTH));
+	}
+
+	/** The spare blocks a formation of {@code cars} leaves at the end of a platform {@code blocks} long (negative when short). */
+	public static int trainSpare(int blocks, int cars) {
+		return blocks - cars * CAR_LENGTH;
+	}
+
+	/** The shortest platform the generator draws: two cars. */
+	public static final int MIN_TRAIN_PLATFORM = 2 * CAR_LENGTH;
+
 	/**
 	 * Depth of a station building beside the tracks at {@code scale}: the block's walls included, at roughly a block a
 	 * metre. {@link #BUILDING_DEPTH} is the compact block; a city or grand building is deeper, so a bigger station gets a
@@ -250,6 +267,10 @@ public final class StationGeometry {
 			return new TrackLayout(airport.width(), airport.length(), 0, List.of(), List.of());
 		}
 		final String bands = bandPattern(spec);
+		// room for a ballast shoulder and a cess path beside an outer track whose side is open (no street, building or box)
+		final int cess = cess(spec);
+		final int cessLeft = bands.charAt(0) == 'T' && sideShift(spec) == 0 ? cess : 0;
+		final int cessRight = bands.charAt(bands.length() - 1) == 'T' && !(spec.real().hallOverTracks() && streetEntrance(spec)) ? cess : 0;
 		final List<TrackLayout.Track> tracks = new ArrayList<>();
 		final List<TrackLayout.PlatformBand> platforms = new ArrayList<>();
 		// u of the previous band's last occupied column (track centre or platform uMax), and whether it was a track
@@ -270,7 +291,7 @@ public final class StationGeometry {
 			if (track) {
 				final int u;
 				if (i == 0) {
-					u = ENVELOPE_HALF_WIDTH;
+					u = ENVELOPE_HALF_WIDTH + cessLeft;
 				} else if (previousTrack) {
 					u = previousU + TRACK_SPACING;
 				} else {
@@ -289,7 +310,7 @@ public final class StationGeometry {
 			}
 			previousTrack = track;
 		}
-		final int railWidth = previousTrack ? previousU + ENVELOPE_HALF_WIDTH + 1 : previousU + 1;
+		final int railWidth = previousTrack ? previousU + ENVELOPE_HALF_WIDTH + 1 + cessRight : previousU + 1;
 		final StationScale scale = spec.buildingScale();
 		final int parking = spec.parking() && spec.sideBuilding() ? PARKING_DEPTH : 0;
 		// an underground station's box: a wall column each side, and two rows past each platform end for its end walls (its
@@ -297,7 +318,7 @@ public final class StationGeometry {
 		final int box = boxMargin(spec);
 		final int ramps = spec.options().deepStation() ? deepEndRows(spec) : spec.stepFree() || box > 0 ? RAMP_LENGTH : 0;
 		final int access = spec.options().deepStation() ? accessRows(spec) : 0;
-		final int shift = box + parking + (spec.sideBuilding() ? APRON + buildingDepth(scale) : streetEntrance(spec) ? streetWidth(spec) : 0);
+		final int shift = sideShift(spec);
 		if (shift == 0) {
 			// a terminus's tracks run on past the platforms to their buffer stops, so its track zone is that much longer
 			final int built = builtLength(spec.platformLength());
@@ -318,6 +339,35 @@ public final class StationGeometry {
 		final int farStreet = spec.real().hallOverTracks() && streetEntrance(spec) ? streetWidth(spec) : 0;
 		return new TrackLayout(railWidth + shift + farStreet + box, builtLength(spec.platformLength()), ramps, shiftedTracks, shiftedPlatforms,
 				spec.sideBuilding() ? shift : 0, 0, 0, parking, 0, access);
+	}
+
+	/** Columns before the first band: an underground box's wall, a car park, a side building with its apron, or a street. */
+	static int sideShift(StationSpec spec) {
+		final int parking = spec.parking() && spec.sideBuilding() ? PARKING_DEPTH : 0;
+		return boxMargin(spec) + parking + (spec.sideBuilding() ? APRON + buildingDepth(spec.buildingScale())
+				: streetEntrance(spec) ? squareDepth(spec) + streetWidth(spec) : 0);
+	}
+
+	/**
+	 * Columns of a Dutch street entrance's station square, before the street entrance (Jah 11-08: the judge found the way in
+	 * from the street bare): the street, its kerb, a red cycle path, a verge of trees, a footway, covered bike parking and a
+	 * walk along the entrance. 0 for any other station.
+	 */
+	public static int squareDepth(StationSpec spec) {
+		return spec.style() == StationStyle.DUTCH && spec.features().square() && !spec.real().hallOverTracks() && boxMargin(spec) == 0
+				&& !spec.tram() && streetEntrance(spec) ? SQUARE_DEPTH : 0;
+	}
+
+	public static final int SQUARE_DEPTH = 16;
+
+	/** Columns past an open outer track's clearance with a track bed: a ballast shoulder, then a cess path. */
+	public static final int CESS = 2;
+
+	/** {@link #CESS} for a surface station with a track bed and no hall roof, else 0 (the ground beside the track stays as it is). */
+	static int cess(StationSpec spec) {
+		// a hall roof's beams span the full width from its outer columns, so a hall keeps its width
+		return spec.trackBed() != TrackBed.NONE && spec.roof() != RoofType.HALL && !spec.hub() && !spec.options().underground() && !spec.tram()
+				&& boxMargin(spec) == 0 ? CESS : 0;
 	}
 
 	/** Height of the second bore's platform over the first's in a stacked deep tube station: a bore's crown and a slab of rock. */

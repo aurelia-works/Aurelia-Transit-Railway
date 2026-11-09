@@ -2,6 +2,7 @@ package com.aureliatransit.architecture.block.wayfinding;
 
 import com.aureliatransit.architecture.block.FacingShapedBlock;
 import com.aureliatransit.architecture.block.FreePlacement;
+import com.aureliatransit.architecture.block.MtrBrush;
 import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.block.entity.WayfindingSignBlockEntity;
 import com.aureliatransit.architecture.wayfinding.WayfindingPanelKind;
@@ -72,15 +73,16 @@ public class WayfindingPlateBlock extends FacingShapedBlock implements BlockEnti
 
 	@Override
 	public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-		if (player.getStackInHand(hand).getItem() instanceof BlockItem || !player.canModifyBlocks()) {
+		final boolean brush = MtrBrush.held(player, hand) && player.canModifyBlocks();
+		if (!brush && (spec.kind() != WayfindingPanelKind.TERMINAL || player.getStackInHand(hand).getItem() instanceof BlockItem)) {
 			return ActionResult.PASS;
 		}
 		if (world.isClient) {
 			final BlockPos target = editorPos(world, pos, state);
-			if (spec.kind() == WayfindingPanelKind.TERMINAL && !player.isSneaking()) {
-				openTerminal.accept(target);
-			} else {
+			if (brush) {
 				openEditor.accept(target);
+			} else {
+				openTerminal.accept(target);
 			}
 		}
 		return ActionResult.success(world.isClient);

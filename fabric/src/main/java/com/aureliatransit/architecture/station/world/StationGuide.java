@@ -104,6 +104,7 @@ public final class StationGuide {
 					Page.of("Undo and rebuild",
 							Line.chat("/ata_station cancel", "Drops the plan or stops the build"),
 							Line.chat("/ata_station undo", "Reverts your last build, even after a restart"),
+							Line.chat("/ata_station override <block|clear>", "Saves a fine edit of the block you look at"),
 							Line.chat("/ata_station rebuild", "Builds the plan where your last station stands, changing only what differs"),
 							Line.chat("/ata_station rebuild replace_terrain", "The old word; still rebuilds")),
 					Page.of("More commands",

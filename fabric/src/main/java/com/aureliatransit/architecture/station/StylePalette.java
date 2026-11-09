@@ -57,7 +57,7 @@ public final class StylePalette {
 				case NONE, MODERN -> new Building(ata("metro_pale_concrete"), ata("metro_steel_cladding"), ata("metro_steel_cladding"),
 						ata("metro_steel_cladding"), ata("curtain_wall_glass"), ata("utrecht_light_grey_floor_tile"), ata("utrecht_light_grey_floor_tile"),
 						ata("metro_pale_concrete"), ata("metro_recessed_light"), ata("station_stair"), ata("utrecht_light_grey_floor_tile"),
-						ata("curtain_wall_glass"), ata("canopy_flat"), ata("canopy_light"), ata("steel_column_square"), ata("steel_bench"),
+						ata("clear_float_glass"), ata("canopy_flat"), ata("canopy_light"), ata("steel_column_square"), ata("steel_bench"),
 						ata("metro_pale_concrete"));
 				case AMSTERDAM -> new Building(ata("amsterdam_red_brick"), ata("amsterdam_brick_sandstone_band"), ata("amsterdam_brick_sandstone_band"),
 						ata("amsterdam_stone_cornice"), ata("amsterdam_arched_window"), ata("utrecht_light_grey_floor_tile"),
@@ -198,7 +198,7 @@ public final class StylePalette {
 					ata("steel_column_square"), ata("steel_column_square"), ata("canopy_flat"), ata("canopy_edge"), ata("canopy_light"),
 					ata("platform_lamp"), ata("steel_bench"), ata("station_name_sign"));
 			case DUTCH -> new StylePalette(ata("leidsche_rijn_concrete_platform_paver"),
-					ata(tactile ? "platform_edge_warning" : "platform_edge"), ata("steel_column_round"), ata("utrecht_tree_column_white"),
+					ata("ns_platform_edge"), ata("steel_column_round"), ata("utrecht_tree_column_white"),
 					ata(hall ? "utrecht_wave_roof_panel" : "leidsche_rijn_timber_soffit_canopy"),
 					ata(hall ? "utrecht_wave_roof_edge" : "canopy_edge"), ata("canopy_light"), ata("platform_lamp"), ata("wooden_bench"),
 					ata("dutch_station_sign"));
@@ -252,7 +252,9 @@ public final class StylePalette {
 			case ART_DECO -> "white";
 			case MODERNIST -> "steel";
 			case NONE -> switch (style) {
-				case MODERN, DUTCH -> "white";
+				case MODERN -> "white";
+				// NS canopies (Driebergen-Zeist, Leidsche Rijn) carry their glass on dark grey steel, like the columns and lift towers
+				case DUTCH -> "steel";
 				case GERMAN_SBAHN, METRO -> "steel";
 			};
 		};
@@ -325,7 +327,7 @@ public final class StylePalette {
 			case BUILDING_ROOF -> building.roof();
 			case GATE -> ata("fare_gate");
 			case BARRIER -> ata("glass_barrier");
-			case RAILING -> ata("handrail");
+			case RAILING -> ata(glassLiftHead() ? "ns_handrail" : "handrail");
 			case BUFFER_STOP -> ata(heritageBuffers() ? "heritage_buffer_stop" : "buffer_stop");
 			case FIXTURE -> ata("help_point");
 			case LIFT -> MTR_LIFT_TRACK;
@@ -355,5 +357,83 @@ public final class StylePalette {
 
 	private static String ata(String id) {
 		return ATA + id;
+	}
+
+	/** The platform surface block the style uses (for an edge drawn without a coping line). */
+	public String surfaceId() {
+		return surface;
+	}
+
+	/**
+	 * The block for a platform edge: the style's tactile edge when the tactile strip sits in the edge cell (a high platform),
+	 * else the same style's plain coping, so the white edge line is not muddled with the strip.
+	 */
+	public String edgeId(boolean tactileOnEdge) {
+		if (tactileOnEdge) {
+			return edge;
+		}
+		return switch (edge) {
+			case "aurelia_transit_architecture:platform_edge_warning" -> ata("platform_edge");
+			case "aurelia_transit_architecture:sbahn_platform_edge_tactile" -> ata("sbahn_platform_edge");
+			case "aurelia_transit_architecture:uk_platform_coping_tactile" -> ata("uk_platform_coping");
+			case "aurelia_transit_architecture:metro_tactile_edge" -> ata("platform_edge");
+			default -> edge;
+		};
+	}
+
+	/** The block a tactile strip one cell in from a platform edge is laid with: the style's own tactile paving, a full platform
+	 * surface so MTR doors still open over it. Yellow warning paving where the style has no paving of its own. */
+	public String tactileId() {
+		if (specBuildingStyle()) {
+			return switch (buildingStyle) {
+				case VICTORIAN, ART_DECO, MODERNIST -> ata("uk_platform_coping_tactile");
+				default -> switch (style) {
+					case GERMAN_SBAHN -> ata("sbahn_platform_edge_tactile");
+					case METRO -> ata("metro_tactile_edge");
+					default -> ata("tactile_warning_paving");
+				};
+			};
+		}
+		return switch (style) {
+			case GERMAN_SBAHN -> ata("sbahn_platform_edge_tactile");
+			case METRO -> ata("metro_tactile_edge");
+			default -> ata("tactile_warning_paving");
+		};
+	}
+
+	/** True when the station has a British building look whose platforms have their own coping. */
+	private boolean specBuildingStyle() {
+		return switch (buildingStyle) {
+			case VICTORIAN, ART_DECO, MODERNIST -> true;
+			default -> false;
+		};
+	}
+
+	/**
+	 * The paving one cell in from a platform edge with the guidance lines for blind people along it, or null where the style
+	 * has none there: NS platforms carry white ribbed lines instead of a yellow warning strip.
+	 */
+	public String guidanceId() {
+		return !specBuildingStyle() && style == StationStyle.DUTCH && surface.equals(ata("leidsche_rijn_concrete_platform_paver"))
+				? ata("ns_platform_guidance") : null;
+	}
+
+	/**
+	 * The frame of a free-standing lift tower: its corner posts, floor band and head. NS towers are glass boxes framed in
+	 * anthracite steel; elsewhere the frame is the building's trim and piers.
+	 */
+	public String liftFrame(boolean corner) {
+		if (glassLiftHead()) {
+			return ata(corner ? "ns_lift_post" : "steel_panel_dark");
+		}
+		return corner ? building.pier() : building.trim();
+	}
+
+	/**
+	 * True at an NS station without a building style: its lift towers' glass runs up to the roof instead of ending under a
+	 * clad head, and its handrails are red.
+	 */
+	public boolean glassLiftHead() {
+		return !specBuildingStyle() && style == StationStyle.DUTCH;
 	}
 }

@@ -2,9 +2,13 @@ package com.aureliatransit.architecture.station;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+
 
 import static com.aureliatransit.architecture.station.StationPlanner.*;
 
@@ -46,7 +50,7 @@ abstract class PlanPlatforms extends PlanState {
 	}
 
 	/** One number plate hung over columns {@code from}..{@code to} (either order), nearest the middle of that run first. */
-	private void numberSignIn(TrackLayout.PlatformBand band, int from, int to, int v, int number) {
+	void numberSignIn(TrackLayout.PlatformBand band, int from, int to, int v, int number) {
 		final int lo = Math.min(from, to);
 		final int hi = Math.max(from, to);
 		final int mid = (lo + hi) / 2;
@@ -55,17 +59,32 @@ abstract class PlanPlatforms extends PlanState {
 			if (u < lo || u > hi || isEdge(band, u)) {
 				continue;
 			}
-			final int y = ceiling(u, v) - 1;
+			final int y = underside(u, v) - 1;
 			if (y >= StationGeometry.WALK_Y + 2 && numberSign(u, y, v, LocalDir.PLUS_V, Integer.toString(number))) {
 				return;
 			}
 		}
 	}
 
+	/**
+	 * The lowest thing hanging over cell (u, v) under its roof: a light strip or batten counts, so a plate hangs below it
+	 * where people see it instead of in the roof void above it. -1 when nothing covers the cell.
+	 */
+	int underside(int u, int v) {
+		final int roof = ceiling(u, v);
+		for (int y = StationGeometry.WALK_Y + 1; y < roof; y++) {
+			if (cells.containsKey(new Cell(u, y, v))) {
+				return y;
+			}
+		}
+		return roof;
+	}
+
 	/** A big platform number plate hung from the structure above; double-sided, so it reads from both ways. */
 	boolean numberSign(int u, int y, int v, LocalDir front, String number) {
 		final Cell cell = new Cell(u, y, v);
 		if (cells.containsKey(cell) || air.contains(cell)) {
+			skip(Role.FIXTURE, NUMBER_SIGN, cell);
 			return false;
 		}
 		cells.put(cell, new PlannedBlock(u, y, v, Role.FIXTURE, NUMBER_SIGN, front, number, ""));
@@ -87,12 +106,21 @@ abstract class PlanPlatforms extends PlanState {
 			}
 		}
 		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			// a high platform carries its tactile warning in the edge cell; a low or standard one keeps the same edge layout and
+			// the tactile warning is part of the edge texture
+			final boolean tactileEdge = spec.tactile();
+			final String edgeId = spec.features().edgeLines() ? palette.edgeId(tactileEdge) : palette.surfaceId();
+			final String guidance = spec.tactile() ? palette.guidanceId() : null;
 			for (int v = band.vFrom(); v <= band.vTo(); v++) {
 				for (int u = band.uMin(); u <= band.uMax(); u++) {
 					if (u == band.uMin() && band.trackLeft()) {
-						put(Role.PLATFORM_EDGE, u, StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U);
+						put(Role.PLATFORM_EDGE, u, StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U, edgeId);
 					} else if (u == band.uMax() && band.trackRight()) {
-						put(Role.PLATFORM_EDGE, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_U);
+						put(Role.PLATFORM_EDGE, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_U, edgeId);
+					} else if (guidance != null && band.uMax() - band.uMin() >= 4 && u == band.uMin() + 1 && band.trackLeft()) {
+						put(Role.PLATFORM_SURFACE, u, StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U, guidance);
+					} else if (guidance != null && band.uMax() - band.uMin() >= 4 && u == band.uMax() - 1 && band.trackRight()) {
+						put(Role.PLATFORM_SURFACE, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_U, guidance);
 					} else {
 						put(Role.PLATFORM_SURFACE, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V);
 					}
@@ -128,6 +156,21 @@ abstract class PlanPlatforms extends PlanState {
 
 	void ramps() {
 		for (final TrackLayout.PlatformBand band : rampedBands()) {
+			// the steps down from a street entrance get a parapet each side: a cheek wall level with the entrance and a rail
+			// on it, so their open sides (onto the ground and the track) are guarded like a real station's entrance steps
+			if (site.streets().contains(band) && band.uMax() - band.uMin() + 1 >= 5) {
+				final List<Integer> rows = new ArrayList<>(List.of(band.vFrom() - 2, band.vFrom() - 1));
+				if (!layout.terminus()) {
+					rows.addAll(List.of(band.vTo() + 1, band.vTo() + 2));
+				}
+				for (final int u : new int[]{band.uMin(), band.uMax()}) {
+					final LocalDir outward = u == band.uMin() ? LocalDir.MINUS_U : LocalDir.PLUS_U;
+					for (final int v : rows) {
+						put(Role.WALL, u, StationGeometry.PLATFORM_Y, v, outward, PlanBridges.PLATEAU_WALL);
+						put(Role.RAILING, u, StationGeometry.WALK_Y, v, outward);
+					}
+				}
+			}
 			for (int u = band.uMin(); u <= band.uMax(); u++) {
 				put(Role.RAMP_LOWER, u, StationGeometry.PLATFORM_Y, band.vFrom() - 2, LocalDir.MINUS_V);
 				put(Role.RAMP_UPPER, u, StationGeometry.PLATFORM_Y, band.vFrom() - 1, LocalDir.MINUS_V);
@@ -296,6 +339,43 @@ abstract class PlanPlatforms extends PlanState {
 				}
 			}
 		}
+		for (final TrackLayout.Track track : layout.tracks()) {
+			for (final int side : new int[]{-1, 1}) {
+				if (!cessSide(track, side)) {
+					continue;
+				}
+				// past the sleeper ends: the ballast shoulder, then the cess, a walkway of concrete cable-trough lids
+				final int shoulder = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + 1);
+				for (int v = layout.vMin(); v <= layout.trackEnd(track); v++) {
+					put(Role.TRACK_BED, shoulder, -1, v, LocalDir.PLUS_V, bed.blockId());
+					put(Role.TRACK_BED, shoulder + side, -1, v, LocalDir.PLUS_V, CESS_PATH);
+				}
+			}
+		}
+	}
+
+	/** The cess walkway beside an outer track: concrete trough lids. */
+	static final String CESS_PATH = "minecraft:smooth_stone";
+
+	/** True when the layout left room for a shoulder and cess on this side of the track (an open outer side). */
+	boolean cessSide(TrackLayout.Track track, int side) {
+		if (StationGeometry.cess(spec) == 0 || (side < 0 ? track.platformLeft() : track.platformRight())) {
+			return false;
+		}
+		final int u0 = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + 1);
+		final int u1 = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + StationGeometry.CESS);
+		if (Math.min(u0, u1) < 0 || Math.max(u0, u1) >= layout.width()) {
+			return false;
+		}
+		// nothing else in those columns: no other track's clearance, no platform, no street
+		for (final TrackLayout.Track other : layout.tracks()) {
+			if (other != track && Math.abs(other.u() - u0) <= StationGeometry.ENVELOPE_HALF_WIDTH + StationGeometry.CESS) {
+				return false;
+			}
+		}
+		final List<TrackLayout.PlatformBand> bands = new ArrayList<>(layout.platforms());
+		bands.addAll(site.streets());
+		return bands.stream().noneMatch(band -> band.uMax() >= Math.min(u0, u1) && band.uMin() <= Math.max(u0, u1));
 	}
 
 	/**
@@ -488,4 +568,333 @@ abstract class PlanPlatforms extends PlanState {
 			}
 		}
 	}
+
+	/**
+	 * Planned last, on cells nothing else wanted. The ballast shoulder beside an open outer track is raised half a block, level
+	 * with the sleeper tops, like a real ballast profile; the open side along a street entrance gets its shoulder and cess
+	 * wherever the street, its steps and its lift leave room; and past each end of an island the ground between its two tracks
+	 * is ballast, instead of grass running up to the platform's end wall.
+	 */
+	void shoulders() {
+		final TrackBed bed = spec.trackBed();
+		if (bed == TrackBed.NONE || StationGeometry.cess(spec) == 0) {
+			return;
+		}
+		for (final TrackLayout.Track track : layout.tracks()) {
+			for (final int side : new int[]{-1, 1}) {
+				if (side < 0 ? track.platformLeft() : track.platformRight()) {
+					continue;
+				}
+				final int shoulder = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + 1);
+				final boolean streetSide = side < 0 && site.street() != null && !cessSide(track, side) && layout.buildingWidth() == 0
+						&& layout.tracks().stream().noneMatch(other -> other.u() < track.u()) && shoulder - 1 >= 0;
+				for (int v = layout.vMin(); v <= layout.trackEnd(track); v++) {
+					if (streetSide && freeColumn(shoulder, v) && freeColumn(shoulder - 1, v)) {
+						put(Role.TRACK_BED, shoulder, -1, v, LocalDir.PLUS_V, bed.blockId());
+						put(Role.TRACK_BED, shoulder - 1, -1, v, LocalDir.PLUS_V, CESS_PATH);
+						extraSupport.add(new Box(shoulder, -2, v, shoulder, -2, v));
+					}
+					final PlannedBlock under = at(shoulder, -1, v);
+					if (under != null && under.role() == Role.TRACK_BED && under.blockId().equals(bed.blockId()) && free(shoulder, 0, v)
+							&& free(shoulder, 1, v)) {
+						put(Role.TRACK_BED, shoulder, 0, v, LocalDir.PLUS_V, bed.shoulder());
+					}
+				}
+			}
+		}
+		final Set<TrackLayout.PlatformBand> ramped = new HashSet<>(rampedBands());
+		final int bedTo = layout.tracks().stream().mapToInt(this::bedEnd).min().orElse(-1);
+		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			if (ramped.contains(band) || !betweenTracks(band)) {
+				continue;
+			}
+			for (int v = layout.vMin(); v <= bedTo; v++) {
+				if (v >= band.vFrom() && v <= band.vTo()) {
+					continue;
+				}
+				for (int u = band.uMin(); u <= band.uMax(); u++) {
+					if (freeColumn(u, v)) {
+						put(Role.TRACK_BED, u, -1, v, LocalDir.PLUS_V, bed.blockId());
+						extraSupport.add(new Box(u, -2, v, u, -2, v));
+					}
+				}
+			}
+		}
+	}
+
+	/** Nothing planned or kept clear at the cell. */
+	boolean free(int u, int y, int v) {
+		final Cell cell = new Cell(u, y, v);
+		return !cells.containsKey(cell) && !air.contains(cell);
+	}
+
+	/** Nothing planned or kept clear from the bed up to head height at that column and row. */
+	private boolean freeColumn(int u, int v) {
+		for (int y = -1; y <= StationGeometry.WALK_Y + 1; y++) {
+			if (!free(u, y, v)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** Rows between the overhead line's masts: two canopy bays. */
+	static final int MAST_SPACING = 2 * StationGeometry.COLUMN_SPACING;
+	private static final int[] MAST_SHIFTS = {0, -2, 2, -4, 4, -6, 6};
+	/** The contact wire's cell: the wire runs mid-block, about 5.5 m over the rail, just over the track clearance. */
+	static final int WIRE_Y = StationGeometry.ENVELOPE_HEIGHT;
+	static final String MAST = "aurelia_transit_architecture:catenary_mast";
+	/** The messenger's deepest sag mid-span, as the contact wire's kind number (ContactWireKind.MAX_LEVEL). */
+	static final int WIRE_SAG_LEVELS = 6;
+	/** The cantilever from a mast to the hanger over its track: root at the mast, spans, tip over the wire. */
+	static final String ARM = "aurelia_transit_architecture:catenary_arm";
+	static final String WIRE = "aurelia_transit_architecture:contact_wire";
+	static final String LINESIDE_FENCE = "aurelia_transit_architecture:lineside_fence";
+	static final String NOISE_BARRIER = "aurelia_transit_architecture:noise_barrier";
+
+	/** A station in the open, where lineside masts and fences stand: not under a hall, in a box, in the street or at a hub. */
+	boolean lineside() {
+		return spec.roof() != RoofType.HALL && !spec.hub() && !spec.options().underground() && !spec.tram()
+				&& StationGeometry.boxMargin(spec) == 0 && !layout.tracks().isEmpty();
+	}
+
+	/**
+	 * The overhead line: a mast every {@link #MAST_SPACING} rows on each open outer side (and between two tracks with no
+	 * platform between them), an arm across to the track's centre at the top, a hanger at its end, and the contact wire along
+	 * every track a mast reaches. Planned after everything else, on free cells only, so a canopy or a stair is never moved
+	 * for it; a mast row with no room is left out.
+	 */
+	void overheadLine() {
+		if (!spec.features().overheadLine() || !lineside()) {
+			return;
+		}
+		final Map<TrackLayout.Track, TreeSet<Integer>> wired = new HashMap<>();
+		for (final TrackLayout.Track track : layout.tracks()) {
+			for (final int side : new int[]{-1, 1}) {
+				if ((side < 0 ? track.platformLeft() : track.platformRight())
+						|| layout.tracks().stream().anyMatch(other -> other != track && Integer.signum(other.u() - track.u()) == side)) {
+					continue;
+				}
+				final int mast = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + StationGeometry.CESS);
+				if (mast < 0 || mast >= layout.width()) {
+					continue;
+				}
+				for (final int row : mastRows(track)) {
+					// a mast row with no room (a bridge's stairs, a lift) shifts a few rows along rather than leaving a long span
+					for (final int shift : MAST_SHIFTS) {
+						final int v = row + shift;
+						if (v >= layout.vMin() && v <= layout.trackEnd(track) && mastFits(mast, v, List.of(track.u()))) {
+							mast(mast, v, List.of(track.u()));
+							wired.computeIfAbsent(track, t -> new TreeSet<>()).add(v);
+							break;
+						}
+					}
+				}
+			}
+		}
+		// a mast between two neighbouring tracks with nothing between them carries an arm to each
+		final List<TrackLayout.Track> sorted = new ArrayList<>(layout.tracks());
+		sorted.sort(Comparator.comparingInt(TrackLayout.Track::u));
+		for (int i = 0; i + 1 < sorted.size(); i++) {
+			final TrackLayout.Track a = sorted.get(i);
+			final TrackLayout.Track b = sorted.get(i + 1);
+			if (a.platformRight() || b.platformLeft() || b.u() - a.u() < 2 * StationGeometry.ENVELOPE_HALF_WIDTH + 3) {
+				continue;
+			}
+			final int mast = (a.u() + b.u()) / 2;
+			for (final int v : mastRows(a.u() < b.u() && layout.trackEnd(a) < layout.trackEnd(b) ? a : b)) {
+				if (mastFits(mast, v, List.of(a.u(), b.u()))) {
+					mast(mast, v, List.of(a.u(), b.u()));
+					wired.computeIfAbsent(a, t -> new TreeSet<>()).add(v);
+					wired.computeIfAbsent(b, t -> new TreeSet<>()).add(v);
+				}
+			}
+		}
+		wired.forEach(this::contactWire);
+	}
+
+	/**
+	 * The wires along a track from its first mast to its last, so no end hangs in the air: the messenger sags towards the
+	 * middle of each span, and droppers hang the contact wire from it at even spacing, one at every mast.
+	 */
+	private void contactWire(TrackLayout.Track track, TreeSet<Integer> masts) {
+		if (masts.size() < 2) {
+			return;
+		}
+		for (int v = masts.first(); v <= masts.last(); v++) {
+			final int from = masts.floor(v);
+			final Integer next = masts.higher(v);
+			final int to = next == null ? from : next;
+			final int span = to - from;
+			final int at = v - from;
+			final double x = span == 0 ? 0 : 2.0 * at / span - 1;
+			final int level = (int) Math.round(WIRE_SAG_LEVELS * (1 - x * x));
+			final int droppers = Math.max(2, Math.round(span / 3f));
+			boolean dropper = at == 0;
+			for (int i = 1; i < droppers && !dropper; i++) {
+				dropper = at == Math.round((float) i * span / droppers);
+			}
+			if (free(track.u(), WIRE_Y, v)) {
+				put(Role.FIXTURE, track.u(), WIRE_Y, v, LocalDir.PLUS_V, WIRE, "kind=" + (dropper ? "dropper_" : "level_") + level);
+			}
+		}
+	}
+
+	/** The rows a track's masts stand on: two in from its start, every {@link #MAST_SPACING}, and two in from its end. */
+	private List<Integer> mastRows(TrackLayout.Track track) {
+		final List<Integer> rows = new ArrayList<>();
+		final int last = layout.trackEnd(track) - 2;
+		int v = layout.vMin() + 2;
+		for (; v <= last; v += MAST_SPACING) {
+			rows.add(v);
+		}
+		if (!rows.isEmpty() && last - rows.get(rows.size() - 1) > MAST_SPACING / 2) {
+			rows.add(last);
+		}
+		return rows;
+	}
+
+	/** Room for a mast at {@code (u, v)} up to the arm, the arm across to each track and its hanger. */
+	private boolean mastFits(int u, int v, List<Integer> tracks) {
+		if (mastBase(u, v) < 0) {
+			return false;
+		}
+		for (int y = mastBase(u, v); y <= WIRE_Y + 1; y++) {
+			if (!free(u, y, v)) {
+				return false;
+			}
+		}
+		for (final int t : tracks) {
+			for (int c = Math.min(u, t); c <= Math.max(u, t); c++) {
+				if (c != u && !free(c, WIRE_Y + 1, v)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	/** The lowest cell of a mast at {@code (u, v)}: on the ground, or on a platform's paving; -1 when neither is there. */
+	private int mastBase(int u, int v) {
+		if (free(u, StationGeometry.PLATFORM_Y, v)) {
+			return StationGeometry.PLATFORM_Y;
+		}
+		final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, v);
+		return floor != null && floor.role() == Role.PLATFORM_SURFACE ? StationGeometry.WALK_Y : -1;
+	}
+
+	private void mast(int u, int v, List<Integer> tracks) {
+		final int base = mastBase(u, v);
+		for (int y = base; y <= WIRE_Y + 1; y++) {
+			put(Role.FIXTURE, u, y, v, LocalDir.PLUS_U, MAST);
+		}
+		if (base == StationGeometry.PLATFORM_Y) {
+			extraSupport.add(new Box(u, -1, v, u, -1, v));
+		}
+		// a cantilever from the mast to each track: the root joins the mast's flange, the tip hangs the wire
+		for (final int t : tracks) {
+			final int step = Integer.signum(t - u);
+			final LocalDir toTrack = step > 0 ? LocalDir.PLUS_U : LocalDir.MINUS_U;
+			for (int c = u + step; c != t + step; c += step) {
+				final String kind = c == t ? "tip" : c == u + step ? "root" : "span";
+				put(Role.FIXTURE, c, WIRE_Y + 1, v, toTrack, ARM, "kind=" + kind);
+			}
+		}
+	}
+
+	/** Near a street entrance's steps, where people walk down onto the ground: no mast or fence in their way. */
+	private boolean nearStreet(int u, int v) {
+		for (final TrackLayout.PlatformBand street : site.streets()) {
+			if (u >= street.uMin() - 1 && u <= street.uMax() + 1 && v >= street.vFrom() - 6 && v <= street.vTo() + 6) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * A lineside fence along the outer edge of each cess, so the railway is closed off from the land beside it, with a gap
+	 * where people come down from a street entrance. Its mesh panel is on the cess block's outer edge, so the cess stays
+	 * walkable.
+	 */
+	void linesideFence() {
+		if (!spec.features().fence() || !lineside() || StationGeometry.cess(spec) == 0) {
+			return;
+		}
+		for (final TrackLayout.Track track : layout.tracks()) {
+			for (final int side : new int[]{-1, 1}) {
+				final int u = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + StationGeometry.CESS);
+				// a Dutch line runs between noise screens, except on the side a street entrance opens onto
+				final int s = side;
+				final boolean screen = spec.style() == StationStyle.DUTCH && site.streets().stream()
+						.noneMatch(street -> s < 0 ? street.uMax() < track.u() : street.uMin() > track.u());
+				for (int v = layout.vMin(); v <= layout.trackEnd(track); v++) {
+					final PlannedBlock cess = at(u, -1, v);
+					if (cess != null && CESS_PATH.equals(cess.blockId()) && free(u, StationGeometry.PLATFORM_Y, v) && free(u, StationGeometry.WALK_Y, v)
+							&& !nearStreet(u, v)) {
+						final LocalDir out = side < 0 ? LocalDir.MINUS_U : LocalDir.PLUS_U;
+						if (screen && free(u, StationGeometry.WALK_Y + 1, v)) {
+							// an absorbent base with glass above it, on the cess's outer edge like the fence
+							put(Role.FIXTURE, u, StationGeometry.PLATFORM_Y, v, out, NOISE_BARRIER, "kind=solid");
+							put(Role.FIXTURE, u, StationGeometry.WALK_Y, v, out, NOISE_BARRIER, "kind=glass");
+							put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, v, out, NOISE_BARRIER, "kind=glass");
+						} else {
+							put(Role.RAILING, u, StationGeometry.PLATFORM_Y, v, out, LINESIDE_FENCE);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * What makes a street entrance's steps read as a way into the station: the operator's name pylon at the foot of each flight,
+	 * a paved landing there where the station lays its own ground (a track bed), and two check-in poles at the top of the
+	 * flight. Planned late, on free cells only.
+	 */
+	void streetEntranceFittings() {
+		for (final TrackLayout.PlatformBand street : site.streets()) {
+			if (site.plateau(street)) {
+				continue;
+			}
+			final int outer = street.trackRight() ? street.uMin() : street.uMax();
+			for (final int dir : layout.terminus() ? new int[]{-1} : new int[]{-1, 1}) {
+				final int top = dir < 0 ? street.vFrom() : street.vTo();
+				final PlannedBlock step = at(street.uMin() + 1, StationGeometry.PLATFORM_Y, top + dir);
+				if (step == null || step.role() != Role.RAMP_UPPER && step.role() != Role.RAMP_LOWER) {
+					continue;
+				}
+				final int foot = top + 3 * dir;
+				final LocalDir out = dir < 0 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+				if (StationGeometry.cess(spec) > 0) {
+					for (int v = foot; v != foot + 3 * dir; v += dir) {
+						for (int u = street.uMin(); u <= street.uMax(); u++) {
+							if (inFootprint(v) && free(u, -1, v) && free(u, StationGeometry.PLATFORM_Y, v)) {
+								put(Role.FLOOR, u, -1, v, out, Planning.LOT_PAVING);
+							}
+						}
+					}
+				}
+				if (inFootprint(foot) && free(outer, StationGeometry.PLATFORM_Y, foot) && free(outer, StationGeometry.WALK_Y, foot)) {
+					putText(Role.FIXTURE, outer, StationGeometry.PLATFORM_Y, foot, out, PlanUnderground.PYLON, "NONE:" + spec.name());
+					put(Role.FIXTURE, outer, StationGeometry.WALK_Y, foot, out, PlanUnderground.PYLON, "half=upper");
+				}
+				if (inFootprint(foot + dir)) {
+					ticketMachine(outer, StationGeometry.PLATFORM_Y, foot + dir, outer == street.uMin() ? LocalDir.PLUS_U : LocalDir.MINUS_U);
+				}
+				for (final int u : new int[]{street.uMin() + 1, street.uMax() - 1}) {
+					if (free(u, StationGeometry.WALK_Y, top) && free(u, StationGeometry.WALK_Y + 1, top)) {
+						put(Role.FIXTURE, u, StationGeometry.WALK_Y, top, out, CARD_READER);
+					}
+				}
+			}
+		}
+	}
+
+	private boolean inFootprint(int v) {
+		return v >= layout.vMin() && v <= layout.vMax();
+	}
+
+	/** An NS-style check-in pole: tap in and out at the way onto the platforms. */
+	static final String CARD_READER = "aurelia_transit_architecture:card_reader";
 }

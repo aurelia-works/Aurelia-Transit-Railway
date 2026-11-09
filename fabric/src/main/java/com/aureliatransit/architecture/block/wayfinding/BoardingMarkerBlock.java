@@ -2,12 +2,12 @@ package com.aureliatransit.architecture.block.wayfinding;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.FacingShapedBlock;
+import com.aureliatransit.architecture.block.MtrBrush;
 import com.aureliatransit.architecture.block.Placement;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.text.Text;
@@ -57,7 +57,7 @@ public class BoardingMarkerBlock extends FacingShapedBlock {
 
 	@Override
 	public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-		if (hand != Hand.MAIN_HAND || player.getStackInHand(hand).getItem() instanceof BlockItem || !player.canModifyBlocks()) {
+		if (hand != Hand.MAIN_HAND || !MtrBrush.held(player, hand) || !player.canModifyBlocks()) {
 			return ActionResult.PASS;
 		}
 		if (!world.isClient) {

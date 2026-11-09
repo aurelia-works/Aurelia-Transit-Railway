@@ -23,6 +23,9 @@ class TrackBedTest {
 		assertEquals(TrackBed.GRAVEL, StationDescriptionParser.parse("ballast").spec().trackBed());
 		assertEquals(TrackBed.ANDESITE, StationDescriptionParser.parse("andesite terminus").spec().trackBed());
 		assertEquals(TrackBed.ANDESITE, StationDescriptionParser.parse(StudioApi.typed(Map.of("bed", "andesite"))).spec().trackBed());
+		assertEquals(TrackBed.NONE, StationDescriptionParser.parse("2 tracks no track bed").spec().trackBed());
+		assertEquals(TrackBed.NONE, StationDescriptionParser.parse("2 tracks without ballast").spec().trackBed());
+		assertEquals(TrackBed.NONE, StationDescriptionParser.parse("2 tracks no gravel bed").spec().trackBed());
 	}
 
 	@Test

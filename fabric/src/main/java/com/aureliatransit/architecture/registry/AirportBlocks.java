@@ -56,6 +56,9 @@ public final class AirportBlocks {
 			new Block(ModBlocks.paving(MapColor.BLACK).luminance(state -> 15)), TIP_GROUND_LIGHT);
 	public static final Block RUNWAY_THRESHOLD_LIGHT = ModBlocks.register("runway_threshold_light", BlockFamily.AIRPORT, RenderKind.SOLID,
 			new Block(ModBlocks.paving(MapColor.BLACK).luminance(state -> 15)), TIP_GROUND_LIGHT);
+	/** The red row across a runway's far end, flush like the threshold row; a lit redstone lamp went dark on the first update. */
+	public static final Block RUNWAY_END_LIGHT = ModBlocks.register("runway_end_light", BlockFamily.AIRPORT, RenderKind.SOLID,
+			new Block(ModBlocks.paving(MapColor.BLACK).luminance(state -> 15)), TIP_GROUND_LIGHT);
 	public static final Block TAXIWAY_EDGE_LIGHT = ModBlocks.register("taxiway_edge_light", BlockFamily.AIRPORT, RenderKind.SOLID,
 			new Block(ModBlocks.paving(MapColor.GRAY).luminance(state -> 12)), TIP_GROUND_LIGHT);
 	public static final Block APRON_FLOODLIGHT = ModBlocks.register("apron_floodlight", BlockFamily.AIRPORT, RenderKind.SOLID,

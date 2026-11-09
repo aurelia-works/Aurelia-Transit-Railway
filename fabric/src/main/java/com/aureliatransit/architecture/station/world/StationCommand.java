@@ -74,6 +74,8 @@ public final class StationCommand {
 				.then(CommandManager.literal("verify").executes(context -> run(context, player -> StationActions.verify(player, false)))
 						.then(CommandManager.literal("paste").executes(context -> run(context, player -> StationActions.verify(player, true)))))
 				.then(CommandManager.literal("status").executes(context -> run(context, StationActions::status)))
+				.then(CommandManager.literal("override").then(CommandManager.argument("block", StringArgumentType.greedyString())
+						.executes(context -> run(context, player -> StationActions.override(player, StringArgumentType.getString(context, "block"))))))
 				.then(CommandManager.literal("pace").executes(StationCommand::showPace)
 						.then(CommandManager.argument("blocks", IntegerArgumentType.integer(StationBuildSettings.MIN, StationBuildSettings.MAX))
 								.executes(StationCommand::setPace))));
@@ -318,6 +320,7 @@ public final class StationCommand {
 		source.sendFeedback(() -> Text.literal("/ata_station pace [blocks]: how many cells all builds change per tick (now "
 				+ StationBuildSettings.blocksPerTick(source.getServer()) + ")"), false);
 		source.sendFeedback(() -> Text.literal("/ata_station preview | cancel | undo | status"), false);
+		source.sendFeedback(() -> Text.literal("/ata_station override <block|clear>: save a fine edit of the block you look at in your last station"), false);
 		source.sendFeedback(() -> Text.literal("Or use the Station Wrench: right-click a block to plan, sneak + right-click the air to edit").formatted(Formatting.GRAY), false);
 		source.sendFeedback(() -> Text.literal("Examples:").formatted(Formatting.GRAY), false);
 		source.sendFeedback(() -> Text.literal("  two track dutch station, island platform, 64 long, glass canopy, named Leidsche Rijn").formatted(Formatting.GRAY), false);
