@@ -1,6 +1,8 @@
 package org.mtr.aurelia.client.screen;
 
 import com.aureliatransit.architecture.client.AirportWrenchScreen;
+import com.aureliatransit.architecture.client.HologramSettings;
+import com.aureliatransit.architecture.client.StationHologramRenderer;
 import com.aureliatransit.architecture.client.StationStudioClient;
 import com.aureliatransit.architecture.client.StationWrenchScreen;
 import com.aureliatransit.architecture.registry.ModItems;
@@ -142,6 +144,10 @@ public final class AureliaPanelScreen extends Screen {
 	private static final int TRAIN_SOUND_ROWS = 15;
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
+	/** The Architecture tab's rows: studio, the two wrenches, hologram, fallback, More, tint and layer. */
+	private int architectureFirst;
+	private static final int ARCHITECTURE_ROWS = 8;
+	private boolean hologramMore;
 	private int drivingFirst;
 	private static final int DRIVING_ROWS = 6;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
@@ -168,6 +174,7 @@ public final class AureliaPanelScreen extends Screen {
 				firstRow = 0;
 				lookFirst = 0;
 				buildFirst = 0;
+				architectureFirst = 0;
 				trainSoundFirst = 0;
 				packsFirst = 0;
 				clearAndInit();
@@ -837,11 +844,68 @@ public final class AureliaPanelScreen extends Screen {
 	/** ATA's tools: Station Studio opens in the browser; each wrench screen edits the wrench in the player's hand. */
 	private void initArchitecture() {
 		final int left = (width - BUTTON_WIDTH) / 2;
-		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.studio"), b -> StationStudioClient.open())
-				.dimensions(left, top, BUTTON_WIDTH, 20).build())
-				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.studio.tooltip")));
-		addWrenchButton("station", ModItems.STATION_WRENCH, StationWrenchScreen::open, top + ROW);
-		addWrenchButton("airport", ModItems.AIRPORT_WRENCH, AirportWrenchScreen::open, top + ROW * 2);
+		architectureFirst = Math.max(0, Math.min(architectureFirst, architectureRows() - visibleRows()));
+		if (architectureRow(0)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.studio"), b -> StationStudioClient.open())
+					.dimensions(left, architectureY(0), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.studio.tooltip")));
+		}
+		if (architectureRow(1)) {
+			addWrenchButton("station", ModItems.STATION_WRENCH, StationWrenchScreen::open, architectureY(1));
+		}
+		if (architectureRow(2)) {
+			addWrenchButton("airport", ModItems.AIRPORT_WRENCH, AirportWrenchScreen::open, architectureY(2));
+		}
+		if (architectureRow(3)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram", ScreenTexts.onOrOff(HologramSettings.enabled())), b -> {
+				HologramSettings.setEnabled(!HologramSettings.enabled());
+				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram", ScreenTexts.onOrOff(HologramSettings.enabled())));
+			}).dimensions(left, architectureY(3), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.tooltip")));
+		}
+		if (architectureRow(4)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram.fallback", ScreenTexts.onOrOff(HologramSettings.particles())), b -> {
+				HologramSettings.setParticles(!HologramSettings.particles());
+				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram.fallback", ScreenTexts.onOrOff(HologramSettings.particles())));
+			}).dimensions(left, architectureY(4), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.fallback.tooltip")));
+		}
+		if (architectureRow(5)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram." + (hologramMore ? "less" : "more")), b -> {
+				hologramMore = !hologramMore;
+				clearAndInit();
+			}).dimensions(left, architectureY(5), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.more.tooltip")));
+		}
+		if (hologramMore && architectureRow(6)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram.tint", ScreenTexts.onOrOff(HologramSettings.tint())), b -> {
+				HologramSettings.setTint(!HologramSettings.tint());
+				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram.tint", ScreenTexts.onOrOff(HologramSettings.tint())));
+			}).dimensions(left, architectureY(6), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.tint.tooltip")));
+		}
+		if (hologramMore && architectureRow(7)) {
+			final int all = StationHologramRenderer.minLayer() - 1;
+			final int highest = Math.max(all + 1, StationHologramRenderer.maxLayer());
+			addDrawableChild(new RangeSlider(left, architectureY(7), all, highest, 1,
+					() -> HologramSettings.layer() == HologramSettings.ALL_LAYERS ? all : HologramSettings.layer(),
+					value -> HologramSettings.setLayer(value <= all ? HologramSettings.ALL_LAYERS : (int) Math.round(value)),
+					value -> value <= all ? Text.translatable("gui.aurelia.architecture.hologram.layer.all")
+							: Text.translatable("gui.aurelia.architecture.hologram.layer", value.intValue())))
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.layer.tooltip")));
+		}
+	}
+
+	private int architectureRows() {
+		return hologramMore ? ARCHITECTURE_ROWS : 6;
+	}
+
+	private boolean architectureRow(int row) {
+		return row >= architectureFirst && row < architectureFirst + visibleRows();
+	}
+
+	private int architectureY(int row) {
+		return top + (row - architectureFirst) * ROW;
 	}
 
 	private void addWrenchButton(String key, Item wrench, Consumer<Hand> open, int y) {
@@ -899,6 +963,14 @@ public final class AureliaPanelScreen extends Screen {
 			final int newFirst = Math.max(0, Math.min(LOOK_IDS.length - visibleRows(), lookFirst - (int) Math.signum(amount)));
 			if (newFirst != lookFirst) {
 				lookFirst = newFirst;
+				clearAndInit();
+			}
+			return true;
+		}
+		if (tab == Tab.ARCHITECTURE) {
+			final int newFirstRow = Math.max(0, Math.min(architectureRows() - visibleRows(), architectureFirst - (int) Math.signum(amount)));
+			if (newFirstRow != architectureFirst) {
+				architectureFirst = newFirstRow;
 				clearAndInit();
 			}
 			return true;

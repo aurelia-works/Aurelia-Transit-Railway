@@ -51,6 +51,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		WrenchClient.init();
 		WrenchSettings.load(FabricLoader.getInstance().getConfigDir());
 		initMenuEntries();
+		StationHologramRenderer.init();
 		for (final ModBlocks.Entry entry : ModBlocks.entries()) {
 			switch (entry.renderKind()) {
 				case CUTOUT -> BlockRenderLayerMap.INSTANCE.putBlock(entry.block(), RenderLayer.getCutout());

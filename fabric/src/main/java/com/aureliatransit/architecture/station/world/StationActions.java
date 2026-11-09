@@ -158,7 +158,11 @@ public final class StationActions {
 				StationSessions.discard(id);
 				StationSessions.setPending(id, pending);
 				StationText.shortSummary(pending, design.check(), out);
-				StationSessions.startPreview(new StationPreview(id, pending.dimension(), pending.plan(), pending.frame(), pending.report()));
+				if (StationSessions.particlePreview(id)) {
+					StationSessions.startPreview(new StationPreview(id, pending.dimension(), pending.plan(), pending.frame(), pending.report()));
+				} else {
+					StationHologram.show(player, pending);
+				}
 			});
 		} catch (IllegalArgumentException e) {
 			out.accept(Text.literal("Cannot plan that station: " + e.getMessage()).formatted(Formatting.RED));
@@ -200,8 +204,13 @@ public final class StationActions {
 			error(player, "No pending plan. Plan one with /ata_station plan or the station wrench.");
 			return false;
 		}
-		StationSessions.startPreview(new StationPreview(player.getUuid(), pending.dimension(), pending.plan(), pending.frame(), pending.report()));
-		player.sendMessage(Text.literal("Showing the blueprint for " + StationPreview.DURATION_TICKS / 20 + " s.").formatted(Formatting.GRAY), false);
+		if (StationSessions.particlePreview(player.getUuid())) {
+			StationSessions.startPreview(new StationPreview(player.getUuid(), pending.dimension(), pending.plan(), pending.frame(), pending.report()));
+			player.sendMessage(Text.literal("Showing the blueprint for " + StationPreview.DURATION_TICKS / 20 + " s.").formatted(Formatting.GRAY), false);
+		} else {
+			StationHologram.show(player, pending);
+			player.sendMessage(Text.literal("Showing the plan hologram.").formatted(Formatting.GRAY), false);
+		}
 		return true;
 	}
 
@@ -231,6 +240,7 @@ public final class StationActions {
 			}
 			StationSessions.setBuilt(id, edited);
 			StationSessions.discard(id);
+			StationHologram.clear(player);
 			out.accept(Text.literal("Building " + job.total() + " changes, " + StationBuildSettings.blocksPerTick(player.getServer())
 					+ " per tick. Cancel stops it.").formatted(Formatting.GREEN));
 		});
@@ -346,6 +356,7 @@ public final class StationActions {
 			return true;
 		}
 		if (StationSessions.discard(player.getUuid())) {
+			StationHologram.clear(player);
 			player.sendMessage(Text.literal("Plan discarded.").formatted(Formatting.YELLOW), false);
 			return true;
 		}
@@ -415,6 +426,7 @@ public final class StationActions {
 			}
 			StationSessions.setBuilt(id, there);
 			StationSessions.discard(id);
+			StationHologram.clear(player);
 			out.accept(Text.literal("Rebuilding: " + job.kept() + " cells stay as they are, " + job.total() + " changes.").formatted(Formatting.GREEN));
 		});
 		if (StationSessions.task(id) != null) {
