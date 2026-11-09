@@ -252,7 +252,9 @@ public final class StylePalette {
 			case ART_DECO -> "white";
 			case MODERNIST -> "steel";
 			case NONE -> switch (style) {
-				case MODERN, DUTCH -> "white";
+				case MODERN -> "white";
+				// NS canopies (Driebergen-Zeist, Leidsche Rijn) carry their glass on dark grey steel, like the columns and lift towers
+				case DUTCH -> "steel";
 				case GERMAN_SBAHN, METRO -> "steel";
 			};
 		};

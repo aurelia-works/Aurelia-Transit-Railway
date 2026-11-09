@@ -685,6 +685,7 @@ final class Planning extends PlanAirport {
 		final int y = StationGeometry.PLATFORM_Y;
 		final int vFrom = layout.vMin();
 		final int vTo = layout.vMax();
+		final int stop = busStopRow(crossing, vFrom, vTo);
 		for (int v = vFrom; v <= vTo; v++) {
 			final boolean across = crossing.contains(v);
 			final int along = v - vFrom;
@@ -703,6 +704,8 @@ final class Planning extends PlanAirport {
 					front = LocalDir.MINUS_U;
 				} else if (a < SQ_VERGE) {
 					block = SQUARE_CYCLE_PATH;
+				} else if (a == SQ_VERGE && stop >= 0 && v >= stop - 1 && v < stop + SHELTER_LENGTH) {
+					block = LOT_PAVING;
 				} else if (a == SQ_VERGE && !across) {
 					final boolean tree = along % SQUARE_TREE_PITCH == SQUARE_TREE_PITCH / 2 && clearOf(crossing, v, 2) && v > vFrom && v < vTo;
 					block = tree ? LOT_TRUNK : SQUARE_VERGE;
@@ -745,6 +748,39 @@ final class Planning extends PlanAirport {
 				}
 			}
 		}
+		busStop(stop);
+	}
+
+	/**
+	 * The square's bus stop, nearest the middle of the station: a shelter on the verge with its glass back to the footway and its
+	 * seat facing the street, and the stop's sign on a post on the verge just before it. Placed after the rest of the square,
+	 * between a lamp and a tree and clear of the crossings.
+	 */
+	private void busStop(int stop) {
+		if (stop < 0) {
+			return;
+		}
+		final int y = StationGeometry.PLATFORM_Y;
+		if (shelter(y, SQ_FOOTWAY, SQ_VERGE, LocalDir.PLUS_U, stop, null, 0)) {
+			// the stop's plate at the top of a post, so it reads over the shelter roof from up the street
+			put(Role.FIXTURE, SQ_VERGE, y, stop - 1, LocalDir.MINUS_U, StationPlanner.LAMP_POLE);
+			put(Role.FIXTURE, SQ_VERGE, y + 1, stop - 1, LocalDir.MINUS_U, StationPlanner.LAMP_POLE);
+			put(Role.FIXTURE, SQ_VERGE, y + 2, stop - 1, LocalDir.MINUS_U, FORECOURT_STOP_SIGN);
+		}
+	}
+
+	/** The first row of the bus stop's shelter: rows 2 to 4 after a lamp, so it stands between a lamp and a tree; -1 if none fits. */
+	private int busStopRow(java.util.Set<Integer> crossing, int vFrom, int vTo) {
+		final int mid = (vFrom + vTo) / 2;
+		for (int d = 0; d <= (vTo - vFrom) / 2; d++) {
+			for (final int v : new int[]{mid - d, mid + d}) {
+				final int along = v - vFrom;
+				if (along % SQUARE_TREE_PITCH == 2 && v - 1 > vFrom && v + SHELTER_LENGTH < vTo && clearOf(crossing, v + 1, 3)) {
+					return v;
+				}
+			}
+		}
+		return -1;
 	}
 
 	private static boolean clearOf(java.util.Set<Integer> rows, int v, int gap) {
