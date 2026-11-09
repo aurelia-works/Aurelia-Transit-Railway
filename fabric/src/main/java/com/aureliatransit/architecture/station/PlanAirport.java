@@ -22,7 +22,8 @@ import static com.aureliatransit.architecture.station.StationPlanner.*;
 abstract class PlanAirport extends PlanFitOut {
 
 	static final String RUNWAY_SURFACE = "minecraft:black_concrete";
-	static final String BLAST_SURFACE = "minecraft:polished_andesite";
+	/** A blast pad is asphalt like the taxiways, marked with yellow chevrons; polished andesite read as tiled paving. */
+	static final String BLAST_SURFACE = "minecraft:gray_concrete";
 	static final String TAXI_SURFACE = "minecraft:gray_concrete";
 	static final String APRON_SURFACE = "minecraft:light_gray_concrete";
 	/**
@@ -172,6 +173,7 @@ abstract class PlanAirport extends PlanFitOut {
 		for (int i = 0; i < spec.airport().runways(); i++) {
 			runwayMarks(i);
 		}
+		blastPadChevrons();
 		taxiMarks();
 		if (spec.airport().turnPads()) {
 			turnPadMarks();
@@ -192,6 +194,37 @@ abstract class PlanAirport extends PlanFitOut {
 			airportCarPark();
 		}
 		pavement();
+	}
+
+	/**
+	 * Yellow chevrons on every blast pad, two blocks thick at 45 degrees, their points toward the runway, every eight rows: the
+	 * ICAO marking for paved ground beyond a runway end that is not for use.
+	 */
+	void blastPadChevrons() {
+		for (final AirportGeometry.Area pad : air.areas()) {
+			if (pad.kind() != AirportGeometry.Kind.BLAST_PAD) {
+				continue;
+			}
+			AirportGeometry.Area runway = null;
+			for (final AirportGeometry.Area area : air.areas()) {
+				if (area.kind() == AirportGeometry.Kind.RUNWAY && area.u0() <= pad.u1() && area.u1() >= pad.u0()) {
+					runway = area;
+				}
+			}
+			if (runway == null) {
+				continue;
+			}
+			final boolean before = pad.v1() < runway.v0();
+			final int c = (pad.u0() + pad.u1()) / 2;
+			for (int v = pad.v0(); v <= pad.v1(); v++) {
+				final int d = before ? pad.v1() - v : v - pad.v0();
+				for (int u = pad.u0() + 1; u < pad.u1(); u++) {
+					if (Math.floorMod(d - Math.abs(u - c), 8) < 2 && d >= 2) {
+						paint(u, v, PAINT_YELLOW);
+					}
+				}
+			}
+		}
 	}
 
 	// ---- cells --------------------------------------------------------------------------------------------------------
