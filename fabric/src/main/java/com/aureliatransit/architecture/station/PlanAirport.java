@@ -81,6 +81,8 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String ROOF_SHEET = "minecraft:smooth_stone";
 	static final String ROOF_SHEET_STEP = "minecraft:smooth_stone_slab";
 	static final int PITCH_RISE = 2;
+	/** The rooflight bands in the pitched roof over the deck's skylight strips. */
+	static final String ROOF_LIGHT = "minecraft:glass";
 	/** Half the clerestory's width across the terminal, from its centre line to its glass sides. */
 	static final int CLERESTORY_HALF = 3;
 	/** A plant box's barred vent: plain iron, no block entity. */
@@ -100,6 +102,9 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String BAGGAGE_BELT = "aurelia_transit_architecture:baggage_belt";
 	static final String WINDSOCK = "aurelia_transit_architecture:windsock";
 	static final String TERMINAL_FLOOR = "aurelia_transit_architecture:terminal_terrazzo";
+	/** The hall's columns, white like the glass walls' piers, and its recessed ceiling lights. */
+	static final String HALL_COLUMN = "minecraft:smooth_quartz";
+	static final String HALL_LIGHT = "aurelia_transit_architecture:metro_recessed_light";
 	static final String SECURITY_ARCH = "aurelia_transit_architecture:security_arch";
 	static final String XRAY_SCANNER = "aurelia_transit_architecture:xray_scanner";
 	static final String SECURITY_DESK = "aurelia_transit_architecture:security_desk";
@@ -320,8 +325,8 @@ abstract class PlanAirport extends PlanFitOut {
 	}
 
 	/**
-	 * Approach lighting at both ends and the visual glidepath beside the touchdown zone: a line of white lights up the extended centreline
-	 * with five crossbars, a red end-light row one cell outside each threshold, and four PAPI boxes on the west side. The bars sit on
+	 * Approach lighting at both ends and the visual glidepath beside the touchdown zone: white lights every third cell up the extended
+	 * centreline with one crossbar across the zone (a simple approach system; a lamp on every cell with many bars read as a ladder), a red end-light row one cell outside each threshold, and four PAPI boxes on the west side. The bars sit on
 	 * the narrow grass strips the geometry keeps clear for them; the red end lights sit on the blast pads, set flush.
 	 */
 	void approachLights() {
@@ -330,14 +335,11 @@ abstract class PlanAirport extends PlanFitOut {
 		for (final boolean high : new boolean[]{false, true}) {
 			final int from = high ? air.runwayV1() + blink + 2 : air.runwayV0() - blink - 2;
 			final int step = high ? 1 : -1;
-			for (int k = 0; k <= 20; k++) {
-				final int v = from + step * k;
-				light(c, v, EDGE_LIGHT);
-				if (k % 4 == 0) {
-					for (int du = -2; du <= 2; du++) {
-						light(c + du, v, EDGE_LIGHT);
-					}
-				}
+			for (int k = 0; k <= 18; k += 3) {
+				light(c, from + step * k, EDGE_LIGHT);
+			}
+			for (int du = -3; du <= 3; du++) {
+				light(c + du, from + step * 12, EDGE_LIGHT);
 			}
 			// the red runway end lights, one row beyond each green threshold line, every two cells across
 			final int end = high ? air.runwayV1() + 1 : air.runwayV0() - 1;
@@ -1393,12 +1395,22 @@ abstract class PlanAirport extends PlanFitOut {
 				}
 			}
 		}
+		// recessed lights in the ceiling, in rows between the column lines and clear of the skylight strips, so the hall is lit
+		// under the pitched roof (the deck's own skylights only light the strips under them)
+		final int span = u1 - u0 + 1;
+		for (final int u : new int[]{u0 + span / 6, u0 + span / 2, u0 + 5 * span / 6}) {
+			for (int v = v0 + 4; v < v1 - 2; v += 4) {
+				if (Math.floorMod(v - v0, 16) >= 2) {
+					put(Role.LIGHT_PANEL, u, terminalRoofY(), v, LocalDir.PLUS_V, HALL_LIGHT);
+				}
+			}
+		}
 		for (int v = v0; v <= v1; v++) {
 			for (int u = u0; u <= u1; u++) {
 				put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V, TERMINAL_FLOOR);
 				if (u > u0 && u < u1 && v > v0 && v < v1) {
 					// a glazed skylight strip across the roof every 16 rows; the rest is the roof deck
-					final boolean lit = u > u0 + 5 && u < u1 - 5 && Math.floorMod(v - v0, 16) < 2;
+					final boolean lit = overSkylight(u, v);
 					put(Role.BUILDING_ROOF, u, terminalRoofY(), v, LocalDir.PLUS_V, lit ? b.window() : b.roof());
 				} else {
 					put(Role.BUILDING_ROOF, u, terminalRoofY(), v, LocalDir.PLUS_V, b.roof());
@@ -1448,9 +1460,9 @@ abstract class PlanAirport extends PlanFitOut {
 		for (final int u : new int[]{u0 + depth / 3, u0 + 2 * depth / 3}) {
 			for (int v = v0 + 4; v < v1 - 2; v += 8) {
 				for (int y = StationGeometry.WALK_Y; y < top; y++) {
-					put(Role.COLUMN, u, y, v, LocalDir.PLUS_V);
+					put(Role.COLUMN, u, y, v, LocalDir.PLUS_V, HALL_COLUMN);
 				}
-				put(Role.COLUMN_CAP, u, top, v, LocalDir.PLUS_V);
+				put(Role.COLUMN_CAP, u, top, v, LocalDir.PLUS_V, HALL_COLUMN);
 				// departures boards on both faces of every column along v, above head height
 				put(Role.FIXTURE, u, StationGeometry.WALK_Y + 2, v - 1, LocalDir.MINUS_V, DEPARTURES_BOARD);
 				put(Role.FIXTURE, u, StationGeometry.WALK_Y + 2, v + 1, LocalDir.PLUS_V, DEPARTURES_BOARD);
@@ -1565,6 +1577,13 @@ abstract class PlanAirport extends PlanFitOut {
 				if (insideClerestory(u, v)) {
 					continue;
 				}
+				if (overSkylight(u, v)) {
+					// a raised glazed rooflight band over each of the deck's skylight strips, so daylight still reaches the hall
+					for (int y = roofY + 1; y <= roofY + (half + 1) / 2; y++) {
+						put(Role.WINDOW, u, y, v, front, ROOF_LIGHT);
+					}
+					continue;
+				}
 				for (int y = roofY + 1; y <= roofY + half / 2; y++) {
 					put(Role.BUILDING_ROOF, u, y, v, front, ROOF_SHEET);
 				}
@@ -1612,8 +1631,7 @@ abstract class PlanAirport extends PlanFitOut {
 
 	/**
 	 * A raised strip along the roof's ridge, two blocks of glass standing on the pitched roof, with a trim edge overhanging it by a
-	 * block: the terminal's roof lifts over glass as at Southend (ap03, ap04). The hall opens up into it, and the skylights
-	 * underneath stay inside it.
+	 * block: the terminal's roof lifts over glass as at Southend (ap03, ap04). The skylights underneath stay inside it.
 	 */
 	void terminalClerestory() {
 		if (!hasClerestory()) {
@@ -1648,7 +1666,13 @@ abstract class PlanAirport extends PlanFitOut {
 		return air.terminalV1() - air.terminalV0() - 8 >= 8 && air.terminalU1() - air.terminalU0() >= 2 * CLERESTORY_HALF + 8;
 	}
 
-	/** True inside the clerestory's glass walls, where the hall below opens up into it. */
+	/** True over one of the deck's glazed skylight strips (see {@link #terminal}): every 16 rows, clear of the long walls. */
+	private boolean overSkylight(int u, int v) {
+		return u > air.terminalU0() + 5 && u < air.terminalU1() - 5 && v > air.terminalV0() && v < air.terminalV1()
+				&& Math.floorMod(v - air.terminalV0(), 16) < 2;
+	}
+
+	/** True inside the clerestory's glass walls. */
 	private boolean insideClerestory(int u, int v) {
 		final int c = (air.terminalU0() + air.terminalU1()) / 2;
 		return hasClerestory() && Math.abs(u - c) < CLERESTORY_HALF && v > air.terminalV0() + 4 && v < air.terminalV1() - 4;
