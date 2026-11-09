@@ -1,0 +1,15 @@
+1 train(s), centre 351 -58 1
+shaders off MTR only              40 m:   128.0 fps,   7.81 ms/frame,    707 MTR draws/frame,  4.87 ms all of MTR, 1 vehicles
+shaders off MTR only             100 m:   157.5 fps,   6.35 ms/frame,    767 MTR draws/frame,  3.88 ms all of MTR, 1 vehicles
+shaders off MTR only             170 m:   287.9 fps,   3.47 ms/frame,    336 MTR draws/frame,  2.12 ms all of MTR, 1 vehicles
+shaders off all fixes             40 m:   224.9 fps,   4.45 ms/frame,    366 MTR draws/frame,  2.25 ms all of MTR, 1 vehicles
+shaders off all fixes            100 m:   214.9 fps,   4.65 ms/frame,    383 MTR draws/frame,  2.46 ms all of MTR, 1 vehicles
+shaders off all fixes            170 m:   329.3 fps,   3.04 ms/frame,     73 MTR draws/frame,  1.59 ms all of MTR, 1 vehicles
+shaders on  MTR only              40 m:    24.4 fps,  40.93 ms/frame,   1414 MTR draws/frame, 32.40 ms all of MTR, 2 vehicles
+shaders on  MTR only             100 m:    26.6 fps,  37.59 ms/frame,   1536 MTR draws/frame, 31.23 ms all of MTR, 1 vehicles
+shaders on  MTR only             170 m:    50.2 fps,  19.92 ms/frame,    673 MTR draws/frame, 13.57 ms all of MTR, 0 vehicles
+shaders on  all fixes             40 m:    53.9 fps,  18.55 ms/frame,    454 MTR draws/frame, 10.14 ms all of MTR, 1 vehicles
+shaders on  all fixes            100 m:    55.2 fps,  18.12 ms/frame,    471 MTR draws/frame, 10.85 ms all of MTR, 2 vehicles
+shaders on  all fixes            170 m:    61.3 fps,  16.30 ms/frame,     73 MTR draws/frame,  5.42 ms all of MTR, 2 vehicles
+shaders on  merge                 40 m:    35.9 fps,  27.86 ms/frame,   1232 MTR draws/frame, 24.27 ms all of MTR, 1 vehicles
+shaders on  merge + fast path     40 m:    42.4 fps,  23.58 ms/frame,   1230 MTR draws/frame, 17.35 ms all of MTR, 1 vehicles

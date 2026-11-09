@@ -1,6 +1,7 @@
-# ATR launch plan (interview with Jah, 2026-11-07)
+# ATR launch plan (interview with Jah, 2026-11-07; direction v2 2026-11-08)
 
 Approved by Jah 2026-11-07 as one plan ("Everything looks good"). Stop only at review checkpoints and the check-in page, not per phase.
+Direction v2 (interview 2026-11-08, "Yes, write it up"): see "Direction v2" below and the new phases W, H, E, EW, AE, L. No code for v2 until Jah says go.
 Old plan and handoffs: `archive/2026-10/`. Research behind this plan: `docs/research-2026-11-07/` (player wishlist, livery gaps, station generator review, Indus Gaming notes).
 
 ## What ATR is
@@ -23,23 +24,49 @@ Old plan and handoffs: `archive/2026-10/`. Research behind this plan: `docs/rese
 - Up to 5 DeepSeek implementers at once: T3 `delegate_task`, provider `opencode`, model `opencode-go/deepseek-v4.1-flash`, variant `max`, each task starting with `$ds-help`. Every implementer gets its own separate worktree and branch (one phase each); no two agents share a worktree, and nobody works in `mod/` itself. Opus's own work (Blockbench, fixes) also goes in its own worktree.
 - Scouts: same model, variant `low`, or Claude Haiku 5.5. Merges go through skill `verify-pr` (Haiku/Sonnet reviewer).
 
-## Phases
-Agent time is rough. Total about 65-110 h.
+## Direction v2 (Jah, 2026-11-08)
+- **Launch = everything.** Every phase below is launch-required, including the old Later list. Launch order: the open phases and the new ones, then T (test pass), then TR (trailer), then public.
+- **Headline: an in-game station and airport editor.** It opens from the wrench as a native Minecraft screen with a 2D top-down plan and a 3D pane. Editing is full freehand: curved tracks, any platform shape, any building outline. Drawn tracks become real MTR rails (nodes, curves, switches) and snap to nearby lines. You draw the shape, and the generator's auto-detail fills in canopies, stairs, lifts, lights and furniture. Every piece can be moved or deleted afterwards.
+- **Browser Studio stays.** It and the game read and write the same station file, both ways.
+- **The word command goes.** `/ata_station <words>` is removed completely; the parser stays only where Studio or presets need it internally.
+- **The preview becomes a hologram.** Litematica-style see-through real blocks replace today's particle outline (`station/world/StationPreview.java`). This was the "something's off" on card O2: it was about the wrench preview, not the block art.
+- **Terrain: build anywhere, undo everything.** `replace_terrain` and the approval step go. Every build saves what was there before, in its own file, so it can be undone at any time, even after restarts. The ~23 game tests that check the approval rule are rewritten to check that undo restores the ground exactly (Jah OK'd this 2026-11-08; list them in the EW PR).
+- **Earthworks:** level and slopes, retaining walls, digging underground, viaducts. Big jobs build over time, layer by layer, like a construction site, so the server doesn't lag.
+- **Creative/ops only.**
+- **Calm UI, no overload.** One wrench with modes (Station / Airport / Bridge / Earthworks). Old `station_wrench` and `airport_wrench` items still load and act as the new wrench. One ATR menu with tabs (Build, Guide, Settings, Dev) holds the Codex, the guide, the dev panel, the Studio link and wayfinding; the old commands still work. Each mode shows 4-6 main tools; the rest go in a More drawer, and extras like the hologram's red tint and layer slider stay off until switched on.
+- **9/10 judge.** Claude scores, then a fresh reviewer scores the same shots blind. Both must give 9 or more.
+- **Workers.** Jah: use as many DeepSeek (OpenCode) workers as useful (this overrides the 3-helper cap for DeepSeek only). Jah distrusts them since a cheap-model change bowed the platform rails (fixed in #65). So Opus owns anything that places rails or track geometry, and every worker diff gets an Opus review plus an in-game shot before merge.
 
-| # | Phase | Est. | Wave | Status (2026-11-08) |
+## Phases
+Agent time is rough. Jah expects about 4-5 h of agent time with parallel workers. Opus's agent-time guess for v2 is in the table. Record actuals beside each one.
+
+| # | Phase | Est. | Wave | Status (2026-11-09) |
 |---|---|---|---|---|
 | F | Foundations: land the waiting branches | 2-3 h | 0 | done (#47-#50) |
-| R | Rendering: rail cost with shaders, far rails and trains, block entity counter | 6-10 h | 1 | far rails merged (#51); perf numbers and block entity counter not checked |
-| S | Station generator: the most realistic in Minecraft | 10-15 h | 1 | PR #62 open, 7.5/10, CI failing; fixing to 9 |
+| R | Rendering: rail cost with shaders, far rails and trains, block entity counter | 6-10 h | 1 | far rails merged (#51); bench measured 2026-11-09 (one train, shaders on, 40 m: 24 -> 54 fps) and counter seen in game, see `docs/perf-launch.md`; station, tunnel, four-rail and far-view scenarios not measured |
+| S | Station generator: the most realistic in Minecraft | 10-15 h | 1 | merged (#62, 50f1842a0); Haiku audit 9.0 every category |
+| AP | Airport generator (#61) to 9, merge as the base | 3-5 h | 1 | merged (#61, f5ca64a0d) |
 | PX | Passengers finished (launch headline) | 5-8 h | 1 | merged (#49, #54) |
-| SG | Signals and driving (SCR/TSW feel) | 8-12 h | 1 | merged (#55); #60 (cab HUD) open, not seen in game |
+| SG | Signals and driving (SCR/TSW feel) | 8-12 h | 1 | merged (#55; cab HUD #60, 4e71e066d, seen in game) |
 | SN | Sound profiles for any train | 6-10 h | 1 | merged (#52, #57) |
-| O2 | Block, item, rail and signal art (Opus, Blockbench) | 5-10 h | 1 | merged (#53); Jah: "something's off", waiting on which part |
-| RT | Route control | 3-5 h | 2 (after SG) | PR #59 open: editor and saved data only, trains don't use it yet |
-| LV | ATR Liveries pack (separate) | 10-20 h | 2 | in progress in ATR-Liveries (350 LNR, 450 SWR) |
+| O2 | Block, item, rail and signal art (Opus, Blockbench) | 5-10 h | 1 | merged (#53); the "something's off" was the wrench preview, now phase H |
+| RT | Route control | 3-5 h | 2 (after SG) | merged (#59, d9575becb); trains follow route control |
+| LV | ATR Liveries pack (separate) | 10-20 h | 2 | in progress in ATR-Liveries (350 LNR, 450 SWR); launch-required |
 | PK | Private pack format | 2-4 h | 2 | merged (#56) |
-| T | Full in-game test pass | 4-6 h | 3 | not started |
-| TR | Trailer | 4-8 h | 3 | recorder (#58) and scripted shots (#63) merged; trailer not started |
+| W | One wrench with modes, one ATR menu, remove the word command | 3-5 h | 4 | merged (#67, 8fc27bed0) |
+| H | Hologram preview (Litematica style) | 4-6 h | 4 | merged (#68, 26bbe93dc) |
+| E1 | Editor screen: 2D plan, 3D pane, shared station file with Studio | 6-10 h | 5 | not started |
+| E2 | Freehand tracks that become real MTR rails (Opus only) | 6-10 h | 5 | not started |
+| E3 | Freehand platforms and buildings, auto-detail fills them | 6-10 h | 5 | not started |
+| EW1 | No approval, saved undo for every build, build over time, approval tests rewritten to undo | 4-6 h | 6 | merged (#66, e18957491) |
+| EW2 | Earthworks: level/slopes, retaining walls, dig, viaducts | 6-10 h | 6 | not started |
+| AE | Airports in the editor: runways, taxiways, terminals | 5-8 h | 7 | not started |
+| L1 | Guard, dispatcher and signaller roles | 6-10 h | 8 | not started |
+| L2 | Bike share | 3-5 h | 8 | not started |
+| L3 | Journey planner extras | 2-4 h | 8 | not started |
+| L4 | In-game map (1d.4) | 5-8 h | 8 | not started |
+| T | Full in-game test pass | 4-6 h | 9 | not started |
+| TR | Trailer (editor + earthworks construction shots lead) | 4-8 h | 9 | recorder (#58) and scripted shots (#63) merged; trailer not started |
 
 ### F. Foundations
 - Waiting branches (check each is still wanted, rebase on master, review, PR, merge):
@@ -59,12 +86,12 @@ Agent time is rough. Total about 65-110 h.
 - Done when: before/after numbers (ATR vs MTR, shaders on/off) in `docs/perf-launch.md`, panel sliders, unit tests for the distance and detail logic.
 
 ### S. Station generator
-From `docs/research-2026-11-07/station-generator-review.md`. Creative/ops only, instant.
+From `docs/research-2026-11-07/station-generator-review.md`. Creative/ops only. (v2: the word parser, preview and editing items below move to W, H and E.)
 - Looks: log every block the one-block-per-cell rule skips (`StationPlanner.java:9-10`), then fix the causes; platform length vs train length check; tactile strips and edge lines; CCTV; per-country platform height.
 - Realism target: `StationAudit` checks against the 26 measured stations in `ATA-research` (sizes, track counts).
 - Blueprint preview: pick style and size, ghost over the tracks, adjust, confirm, builds over a few seconds (build on `client/StationPreview.java`, `station/world/PreviewGeometry.java`; faster batched `StationBuildJob`).
 - Fine editing after build: saved per-cell override map, applied last.
-- Pickers (preset, class, scale, era, tracks, platform length, roof) replace the word parser as the main input; the parser stays as an advanced box.
+- Pickers (preset, class, scale, era, tracks, platform length, roof) replace the word parser as the main input; the word command is removed in W.
 - New types: small halt, bus/tram stop, curved platforms. (Underground, elevated, hub, airport already exist.)
 - Decoration block entities become plain blocks.
 - Done when: unit tests for planner, audit and overrides; screenshots (skill `sharp`) of each type and the preview.
@@ -76,7 +103,7 @@ From `docs/research-2026-11-07/station-generator-review.md`. Creative/ops only, 
 ### SG. Signals and driving
 - Signals whose lights come from the real train spacing and set route (2/3/4-aspect), on real-looking signal models (O2).
 - Driver at launch: notched throttle and brake, door control, stop markers per train length, AWS-style warning with acknowledge, TPWS-style overspeed/red-signal trip, a simple score per run.
-- Guard, dispatcher and signaller roles come after launch, not now.
+- Guard, dispatcher and signaller roles: phase L1, launch-required (v2).
 - Done when: unit tests for aspects and protection, a driven run in the bench world with screenshots.
 
 ### SN. Sound
@@ -103,5 +130,28 @@ From `docs/research-2026-11-07/station-generator-review.md`. Creative/ops only, 
 - Dev-only camera recorder (Replay/Flashback style camera paths), in the dev source set only, never in the release jar; deleted after the trailer.
 - Bench world with ATR-built stations; clips of every headline; the R benchmark numbers on screen.
 
-## Later (not in this plan)
-Guard, dispatcher and signaller roles; terrain movers; bike share; journey planner extras; in-game map 1d.4.
+### W. One wrench, one menu (wave 4)
+- Station, Airport, Bridge and Earthworks become modes of one wrench. Scroll or press a key to switch. The old item ids stay registered so old worlds load.
+- One ATR menu with tabs. `/ata_station <words>` is removed. `/ata_guide`, `/ata_studio` and `/atr_bridge` keep working.
+- Done when: old-world items still load (game test), the menu shows every tab, screenshots.
+
+### H. Hologram preview (wave 4)
+- Client-side see-through copies of the planned blocks, shown only to the planning player. In the More drawer: a red tint on blocks that replace existing ones, and a one-level layer slider. The particle outline stays as a dev panel fallback for slow PCs. Detail drops with distance.
+- Done when: before/after screenshots of the same station, frame time with the hologram on a big station.
+
+### E. In-game editor (wave 5; split in three)
+- E1: native screen from the wrench with a 2D top-down plan and a 3D pane, and the same station file as browser Studio (both ways).
+- E2: draw curved tracks freehand. They become real MTR rail nodes and connections, snapping to nearby lines. Opus only, with a geometry check that platform rails stay straight (#65).
+- E3: draw platform and building outlines in any shape. Auto-detail (S) fills them, and any piece can then be moved or deleted.
+- Done when: a station drawn in game, opened in Studio, edited and opened back in game unchanged; trains run on the drawn rails; 9/10 by Claude and a blind reviewer.
+
+### EW. Earthworks and undo (wave 6)
+- EW1: remove `replace_terrain` and the approval. Every build stores what was there before in its own file, under a new key, so old worlds are unchanged. Undo works any time, even after a restart. Builds run over time with a dev panel blocks-per-tick slider. The ~23 approval game tests are rewritten to check undo (Jah OK, 2026-11-08).
+- EW2: level and slopes, retaining walls, digging underground (cut-and-cover and bored), viaducts, all from the Earthworks mode.
+- Done when: a build plus undo restores the ground block for block (game test); a long viaduct builds with no server lag spike (measured); screenshots.
+
+### AE. Airports in the editor (wave 7)
+- Runways, taxiways, aprons and terminals drawn in the same editor; auto-detail from AP fills them.
+
+### L. Former Later list (wave 8, launch-required)
+- L1 guard, dispatcher and signaller roles (on top of SG). L2 bike share. L3 journey planner extras. L4 in-game map 1d.4. Terrain movers are now EW.

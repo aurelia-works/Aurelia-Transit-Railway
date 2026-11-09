@@ -121,8 +121,42 @@ from MTR issue #1287: four rails take 100 fps to 40. These are the shapes to rep
 
 ## Results
 
-Nothing in this table was measured by the agent that wrote this phase: no game client was launched. Fill the cells on
-Jah's machine.
+### Bench run, 2026-11-09
+
+Measured with the dev perf bench (`JAVA_TOOL_OPTIONS=-Xmx3000m ./gradlew :fabric:runPerfbench -Patr.world="ATR Bench"`)
+on Jah's M1 MacBook Air (8 GB), on master plus the #60 branch just before it merged. Raw output:
+`docs/handoffs/perfbench-2026-11-09.txt`.
+
+- World: "ATR Bench", a copy of ATR Visual. One parked 2-car NS Civity; the camera stands 40, 100 and 170 m from it.
+- Sodium 0.5.13, Iris 1.7.6, Complementary Reimagined r5.9.3, vsync off, frame cap 260, render distance 10 chunks.
+- Each row is one 10-second sample after a 4-second settle. No repeat runs.
+- "Fixes off" is the same ATR jar with every ATR rendering fix switched off (merge, fast path, cheap shadows, train LOD,
+  rail LOD, doors). It is not a plain MTR 4.0.5 jar, so the plain MTR column below is still empty.
+- Each cell is fps, then MTR's CPU time per frame and MTR draw calls per frame.
+
+| Shaders | Distance | Fixes off | All fixes | Change in fps |
+| --- | --- | --- | --- | --- |
+| off | 40 m | 128.0 fps, 4.87 ms, 707 draws | 224.9 fps, 2.25 ms, 366 draws | +76% |
+| off | 100 m | 157.5 fps, 3.88 ms, 767 draws | 214.9 fps, 2.46 ms, 383 draws | +36% |
+| off | 170 m | 287.9 fps, 2.12 ms, 336 draws | 329.3 fps, 1.59 ms, 73 draws | +14% |
+| on | 40 m | 24.4 fps, 32.40 ms, 1414 draws | 53.9 fps, 10.14 ms, 454 draws | +121% |
+| on | 100 m | 26.6 fps, 31.23 ms, 1536 draws | 55.2 fps, 10.85 ms, 471 draws | +108% |
+| on | 170 m | 50.2 fps, 13.57 ms, 673 draws | 61.3 fps, 5.42 ms, 73 draws | +22% |
+
+Shaders on at 40 m, one fix group at a time:
+
+| Fixes | fps | MTR ms/frame | MTR draws/frame |
+| --- | --- | --- | --- |
+| off | 24.4 | 32.40 | 1414 |
+| merge | 35.9 | 24.27 | 1232 |
+| merge + fast path | 42.4 | 17.35 | 1230 |
+| all fixes | 53.9 | 10.14 | 454 |
+
+What this shows: with shaders on, MTR's own work was most of the frame with the fixes off (32 of 41 ms at 40 m) and is
+about half of it with them on (10 of 19 ms). What it does not show: a busy station, a tunnel, four parallel rails or
+the far view distances. One 2-car train is a small load, so the scenario rows below stay empty.
+
+### Scenarios
 
 | Scenario | Plain MTR 4.0.5 | ATR before this phase | ATR after this phase | Notes |
 | --- | --- | --- | --- | --- |
@@ -136,7 +170,15 @@ Jah's machine.
 | Train view 16 chunks | not measured | not measured | not measured | |
 | Train view 32 chunks | not measured | not measured | not measured | |
 | Train view 48 chunks | not measured | not measured | not measured | |
-| Block entities at station | not measured | not measured | not measured | Panel counter |
+| Block entities at station | not measured | not measured | 104 | Panel counter, see below |
+
+Block entity counter, seen in game on 2026-11-09 (master 4e71e066d, `-Datr.panelshots=true`, shot
+`panel-02-panel-rendering.png`): the RENDERING tab reads `Block entities drawn: 104 (warn at 200)`, in the normal colour
+because it is under the threshold. Shaders off, render distance 12, a copy of "ATR Bench", camera about 40 blocks from
+the station's east end with only that end in view. So 104 is a working-counter check, not a whole-station count.
+
+The same shot shows a layout fault at the bench's 854x480 window: the fourth row of tab buttons sits on top of the
+counter line, and the "ATR menu..." buttons sit on top of the first setting labels. Not fixed here.
 
 ## Far-distance look (honest rating)
 
@@ -188,7 +230,8 @@ What keeps it below 9:
 
 ## Not tested
 
-- No Minecraft client, server or shader pack was launched. Every FPS cell above is "not measured".
+- Only the bench run above was measured: one parked 2-car train, one 10-second sample per row. The station, tunnel,
+  four-rail and far-view scenarios are still "not measured", and so is a plain MTR 4.0.5 jar.
 - No visual check of far rails or boxes, including curve seams and the tunnel case.
 - No Distant Horizons, Iris or OptiFine run.
 - No multiplayer or dedicated-server run.
