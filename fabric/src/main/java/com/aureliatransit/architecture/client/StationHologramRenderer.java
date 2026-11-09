@@ -41,7 +41,10 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.EmptyBlockView;
 import org.jetbrains.annotations.Nullable;
+import net.minecraft.util.math.Vec3i;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -86,8 +89,6 @@ public final class StationHologramRenderer {
 	private static final float TINT_B = 0.28F;
 	private static final int LIGHT = LightmapTextureManager.MAX_LIGHT_COORDINATE;
 	private static final Direction[] DIRECTIONS = Direction.values();
-	private static final float[] ONE = {1, 1, 1, 1};
-	private static final int[] LIGHTS = {LIGHT, LIGHT, LIGHT, LIGHT};
 
 	private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(runnable -> {
 		final Thread thread = new Thread(runnable, "ATR station hologram");
@@ -484,10 +485,21 @@ public final class StationHologramRenderer {
 			final float red = (tinted ? TINT_R : 1) * brightness;
 			final float green = (tinted ? TINT_G : 1) * brightness;
 			final float blue = (tinted ? TINT_B : 1) * brightness;
-			out.fixedColor((int) (red * 255), (int) (green * 255), (int) (blue * 255), (int) (ALPHA * 255));
-			out.quad(matrices.peek(), quad, ONE, 1, 1, 1, LIGHTS, OverlayTexture.DEFAULT_UV, true);
+			// the colour and alpha go on each vertex: BufferBuilder.quad writes through the fast vertex path, which throws while
+			// a fixed colour is set, and it has no alpha of its own
+			final MatrixStack.Entry entry = matrices.peek();
+			final Vec3i face = quad.getFace().getVector();
+			final Vector3f normal = entry.getNormalMatrix().transform(new Vector3f(face.getX(), face.getY(), face.getZ()));
+			final int[] data = quad.getVertexData();
+			final int stride = data.length / 4;
+			for (int i = 0; i < 4; i++) {
+				final int at = i * stride;
+				final Vector4f pos = entry.getPositionMatrix().transform(new Vector4f(Float.intBitsToFloat(data[at]),
+						Float.intBitsToFloat(data[at + 1]), Float.intBitsToFloat(data[at + 2]), 1));
+				out.vertex(pos.x(), pos.y(), pos.z(), red, green, blue, ALPHA, Float.intBitsToFloat(data[at + 4]),
+						Float.intBitsToFloat(data[at + 5]), OverlayTexture.DEFAULT_UV, LIGHT, normal.x(), normal.y(), normal.z());
+			}
 		}
-		out.unfixColor();
 	}
 
 	/** A block-sized box for the far level of detail, in the block's map colour or the red replacement colour. */
