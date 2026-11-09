@@ -83,6 +83,8 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String BRIDGE_BAND = "minecraft:light_gray_concrete";
 	static final String BRIDGE_COLUMN = "minecraft:iron_block";
 	static final String BRIDGE_WHEEL = "minecraft:black_concrete";
+	/** The landside canopy's diagonal brace: a slim 45-degree steel bar that rises the way it faces. */
+	static final String VIADUCT_BRACE = "aurelia_transit_architecture:viaduct_brace";
 	static final String BAGGAGE_BELT = "aurelia_transit_architecture:baggage_belt";
 	static final String WINDSOCK = "aurelia_transit_architecture:windsock";
 	static final String TERMINAL_FLOOR = "aurelia_transit_architecture:terminal_terrazzo";
@@ -122,6 +124,11 @@ abstract class PlanAirport extends PlanFitOut {
 	/** The terminal's roof, one above its walls. */
 	int terminalRoofY() {
 		return air.dims().wallTop() + 1;
+	}
+
+	/** The landside canopy's deck: level with the forecourt canopy, and below the name band on a compact terminal. */
+	int landsideCanopyY() {
+		return Math.min(StationGeometry.WALK_Y + 6, air.dims().wallTop() - 1);
 	}
 
 	/** The airport's rules, in order. Structures first: a cell keeps the first block planned in it, so paint comes before pavement. */
@@ -1390,10 +1397,11 @@ abstract class PlanAirport extends PlanFitOut {
 			put(Role.BUILDING_ROOF, u, terminalRoofY(), v0 - 1, LocalDir.MINUS_V, b.roof());
 			put(Role.BUILDING_ROOF, u, terminalRoofY(), v1 + 1, LocalDir.PLUS_V, b.roof());
 		}
-		// the name, over the entrance, fixed flat to the landside wall
+		// the name, over the entrance, fixed flat to the landside wall; a compact terminal's canopy sits just below it
+		final int nameY = Math.max(top - 1, landsideCanopyY() + 1);
 		if (!spec.name().isEmpty()) {
 			for (int v = door - half - 3; v <= door + half + 3; v++) {
-				putText(Role.FIXTURE, u0 - 1, top - 1, v, LocalDir.MINUS_U, LETTERING, spec.name());
+				putText(Role.FIXTURE, u0 - 1, nameY, v, LocalDir.MINUS_U, LETTERING, spec.name());
 			}
 		}
 		// columns in two lines, each under the roof
@@ -1452,7 +1460,7 @@ abstract class PlanAirport extends PlanFitOut {
 		terminalRoofEdge();
 		terminalRoofPlant();
 		terminalSkylights();
-		terminalEntranceCanopy();
+		terminalLandsideCanopy();
 	}
 
 	/**
@@ -1501,7 +1509,12 @@ abstract class PlanAirport extends PlanFitOut {
 
 	/** True at a forecourt canopy column's cap, which the terminal's roof soffit leaves for the column below it. */
 	private boolean forecourtCap(int u, int y, int v) {
-		if (!spec.airport().forecourt() || y != StationGeometry.WALK_Y + 5 || u != air.roadU1() - 1) {
+		return y == StationGeometry.WALK_Y + 5 && forecourtColumn(u, v);
+	}
+
+	/** True at one of the forecourt canopy's two columns, from its foot to its cap. */
+	private boolean forecourtColumn(int u, int v) {
+		if (!spec.airport().forecourt() || u != air.roadU1() - 1) {
 			return false;
 		}
 		final int side = air.dims().entrance() / 2 + 6;
@@ -1560,41 +1573,42 @@ abstract class PlanAirport extends PlanFitOut {
 	}
 
 	/**
-	 * The landside entrance canopy: five rows deep over the departures kerb in front of the main doors, its deck a light soffit
-	 * with recessed lights and a metal fascia, on two slim columns. Kept below the name band, so the lettering over the doors
-	 * stays visible above it.
+	 * The landside canopy, Southend's deep roof lip: a glazed deck along the whole front, so the terminal is not a flat box under
+	 * its roof slab. It reaches five cells over the kerb and footway on the regional and real layouts, three on the compact one,
+	 * closed by a two-block metal fascia, with a slim 45-degree steel brace every eight rows carrying it from the glass wall at
+	 * door-head height. The braces stay over the footway and kerb, so no support stands in the carriageway.
 	 */
-	void terminalEntranceCanopy() {
+	void terminalLandsideCanopy() {
 		final StylePalette.Building b = palette.building();
 		final int u0 = air.terminalU0();
 		final int door = entranceV();
-		final int half = air.dims().entrance() / 2;
-		final int deckY = Math.min(StationGeometry.WALK_Y + 4, air.dims().wallTop() - 2);
-		final int from = u0 - 5;
-		final int to = u0 - 1;
-		final int v0 = door - half - 4;
-		final int v1 = door + half + 4;
+		final int reach = air.dims() == AirportGeometry.COMPACT ? 3 : 5;
+		final int deckY = landsideCanopyY();
+		final int outer = u0 - reach;
+		final int v0 = air.terminalV0() + 2;
+		final int v1 = air.terminalV1() - 2;
 		for (int v = v0; v <= v1; v++) {
-			for (int u = from; u <= to; u++) {
-				final boolean edge = u == from || u == to || v == v0 || v == v1;
-				final boolean light = !edge && Math.floorMod(u + v, 4) == 0;
-				put(light ? Role.LIGHT_PANEL : Role.BUILDING_ROOF, u, deckY, v, LocalDir.PLUS_V,
-						light ? b.light() : edge ? b.trim() : b.wall());
+			// on a compact terminal the deck is at
+			// the forecourt column's cap level, so leave it the cell it needs to reach its own canopy
+			for (int u = u0 - 1; u > outer; u--) {
+				if (deckY <= StationGeometry.WALK_Y + 5 && forecourtColumn(u, v)) {
+					continue;
+				}
+				put(Role.BUILDING_ROOF, u, deckY, v, LocalDir.MINUS_U, b.window());
 			}
+			// a two-block metal fascia closes the outer row, its upper block standing on the deck's edge, not on its corner
+			put(Role.BUILDING_ROOF, outer, deckY, v, LocalDir.MINUS_U, b.trim());
+			put(Role.BUILDING_ROOF, outer, deckY + 1, v, LocalDir.MINUS_U, b.trim());
 		}
-		// its metal fascia drops one block below the deck along the three open sides
+		// a 45-degree brace from the wall at door-head height to the deck a third in from its outer edge; the phase keeps the
+		// braced rows clear of the forecourt canopy's two columns
 		for (int v = v0; v <= v1; v++) {
-			put(Role.BUILDING_ROOF, from, deckY - 1, v, LocalDir.MINUS_U, b.trim());
-		}
-		for (int u = from + 1; u <= to; u++) {
-			put(Role.BUILDING_ROOF, u, deckY - 1, v0, LocalDir.MINUS_V, b.trim());
-			put(Role.BUILDING_ROOF, u, deckY - 1, v1, LocalDir.PLUS_V, b.trim());
-		}
-		for (final int v : new int[]{door - half - 2, door + half + 2}) {
-			for (int y = StationGeometry.WALK_Y; y < deckY - 1; y++) {
-				put(Role.COLUMN, u0 - 2, y, v, LocalDir.PLUS_U);
+			if (Math.floorMod(v - door - 4, 8) != 0) {
+				continue;
 			}
-			put(Role.COLUMN_CAP, u0 - 2, deckY - 1, v, LocalDir.PLUS_U);
+			for (int u = u0 - 1, y = StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT; u > outer; u--, y++) {
+				put(Role.RIB, u, y, v, LocalDir.MINUS_U, VIADUCT_BRACE, "kind=diagonal");
+			}
 		}
 	}
 
