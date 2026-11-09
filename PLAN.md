@@ -43,18 +43,18 @@ Agent time is rough. Jah expects about 4-5 h of agent time with parallel workers
 | # | Phase | Est. | Wave | Status (2026-11-09) |
 |---|---|---|---|---|
 | F | Foundations: land the waiting branches | 2-3 h | 0 | done (#47-#50) |
-| R | Rendering: rail cost with shaders, far rails and trains, block entity counter | 6-10 h | 1 | far rails merged (#51); perf numbers and block entity counter not checked |
+| R | Rendering: rail cost with shaders, far rails and trains, block entity counter | 6-10 h | 1 | far rails merged (#51); bench measured 2026-11-09 (one train, shaders on, 40 m: 24 -> 54 fps) and counter seen in game, see `docs/perf-launch.md`; station, tunnel, four-rail and far-view scenarios not measured |
 | S | Station generator: the most realistic in Minecraft | 10-15 h | 1 | merged (#62, 50f1842a0); Haiku audit 9.0 every category |
-| AP | Airport generator (#61) to 9, merge as the base | 3-5 h | 1 | PR #61 open, Haiku audit ap16 8.0; ap17 reshoot next |
+| AP | Airport generator (#61) to 9, merge as the base | 3-5 h | 1 | merged (#61, f5ca64a0d) |
 | PX | Passengers finished (launch headline) | 5-8 h | 1 | merged (#49, #54) |
-| SG | Signals and driving (SCR/TSW feel) | 8-12 h | 1 | merged (#55); #60 (cab HUD) open, not seen in game; launch-required |
+| SG | Signals and driving (SCR/TSW feel) | 8-12 h | 1 | merged (#55; cab HUD #60, 4e71e066d, seen in game) |
 | SN | Sound profiles for any train | 6-10 h | 1 | merged (#52, #57) |
 | O2 | Block, item, rail and signal art (Opus, Blockbench) | 5-10 h | 1 | merged (#53); the "something's off" was the wrench preview, now phase H |
-| RT | Route control | 3-5 h | 2 (after SG) | PR #59 open (editor, saved data); trains follow routes on branch rt/trains-follow-2, not run in game |
+| RT | Route control | 3-5 h | 2 (after SG) | merged (#59, d9575becb); trains follow route control |
 | LV | ATR Liveries pack (separate) | 10-20 h | 2 | in progress in ATR-Liveries (350 LNR, 450 SWR); launch-required |
 | PK | Private pack format | 2-4 h | 2 | merged (#56) |
-| W | One wrench with modes, one ATR menu, remove the word command | 3-5 h | 4 | PR #67 open, CI green; needs menu/wrench screenshots |
-| H | Hologram preview (Litematica style) | 4-6 h | 4 | branch feat/hologram-preview-2 (2b674a12e), no PR; rebase after W |
+| W | One wrench with modes, one ATR menu, remove the word command | 3-5 h | 4 | merged (#67, 8fc27bed0) |
+| H | Hologram preview (Litematica style) | 4-6 h | 4 | merged (#68, 26bbe93dc) |
 | E1 | Editor screen: 2D plan, 3D pane, shared station file with Studio | 6-10 h | 5 | not started |
 | E2 | Freehand tracks that become real MTR rails (Opus only) | 6-10 h | 5 | not started |
 | E3 | Freehand platforms and buildings, auto-detail fills them | 6-10 h | 5 | not started |
