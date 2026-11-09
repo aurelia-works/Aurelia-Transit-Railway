@@ -89,9 +89,22 @@ public final class RouteControlPlan {
 			// colliding with the integrated server's depot of the same id.
 			return;
 		}
+		boolean hasControl = false;
 		boolean hasFallback = false;
 		for (final Route route : depot.routes) {
-			hasFallback |= RouteControlOptions.server(route.getId()).fallback();
+			final RouteControl control = RouteControlOptions.server(route.getId());
+			hasControl |= !control.isEmpty();
+			hasFallback |= control.fallback();
+		}
+		if (!hasControl) {
+			// No route control on this depot: leave MTR's own platform list as it built it, so worlds without route-control
+			// data take exactly MTR's path.
+			final Plan old = PLANS.remove(depot.getId());
+			if (old != null) {
+				WAYPOINT_IDS.removeAll(old.fakeStopIndex.keySet());
+			}
+			EFFECTIVE_PLATFORMS.remove(depot.getId());
+			return;
 		}
 
 		final Set<Long> occupied = resolveFallback && hasFallback && RouteControlOptions.serverFallbackMaster() ? occupied(data) : Set.of();
