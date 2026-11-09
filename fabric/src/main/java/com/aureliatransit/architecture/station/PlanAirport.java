@@ -86,7 +86,7 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String ROOF_SHEET_STEP = "minecraft:smooth_stone_slab";
 	static final int PITCH_RISE = 2;
 	/** The rooflight bands in the pitched roof over the deck's skylight strips. */
-	static final String ROOF_LIGHT = "minecraft:glass";
+	static final String ROOF_LIGHT = "minecraft:light_blue_stained_glass";
 	/** Half the clerestory's width across the terminal, from its centre line to its glass sides. */
 	static final int CLERESTORY_HALF = 3;
 	/** A plant box's barred vent: plain iron, no block entity. */
@@ -96,7 +96,7 @@ abstract class PlanAirport extends PlanFitOut {
 	/** The terminal's name, in navy block letters on the landside glass. */
 	static final String NAME_LETTER = "minecraft:blue_concrete";
 	/** How far the entrance pavilion's roof stands above the terminal's roof deck. */
-	static final int PAVILION_RISE = 3;
+	static final int PAVILION_RISE = 2;
 	static final String CHECK_IN_DESK = "aurelia_transit_architecture:check_in_desk";
 	static final String DEPARTURES_BOARD = "aurelia_transit_architecture:departures_board";
 	static final String JET_BRIDGE = "aurelia_transit_architecture:jet_bridge";
@@ -561,14 +561,14 @@ abstract class PlanAirport extends PlanFitOut {
 	/**
 	 * The entrance pavilion (ap03): a glazed box standing on the landside canopy over the doors, wider than the entrance and
 	 * {@link #PAVILION_RISE} rows above the eave, so the way in reads from the forecourt. Its front is a solid panel at the canopy's
-	 * outer edge with the airport's name inlaid in block letters, where the canopy cannot hide it; glass sides, a closed back and a
+	 * outer edge, glazed, with the airport's name set in it in block letters, where the canopy cannot hide it; glass sides, a closed back and a
 	 * flat roof, and nothing inside. Built before the walls and the roof, which give way to it. Only on terminals tall enough for
 	 * the letters above the canopy (not the compact one). True when it carried the name, so the caller hangs no other sign.
 	 */
 	private boolean entrancePavilion(int u0, int v0, int v1, int door, int half) {
 		final int deckY = landsideCanopyY();
 		final int roofY = terminalRoofY() + PAVILION_RISE;
-		if (air.dims() == AirportGeometry.COMPACT || roofY - 1 - (deckY + 2) + 1 < AirportGlyphs.GLYPH_HEIGHT + 2) {
+		if (air.dims() == AirportGeometry.COMPACT || roofY - 1 - (deckY + 2) + 1 < AirportGlyphs.GLYPH_HEIGHT + 1) {
 			return false;
 		}
 		final StylePalette.Building b = palette.building();
@@ -579,7 +579,7 @@ abstract class PlanAirport extends PlanFitOut {
 		final int pw = Math.min(Math.max(half + 6, w / 2 + 3), (v1 - v0) / 2 - 4);
 		final boolean named = letters && w / 2 + 2 <= pw;
 		if (named) {
-			// inlaid in the front panel, one row clear of its top and of the canopy fascia below; read from the forecourt
+			// set in the front panel's glass, one row under its trim top, on the canopy fascia; read from the forecourt
 			// looking +u, so the reader's right is -v
 			for (final int[] px : AirportGlyphs.pixels(name, 1)) {
 				put(Role.WALL, outer, roofY - 2 - px[1], door + w / 2 - px[0], LocalDir.MINUS_U, NAME_LETTER);
@@ -588,9 +588,10 @@ abstract class PlanAirport extends PlanFitOut {
 		for (int v = door - pw; v <= door + pw; v++) {
 			final boolean side = v == door - pw || v == door + pw;
 			for (int y = deckY + 1; y < roofY; y++) {
-				// the front panel stands on the canopy's two-block fascia
+				// the front panel stands on the canopy's two-block fascia: glass framed in trim at its top row and both ends
 				if (y >= deckY + 2) {
-					put(Role.WALL, outer, y, v, LocalDir.MINUS_U, b.trim());
+					final boolean frame = side || y == roofY - 1;
+					put(frame ? Role.WALL : Role.WINDOW, outer, y, v, LocalDir.MINUS_U, frame ? b.trim() : b.window());
 				}
 				// the back closes the box above the terminal's wall
 				if (y > air.dims().wallTop()) {
@@ -1000,10 +1001,10 @@ abstract class PlanAirport extends PlanFitOut {
 					}
 					final boolean corner = faceU && faceV;
 					final int along = faceU ? v - cv : u - cu;
-					final boolean band = detailed && (y == bandY || y == bandY - 1) && !corner && Math.abs(along) < shaft;
+					final boolean band = detailed && y <= bandY && y >= bandY - 2 && !corner && Math.abs(along) < shaft;
 					// the recess runs up the face looking at the terminal, off centre as at Southend
 					final boolean recess = detailed && u == cu - shaft && (v == cv + 1 || v == cv + 2)
-							&& y > StationGeometry.WALK_Y + 2 && y < bandY - 2;
+							&& y > StationGeometry.WALK_Y + 2 && y < bandY - 3;
 					final LocalDir face = faceU ? (u < cu ? LocalDir.MINUS_U : LocalDir.PLUS_U) : (v < cv ? LocalDir.MINUS_V : LocalDir.PLUS_V);
 					if (band || recess) {
 						put(Role.WINDOW, u, y, v, face, TOWER_DARK_GLASS);
