@@ -3,6 +3,7 @@ package com.aureliatransit.architecture.registry;
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.AxisShapedBlock;
 import com.aureliatransit.architecture.block.FacingShapedBlock;
+import com.aureliatransit.architecture.block.ShapedBlock;
 import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.block.TextLayout;
 import com.aureliatransit.architecture.block.elevated.CardReaderBlock;
@@ -14,6 +15,8 @@ import com.aureliatransit.architecture.block.elevated.FareGateBlock;
 import com.aureliatransit.architecture.block.elevated.GirderBlock;
 import com.aureliatransit.architecture.block.elevated.HandrailBlock;
 import com.aureliatransit.architecture.block.elevated.LiftStatusPanelBlock;
+import com.aureliatransit.architecture.block.elevated.CatenaryArmBlock;
+import com.aureliatransit.architecture.block.elevated.ContactWireBlock;
 import com.aureliatransit.architecture.block.elevated.NoiseBarrierBlock;
 import com.aureliatransit.architecture.block.elevated.PlatformFasciaBlock;
 import com.aureliatransit.architecture.block.elevated.PlatformWindscreenBlock;
@@ -127,9 +130,22 @@ public final class ElevatedBlocks {
 	public static final Block ANDESITE_BED_LIGHT = ModBlocks.register("andesite_bed_light", BlockFamily.PLATFORMS, RenderKind.SOLID,
 			new FacingShapedBlock(ModBlocks.paving(MapColor.STONE_GRAY).luminance(state -> 15).nonOpaque(), Placement.TOWARD_PLAYER, box(0, 0, 0, 16, 16, 16)),
 			TIP + "faces_you");
-	/** Gravel as a half block: the station generator's raised ballast shoulder beside the sleeper ends. */
+	/** Gravel as a half block: the station generator's raised ballast shoulder beside the sleeper ends. Not a slab: slabs are platform blocks, which open train doors. */
 	public static final Block GRAVEL_BALLAST_SLAB = ModBlocks.register("gravel_ballast_slab", BlockFamily.PLATFORMS, RenderKind.SOLID,
-			new net.minecraft.block.SlabBlock(ModBlocks.paving(MapColor.STONE_GRAY).sounds(net.minecraft.sound.BlockSoundGroup.GRAVEL)));
+			new ShapedBlock(ModBlocks.paving(MapColor.STONE_GRAY).sounds(net.minecraft.sound.BlockSoundGroup.GRAVEL), box(0, 0, 0, 16, 8, 16)));
+	/** The overhead line's contact wire and its messenger wire with a dropper between them, along the track. */
+	public static final Block CONTACT_WIRE = ModBlocks.register("contact_wire", BlockFamily.CATENARY, RenderKind.CUTOUT,
+			new ContactWireBlock(ModBlocks.metal().noCollision().nonOpaque()), TIP_STYLE, TIP + "contact_wire");
+	/** A galvanised mesh panel on its front edge with a post and a top rail: the fence along a railway's boundary. */
+	public static final Block LINESIDE_FENCE = ModBlocks.register("lineside_fence", BlockFamily.ELEVATED, RenderKind.CUTOUT,
+			new FacingShapedBlock(ModBlocks.metal(), Placement.TOWARD_PLAYER, box(0, 0, 0, 16, 16, 1)));
+	/** A Dutch bike rack with a bike in it: a galvanised rail and a hoop round the front wheel, rows of them back to back. */
+	public static final Block BICYCLE_RACK = ModBlocks.register("bicycle_rack", BlockFamily.FURNITURE, RenderKind.CUTOUT,
+			new FacingShapedBlock(ModBlocks.metal(), Placement.TOWARD_PLAYER, box(5.5, 0, 0, 10.5, 11, 16)));
+
+	/** A tubular overhead line cantilever from a mast to the hanger over the track: root, span and tip pieces. */
+	public static final Block CATENARY_ARM = ModBlocks.register("catenary_arm", BlockFamily.CATENARY, RenderKind.CUTOUT,
+			new CatenaryArmBlock(ModBlocks.metal().nonOpaque()), TIP_STYLE, TIP + "catenary_arm");
 
 	public static void init() {
 		// Class loading registers everything declared here.

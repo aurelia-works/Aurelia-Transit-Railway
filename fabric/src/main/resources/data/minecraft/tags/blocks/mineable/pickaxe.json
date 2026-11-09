@@ -469,6 +469,15 @@
 		"aurelia_transit_architecture:steel_panel_dark",
 		"aurelia_transit_architecture:steel_panel_perforated",
 		"aurelia_transit_architecture:steel_panel_galvanised",
-		"aurelia_transit_architecture:steel_panel_brushed"
+		"aurelia_transit_architecture:steel_panel_brushed",
+		"aurelia_transit_architecture:gravel_ballast_slab",
+		"aurelia_transit_architecture:contact_wire",
+		"aurelia_transit_architecture:catenary_arm",
+		"aurelia_transit_architecture:ns_platform_edge",
+		"aurelia_transit_architecture:ns_platform_guidance",
+		"aurelia_transit_architecture:ns_lift_post",
+		"aurelia_transit_architecture:ns_handrail",
+		"aurelia_transit_architecture:lineside_fence",
+		"aurelia_transit_architecture:bicycle_rack"
 	]
 }

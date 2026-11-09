@@ -296,6 +296,15 @@ public final class StudioApi {
 		if (!features.edgeLines()) {
 			text = (text.isEmpty() ? "" : text + ", ") + "no edge lines";
 		}
+		if (!features.overheadLine()) {
+			text = (text.isEmpty() ? "" : text + ", ") + "no catenary";
+		}
+		if (!features.fence()) {
+			text = (text.isEmpty() ? "" : text + ", ") + "no fence";
+		}
+		if (!features.square()) {
+			text = (text.isEmpty() ? "" : text + ", ") + "no square";
+		}
 		if (features.height() != StationFeatures.PlatformHeight.AUTO) {
 			text = (text.isEmpty() ? "" : text + ", ") + features.height().key() + " platforms";
 		}
@@ -308,6 +317,9 @@ public final class StudioApi {
 		StationFeatures features = StationFeatures.DEFAULTS;
 		features = features.withCctv(!"0".equals(q.get("cctv")));
 		features = features.withEdgeLines(!"0".equals(q.get("edgeLines")));
+		features = features.withOverheadLine(!"0".equals(q.get("overheadLine")));
+		features = features.withFence(!"0".equals(q.get("fence")));
+		features = features.withSquare(!"0".equals(q.get("square")));
 		return features.withHeight(StationFeatures.PlatformHeight.of(q.get("height")));
 	}
 

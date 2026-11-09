@@ -2,6 +2,7 @@ package com.aureliatransit.architecture.network;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.InfoDisplayBlock;
+import com.aureliatransit.architecture.block.NameSignBlock;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.block.entity.InfoDisplayBlockEntity;
 import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
@@ -17,6 +18,7 @@ import com.aureliatransit.architecture.block.elevated.ElevatedKinds;
 import com.aureliatransit.architecture.block.elevated.LiftStatusPanelBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
@@ -34,6 +36,8 @@ public final class ModPackets {
 	public static final Identifier UPDATE_SIGN = AureliaTransitArchitecture.id("update_sign");
 	public static final Identifier UPDATE_INFO_TEXT = AureliaTransitArchitecture.id("update_info_text");
 	public static final Identifier UPDATE_WAYFINDING = AureliaTransitArchitecture.id("update_wayfinding");
+	/** A name sign row's look and mount: owner position + the look's block id + whether it hangs on a wall. */
+	public static final Identifier UPDATE_NAME_SIGN_LOOK = AureliaTransitArchitecture.id("update_name_sign_look");
 	/** Lift status panel status (A8): block position + status ordinal. */
 	public static final Identifier UPDATE_LIFT_STATUS = AureliaTransitArchitecture.id("update_lift_status");
 	/** Station wrench screen: hand + action + description; the server saves the description on the wrench and runs the action. */
@@ -48,6 +52,14 @@ public final class ModPackets {
 		final PacketByteBuf buf = PacketByteBufs.create();
 		buf.writeBlockPos(pos);
 		data.write(buf);
+		return buf;
+	}
+
+	public static PacketByteBuf writeNameSignLook(BlockPos owner, Identifier look, boolean wall) {
+		final PacketByteBuf buf = PacketByteBufs.create();
+		buf.writeBlockPos(owner);
+		buf.writeIdentifier(look);
+		buf.writeBoolean(wall);
 		return buf;
 	}
 
@@ -153,6 +165,17 @@ public final class ModPackets {
 			}
 			server.execute(() -> applySign(player, pos, data));
 		});
+		ServerPlayNetworking.registerGlobalReceiver(UPDATE_NAME_SIGN_LOOK, (server, player, handler, buf, responseSender) -> {
+			final BlockPos pos = buf.readBlockPos();
+			final Identifier look;
+			try {
+				look = buf.readIdentifier();
+			} catch (RuntimeException e) {
+				return;
+			}
+			final boolean wall = buf.readBoolean();
+			server.execute(() -> applyNameSignLook(player, pos, look, wall));
+		});
 		ServerPlayNetworking.registerGlobalReceiver(UPDATE_LIFT_STATUS, (server, player, handler, buf, responseSender) -> {
 			final BlockPos pos = buf.readBlockPos();
 			final ElevatedKinds.LiftStatus status = ElevatedKinds.LiftStatus.byOrdinal(buf.readVarInt());
@@ -179,6 +202,18 @@ public final class ModPackets {
 		if (state.getBlock() instanceof TextSignBlock block && isRowInReach(player, block, state, pos)
 				&& world.getBlockEntity(pos) instanceof TextSignBlockEntity sign) {
 			sign.setData(data);
+		}
+	}
+
+	private static void applyNameSignLook(ServerPlayerEntity player, BlockPos pos, Identifier look, boolean wall) {
+		final ServerWorld world = player.getServerWorld();
+		if (!world.isChunkLoaded(pos)) {
+			return;
+		}
+		final BlockState state = world.getBlockState(pos);
+		if (state.getBlock() instanceof NameSignBlock block && isRowInReach(player, block, state, pos)
+				&& Registries.BLOCK.get(look) instanceof NameSignBlock target) {
+			NameSignBlock.restyle(world, pos, target, wall);
 		}
 	}
 

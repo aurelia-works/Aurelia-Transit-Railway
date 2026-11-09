@@ -86,6 +86,114 @@ final class Planning extends PlanAirport {
 		}
 	}
 
+	/** Platforms at least this long get their track numbers again over each quarter. */
+	static final int SECTION_MIN = 40;
+
+	/**
+	 * A Dutch platform (NS, ProRail) carries its track numbers over each section, so a passenger reads them from any door of a
+	 * long train: past the pair by the footbridge ({@link #numberSigns}), a pair hung under the roof at each quarter point.
+	 * Only where the footbridge numbers the platforms at all; the name stays one row per platform ({@link #nameSigns}).
+	 */
+	void sectionSigns() {
+		if (spec.style() != StationStyle.DUTCH || !site.bridge()) {
+			return;
+		}
+		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			if (band.length() < SECTION_MIN || !site.served().contains(band.number())) {
+				continue;
+			}
+			final List<Integer> numbers = layout.platformNumbers(band);
+			final int mid = (band.uMin() + band.uMax()) / 2;
+			for (final int quarter : new int[]{1, 3}) {
+				final int v = band.vFrom() + band.length() * quarter / 4;
+				if (numbers.size() == 2) {
+					numberSignIn(band, mid, band.uMin(), v, numbers.get(0));
+					numberSignIn(band, mid + 1, band.uMax(), v, numbers.get(1));
+				} else if (numbers.size() == 1) {
+					numberSignIn(band, band.uMin(), band.uMax(), v, numbers.get(0));
+				}
+			}
+		}
+	}
+
+	/**
+	 * A long Dutch island repeats its name board at each quarter, as NS does, so the name reads from any door of a train. Fixtures
+	 * carrying the name, beside the platform's one {@link Role#NAME_SIGN} row; moved along up to six rows to find free cells.
+	 */
+	void sectionNameBoards() {
+		if (spec.name().isEmpty() || spec.style() != StationStyle.DUTCH || !site.bridge()) {
+			return;
+		}
+		final String sign = palette.blockId(Role.NAME_SIGN);
+		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			if (!band.island() || band.length() < SECTION_MIN || hasSideLanes(band)) {
+				continue;
+			}
+			final int middle = (band.uMin() + band.uMax()) / 2;
+			for (final int quarter : new int[]{1, 3}) {
+				final int at = band.vFrom() + band.length() * quarter / 4 - 1;
+				shifts:
+				for (final int d : new int[]{0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6}) {
+					final int v = at + d;
+					if (v < band.vFrom() || v + 2 > band.vTo()) {
+						continue;
+					}
+					for (int i = 0; i < 3; i++) {
+						if (taken(middle, StationGeometry.WALK_Y, v + i) || atStairFoot(band, middle, v + i) || nameSignNear(middle, v + i)) {
+							continue shifts;
+						}
+					}
+					for (int i = 0; i < 3; i++) {
+						putText(Role.FIXTURE, middle, StationGeometry.WALK_Y, v + i, LocalDir.MINUS_U, sign, spec.name());
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	/** True within four rows of a name sign row already planned at that column. */
+	private boolean nameSignNear(int u, int v) {
+		for (int d = -4; d <= 4; d++) {
+			final PlannedBlock block = cells.get(new Cell(u, StationGeometry.WALK_Y, v + d));
+			if (block != null && block.text().equals(spec.name())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * A Dutch footbridge carries the station name on its outer face over each track, so it reads from the platform ends and
+	 * from a train running in. The board hangs flat on the top glass row of both long walls ({@code wall=true}: no legs). A
+	 * fixture, not a {@link Role#NAME_SIGN}: the platform rows stay one per platform.
+	 */
+	void bridgeNameBoards() {
+		if (spec.name().isEmpty() || spec.style() != StationStyle.DUTCH || !site.bridge() || spec.real().hallOverTracks()
+				|| spec.options().underground()) {
+			return;
+		}
+		final int y = StationGeometry.BUILDING_ROOF_Y - 1;
+		final String sign = palette.blockId(Role.NAME_SIGN);
+		for (final LocalDir out : new LocalDir[]{LocalDir.MINUS_V, LocalDir.PLUS_V}) {
+			final int wall = site.bridgeV() + (out == LocalDir.MINUS_V ? -bridgeWall() : bridgeWall());
+			final int face = wall + (out == LocalDir.MINUS_V ? -1 : 1);
+			for (final TrackLayout.Track track : layout.tracks()) {
+				boolean fits = true;
+				for (int u = track.u() - 1; u <= track.u() + 1; u++) {
+					final PlannedBlock block = cells.get(new Cell(u, y, wall));
+					fits &= block != null && block.role() == Role.WINDOW && !taken(u, y, face);
+				}
+				if (!fits) {
+					continue;
+				}
+				for (int u = track.u() - 1; u <= track.u() + 1; u++) {
+					putText(Role.FIXTURE, u, y, face, out, sign, spec.name(), "wall=true");
+				}
+			}
+		}
+	}
+
 	/**
 	 * An island with side lanes: a row of three down the middle strip of every other travelator stretch, beside the walkways
 	 * rather than at the foot of the stairs where people come down (Jah, 10-20). Moved along up to four where a bench is
@@ -161,7 +269,7 @@ final class Planning extends PlanAirport {
 	/** A real station's hall roof is far over its floor: a rod from a sign hung at the corridor's height up to the roof. */
 	void hangFromRoof(int u, int y, int v) {
 		for (int h = y + 1; h <= spec.real().roofTopY() && !taken(u, h, v); h++) {
-			put(Role.FIXTURE, u, h, v, LocalDir.PLUS_V, "minecraft:chain", "axis=y");
+			put(Role.FIXTURE, u, h, v, LocalDir.PLUS_V, DROP_ROD, "hanger=none");
 		}
 	}
 
@@ -520,6 +628,132 @@ final class Planning extends PlanAirport {
 				put(Role.FIXTURE, LOT_BAY + 6, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_U, LOT_BOLLARD);
 			}
 		}
+	}
+
+	/** The street past a Dutch station square: asphalt, its centre line and zebra crossings in white. */
+	static final String SQUARE_ROAD = "minecraft:gray_concrete";
+
+	static final String SQUARE_ROAD_MARK = "minecraft:white_concrete";
+
+	/** A Dutch cycle path: red asphalt between the kerb and the verge. */
+	static final String SQUARE_CYCLE_PATH = "minecraft:red_terracotta";
+
+	static final String SQUARE_VERGE = "minecraft:grass_block";
+
+	/** A double-sided bike rack with a bike in it, front wheels clamped in the middle of the pair. */
+	static final String BICYCLE_RACK = "aurelia_transit_architecture:bicycle_rack";
+
+	/** Columns of the square, from its outer edge: the street, its kerb, the cycle path, the verge, the footway, the racks, the walk. */
+	private static final int SQ_ROAD = 7;
+	private static final int SQ_KERB = SQ_ROAD;
+	private static final int SQ_CYCLE = SQ_KERB + 1;
+	private static final int SQ_VERGE = SQ_CYCLE + 2;
+	private static final int SQ_FOOTWAY = SQ_VERGE + 1;
+	private static final int SQ_RACKS = SQ_FOOTWAY + 2;
+
+	/** Rows between street trees, and the lamps halfway between them. */
+	static final int SQUARE_TREE_PITCH = 10;
+
+	/** Rows between the posts of the bike parking's roof. */
+	static final int SQUARE_POST_PITCH = 8;
+
+	/**
+	 * A Dutch street entrance's station square ({@link StationGeometry#squareDepth}), in the columns before the street entrance,
+	 * along the whole station: from the outer edge the street (two lanes and a dashed centre line), its kerb, a red cycle path,
+	 * a grass verge with street trees and lamps, a footway, a double row of bikes in racks under a roof, and a walk along the
+	 * entrance. Where each way up the entrance comes down, a crossing joins it all: a zebra over the street, a dropped kerb and
+	 * paving through the verge and the racks to the ramp's foot.
+	 */
+	void stationSquare() {
+		final int depth = StationGeometry.squareDepth(spec);
+		final TrackLayout.PlatformBand street = site.street();
+		if (depth == 0 || street == null) {
+			return;
+		}
+		final java.util.Set<Integer> crossing = new java.util.HashSet<>();
+		for (final int dir : layout.terminus() ? new int[]{-1} : new int[]{-1, 1}) {
+			final int top = dir < 0 ? street.vFrom() : street.vTo();
+			final PlannedBlock step = at(street.uMin() + 1, StationGeometry.PLATFORM_Y, top + dir);
+			if (step != null && (step.role() == Role.RAMP_UPPER || step.role() == Role.RAMP_LOWER)) {
+				final int foot = top + 3 * dir;
+				for (int v = foot - 1; v <= foot + 1; v++) {
+					crossing.add(v);
+				}
+			}
+		}
+		final int floorY = StationGeometry.PLATFORM_Y - 1;
+		final int y = StationGeometry.PLATFORM_Y;
+		final int vFrom = layout.vMin();
+		final int vTo = layout.vMax();
+		for (int v = vFrom; v <= vTo; v++) {
+			final boolean across = crossing.contains(v);
+			final int along = v - vFrom;
+			for (int a = 0; a < depth; a++) {
+				if (!free(a, floorY, v)) {
+					continue;
+				}
+				String block = LOT_PAVING;
+				LocalDir front = LocalDir.PLUS_V;
+				String state = "";
+				if (a < SQ_ROAD) {
+					final boolean mark = across ? a % 2 == 0 : a == SQ_ROAD / 2 && along % 6 < 3;
+					block = mark ? SQUARE_ROAD_MARK : SQUARE_ROAD;
+				} else if (a == SQ_KERB) {
+					block = across ? LOT_PAVING : LOT_KERB;
+					front = LocalDir.MINUS_U;
+				} else if (a < SQ_VERGE) {
+					block = SQUARE_CYCLE_PATH;
+				} else if (a == SQ_VERGE && !across) {
+					final boolean tree = along % SQUARE_TREE_PITCH == SQUARE_TREE_PITCH / 2 && clearOf(crossing, v, 2) && v > vFrom && v < vTo;
+					block = tree ? LOT_TRUNK : SQUARE_VERGE;
+					state = tree ? "axis=y" : "";
+				} else if (a >= SQ_RACKS && a < SQ_RACKS + 2 && !across) {
+					block = LOT_MARK;
+				}
+				put(Role.FLOOR, a, floorY, v, front, block, state);
+				if (block.equals(LOT_TRUNK)) {
+					tree(a, v);
+				}
+			}
+			if (across) {
+				continue;
+			}
+			// a lamp on the verge halfway between the trees
+			if (along % SQUARE_TREE_PITCH == 0 && free(SQ_VERGE, y, v) && free(SQ_VERGE, y + 1, v) && free(SQ_VERGE, y + 2, v) && free(SQ_VERGE, y + 3, v)) {
+				for (int h = y; h < y + 3; h++) {
+					put(Role.FIXTURE, SQ_VERGE, h, v, LocalDir.PLUS_U, StationPlanner.LAMP_POLE);
+				}
+				put(Role.LAMP, SQ_VERGE, y + 3, v, LocalDir.PLUS_U);
+			}
+			// the bikes, back to back with their front wheels in the rack between them, under a roof on posts
+			if (v > vFrom && v < vTo) {
+				final boolean post = along % SQUARE_POST_PITCH == 0;
+				for (int a = SQ_RACKS; a < SQ_RACKS + 2; a++) {
+					if (free(a, y + 2, v)) {
+						// the station canopy's own roof and lights, so the shelter reads as part of the station and the racks are lit at night
+						final boolean light = a == SQ_RACKS && along % SQUARE_POST_PITCH == SQUARE_POST_PITCH / 2;
+						put(Role.FIXTURE, a, y + 2, v, LocalDir.PLUS_U, palette.blockId(light ? Role.ROOF_LIGHT : Role.ROOF));
+					}
+					if (post && a == SQ_RACKS + 1) {
+						if (free(a, y, v) && free(a, y + 1, v)) {
+							put(Role.FIXTURE, a, y, v, LocalDir.PLUS_U, StationPlanner.LAMP_POLE);
+							put(Role.FIXTURE, a, y + 1, v, LocalDir.PLUS_U, StationPlanner.LAMP_POLE);
+						}
+					} else if (free(a, y, v)) {
+						put(Role.FIXTURE, a, y, v, a == SQ_RACKS ? LocalDir.PLUS_U : LocalDir.MINUS_U, BICYCLE_RACK);
+					}
+				}
+			}
+		}
+	}
+
+	private static boolean clearOf(java.util.Set<Integer> rows, int v, int gap) {
+		for (int d = -gap; d <= gap; d++) {
+			if (rows.contains(v + d)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/** A tree in the planter: a trunk four high (the first block is the planter cell itself) and a crown of leaves round its top. */

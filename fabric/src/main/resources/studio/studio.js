@@ -48,6 +48,9 @@
 		// dev-panel switches: every visible fitting can be turned off without losing the station
 		q.cctv = $("cctv").checked ? "1" : "0";
 		q.edgeLines = $("edgeLines").checked ? "1" : "0";
+		q.overheadLine = $("overheadLine").checked ? "1" : "0";
+		q.fence = $("fence").checked ? "1" : "0";
+		q.square = $("square").checked ? "1" : "0";
 		return q;
 	}
 
@@ -96,6 +99,15 @@
 		}
 		if (saved.edgeLines !== undefined) {
 			$("edgeLines").checked = saved.edgeLines !== "0";
+		}
+		if (saved.overheadLine !== undefined) {
+			$("overheadLine").checked = saved.overheadLine !== "0";
+		}
+		if (saved.fence !== undefined) {
+			$("fence").checked = saved.fence !== "0";
+		}
+		if (saved.square !== undefined) {
+			$("square").checked = saved.square !== "0";
 		}
 		for (const f of saved.touched || (saved.pinned || "").split(",")) {
 			if (fields.includes(f) && f !== "text") {

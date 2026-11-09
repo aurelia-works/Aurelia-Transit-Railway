@@ -103,6 +103,9 @@ public final class StationPlanner {
 		planning.platformEquipment();
 		planning.tramSigns();
 		planning.nameSigns();
+		planning.sectionSigns();
+		planning.sectionNameBoards();
+		planning.bridgeNameBoards();
 		planning.wayfinding();
 		planning.mezzanine();
 		planning.speakers();
@@ -116,8 +119,12 @@ public final class StationPlanner {
 		planning.cornerPosts();
 		planning.parking();
 		planning.underground();
-		planning.edgeRailings();
 		planning.shoulders();
+		planning.stationSquare();
+		planning.streetEntranceFittings();
+		planning.overheadLine();
+		planning.linesideFence();
+		planning.edgeRailings();
 		return planning.finish();
 	}
 

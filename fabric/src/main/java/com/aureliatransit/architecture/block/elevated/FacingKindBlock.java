@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.block.elevated;
 
+import com.aureliatransit.architecture.block.MtrBrush;
 import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.util.Shapes;
 import net.minecraft.block.Block;
@@ -126,8 +127,8 @@ public abstract class FacingKindBlock<K extends Enum<K> & StringIdentifiable> ex
 	@Override
 	public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
 		if (state.contains(MIRRORED) && player.isSneaking()) {
-			// sneak + right-click with an empty hand swaps the left- and right-hand piece
-			if (hand != Hand.MAIN_HAND || !player.getStackInHand(hand).isEmpty() || !player.canModifyBlocks()) {
+			// sneak + right-click with the brush swaps the left- and right-hand piece
+			if (hand != Hand.MAIN_HAND || !MtrBrush.held(player, hand) || !player.canModifyBlocks()) {
 				return ActionResult.PASS;
 			}
 			if (!world.isClient) {

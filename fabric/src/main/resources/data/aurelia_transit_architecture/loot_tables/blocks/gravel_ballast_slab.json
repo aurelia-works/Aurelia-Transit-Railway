@@ -7,26 +7,12 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "aurelia_transit_architecture:gravel_ballast_slab",
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": 2,
-              "add": false,
-              "conditions": [
-                {
-                  "condition": "minecraft:block_state_property",
-                  "block": "aurelia_transit_architecture:gravel_ballast_slab",
-                  "properties": {
-                    "type": "double"
-                  }
-                }
-              ]
-            },
-            {
-              "function": "minecraft:explosion_decay"
-            }
-          ]
+          "name": "aurelia_transit_architecture:gravel_ballast_slab"
+        }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
         }
       ]
     }

@@ -2,6 +2,7 @@ package com.aureliatransit.architecture.registry;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.TextLayout;
+import com.aureliatransit.architecture.block.NameSignBlock;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.text.SignStyle;
 import net.minecraft.block.Block;
@@ -27,22 +28,22 @@ public final class StationBlocksOperators {
 	private static final VoxelShape SHAPE = union(box(0, 7, 6.5, 16, 16, 9.5), box(1, 0, 7, 3, 7, 9), box(13, 0, 7, 15, 7, 9));
 
 	public static final Block NS_STATION_SIGN = ModBlocks.register("ns_station_sign", BlockFamily.SIGNAGE, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_NS), SHAPE), TIP_EDITABLE, TIP_JOINS);
+			new NameSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_NS), SHAPE), TIP_EDITABLE, TIP_JOINS);
 	public static final Block DB_STATION_SIGN = ModBlocks.register("db_station_sign", BlockFamily.SIGNAGE, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_DB), SHAPE), TIP_EDITABLE, TIP_JOINS);
+			new NameSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_DB), SHAPE), TIP_EDITABLE, TIP_JOINS);
 	public static final Block GVB_STATION_SIGN = ModBlocks.register("gvb_station_sign", BlockFamily.SIGNAGE, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_GVB), SHAPE), TIP_EDITABLE, TIP_JOINS);
+			new NameSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_GVB), SHAPE), TIP_EDITABLE, TIP_JOINS);
 
 	public static final Block UNDERGROUND_STATION_SIGN = ModBlocks.register("underground_station_sign", BlockFamily.SIGNAGE, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_UNDERGROUND), SHAPE), TIP_EDITABLE, TIP_JOINS);
+			new NameSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_UNDERGROUND), SHAPE), TIP_EDITABLE, TIP_JOINS);
 	public static final Block NATIONAL_RAIL_STATION_SIGN = ModBlocks.register("national_rail_station_sign", BlockFamily.SIGNAGE, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_NATIONAL_RAIL), SHAPE), TIP_EDITABLE, TIP_JOINS);
+			new NameSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_NATIONAL_RAIL), SHAPE), TIP_EDITABLE, TIP_JOINS);
 	public static final Block SBAHN_STATION_SIGN = ModBlocks.register("sbahn_station_sign", BlockFamily.SIGNAGE, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_SBAHN), SHAPE), TIP_EDITABLE, TIP_JOINS);
+			new NameSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_SBAHN), SHAPE), TIP_EDITABLE, TIP_JOINS);
 	public static final Block SBB_STATION_SIGN = ModBlocks.register("sbb_station_sign", BlockFamily.SIGNAGE, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_SBB), SHAPE), TIP_EDITABLE, TIP_JOINS);
+			new NameSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_SBB), SHAPE), TIP_EDITABLE, TIP_JOINS);
 	public static final Block JR_STATION_SIGN = ModBlocks.register("jr_station_sign", BlockFamily.SIGNAGE, RenderKind.CUTOUT,
-			new TextSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_JR), SHAPE), TIP_EDITABLE, TIP_JOINS);
+			new NameSignBlock(ModBlocks.metal().luminance(state -> 6), layout(SignStyle.OPERATOR_JR), SHAPE), TIP_EDITABLE, TIP_JOINS);
 
 	/**
 	 * A station's name in letters on its facade (Jah, 10-22: the platform name board on the front looked out of place): a

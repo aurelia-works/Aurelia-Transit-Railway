@@ -129,7 +129,9 @@ class StationPlannerTest {
 			// fixtures name their own equipment (screens, help points), every other role takes the palette's block
 			// a hall's frame is the roof truss where the palette's beam is the plain girder; a ground-floor gate line is MTR's fence
 			final boolean substitute = (block.role() == Role.BEAM || block.role() == Role.RIB) && block.blockId().equals(StationPlanner.ROOF_TRUSS)
-					&& palette.blockId(block.role()).equals(StationPlanner.GIRDER) || block.role() == Role.BARRIER && block.blockId().equals(PlanState.MTR_FENCE);
+					&& palette.blockId(block.role()).equals(StationPlanner.GIRDER) || block.role() == Role.BARRIER && block.blockId().equals(PlanState.MTR_FENCE)
+					// an NS platform's guidance line one cell in from the edge
+					|| block.role() == Role.PLATFORM_SURFACE && block.blockId().equals(palette.guidanceId());
 			if (block.role() != Role.FIXTURE && !substitute && !block.blockId().equals(palette.blockId(block.role()))) {
 				scan.fail("palette ids", spec, "wrong id on " + block);
 			}

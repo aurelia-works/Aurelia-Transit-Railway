@@ -307,4 +307,47 @@ public final class ElevatedKinds {
 			return id(this);
 		}
 	}
+
+	/**
+	 * A span of overhead line: the contact wire along the middle of the block and the messenger wire above it, which sags
+	 * by {@link #level()} half px from the block's top towards the middle of a span. A dropper kind hangs the contact wire from the
+	 * messenger.
+	 */
+	public enum ContactWireKind implements StringIdentifiable {
+		LEVEL_0, LEVEL_1, LEVEL_2, LEVEL_3, LEVEL_4, LEVEL_5, LEVEL_6,
+		DROPPER_0, DROPPER_1, DROPPER_2, DROPPER_3, DROPPER_4, DROPPER_5, DROPPER_6;
+
+		/** The deepest sag, in half px below the block's top. */
+		public static final int MAX_LEVEL = 6;
+
+		public static ContactWireKind of(int level, boolean dropper) {
+			return values()[(dropper ? MAX_LEVEL + 1 : 0) + Math.max(0, Math.min(MAX_LEVEL, level))];
+		}
+
+		public int level() {
+			return ordinal() % (MAX_LEVEL + 1);
+		}
+
+		public boolean dropper() {
+			return ordinal() > MAX_LEVEL;
+		}
+
+		@Override
+		public String asString() {
+			return id(this);
+		}
+	}
+
+	/**
+	 * A piece of an overhead line cantilever, pointing from its mast to the track: the root joins the mast's flange, a span
+	 * carries the tubes across, and the tip holds the hanger over the wire.
+	 */
+	public enum CatenaryArmKind implements StringIdentifiable {
+		ROOT, SPAN, TIP;
+
+		@Override
+		public String asString() {
+			return id(this);
+		}
+	}
 }

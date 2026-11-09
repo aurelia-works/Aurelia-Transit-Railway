@@ -372,7 +372,7 @@ public final class StationAudit {
 				if (block.role().platformFloor()) {
 					final TrackLayout.PlatformBand band = bandAt(block.u());
 					// the street entrance's paving is not a platform: no roof was asked for over it
-					if (band == null && StationGeometry.streetEntrance(spec) && (block.u() < StationGeometry.streetWidth(spec)
+					if (band == null && StationGeometry.streetEntrance(spec) && (block.u() < StationGeometry.squareDepth(spec) + StationGeometry.streetWidth(spec)
 							|| spec.real().hallOverTracks() && block.u() >= plan.layout().width() - StationGeometry.streetWidth(spec))) {
 						continue;
 					}

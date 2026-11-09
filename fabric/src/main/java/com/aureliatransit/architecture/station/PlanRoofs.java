@@ -436,7 +436,7 @@ abstract class PlanRoofs extends PlanColumns {
 		final Landmark.Shed real = realShed();
 		final String kind = "kind=" + (real != null ? real.truss() : palette.girderKind());
 		final int beamY = hallBeamY();
-		final int u0 = site.street() != null ? StationGeometry.STREET_WIDTH : layout.buildingWidth();
+		final int u0 = site.street() != null ? site.street().uMax() + 1 : layout.buildingWidth();
 		final int u1 = layout.width() - 1;
 		final int n = u1 - u0 + 1;
 		final int[] rise = shedRise(u0, n);
@@ -1039,14 +1039,14 @@ abstract class PlanRoofs extends PlanColumns {
 		return strip != null && strip.role().equals(Role.FIXTURE) && strip.blockId().equals(CANOPY_LIGHT);
 	}
 
-	/** A thin chain from the light at (u, y, v) up to the frame above it; false when there is no frame to hang from. */
+	/** A thin steel rod from the light at (u, y, v) up to the frame above it; false when there is no frame to hang from. */
 	boolean dropChain(int u, int y, int v) {
 		final int top = ceilingAbove(u, y, v);
 		if (top < 0) {
 			return false;
 		}
 		for (int h = y + 1; h < top; h++) {
-			put(Role.FIXTURE, u, h, v, LocalDir.PLUS_V, "minecraft:chain", "axis=y");
+			put(Role.FIXTURE, u, h, v, LocalDir.PLUS_V, DROP_ROD, "hanger=none");
 		}
 		return true;
 	}

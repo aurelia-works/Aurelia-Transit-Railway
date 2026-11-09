@@ -65,7 +65,7 @@ public class TextSignBlockEntityRenderer implements BlockEntityRenderer<TextSign
 		if (!(state.getBlock() instanceof TextSignBlock block)) {
 			return;
 		}
-		final TextLayout layout = block.getLayout();
+		final TextLayout layout = block.getLayout(state);
 		if (layout.joins() && state.get(TextSignBlock.LEFT)) {
 			return;
 		}

@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "aurelia_transit_architecture:block/ns_platform_guidance_top",
+    "bottom": "aurelia_transit_architecture:block/ns_platform_side",
+    "side": "aurelia_transit_architecture:block/ns_platform_side",
+    "particle": "aurelia_transit_architecture:block/ns_platform_guidance_top"
+  }
+}

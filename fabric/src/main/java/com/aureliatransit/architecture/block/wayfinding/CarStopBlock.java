@@ -1,6 +1,7 @@
 package com.aureliatransit.architecture.block.wayfinding;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
+import com.aureliatransit.architecture.block.MtrBrush;
 import com.aureliatransit.architecture.util.Shapes;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -96,7 +97,7 @@ public abstract class CarStopBlock extends HorizontalFacingBlock {
 
 	@Override
 	public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-		if (hand != Hand.MAIN_HAND || !player.getStackInHand(hand).isEmpty() || !player.canModifyBlocks()) {
+		if (hand != Hand.MAIN_HAND || !MtrBrush.held(player, hand) || !player.canModifyBlocks()) {
 			return ActionResult.PASS;
 		}
 		if (!world.isClient) {

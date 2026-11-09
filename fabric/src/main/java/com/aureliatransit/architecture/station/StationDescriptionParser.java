@@ -1103,6 +1103,16 @@ public final class StationDescriptionParser {
 				} else if (word.equals("cctv") || word.equals("cameras") || word.equals("camera")) {
 					features = features.withCctv(false);
 					note(i, "no CCTV cameras");
+				} else if (word.equals("catenary") || word.equals("wires")) {
+					features = features.withOverheadLine(false);
+					note(i, "no overhead line");
+				} else if (word.equals("fence") || word.equals("fences") || word.equals("fencing")) {
+					features = features.withFence(false);
+					note(i, "no lineside fence");
+				} else if (word.equals("square") || word.equals("plein") || word.equals("stationsplein")
+						|| (word.equals("bike") || word.equals("cycle") || word.equals("bicycle")) && at(j + 1).equals("parking")) {
+					features = features.withSquare(false);
+					note(i, "no station square");
 				} else if (word.equals("lines") || word.equals("line") && at(j + 1).equals("lines")) {
 					features = features.withEdgeLines(false);
 					note(i, "no white platform edge lines");

@@ -345,8 +345,20 @@ public final class StationGeometry {
 	static int sideShift(StationSpec spec) {
 		final int parking = spec.parking() && spec.sideBuilding() ? PARKING_DEPTH : 0;
 		return boxMargin(spec) + parking + (spec.sideBuilding() ? APRON + buildingDepth(spec.buildingScale())
-				: streetEntrance(spec) ? streetWidth(spec) : 0);
+				: streetEntrance(spec) ? squareDepth(spec) + streetWidth(spec) : 0);
 	}
+
+	/**
+	 * Columns of a Dutch street entrance's station square, before the street entrance (Jah 11-08: the judge found the way in
+	 * from the street bare): the street, its kerb, a red cycle path, a verge of trees, a footway, covered bike parking and a
+	 * walk along the entrance. 0 for any other station.
+	 */
+	public static int squareDepth(StationSpec spec) {
+		return spec.style() == StationStyle.DUTCH && spec.features().square() && !spec.real().hallOverTracks() && boxMargin(spec) == 0
+				&& !spec.tram() && streetEntrance(spec) ? SQUARE_DEPTH : 0;
+	}
+
+	public static final int SQUARE_DEPTH = 16;
 
 	/** Columns past an open outer track's clearance with a track bed: a ballast shoulder, then a cess path. */
 	public static final int CESS = 2;

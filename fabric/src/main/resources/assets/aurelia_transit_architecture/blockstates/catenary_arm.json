@@ -1,0 +1,49 @@
+{
+  "variants": {
+    "facing=north,kind=root": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_root"
+    },
+    "facing=north,kind=span": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_span"
+    },
+    "facing=north,kind=tip": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_tip"
+    },
+    "facing=east,kind=root": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_root",
+      "y": 90
+    },
+    "facing=east,kind=span": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_span",
+      "y": 90
+    },
+    "facing=east,kind=tip": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_tip",
+      "y": 90
+    },
+    "facing=south,kind=root": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_root",
+      "y": 180
+    },
+    "facing=south,kind=span": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_span",
+      "y": 180
+    },
+    "facing=south,kind=tip": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_tip",
+      "y": 180
+    },
+    "facing=west,kind=root": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_root",
+      "y": 270
+    },
+    "facing=west,kind=span": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_span",
+      "y": 270
+    },
+    "facing=west,kind=tip": {
+      "model": "aurelia_transit_architecture:block/catenary_arm_tip",
+      "y": 270
+    }
+  }
+}

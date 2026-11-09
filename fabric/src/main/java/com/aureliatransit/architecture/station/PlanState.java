@@ -313,12 +313,17 @@ abstract class PlanState {
 
 	/** A block carrying its own text (a wayfinding sign's "ARROW:destination", see {@link #wayfinding}). */
 	boolean putText(Role role, int u, int y, int v, LocalDir front, String blockId, String text) {
+		return putText(role, u, y, v, front, blockId, text, "");
+	}
+
+	/** A block carrying its own text and extra state ({@code wall=true} for a name board hung on a wall). */
+	boolean putText(Role role, int u, int y, int v, LocalDir front, String blockId, String text, String state) {
 		final Cell cell = new Cell(u, y, v);
 		if (cells.containsKey(cell) || air.contains(cell)) {
 			skip(role, blockId, cell);
 			return false;
 		}
-		cells.put(cell, new PlannedBlock(u, y, v, role, blockId, front, text, ""));
+		cells.put(cell, new PlannedBlock(u, y, v, role, blockId, front, text, state));
 		return true;
 	}
 

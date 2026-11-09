@@ -21,7 +21,7 @@ class StylePaletteTest {
 	private static final String ATA = "aurelia_transit_architecture:";
 
 	private static final Set<String> EDGES = Set.of(ATA + "platform_edge_warning", ATA + "platform_edge", ATA + "sbahn_platform_edge_tactile",
-			ATA + "sbahn_platform_edge", ATA + "metro_tactile_edge");
+			ATA + "sbahn_platform_edge", ATA + "metro_tactile_edge", ATA + "ns_platform_edge");
 	private static final Set<String> SURFACES = Set.of(ATA + "platform_paving_light", ATA + "platform_paving_dark",
 			ATA + "leidsche_rijn_concrete_platform_paver", ATA + "sbahn_platform_slab", ATA + "metro_terrazzo_floor", ATA + "metro_granite_floor");
 
@@ -92,8 +92,12 @@ class StylePaletteTest {
 	void tactileChoosesTheTactileEdgeOfTheStyle() {
 		assertEdge(StationStyle.MODERN, true, "platform_edge_warning");
 		assertEdge(StationStyle.MODERN, false, "platform_edge");
-		assertEdge(StationStyle.DUTCH, true, "platform_edge_warning");
-		assertEdge(StationStyle.DUTCH, false, "platform_edge");
+		// NS platforms: a coping with a white dashed line; their tactile warning is the guidance line one cell in
+		assertEdge(StationStyle.DUTCH, true, "ns_platform_edge");
+		assertEdge(StationStyle.DUTCH, false, "ns_platform_edge");
+		assertEquals(ATA + "ns_platform_guidance",
+				StylePalette.of(spec(StationStyle.DUTCH, SurfaceMaterial.STYLE_DEFAULT, RoofMaterial.STYLE_DEFAULT, RoofType.CANOPY, true)).guidanceId());
+		assertEquals(null, StylePalette.of(spec(StationStyle.MODERN, SurfaceMaterial.STYLE_DEFAULT, RoofMaterial.STYLE_DEFAULT, RoofType.CANOPY, true)).guidanceId());
 		assertEdge(StationStyle.GERMAN_SBAHN, true, "sbahn_platform_edge_tactile");
 		assertEdge(StationStyle.GERMAN_SBAHN, false, "sbahn_platform_edge");
 		assertEdge(StationStyle.METRO, true, "metro_tactile_edge");
