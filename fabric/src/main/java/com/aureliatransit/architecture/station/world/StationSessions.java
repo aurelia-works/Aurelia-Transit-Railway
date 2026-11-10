@@ -96,6 +96,11 @@ public final class StationSessions {
 		BUILT.put(player, new Built(pending.plan(), pending.spec(), pending.frame(), pending.dimension(), pending.railSkipped()));
 	}
 
+	/** Forgets the player's last station, as a build that is not a station (earthworks) now holds the undo log. */
+	public static void forgetBuilt(UUID player) {
+		BUILT.remove(player);
+	}
+
 	/** The plan of the player's last confirmed build; null when there is none. */
 	public static Built built(UUID player) {
 		return BUILT.get(player);

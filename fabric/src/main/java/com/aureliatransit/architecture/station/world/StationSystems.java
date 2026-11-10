@@ -29,6 +29,7 @@ public final class StationSystems {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			StationCommand.register(dispatcher, wordPlans());
 			StationGuide.register(dispatcher);
+			com.aureliatransit.architecture.earthworks.world.EarthworksCommand.register(dispatcher);
 		});
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			StationGuide.welcome(handler.getPlayer());
@@ -36,7 +37,10 @@ public final class StationSystems {
 		});
 		ServerTickEvents.END_SERVER_TICK.register(StationSessions::tick);
 		AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> StationWrenchItem.attack(player, world, hand));
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> StationSessions.forgetPlayer(handler.getPlayer().getUuid()));
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			StationSessions.forgetPlayer(handler.getPlayer().getUuid());
+			com.aureliatransit.architecture.earthworks.world.EarthworksCommand.forget(handler.getPlayer().getUuid());
+		});
 		// before the worlds save, so a build running when the server stops keeps its undo
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> StationSessions.flushUndo());
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> StationSessions.clear());

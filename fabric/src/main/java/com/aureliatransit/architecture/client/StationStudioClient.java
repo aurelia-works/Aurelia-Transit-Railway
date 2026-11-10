@@ -2,12 +2,14 @@ package com.aureliatransit.architecture.client;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.network.ModPackets;
+import com.aureliatransit.architecture.station.studio.StationFiles;
 import com.aureliatransit.architecture.station.studio.StudioServer;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.resource.Resource;
 import net.minecraft.text.ClickEvent;
@@ -56,10 +58,15 @@ public final class StationStudioClient {
 
 	/** Starts the studio if needed and opens it in the browser; says where it is in chat too, in case no browser opens. */
 	public static void open() {
+		open(null);
+	}
+
+	/** As {@link #open()}, with the station file {@code file} ({@link StationFiles}) loaded into the page; null for none. */
+	public static void open(String file) {
 		final MinecraftClient client = MinecraftClient.getInstance();
 		final String url;
 		try {
-			url = start().url();
+			url = start().url() + (StationFiles.validFile(file) ? "?file=" + file : "");
 		} catch (IOException | RuntimeException | LinkageError e) {
 			AureliaTransitArchitecture.LOGGER.warn("Could not start Station Studio", e);
 			if (client.player != null) {
@@ -97,6 +104,7 @@ public final class StationStudioClient {
 			final net.minecraft.client.util.Session session = MinecraftClient.getInstance().getSession();
 			server = StudioServer.start(StationStudioClient::asset, StationStudioClient::send,
 					new StudioServer.Player(session.getUsername(), session.getUuid()));
+			server.stations(files());
 			AureliaTransitArchitecture.LOGGER.info("Station Studio at {}", server.url());
 		}
 		return server;
@@ -165,5 +173,10 @@ public final class StationStudioClient {
 			case CANCEL -> "Sent. The pending plan is cancelled.";
 			default -> "Saved on your station wrench.";
 		};
+	}
+
+	/** The station files this game shares with Station Studio: {@code config/aurelia/stations}. */
+	public static StationFiles files() {
+		return new StationFiles(FabricLoader.getInstance().getConfigDir().resolve("aurelia").resolve("stations"));
 	}
 }
