@@ -12,7 +12,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import org.mtr.aurelia.client.screen.AureliaPanelScreen;
 import org.mtr.aurelia.client.ui.AureliaPalette;
-import org.mtr.aurelia.client.ui.AureliaUiSettings;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -49,17 +48,16 @@ public final class AtrMenuScreen extends Screen {
 
 	@Override
 	protected void init() {
+		// the four tabs always share one row; the subtitle sits under them, then the tab's buttons
 		final Tab[] tabs = Tab.values();
-		final int columns = Math.max(1, Math.min(tabs.length, (width - 16 + 4) / (TAB_WIDTH + 4)));
-		final int rows = (tabs.length + columns - 1) / columns;
-		final int tabWidth = Math.max(1, Math.min(TAB_WIDTH, (width - 16 - (columns - 1) * 4) / columns));
-		final int left = (width - columns * tabWidth - (columns - 1) * 4) / 2;
-		top = 28 + rows * TAB_ROW + 6;
+		final int tabWidth = Math.max(1, Math.min(TAB_WIDTH, (width - 16 - (tabs.length - 1) * 4) / tabs.length));
+		final int left = (width - tabs.length * tabWidth - (tabs.length - 1) * 4) / 2;
+		top = 28 + TAB_ROW + 18;
 		for (int i = 0; i < tabs.length; i++) {
 			final Tab target = tabs[i];
 			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.tab." + target.name().toLowerCase()),
 					b -> MinecraftClient.getInstance().setScreen(new AtrMenuScreen(parent, target)))
-					.dimensions(left + (i % columns) * (tabWidth + 4), 28 + (i / columns) * TAB_ROW, tabWidth, 18).build());
+					.dimensions(left + i * (tabWidth + 4), 28, tabWidth, 18).build());
 			button.active = target != tab;
 		}
 		switch (tab) {
@@ -133,40 +131,39 @@ public final class AtrMenuScreen extends Screen {
 		}).dimensions(left, top + ROW * 3, BUTTON_WIDTH, 20).build());
 	}
 
+	/** The wrench's two switches, then links to the panel tabs a player sets once; two columns so it fits a 427x240 GUI. */
 	private void initSettings() {
-		final AureliaUiSettings.ScreenId[] looks = AureliaUiSettings.ScreenId.values();
-		final int left = (width - BUTTON_WIDTH) / 2;
-		int row = 0;
-		for (final AureliaUiSettings.ScreenId look : looks) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.look." + look.key,
-							net.minecraft.screen.ScreenTexts.onOrOff(AureliaUiSettings.enabled(look))), b -> {
-						AureliaUiSettings.toggle(look);
-						b.setMessage(Text.translatable("gui.aurelia.look." + look.key,
-								net.minecraft.screen.ScreenTexts.onOrOff(AureliaUiSettings.enabled(look))));
-					}).dimensions(left, top + row * ROW, BUTTON_WIDTH, 20).build())
-					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.look.hint")));
-			row++;
-		}
+		int cell = 0;
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.settings.action_bar",
 						net.minecraft.screen.ScreenTexts.onOrOff(WrenchSettings.actionBar())), b -> {
 					WrenchSettings.toggleActionBar();
 					b.setMessage(Text.translatable("gui.aurelia.menu.settings.action_bar",
 							net.minecraft.screen.ScreenTexts.onOrOff(WrenchSettings.actionBar())));
-				}).dimensions(left, top + row * ROW, BUTTON_WIDTH, 20).build());
-		row++;
+				}).dimensions(cellX(cell), cellY(cell), BUTTON_WIDTH, 20).build())
+				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.menu.settings.action_bar.tooltip")));
+		cell++;
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.settings.menu_look",
 						net.minecraft.screen.ScreenTexts.onOrOff(WrenchSettings.menuLook())), b -> {
 					WrenchSettings.toggleMenuLook();
 					b.setMessage(Text.translatable("gui.aurelia.menu.settings.menu_look",
 							net.minecraft.screen.ScreenTexts.onOrOff(WrenchSettings.menuLook())));
-				}).dimensions(left, top + row * ROW, BUTTON_WIDTH, 20).build());
-		row++;
+				}).dimensions(cellX(cell), cellY(cell), BUTTON_WIDTH, 20).build());
+		cell++;
 		final List<AureliaPanelScreen.Tab> panels = List.of(AureliaPanelScreen.Tab.SOUND, AureliaPanelScreen.Tab.RIDING,
 				AureliaPanelScreen.Tab.LOOK, AureliaPanelScreen.Tab.PACKS);
 		for (final AureliaPanelScreen.Tab panel : panels) {
-			closeOnOpen(left, top + row * ROW, panel, "settings");
-			row++;
+			closeOnOpen(cellX(cell), cellY(cell), panel, "settings");
+			cell++;
 		}
+	}
+
+	/** Two columns of buttons, filled row by row. */
+	private int cellX(int cell) {
+		return (width - (BUTTON_WIDTH * 2 + COLUMN_GAP)) / 2 + cell % 2 * (BUTTON_WIDTH + COLUMN_GAP);
+	}
+
+	private int cellY(int cell) {
+		return top + cell / 2 * ROW;
 	}
 
 	private void closeOnOpen(int x, int y, AureliaPanelScreen.Tab panel, String prefix) {
@@ -174,30 +171,17 @@ public final class AtrMenuScreen extends Screen {
 				MinecraftClient.getInstance().setScreen(new AureliaPanelScreen(this, panel))).dimensions(x, y, BUTTON_WIDTH, 20).build());
 	}
 
+	/** The panel itself, then a link to each of its build and test tabs, in two columns. */
 	private void initDev() {
-		final int left = (width - BUTTON_WIDTH) / 2;
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.dev.open"), b ->
 				MinecraftClient.getInstance().setScreen(new AureliaPanelScreen(this, AureliaPanelScreen.Tab.RENDERING)))
-				.dimensions(left, top, BUTTON_WIDTH, 20).build());
+				.dimensions(cellX(0), top, BUTTON_WIDTH * 2 + COLUMN_GAP, 20).build());
 		final AureliaPanelScreen.Tab[] tabs = {AureliaPanelScreen.Tab.RENDERING, AureliaPanelScreen.Tab.TOOLS,
 				AureliaPanelScreen.Tab.ARCHITECTURE, AureliaPanelScreen.Tab.BUILD, AureliaPanelScreen.Tab.PASSENGERS,
 				AureliaPanelScreen.Tab.DRIVING, AureliaPanelScreen.Tab.PACKS};
 		for (int i = 0; i < tabs.length; i++) {
-			closeOnOpen(left, top + (i + 1) * ROW, tabs[i], "dev");
+			closeOnOpen(cellX(i + 2), cellY(i + 2), tabs[i], "dev");
 		}
-		final int toggles = top + (tabs.length + 1) * ROW;
-		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.settings.action_bar",
-						net.minecraft.screen.ScreenTexts.onOrOff(WrenchSettings.actionBar())), b -> {
-					WrenchSettings.toggleActionBar();
-					b.setMessage(Text.translatable("gui.aurelia.menu.settings.action_bar",
-							net.minecraft.screen.ScreenTexts.onOrOff(WrenchSettings.actionBar())));
-				}).dimensions(left, toggles, BUTTON_WIDTH, 20).build());
-		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.settings.menu_look",
-						net.minecraft.screen.ScreenTexts.onOrOff(WrenchSettings.menuLook())), b -> {
-					WrenchSettings.toggleMenuLook();
-					b.setMessage(Text.translatable("gui.aurelia.menu.settings.menu_look",
-							net.minecraft.screen.ScreenTexts.onOrOff(WrenchSettings.menuLook())));
-				}).dimensions(left, toggles + ROW, BUTTON_WIDTH, 20).build());
 	}
 
 	@Override
@@ -209,7 +193,7 @@ public final class AtrMenuScreen extends Screen {
 			renderBackground(context);
 		}
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
-		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.menu.subtitle"), width / 2, top - 12, 0xAAAAAA);
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.menu.subtitle." + tab.name().toLowerCase(java.util.Locale.ROOT)), width / 2, top - 12, 0xAAAAAA);
 		super.render(context, mouseX, mouseY, delta);
 		if (tab == Tab.BUILD && client != null && client.player != null && WrenchClient.wrenchHand(client) == null) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.menu.build.no_wrench"),
