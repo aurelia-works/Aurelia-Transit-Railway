@@ -61,7 +61,10 @@ public final class MapTextures {
 					image.setColor(x, z, abgr(region.color(x, z)));
 				}
 			}
-			entry.texture.upload();
+			// clamped, not the default repeat: a region drawn at a fractional pixel would otherwise sample its opposite edge
+			// there and show a thin seam of the wrong colour where regions meet
+			entry.texture.bindTexture();
+			image.upload(0, 0, 0, 0, 0, MapRegion.SIZE, MapRegion.SIZE, false, true, false, false);
 		}
 		entry.version = region.version();
 		return entry.id;
