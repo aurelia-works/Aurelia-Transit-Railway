@@ -167,12 +167,12 @@ final class PlanFreehand {
 			final int u = DrawnShape.u(key);
 			final int v = DrawnShape.v(key);
 			if (!reached(columns, u, v, reach)) {
-				// the free walk cell nearest this one that can take a column
+				// the free walk cell nearest this one that can take a column (clear up to the roof, as column() needs)
 				int[] best = null;
 				int bestDistance = Integer.MAX_VALUE;
 				for (final long[] cell : walk) {
 					final int d = Math.max(Math.abs((int) cell[0] - u), Math.abs((int) cell[1] - v));
-					if (d <= reach && d < bestDistance && free(s, (int) cell[0], (int) cell[1], capY)) {
+					if (d <= reach && d < bestDistance && free(s, (int) cell[0], (int) cell[1], capY + 1)) {
 						best = new int[]{(int) cell[0], (int) cell[1]};
 						bestDistance = d;
 					}
