@@ -1,0 +1,92 @@
+{
+ "parts": [
+  {
+   "names": [
+    "floor"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "FLOOR",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": 0,
+   "doorZMultiplier": 0,
+   "doorAnimationType": "STANDARD",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "doorway_l1",
+    "doorway_l2",
+    "doorway_l3",
+    "doorway_l4",
+    "doorway_r1",
+    "doorway_r2",
+    "doorway_r3",
+    "doorway_r4"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "DOORWAY",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": 0,
+   "doorZMultiplier": 0,
+   "doorAnimationType": "STANDARD",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  }
+ ],
+ "modelYOffset": 0,
+ "gangwayInnerSideResource": "",
+ "gangwayInnerTopResource": "",
+ "gangwayInnerBottomResource": "",
+ "gangwayOuterSideResource": "",
+ "gangwayOuterTopResource": "",
+ "gangwayOuterBottomResource": "",
+ "gangwayWidth": 0,
+ "gangwayHeight": 0,
+ "gangwayYOffset": 0,
+ "gangwayZOffset": 0,
+ "barrierInnerSideResource": "",
+ "barrierInnerTopResource": "",
+ "barrierInnerBottomResource": "",
+ "barrierOuterSideResource": "",
+ "barrierOuterTopResource": "",
+ "barrierOuterBottomResource": "",
+ "barrierWidth": 0,
+ "barrierHeight": 0,
+ "barrierYOffset": 0,
+ "barrierZOffset": 0
+}

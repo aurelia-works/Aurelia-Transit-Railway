@@ -1,0 +1,60 @@
+{
+	"replacements": {
+		"lengths": [
+			60
+		],
+		"id": [
+			"a350_900"
+		]
+	},
+	"vehicles": [
+		{
+			"id": "@id@",
+			"name": "Airbus A350-900",
+			"color": "F3F4F6",
+			"transportMode": "AIRPLANE",
+			"width": 2.0,
+			"bogie1Position": -28.77,
+			"bogie2Position": -0.11,
+			"couplingPadding1": 0,
+			"couplingPadding2": 0,
+			"description": "Airbus A350-900, true scale (66.8 m long, 64.75 m span) from the Airbus A350 AC document. Rolls-Royce Trent XWB, 4 plug doors per side, 1-2-1 business and 3-3-3 economy cabin. Synthesised engine sound.",
+			"wikipediaArticle": "Airbus_A350",
+			"tags": [
+				"family:A350",
+				"brand:Airbus",
+				"doors:4"
+			],
+			"models": [
+				{
+					"modelResource": "mtr:models/a350_900/a350.obj",
+					"textureResource": "mtr:textures/a350_900/white.png",
+					"modelPropertiesResource": "mtr:properties/a350_900/a350_obj.json",
+					"positionDefinitionsResource": "mtr:properties/a350_900/a350_def.json",
+					"flipTextureV": false
+				},
+				{
+					"modelResource": "mtr:models/a350_900/a350_900_helper.bbmodel",
+					"textureResource": "mtr:textures/a350_900/white.png",
+					"modelPropertiesResource": "mtr:properties/a350_900/a350_helper.json",
+					"positionDefinitionsResource": "mtr:properties/a350_900/a350_def.json",
+					"flipTextureV": false
+				}
+			],
+			"bogie1Models": [],
+			"bogie2Models": [],
+			"hasGangway1": false,
+			"hasGangway2": false,
+			"hasBarrier1": false,
+			"hasBarrier2": false,
+			"legacyRiderOffset": 0,
+			"bveSoundBaseResource": "a350_900",
+			"legacySpeedSoundBaseResource": "",
+			"legacySpeedSoundCount": 0,
+			"legacyUseAccelerationSoundsWhenCoasting": false,
+			"legacyConstantPlaybackSpeed": false,
+			"legacyDoorSoundBaseResource": "",
+			"legacyDoorCloseSoundTime": 1
+		}
+	]
+}

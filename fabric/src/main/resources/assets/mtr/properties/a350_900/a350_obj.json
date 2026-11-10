@@ -1,0 +1,386 @@
+{
+ "parts": [
+  {
+   "names": [
+    "a350_exterior",
+    "a350_exterior_flat"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": 0,
+   "doorZMultiplier": 0,
+   "doorAnimationType": "STANDARD",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_lights"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "ALWAYS_ON_LIGHT",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": 0,
+   "doorZMultiplier": 0,
+   "doorAnimationType": "STANDARD",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_interior"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "INTERIOR",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": 0,
+   "doorZMultiplier": 0,
+   "doorAnimationType": "STANDARD",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_cabin_light"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "LIGHT",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": 0,
+   "doorZMultiplier": 0,
+   "doorAnimationType": "STANDARD",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_door_l1"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": 7,
+   "doorZMultiplier": -18,
+   "doorAnimationType": "PLUG_SLOW",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_door_l2"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": 7,
+   "doorZMultiplier": -18,
+   "doorAnimationType": "PLUG_SLOW",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_door_l3"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": 7,
+   "doorZMultiplier": -18,
+   "doorAnimationType": "PLUG_SLOW",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_door_l4"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": 7,
+   "doorZMultiplier": -18,
+   "doorAnimationType": "PLUG_SLOW",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_door_r1"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": -7,
+   "doorZMultiplier": -18,
+   "doorAnimationType": "PLUG_SLOW",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_door_r2"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": -7,
+   "doorZMultiplier": -18,
+   "doorAnimationType": "PLUG_SLOW",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_door_r3"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": -7,
+   "doorZMultiplier": -18,
+   "doorAnimationType": "PLUG_SLOW",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  },
+  {
+   "names": [
+    "a350_door_r4"
+   ],
+   "positionDefinitions": [
+    "main"
+   ],
+   "condition": "NORMAL",
+   "renderStage": "EXTERIOR",
+   "type": "NORMAL",
+   "displayXPadding": 0,
+   "displayYPadding": 0,
+   "displayColorCjk": "",
+   "displayColor": "",
+   "displayMaxLineHeight": 0,
+   "displayCjkSizeRatio": 0,
+   "displayOptions": [],
+   "displayPadZeros": 0,
+   "displayType": "DESTINATION",
+   "displayDefaultText": "",
+   "doorXMultiplier": -7,
+   "doorZMultiplier": -18,
+   "doorAnimationType": "PLUG_SLOW",
+   "renderFromOpeningDoorTime": 0,
+   "renderUntilOpeningDoorTime": 0,
+   "renderFromClosingDoorTime": 0,
+   "renderUntilClosingDoorTime": 0,
+   "flashOffTime": 0,
+   "flashOnTime": 0
+  }
+ ],
+ "modelYOffset": 0,
+ "gangwayInnerSideResource": "",
+ "gangwayInnerTopResource": "",
+ "gangwayInnerBottomResource": "",
+ "gangwayOuterSideResource": "",
+ "gangwayOuterTopResource": "",
+ "gangwayOuterBottomResource": "",
+ "gangwayWidth": 0,
+ "gangwayHeight": 0,
+ "gangwayYOffset": 0,
+ "gangwayZOffset": 0,
+ "barrierInnerSideResource": "",
+ "barrierInnerTopResource": "",
+ "barrierInnerBottomResource": "",
+ "barrierOuterSideResource": "",
+ "barrierOuterTopResource": "",
+ "barrierOuterBottomResource": "",
+ "barrierWidth": 0,
+ "barrierHeight": 0,
+ "barrierYOffset": 0,
+ "barrierZOffset": 0
+}

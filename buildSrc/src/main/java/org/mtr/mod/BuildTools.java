@@ -258,6 +258,8 @@ public class BuildTools {
 					final int variationCount = replacementObject.entrySet().stream().map(Map.Entry::getValue).findFirst().orElse(new JsonArray()).getAsJsonArray().size();
 
 					fileObject.getAsJsonArray("vehicles").forEach(vehicleElement -> {
+						// a template that gives its own gear positions (an airliner's nose and main gear) keeps them
+						final boolean ownGear = vehicleElement.getAsJsonObject().has("bogie1Position");
 						for (int i = 0; i < variationCount; i++) {
 							final JsonObject vehicleObject = vehicleElement.getAsJsonObject();
 							final double length = replacementObject.getAsJsonArray("lengths").get(i).getAsDouble();
@@ -265,7 +267,9 @@ public class BuildTools {
 								final String id = vehicleObject.get("id").getAsString();
 								vehicleObject.addProperty("length", length);
 
-								if (replacementObject.toString().contains("boat_small") && replacementObject.toString().contains("boat_medium")) {
+								if (ownGear) {
+									// nothing to work out
+								} else if (replacementObject.toString().contains("boat_small") && replacementObject.toString().contains("boat_medium")) {
 									vehicleObject.addProperty("bogie1Position", -1);
 									vehicleObject.addProperty("bogie2Position", 1);
 								} else if (replacementObject.toString().contains("a320")) {
