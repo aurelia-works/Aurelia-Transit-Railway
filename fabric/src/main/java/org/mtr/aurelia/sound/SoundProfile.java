@@ -21,6 +21,8 @@ public final class SoundProfile {
 	public final List<String> motorSounds;
 	/** The motor keeps sounding while stopped (a diesel engine idles); electric motors ring only under power. */
 	public final boolean motorAlwaysOn;
+	/** Extra motor loops that play beside the main one, each with its own curves; empty for most profiles. */
+	public final List<MotorLayer> motorLayers;
 	private final double[] motorSpeeds;
 	private final float[] motorPitches;
 	private final double[] volumeSpeeds;
@@ -43,7 +45,7 @@ public final class SoundProfile {
 	public final List<String> flange;
 
 	SoundProfile(String id, String name, float motorVolume, List<String> motorSounds, boolean motorAlwaysOn, double[] motorSpeeds, float[] motorPitches,
-			double[] volumeSpeeds, float[] volumeCurve,
+			double[] volumeSpeeds, float[] volumeCurve, List<MotorLayer> motorLayers,
 			@Nullable String doorChime, @Nullable String doorOpen, @Nullable String doorClose, @Nullable String brakeRelease,
 			@Nullable String compressorLoop, @Nullable String compressorAttack, @Nullable String compressorRelease, List<String> flange) {
 		this.id = id;
@@ -55,6 +57,7 @@ public final class SoundProfile {
 		this.motorPitches = motorPitches;
 		this.volumeSpeeds = volumeSpeeds;
 		this.volumeCurve = volumeCurve;
+		this.motorLayers = motorLayers;
 		this.doorChime = doorChime;
 		this.doorOpen = doorOpen;
 		this.doorClose = doorClose;
@@ -96,7 +99,7 @@ public final class SoundProfile {
 		return interpolate(speedKilometersPerHour, volumeSpeeds, volumeCurve);
 	}
 
-	private static float interpolate(double value, double[] xs, float[] ys) {
+	static float interpolate(double value, double[] xs, float[] ys) {
 		if (value <= xs[0]) {
 			return ys[0];
 		}

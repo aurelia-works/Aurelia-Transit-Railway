@@ -105,6 +105,24 @@ change only the door chime if that is all a pack has.
 The `pitch_curve` is the important part of a train's character: a tram rises quickly and tops out low, a main-line EMU
 rises steadily over a much wider speed range, and a diesel barely changes pitch at all.
 
+### `motor_layers`
+
+An optional array of extra looping sounds that play beside `motor`, each an object with the same keys as `motor`
+(`sounds`, `volume`, `always`, `pitch_curve`, `volume_curve`). A layer without a `pitch_curve` keeps its recorded pitch
+at every speed, which suits an inverter or fan hiss that should not rise with the traction notes:
+
+```json
+"motor_layers": [
+  {
+    "sounds": ["mypack:regional/inverter_hiss"],
+    "volume_curve": [{"speed": 0, "volume": 0}, {"speed": 8, "volume": 0.8}, {"speed": 40, "volume": 1.0}]
+  }
+]
+```
+
+Layers follow the motor's power like `motor` does (unless `always` is set) and the train's motor volume slider. A layer
+without sounds is skipped. Profiles without `motor_layers` sound as before.
+
 ### One-shot sounds
 
 | Key | When it plays |

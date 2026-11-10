@@ -39,12 +39,22 @@ public final class ProfileSounds {
 	public final SoundEvent[] flange;
 	public final SoundEvent[] motor;
 	public final boolean motorAlwaysOn;
+	/** The profile's extra motor loops, resolved; empty for most profiles. */
+	public final Layer[] motorLayers;
 
 	private ProfileSounds(SoundProfile profile, SoundProfileStore.Settings settings, @Nullable SoundEvent doorChime, @Nullable SoundEvent doorOpen, @Nullable SoundEvent doorClose,
 			@Nullable SoundEvent brakeRelease, @Nullable SoundEvent compressorLoop, @Nullable SoundEvent compressorAttack, @Nullable SoundEvent compressorRelease, SoundEvent[] flange, SoundEvent[] motor) {
 		this.profile = profile;
-		loopKey = (profile.compressorLoop == null ? "" : profile.compressorLoop) + "|" + String.join(",", profile.flange) + "|" + String.join(",", profile.motorSounds);
-		motorVolume = (float) (profile.motorVolume * settings.volume(SoundProfileStore.Part.MOTOR));
+		final StringBuilder layerKey = new StringBuilder();
+		final double motorSlider = settings.volume(SoundProfileStore.Part.MOTOR);
+		motorLayers = new Layer[profile.motorLayers.size()];
+		for (int i = 0; i < motorLayers.length; i++) {
+			final MotorLayer layer = profile.motorLayers.get(i);
+			motorLayers[i] = new Layer(layer, sounds(layer.sounds), (float) (layer.volume * motorSlider));
+			layerKey.append('|').append(String.join(",", layer.sounds));
+		}
+		loopKey = (profile.compressorLoop == null ? "" : profile.compressorLoop) + "|" + String.join(",", profile.flange) + "|" + String.join(",", profile.motorSounds) + layerKey;
+		motorVolume = (float) (profile.motorVolume * motorSlider);
 		doorVolume = (float) settings.volume(SoundProfileStore.Part.DOOR);
 		chimeVolume = (float) settings.volume(SoundProfileStore.Part.CHIME);
 		brakeVolume = (float) settings.volume(SoundProfileStore.Part.BRAKE);
@@ -104,5 +114,29 @@ public final class ProfileSounds {
 			}
 		}
 		return events.toArray(new SoundEvent[0]);
+	}
+
+	/** One {@link MotorLayer} with its sounds resolved and the train's motor slider applied to its volume. */
+	public static final class Layer {
+
+		private final MotorLayer layer;
+		public final SoundEvent[] sounds;
+		public final float volume;
+		public final boolean always;
+
+		private Layer(MotorLayer layer, SoundEvent[] sounds, float volume) {
+			this.layer = layer;
+			this.sounds = sounds;
+			this.volume = volume;
+			always = layer.always;
+		}
+
+		public float pitchAt(double speedKilometersPerHour) {
+			return layer.pitchAt(speedKilometersPerHour);
+		}
+
+		public float gainAt(double speedKilometersPerHour) {
+			return layer.gainAt(speedKilometersPerHour);
+		}
 	}
 }

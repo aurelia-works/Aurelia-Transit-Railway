@@ -16,6 +16,7 @@ public class BveVehicleSound extends VehicleSoundBase {
 	private ProfileSounds profileSounds;
 	private String appliedLoopKey = "";
 	private VehicleLoopingSoundInstance[] profileMotor = new VehicleLoopingSoundInstance[0];
+	private final ProfileLayerLoops profileLayers = new ProfileLayerLoops();
 
 	private float oldSpeedChange;
 	private boolean oldOnRoute = false;
@@ -146,6 +147,10 @@ public class BveVehicleSound extends VehicleSoundBase {
 			}
 		}
 
+		if (profile != null) {
+			profileLayers.play(blockPos, speedKilometersPerHour, config.config.motorVolumeMultiply, Math.max(0.25F, Math.abs(motorCurrentOutput)));
+		}
+
 		// Flange squeal from the bogie's change of heading and its speed. Only the chosen loaded clip is audible.
 		playFlange(blockPos, speedKilometersPerHour);
 
@@ -206,6 +211,7 @@ public class BveVehicleSound extends VehicleSoundBase {
 		for (final VehicleLoopingSoundInstance motor : profileMotor) {
 			motor.dispose();
 		}
+		profileLayers.dispose();
 		vehicleLoopingSoundHolder.dispose();
 	}
 
@@ -253,6 +259,7 @@ public class BveVehicleSound extends VehicleSoundBase {
 		} else {
 			profileMotor = new VehicleLoopingSoundInstance[0];
 		}
+		profileLayers.rebuild(profile);
 		if (profile != null && profile.flange.length > 0) {
 			final VehicleLoopingSoundInstance[] flange = new VehicleLoopingSoundInstance[profile.flange.length];
 			for (int i = 0; i < flange.length; i++) {
