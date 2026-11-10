@@ -35,6 +35,8 @@ import org.mtr.aurelia.client.TrainView;
 import org.mtr.aurelia.pack.AureliaPacks;
 import org.mtr.aurelia.pack.LoadedPack;
 import org.mtr.aurelia.pack.PackDiagnostic;
+import org.mtr.aurelia.client.map.MapClient;
+import org.mtr.aurelia.client.map.MapSettings;
 import org.mtr.aurelia.pack.PackSettings;
 import org.mtr.aurelia.route.RouteControlSettings;
 import org.mtr.aurelia.sound.SoundProfile;
@@ -74,7 +76,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS}
+	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS, MAP}
 
 	private static final int BUTTON_WIDTH = 200;
 	private static final int VALUE_WIDTH = 80;
@@ -101,7 +103,7 @@ public final class AureliaPanelScreen extends Screen {
 	/** Riding and driving, then the network, then building, then this client's look and speed. */
 	private static final Tab[][] GROUPS = {
 			{Tab.RIDING, Tab.DRIVING, Tab.PANTOGRAPH, Tab.TRAIN_SOUND, Tab.SOUND},
-			{Tab.ROUTES, Tab.TOOLS, Tab.PASSENGERS, Tab.ZIP},
+			{Tab.ROUTES, Tab.TOOLS, Tab.PASSENGERS, Tab.ZIP, Tab.MAP},
 			{Tab.ARCHITECTURE, Tab.BUILD, Tab.BUILDER},
 			{Tab.RENDERING, Tab.LOOK, Tab.PACKS}
 	};
@@ -182,6 +184,8 @@ public final class AureliaPanelScreen extends Screen {
 	private static final int ARCHITECTURE_ROWS = 8;
 	private boolean hologramMore;
 	private int drivingFirst;
+	private int mapFirst;
+	private static final int MAP_ROWS = 10;
 	private static final int DRIVING_ROWS = 7;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
 	private static final int PASSENGER_ROWS = 17;
@@ -223,6 +227,7 @@ public final class AureliaPanelScreen extends Screen {
 			case LOOK -> initLook();
 			case DRIVING -> initDriving();
 			case PACKS -> initPacks();
+			case MAP -> initMap();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions(contentRight - 100, height - 24, 100, 20).build());
 	}
@@ -238,6 +243,7 @@ public final class AureliaPanelScreen extends Screen {
 		architectureFirst = 0;
 		trainSoundFirst = 0;
 		packsFirst = 0;
+		mapFirst = 0;
 		clearAndInit();
 	}
 
@@ -1082,6 +1088,14 @@ public final class AureliaPanelScreen extends Screen {
 			}
 			return true;
 		}
+		if (tab == Tab.MAP) {
+			final int newFirstRow = Math.max(0, Math.min(MAP_ROWS - visibleRows(), mapFirst - (int) Math.signum(amount)));
+			if (newFirstRow != mapFirst) {
+				mapFirst = newFirstRow;
+				clearAndInit();
+			}
+			return true;
+		}
 		if (tab == Tab.DRIVING) {
 			final int newFirstRow = Math.max(0, Math.min(DRIVING_ROWS - visibleRows(), drivingFirst - (int) Math.signum(amount)));
 			if (newFirstRow != drivingFirst) {
@@ -1156,6 +1170,7 @@ public final class AureliaPanelScreen extends Screen {
 			case ARCHITECTURE -> scrollLine(context, architectureFirst, visibleRows(), architectureRows());
 			case BUILD -> scrollLine(context, buildFirst, visibleRows(), BUILD_ROWS);
 			case PASSENGERS -> scrollLine(context, passengerFirst, passengerVisible(), PASSENGER_ROWS);
+			case MAP -> scrollLine(context, mapFirst, visibleRows(), MAP_ROWS);
 			default -> {
 			}
 		}
@@ -1257,6 +1272,66 @@ public final class AureliaPanelScreen extends Screen {
 
 	private static Text crewRoleLabel(org.mtr.aurelia.crew.CrewRole role) {
 		return Text.translatable("gui.aurelia.crew.role.button", Text.translatable("gui.aurelia.crew.role." + role.id()));
+	}
+
+	/** The minimap and big map (key N): what shows, the minimap's size, zoom and corner, the rail colour, the scan rate. */
+	private void initMap() {
+		mapFirst = Math.max(0, Math.min(mapFirst, MAP_ROWS - visibleRows()));
+		final int left = columnLeft();
+		mapToggle(left, 0, "gui.aurelia.map.minimap", MapSettings::minimap, MapSettings::toggleMinimap);
+		if (mapRow(1)) {
+			addDrawableChild(new RangeSlider(left, mapY(1), MapSettings.SIZE_MIN, MapSettings.SIZE_MAX, 4, MapSettings::size,
+					value -> MapSettings.setSize((int) value), value -> Text.translatable("gui.aurelia.map.size", value.intValue())));
+		}
+		if (mapRow(2)) {
+			addDrawableChild(new RangeSlider(left, mapY(2), MapSettings.ZOOM_MIN, MapSettings.ZOOM_MAX, 25, MapSettings::zoom,
+					value -> MapSettings.setZoom((int) value), value -> Text.translatable("gui.aurelia.map.zoom", String.format("%.2f", value / 100))));
+		}
+		if (mapRow(3)) {
+			addDrawableChild(ButtonWidget.builder(mapCorner(), b -> {
+				MapSettings.nextCorner();
+				b.setMessage(mapCorner());
+			}).dimensions(left, mapY(3), BUTTON_WIDTH, 20).build());
+		}
+		mapToggle(left, 4, "gui.aurelia.map.rails", MapSettings::rails, MapSettings::toggleRails);
+		mapToggle(left, 5, "gui.aurelia.map.stations", MapSettings::stations, MapSettings::toggleStations);
+		mapToggle(left, 6, "gui.aurelia.map.trains", MapSettings::trains, MapSettings::toggleTrains);
+		if (mapRow(7)) {
+			addDrawableChild(new RangeSlider(left, mapY(7), 0, MapSettings.HUE_MAX, 10, MapSettings::railHue,
+					value -> MapSettings.setRailHue((int) value), value -> Text.translatable("gui.aurelia.map.rail_hue", value.intValue())));
+		}
+		if (mapRow(8)) {
+			addDrawableChild(new RangeSlider(left, mapY(8), MapSettings.SCAN_MIN, MapSettings.SCAN_MAX, 1, MapSettings::scanPerTick,
+					value -> MapSettings.setScanPerTick((int) value), value -> Text.translatable("gui.aurelia.map.scan", value.intValue())))
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.map.scan.tooltip")));
+		}
+		if (mapRow(9)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.map.open"), b -> {
+				close();
+				MapClient.open(client);
+			}).dimensions(left, mapY(9), BUTTON_WIDTH, 20).build()).active = MapClient.map() != null;
+		}
+	}
+
+	private void mapToggle(int left, int row, String key, BooleanSupplier get, Runnable flip) {
+		if (mapRow(row)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable(key, ScreenTexts.onOrOff(get.getAsBoolean())), b -> {
+				flip.run();
+				b.setMessage(Text.translatable(key, ScreenTexts.onOrOff(get.getAsBoolean())));
+			}).dimensions(left, mapY(row), BUTTON_WIDTH, 20).build());
+		}
+	}
+
+	private static Text mapCorner() {
+		return Text.translatable("gui.aurelia.map.corner", Text.translatable("gui.aurelia.map.corner." + MapSettings.corner().name().toLowerCase()));
+	}
+
+	private boolean mapRow(int row) {
+		return row >= mapFirst && row < mapFirst + visibleRows();
+	}
+
+	private int mapY(int row) {
+		return top + (row - mapFirst) * ROW;
 	}
 
 	private boolean drivingRow(int row) {
