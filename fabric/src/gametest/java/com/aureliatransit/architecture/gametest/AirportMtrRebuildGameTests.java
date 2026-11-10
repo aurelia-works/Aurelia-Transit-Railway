@@ -3,6 +3,7 @@ package com.aureliatransit.architecture.gametest;
 import static com.aureliatransit.architecture.gametest.AirportMtrGameTests.DEPARTURE_TICKS;
 import static com.aureliatransit.architecture.gametest.AirportMtrGameTests.SETUP_TICKS;
 import static com.aureliatransit.architecture.gametest.AirportMtrGameTests.WORDS;
+import static com.aureliatransit.architecture.gametest.AirportMtrGameTests.fastBuilds;
 import static com.aureliatransit.architecture.gametest.AirportMtrGameTests.say;
 import static com.aureliatransit.architecture.gametest.AirportMtrGameTests.simulator;
 
@@ -41,6 +42,7 @@ public class AirportMtrRebuildGameTests implements FabricGameTest {
 		final UUID owner = new UUID(23, 2);
 		final BlockPos feet = context.getAbsolutePos(REBUILD_FEET);
 		final StationSessions.Pending pending = StationCommand.prepare(world, WORDS, feet, Heading.SOUTH);
+		final Runnable normalBuilds = fastBuilds(world);
 		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, true, text -> say("build says: " + text.getString()));
 		if (job == null) {
 			throw new GameTestException("the airport did not start");
@@ -117,6 +119,7 @@ public class AirportMtrRebuildGameTests implements FabricGameTest {
 			while (!undo.finished()) {
 				undo.step(StationBuildJob.OPS_PER_TICK);
 			}
+			normalBuilds.run();
 			context.complete();
 		});
 	}
