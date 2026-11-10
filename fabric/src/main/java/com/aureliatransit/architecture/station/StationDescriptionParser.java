@@ -371,6 +371,7 @@ public final class StationDescriptionParser {
 				warn("the description is longer than " + MAX_INPUT + " characters; the rest was ignored");
 			}
 			text = extractSwaps(text);
+			text = extractDrawn(text);
 			text = extractPlatforms(text);
 			text = extractName(text);
 			text = extractSeed(text);
@@ -543,6 +544,17 @@ public final class StationDescriptionParser {
 		 * to twelve letters or digits is ignored with a warning, never an error; the first valid one wins.
 		 */
 		/** Takes out the block swaps ({@link #SWAPS}), so their block words do not also pick a look or a material. */
+		/** Tracks drawn in the station editor ("track path 4/-2 4/-12 10/-40"), laid as MTR rails out from the track ends. */
+		private String extractDrawn(String text) {
+			final List<DrawnTrack> drawn = DrawnTrack.parse(text);
+			if (drawn.isEmpty()) {
+				return text;
+			}
+			options = options.withDrawn(drawn);
+			understood.add(new Note(-1, drawn.size() == 1 ? "1 drawn track" : drawn.size() + " drawn tracks"));
+			return DrawnTrack.strip(text);
+		}
+
 		private String extractSwaps(String text) {
 			String rest = text;
 			for (final Pattern pattern : SWAPS) {

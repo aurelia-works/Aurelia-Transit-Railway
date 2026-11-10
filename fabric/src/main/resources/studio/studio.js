@@ -16,6 +16,8 @@
 	let current = null;
 	let invertX = false;
 	let invertY = false;
+	/** Station file fields the page has no control for, kept so a save writes them back (see fileToSaved). */
+	let carried = {};
 
 	// ---- controls -------------------------------------------------------------------------------------------------------
 
@@ -51,6 +53,12 @@
 		q.overheadLine = $("overheadLine").checked ? "1" : "0";
 		q.fence = $("fence").checked ? "1" : "0";
 		q.square = $("square").checked ? "1" : "0";
+		// fields from a station file this page has no control for (the game editor's drawn tracks) go along unchanged
+		for (const [k, v] of Object.entries(carried)) {
+			if (q[k] === undefined) {
+				q[k] = v;
+			}
+		}
 		return q;
 	}
 
@@ -109,6 +117,7 @@
 		if (saved.square !== undefined) {
 			$("square").checked = saved.square !== "0";
 		}
+		carried = Object.assign({}, saved.carried);
 		for (const f of saved.touched || (saved.pinned || "").split(",")) {
 			if (fields.includes(f) && f !== "text") {
 				touched.add(f);
@@ -124,7 +133,7 @@
 
 	function remember() {
 		try {
-			localStorage.setItem(STORE, JSON.stringify(Object.assign(values(), { seeds, rolled: [...rolled], touched: [...touched] })));
+			localStorage.setItem(STORE, JSON.stringify(Object.assign(values(), { seeds, rolled: [...rolled], touched: [...touched], carried })));
 		} catch (e) {
 			// private window or storage blocked: the page still works, it just forgets
 		}
@@ -1088,6 +1097,7 @@
 	// ---- station files (shared with the game's station editor) -----------------------------------------------------------
 
 	const SWITCHES = ["cctv", "edgeLines", "overheadLine", "fence", "square"];
+	const OWN = new Set(fields.concat(SWITCHES, ["pinned", "rolled", "seed", "page"]).map((f) => f.toLowerCase()));
 
 	// A station file's form (field names lower case, as the server reads them) in the shape remember() keeps, for restore().
 	function fileToSaved(form) {
@@ -1105,6 +1115,12 @@
 		saved.rolled = (lower.rolled || "").split(",").filter(Boolean);
 		if (lower.seed) {
 			saved.seeds = { value: lower.seed, detail: lower.seed, edited: true, locks: {} };
+		}
+		saved.carried = {};
+		for (const [k, v] of Object.entries(lower)) {
+			if (!OWN.has(k)) {
+				saved.carried[k] = v;
+			}
 		}
 		return saved;
 	}

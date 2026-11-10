@@ -10,10 +10,13 @@ import java.util.List;
  * The long side runs across the image. Built from a {@link StationPlan} on any thread; no Minecraft classes, so the in-game
  * editor uploads {@link #argb()} as a texture and a test can read it.
  *
+ * @param anchors the track ends a drawn track may start from ({@link DrawnTrack#anchors})
+ * @param station the station's own cells, {uMin, uMax, vMin, vMax}, without the ground shown around it
  * @param turned true when the track direction (v) runs across the image: pixel x = v - vMin, y = u - uMin; otherwise
  *               x = u - uMin, y = v - vMin
  */
-public record PlanTopView(int width, int height, int[] argb, boolean[] roofed, int uMin, int vMin, boolean turned, List<Label> labels) {
+public record PlanTopView(int width, int height, int[] argb, boolean[] roofed, int uMin, int vMin, boolean turned, List<Label> labels,
+		List<DrawnTrack.Point> anchors, int[] station) {
 
 	/** A track number at a pixel, for the screen to write over the plan. */
 	public record Label(int x, int y, String text) {
@@ -23,6 +26,9 @@ public record PlanTopView(int width, int height, int[] argb, boolean[] roofed, i
 	private static final int TRACK = 0xFF3A3530;
 	private static final int RAIL = 0xFF8C8F94;
 	private static final int ROOF_WASH = 0xFFDCE6F0;
+	/** Ground shown beyond the station's ends and sides, in blocks, so a track can be drawn out of it ({@link DrawnTrack}). */
+	public static final int PAD_ALONG = 48;
+	public static final int PAD_ACROSS = 16;
 	/** The largest image drawn: a plan bigger than this is cut, which no planner station reaches. */
 	private static final int MAX_SIDE = 1024;
 
@@ -36,8 +42,15 @@ public record PlanTopView(int width, int height, int[] argb, boolean[] roofed, i
 			vMax = Math.max(vMax, block.v());
 		}
 		if (uMin > uMax) {
-			return new PlanTopView(1, 1, new int[]{BACKGROUND}, new boolean[1], 0, 0, false, List.of());
+			return new PlanTopView(1, 1, new int[]{BACKGROUND}, new boolean[1], 0, 0, false, List.of(), List.of(), new int[]{0, 0, 0, 0});
 		}
+		final int stationVMin = vMin;
+		final int stationVMax = vMax;
+		final int[] station = {uMin, uMax, vMin, vMax};
+		uMin -= PAD_ACROSS;
+		uMax += PAD_ACROSS;
+		vMin -= PAD_ALONG;
+		vMax += PAD_ALONG;
 		final int across = Math.min(MAX_SIDE, uMax - uMin + 1);
 		final int along = Math.min(MAX_SIDE, vMax - vMin + 1);
 		final boolean turned = along >= across;
@@ -52,7 +65,7 @@ public record PlanTopView(int width, int height, int[] argb, boolean[] roofed, i
 		final TrackLayout layout = plan.layout();
 		if (layout != null) {
 			for (final TrackLayout.Track track : layout.tracks()) {
-				for (int v = vMin; v <= vMax; v++) {
+				for (int v = stationVMin; v <= stationVMax; v++) {
 					paint(argb, rank, width, height, turned, track.u() - uMin, v - vMin, TRACK, 1);
 					paint(argb, rank, width, height, turned, track.u() - 1 - uMin, v - vMin, RAIL, 1);
 					paint(argb, rank, width, height, turned, track.u() + 1 - uMin, v - vMin, RAIL, 1);
@@ -76,11 +89,25 @@ public record PlanTopView(int width, int height, int[] argb, boolean[] roofed, i
 			for (final TrackLayout.Track track : layout.tracks()) {
 				final int a = track.u() - uMin;
 				if (a >= 0 && a < across) {
-					labels.add(turned ? new Label(0, a, Integer.toString(track.number())) : new Label(a, 0, Integer.toString(track.number())));
+					// at the station's near end, not out in the shown ground
+					final int b = stationVMin - vMin;
+					labels.add(turned ? new Label(b, a, Integer.toString(track.number())) : new Label(a, b, Integer.toString(track.number())));
 				}
 			}
 		}
-		return new PlanTopView(width, height, argb, roofed, uMin, vMin, turned, List.copyOf(labels));
+		return new PlanTopView(width, height, argb, roofed, uMin, vMin, turned, List.copyOf(labels), DrawnTrack.anchors(plan), station);
+	}
+
+	/** The pixel of plan cell (u, v): {x, y}. */
+	public int[] pixel(int u, int v) {
+		final int a = u - uMin;
+		final int b = v - vMin;
+		return turned ? new int[]{b, a} : new int[]{a, b};
+	}
+
+	/** The plan cell at pixel (x, y). */
+	public DrawnTrack.Point cell(int x, int y) {
+		return turned ? new DrawnTrack.Point(uMin + y, vMin + x) : new DrawnTrack.Point(uMin + x, vMin + y);
 	}
 
 	/** The colour at pixel x, y (ARGB), with a light wash where a roof covers it when {@code roof}. */

@@ -1,6 +1,7 @@
 package com.aureliatransit.architecture.station;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -18,16 +19,17 @@ import java.util.Objects;
  * @param sheet         the real station a city word names ("St Pancras", "Frankfurt Hbf", "Amsterdam Centraal"): its sheet in
  *                      {@link Landmarks} is built as if the station were named so; empty for none (the station's own name still wins)
  * @param airport       the airport the words describe ({@link AirportSpec#NONE} for a railway station): the spec then plans an airport
+ * @param drawn         tracks drawn by hand in the station editor ({@link DrawnTrack}), laid as MTR rails out from the track ends
  */
 public record StationOptions(GateStyle gates, int entranceWidth, Map<String, String> swaps, boolean underground, String tile, String sheet,
-		UndergroundType type, int depth, AirportSpec airport) {
+		UndergroundType type, int depth, AirportSpec airport, List<DrawnTrack> drawn) {
 
 	public static final int MIN_ENTRANCE = 3;
 	public static final int MAX_ENTRANCE = 9;
 	public static final int MAX_SWAPS = 32;
 	public static final int MIN_DEPTH = 12;
 	public static final int MAX_DEPTH = 80;
-	public static final StationOptions DEFAULTS = new StationOptions(GateStyle.MTR, 0, Map.of(), false, "", "", UndergroundType.SHALLOW, 0, AirportSpec.NONE);
+	public static final StationOptions DEFAULTS = new StationOptions(GateStyle.MTR, 0, Map.of(), false, "", "", UndergroundType.SHALLOW, 0, AirportSpec.NONE, List.of());
 
 	public StationOptions {
 		Objects.requireNonNull(gates, "gates");
@@ -45,40 +47,47 @@ public record StationOptions(GateStyle gates, int entranceWidth, Map<String, Str
 		if (depth != 0 && (depth < MIN_DEPTH || depth > MAX_DEPTH)) {
 			throw new IllegalArgumentException("depth " + depth + " outside " + MIN_DEPTH + ".." + MAX_DEPTH);
 		}
+		drawn = drawn == null ? List.of() : List.copyOf(drawn);
+	}
+
+	/** As before drawn tracks: none drawn. */
+	public StationOptions(GateStyle gates, int entranceWidth, Map<String, String> swaps, boolean underground, String tile, String sheet,
+			UndergroundType type, int depth, AirportSpec airport) {
+		this(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, airport, List.of());
 	}
 
 	public StationOptions withAirport(AirportSpec value) {
-		return new StationOptions(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, value);
+		return new StationOptions(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, value, drawn);
 	}
 
 	public StationOptions withSheet(String value) {
-		return new StationOptions(gates, entranceWidth, swaps, underground, tile, value, type, depth, airport);
+		return new StationOptions(gates, entranceWidth, swaps, underground, tile, value, type, depth, airport, drawn);
 	}
 
 	public StationOptions withGates(GateStyle value) {
-		return new StationOptions(value, entranceWidth, swaps, underground, tile, sheet, type, depth, airport);
+		return new StationOptions(value, entranceWidth, swaps, underground, tile, sheet, type, depth, airport, drawn);
 	}
 
 	public StationOptions withEntranceWidth(int value) {
-		return new StationOptions(gates, value, swaps, underground, tile, sheet, type, depth, airport);
+		return new StationOptions(gates, value, swaps, underground, tile, sheet, type, depth, airport, drawn);
 	}
 
 	public StationOptions withUnderground(boolean value) {
-		return new StationOptions(gates, entranceWidth, swaps, value, tile, sheet, type, depth, airport);
+		return new StationOptions(gates, entranceWidth, swaps, value, tile, sheet, type, depth, airport, drawn);
 	}
 
 	public StationOptions withTile(String value) {
-		return new StationOptions(gates, entranceWidth, swaps, underground, value, sheet, type, depth, airport);
+		return new StationOptions(gates, entranceWidth, swaps, underground, value, sheet, type, depth, airport, drawn);
 	}
 
 	/** These options as an underground station of {@code value}'s kind. */
 	public StationOptions withType(UndergroundType value) {
-		return new StationOptions(gates, entranceWidth, swaps, true, tile, sheet, value, depth, airport);
+		return new StationOptions(gates, entranceWidth, swaps, true, tile, sheet, value, depth, airport, drawn);
 	}
 
 	/** These options with the street {@code value} blocks above rail level (0 for the type's own). */
 	public StationOptions withDepth(int value) {
-		return new StationOptions(gates, entranceWidth, swaps, underground, tile, sheet, type, value, airport);
+		return new StationOptions(gates, entranceWidth, swaps, underground, tile, sheet, type, value, airport, drawn);
 	}
 
 	/** True for a deep underground station (bored tube or cut-and-cover), planned by {@link PlanDeep}. */
@@ -101,12 +110,18 @@ public record StationOptions(GateStyle gates, int entranceWidth, Map<String, Str
 		final Map<String, String> more = new LinkedHashMap<>(swaps);
 		more.remove(from);
 		more.put(from, to);
-		return new StationOptions(gates, entranceWidth, more, underground, tile, sheet, type, depth, airport);
+		return new StationOptions(gates, entranceWidth, more, underground, tile, sheet, type, depth, airport, drawn);
 	}
 
 	/** The block built for planned {@code blockId}: its swap, or itself. */
 	public String swapped(String blockId) {
 		return swaps.getOrDefault(blockId, blockId);
+	}
+
+
+	/** These options with the tracks drawn in the station editor. */
+	public StationOptions withDrawn(List<DrawnTrack> value) {
+		return new StationOptions(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, airport, value);
 	}
 
 	/** The fare gates of a gate line. */
