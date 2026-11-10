@@ -194,7 +194,8 @@ final class PlanFreehand {
 			final int u = DrawnShape.u(key);
 			final int v = DrawnShape.v(key);
 			if (Math.floorMod(u, 2) == 0 && Math.floorMod(v, 2) == 0) {
-				s.put(Role.FIXTURE, u, PlanRoofs.LAMP_HEAD_Y, v, LocalDir.PLUS_V, PlanRoofs.CANOPY_LIGHT, PlanRoofs.CANOPY_LIGHT_STATE);
+				// right under the canopy, as the planner's own strips are, so the light is joined to the roof
+				s.put(Role.FIXTURE, u, StationGeometry.CANOPY_Y - 1, v, LocalDir.PLUS_V, PlanRoofs.CANOPY_LIGHT, PlanRoofs.CANOPY_LIGHT_STATE);
 			}
 		}
 	}
