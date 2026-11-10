@@ -2,6 +2,7 @@ package com.aureliatransit.architecture.client;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.network.ModPackets;
+import com.aureliatransit.architecture.station.DrawnTrack;
 import com.aureliatransit.architecture.station.PlanTopView;
 import com.aureliatransit.architecture.station.StationRecipe;
 import com.aureliatransit.architecture.station.StationSpec;
@@ -60,6 +61,13 @@ public final class StationEditorScreen extends Screen {
 	private boolean dragging;
 	private PlanTopView uploaded;
 	private boolean textureLive;
+	/** Draw mode: clicks on the plan add points to {@link #path}; right-click finishes it as a drawn track. */
+	private boolean drawing;
+	private final List<DrawnTrack.Point> path = new java.util.ArrayList<>();
+	/** Where the plan image was last drawn: its left, top and pixels per block, for turning clicks into cells. */
+	private int planX;
+	private int planY;
+	private double planScale;
 	/** Whether the file list was read; it is read once when the screen opens and again after a save, not on every relayout. */
 	private boolean listed;
 
@@ -142,6 +150,26 @@ public final class StationEditorScreen extends Screen {
 			uploaded = null;
 			clearAndInit();
 		}).dimensions(planBox[2] - roofWidth, 4, roofWidth, 16).tooltip(Tooltip.of(Text.translatable(KEY + "roof.tip"))).build());
+		final Text clearLabel = Text.translatable(KEY + "clear_tracks");
+		final int clearWidth = textRenderer.getWidth(clearLabel) + 12;
+		final ButtonWidget clear = addDrawableChild(ButtonWidget.builder(clearLabel, b -> {
+			path.clear();
+			set("drawn", "", false);
+			say(Text.translatable(KEY + "tracks_cleared").getString(), false);
+			clearAndInit();
+		}).dimensions(planBox[2] - roofWidth - 4 - clearWidth, 4, clearWidth, 16).build());
+		clear.active = !drawn().isEmpty() || !path.isEmpty();
+		final Text drawLabel = Text.translatable(KEY + "draw", net.minecraft.screen.ScreenTexts.onOrOff(drawing));
+		final int drawWidth = textRenderer.getWidth(drawLabel) + 12;
+		addDrawableChild(ButtonWidget.builder(drawLabel, b -> {
+			drawing = !drawing;
+			path.clear();
+			if (drawing) {
+				say(Text.translatable(KEY + "draw.start").getString(), false);
+			}
+			clearAndInit();
+		}).dimensions(planBox[2] - roofWidth - 4 - clearWidth - 4 - drawWidth, 4, drawWidth, 16)
+				.tooltip(Tooltip.of(Text.translatable(KEY + "draw.tip", DrawnTrack.LEAD))).build());
 		setInitialFocus(name);
 		preview.show(description());
 	}
@@ -323,7 +351,9 @@ public final class StationEditorScreen extends Screen {
 		preview.render(context, boxes[1][0], boxes[1][1], boxes[1][2], boxes[1][3]);
 		super.render(context, mouseX, mouseY, delta);
 		context.drawTextWithShadow(textRenderer, getTitle(), GAP, 8, 0xFFFFFF);
-		context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "plan_view"), boxes[0][0], 8, 0xE0C060);
+		if (boxes[0][2] - boxes[0][0] > 320) {
+			context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "plan_view"), boxes[0][0], 8, 0xE0C060);
+		}
 		if (!message.isEmpty()) {
 			context.drawTextWithShadow(textRenderer, Text.literal(message), GAP, height - GAP - 9, messageBad ? 0xFF7070 : 0x9AE6A0);
 		}
@@ -347,6 +377,10 @@ public final class StationEditorScreen extends Screen {
 		final int x = box[0] + 2 + (innerW - w) / 2;
 		final int y = box[1] + 2 + (innerH - h) / 2;
 		context.drawTexture(PLAN_TEXTURE, x, y, w, h, 0, 0, top.width(), top.height(), top.width(), top.height());
+		planX = x;
+		planY = y;
+		planScale = scale;
+		drawTracks(context, top);
 		// track numbers at the near end, where they fit
 		if (scale >= 2) {
 			for (final PlanTopView.Label label : top.labels()) {
@@ -388,6 +422,9 @@ public final class StationEditorScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (drawing && drawClick(mouseX, mouseY, button)) {
+			return true;
+		}
 		if (inPreview(mouseX, mouseY)) {
 			dragging = true;
 			return true;
@@ -420,6 +457,26 @@ public final class StationEditorScreen extends Screen {
 	}
 
 	@Override
+	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		// while drawing (and not typing): Backspace takes the last point back, Enter finishes, Escape drops the track being drawn
+		if (drawing && !(getFocused() instanceof TextFieldWidget && ((TextFieldWidget) getFocused()).isFocused())) {
+			if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE && !path.isEmpty()) {
+				path.remove(path.size() - 1);
+				return true;
+			}
+			if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER && !path.isEmpty()) {
+				finishPath();
+				return true;
+			}
+			if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && !path.isEmpty()) {
+				path.clear();
+				return true;
+			}
+		}
+		return super.keyPressed(keyCode, scanCode, modifiers);
+	}
+
+	@Override
 	public boolean shouldPause() {
 		return false;
 	}
@@ -431,5 +488,120 @@ public final class StationEditorScreen extends Screen {
 			client.getTextureManager().destroyTexture(PLAN_TEXTURE);
 			textureLive = false;
 		}
+	}
+
+	// ---- drawn tracks -------------------------------------------------------------------------------------------------
+
+	/** The tracks drawn so far, from the form. */
+	private List<DrawnTrack> drawn() {
+		return DrawnTrack.parse(form.getOrDefault("drawn", ""));
+	}
+
+	/** The track ends (white), the drawn tracks (blue when they can be laid, red when not) and the one being drawn (yellow). */
+	private void drawTracks(DrawContext context, PlanTopView top) {
+		for (final DrawnTrack.Point anchor : top.anchors()) {
+			cell(context, top, anchor, 0xFFFFFFFF, true);
+		}
+		for (final DrawnTrack track : drawn()) {
+			line(context, top, track.points(), track.check(top.anchors(), top.station()) == null ? 0xFF4FC3F7 : 0xFFEF5350);
+		}
+		if (!path.isEmpty()) {
+			line(context, top, path, 0xFFFFD54F);
+		}
+	}
+
+	private void line(DrawContext context, PlanTopView top, List<DrawnTrack.Point> points, int colour) {
+		for (int i = 0; i < points.size(); i++) {
+			final DrawnTrack.Point b = points.get(i);
+			if (i > 0) {
+				final DrawnTrack.Point a = points.get(i - 1);
+				final int steps = Math.max(Math.abs(b.u() - a.u()), Math.abs(b.v() - a.v()));
+				for (int s = 0; s <= steps; s++) {
+					cell(context, top, new DrawnTrack.Point(a.u() + Math.round((float) (b.u() - a.u()) * s / steps),
+							a.v() + Math.round((float) (b.v() - a.v()) * s / steps)), colour, false);
+				}
+			}
+			cell(context, top, b, colour, true);
+		}
+	}
+
+	/** One plan cell filled on screen; a point is drawn a little larger than the line through it. */
+	private void cell(DrawContext context, PlanTopView top, DrawnTrack.Point point, int colour, boolean big) {
+		final int[] pixel = top.pixel(point.u(), point.v());
+		if (pixel[0] < 0 || pixel[1] < 0 || pixel[0] >= top.width() || pixel[1] >= top.height()) {
+			return;
+		}
+		final int grow = big ? 1 : 0;
+		final int x0 = planX + (int) (pixel[0] * planScale) - grow;
+		final int y0 = planY + (int) (pixel[1] * planScale) - grow;
+		final int size = Math.max(1, (int) Math.ceil(planScale)) + 2 * grow;
+		context.fill(x0, y0, x0 + size, y0 + size, colour);
+	}
+
+	/** The plan cell under the mouse, or null outside the plan image. */
+	private DrawnTrack.Point cellAt(double mouseX, double mouseY) {
+		final PlanTopView top = preview.topView();
+		if (top == null || planScale <= 0) {
+			return null;
+		}
+		final int px = (int) Math.floor((mouseX - planX) / planScale);
+		final int py = (int) Math.floor((mouseY - planY) / planScale);
+		if (px < 0 || py < 0 || px >= top.width() || py >= top.height()) {
+			return null;
+		}
+		return top.cell(px, py);
+	}
+
+	/**
+	 * A click on the plan in draw mode: the first point snaps to the nearest track end and brings the straight lead out of it
+	 * with it; each later click adds a point; right-click finishes the track.
+	 */
+	private boolean drawClick(double mouseX, double mouseY, int button) {
+		final PlanTopView top = preview.topView();
+		final DrawnTrack.Point at = cellAt(mouseX, mouseY);
+		if (top == null || at == null) {
+			return false;
+		}
+		if (button == 1) {
+			finishPath();
+			return true;
+		}
+		if (path.isEmpty()) {
+			final DrawnTrack.Point start = DrawnTrack.snap(at, top.anchors());
+			if (start == null) {
+				say(Text.translatable(KEY + "draw.start").getString(), true);
+				return true;
+			}
+			path.add(start);
+			final DrawnTrack.Point lead = DrawnTrack.lead(start, top.anchors(), DrawnTrack.LEAD + 2);
+			if (lead != null) {
+				path.add(lead);
+			}
+			say(Text.translatable(KEY + "draw.next").getString(), false);
+		} else if (path.size() < DrawnTrack.MAX_POINTS && !at.equals(path.get(path.size() - 1))) {
+			path.add(at);
+		}
+		return true;
+	}
+
+	/** Ends the track being drawn: kept in the form when it has two points, with what keeps it from being laid, if anything. */
+	private void finishPath() {
+		final PlanTopView top = preview.topView();
+		if (path.size() < 2 || top == null) {
+			path.clear();
+			return;
+		}
+		final DrawnTrack track = new DrawnTrack(path);
+		path.clear();
+		final List<DrawnTrack> tracks = new java.util.ArrayList<>(drawn());
+		if (tracks.size() >= DrawnTrack.MAX_TRACKS) {
+			say(Text.translatable(KEY + "draw.full", DrawnTrack.MAX_TRACKS).getString(), true);
+			return;
+		}
+		tracks.add(track);
+		set("drawn", DrawnTrack.words(tracks), false);
+		final String problem = track.check(top.anchors(), top.station());
+		say(problem == null ? Text.translatable(KEY + "draw.done").getString() : problem, problem != null);
+		clearAndInit();
 	}
 }

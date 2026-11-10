@@ -145,4 +145,42 @@ final class MtrRails {
 		final net.minecraft.state.property.Property<?> property = state.getBlock().getStateManager().getProperty("is_connected");
 		return property instanceof net.minecraft.state.property.BooleanProperty bool ? state.with(bool, value) : state;
 	}
+
+	/** The speed limit of a drawn track's rails, in km/h: an ordinary main line through a station throat. */
+	static final int DRAWN_SPEED = 80;
+
+	/**
+	 * Lays the rails of tracks drawn in the station editor, as one MTR update: each between two points, at the angles of the
+	 * line through them (MTR turns each to face the other end). Rails MTR finds invalid are left out.
+	 *
+	 * @return {laid, left out}
+	 */
+	static int[] layDrawn(ServerWorld world, List<com.aureliatransit.architecture.station.DrawnTrack.Leg> legs, UndoLog log) {
+		final org.mtr.mapping.holder.MinecraftServer server = new org.mtr.mapping.holder.MinecraftServer(world.getServer());
+		final org.mtr.mapping.holder.World mtrWorld = new org.mtr.mapping.holder.World(world);
+		final org.mtr.mapping.holder.ServerWorld serverWorld = new org.mtr.mapping.holder.ServerWorld(world);
+		final UpdateDataRequest request = new UpdateDataRequest(new MinecraftClientData());
+		int laid = 0;
+		int invalid = 0;
+		for (final com.aureliatransit.architecture.station.DrawnTrack.Leg leg : legs) {
+			final Position from = new Position(leg.x1(), leg.y1(), leg.z1());
+			final Position to = new Position(leg.x2(), leg.y2(), leg.z2());
+			// a node's angle is its line (0 along X, 90 along Z); the leg's directions are sixteenths of a turn from east
+			final ObjectObjectImmutablePair<Angle, Angle> angles = Rail.getAngles(from, leg.dir1() % 8 * 22.5F, to, leg.dir2() % 8 * 22.5F);
+			final Rail rail = Rail.newRail(from, angles.left(), to, angles.right(), Rail.Shape.QUADRATIC, 0, ObjectArrayList.of(DEFAULT_STYLE),
+					DRAWN_SPEED, DRAWN_SPEED, false, false, true, false, false, TransportMode.TRAIN);
+			if (!rail.isValid()) {
+				invalid++;
+				continue;
+			}
+			request.addRail(rail);
+			log.addRail(new BlockPos(leg.x1(), leg.y1(), leg.z1()), new BlockPos(leg.x2(), leg.y2(), leg.z2()));
+			laid++;
+		}
+		if (laid > 0) {
+			Init.sendMessageC2S("update_data", server, mtrWorld, request,
+					(UpdateDataResponse response) -> PacketUpdateData.sendDirectlyToClientDepotUpdate(serverWorld, response), UpdateDataResponse.class);
+		}
+		return new int[]{laid, invalid};
+	}
 }

@@ -64,6 +64,25 @@ public final class MtrRailContract {
 		return name;
 	}
 
+	/** Lays the rails of the tracks drawn in the station editor; tells the player how many, and any MTR would not take. */
+	public static void layDrawn(ServerWorld world, List<com.aureliatransit.architecture.station.DrawnTrack.Leg> legs, UndoLog log, Consumer<Text> out) {
+		if (!AVAILABLE || legs.isEmpty()) {
+			return;
+		}
+		try {
+			final int[] result = MtrRails.layDrawn(world, legs, log);
+			if (result[0] > 0) {
+				out.accept(Text.literal("Drawn tracks: " + result[0] + (result[0] == 1 ? " rail" : " rails") + " laid.").formatted(Formatting.GREEN));
+			}
+			if (result[1] > 0) {
+				out.accept(Text.literal("Drawn tracks: MTR would not take " + result[1] + (result[1] == 1 ? " rail" : " rails")
+						+ " (too sharp a curve between two points); connect those nodes by hand.").formatted(Formatting.YELLOW));
+			}
+		} catch (RuntimeException | LinkageError e) {
+			AureliaTransitArchitecture.LOGGER.warn("Could not lay the drawn tracks of a station", e);
+		}
+	}
+
 	/** True when this MTR can lay a turn-back rail (an overrun past a platform to the buffer stop). */
 	static boolean turnBackRails() {
 		return TURN_BACK;
