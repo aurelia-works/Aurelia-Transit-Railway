@@ -94,6 +94,7 @@ public final class AureliaClient implements ClientModInitializer {
 		BuildClient.register();
 		BuildPreviewRenderer.register();
 		org.mtr.aurelia.driving.DriverClient.register();
+		org.mtr.aurelia.crew.CrewClient.register();
 		LOGGER.info("[ATR] Aurelia panel ready");
 	}
 

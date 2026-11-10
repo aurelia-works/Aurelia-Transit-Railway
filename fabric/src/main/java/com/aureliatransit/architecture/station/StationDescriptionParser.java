@@ -941,7 +941,7 @@ public final class StationDescriptionParser {
 
 		private void scan(int i) {
 			final String token = tokens[i];
-			if (negation(i) || entranceWords(i) || deepWords(i) || number(i) || gateWords(i) || phrase(i)) {
+			if (negation(i) || entranceWords(i) || deepWords(i) || number(i) || gateWords(i) || openFareLine(i) || phrase(i)) {
 				return;
 			}
 			keyword(i, token);
@@ -1093,6 +1093,25 @@ public final class StationDescriptionParser {
 			options = options.withGates(style);
 			note(i, style == StationOptions.GateStyle.MTR ? "MTR's own ticket barriers in the gate lines (entry and exit lanes)"
 					: "ATA's two-way fare gates in the gate lines");
+			return true;
+		}
+
+		/** "open fare line", "open check-in": the check-in poles stand without lanes, so anyone walks past them. */
+		private boolean openFareLine(int i) {
+			if (!tokens[i].equals("open")) {
+				return false;
+			}
+			final int j;
+			if (at(i + 1).equals("fare") && (at(i + 2).equals("line") || at(i + 2).equals("lines"))) {
+				j = i + 2;
+			} else if (at(i + 1).equals("checkin")) {
+				j = i + 1;
+			} else {
+				return false;
+			}
+			use(i, j);
+			options = options.withOpenFareLine(true);
+			note(i, "an open fare line: check-in poles without lanes, anyone walks past them");
 			return true;
 		}
 
