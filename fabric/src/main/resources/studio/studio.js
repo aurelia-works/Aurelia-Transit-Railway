@@ -1015,6 +1015,8 @@
 		$("text").maxLength = options.maxTyped;
 		$("name").maxLength = options.maxName;
 		buildButtons();
+		// a station file asked for in the address (?file=, from the game's editor) replaces what the page remembered
+		await openFromAddress();
 		const returning = restore();
 		setupPlatforms();
 		showWhere();
@@ -1079,7 +1081,114 @@
 		for (const b of document.querySelectorAll("[data-send]")) {
 			b.addEventListener("click", () => send(b.dataset.send));
 		}
+		setupFiles();
 		generate();
+	}
+
+	// ---- station files (shared with the game's station editor) -----------------------------------------------------------
+
+	const SWITCHES = ["cctv", "edgeLines", "overheadLine", "fence", "square"];
+
+	// A station file's form (field names lower case, as the server reads them) in the shape remember() keeps, for restore().
+	function fileToSaved(form) {
+		const lower = {};
+		for (const [k, v] of Object.entries(form)) {
+			lower[k.toLowerCase()] = v;
+		}
+		const saved = {};
+		for (const f of fields.concat(SWITCHES)) {
+			if (lower[f.toLowerCase()] !== undefined) {
+				saved[f] = lower[f.toLowerCase()];
+			}
+		}
+		saved.pinned = lower.pinned || "";
+		saved.rolled = (lower.rolled || "").split(",").filter(Boolean);
+		if (lower.seed) {
+			saved.seeds = { value: lower.seed, detail: lower.seed, edited: true, locks: {} };
+		}
+		return saved;
+	}
+
+	async function fetchFile(file) {
+		const r = await fetch("api/station?file=" + encodeURIComponent(file), { headers: { "X-Studio-Token": TOKEN }, cache: "no-store" });
+		if (!r.ok) {
+			throw new Error(await r.text());
+		}
+		return (await r.json()).form;
+	}
+
+	async function openFromAddress() {
+		const file = new URLSearchParams(location.search).get("file");
+		if (!file || PAGE !== "station") {
+			return;
+		}
+		try {
+			localStorage.setItem(STORE, JSON.stringify(fileToSaved(await fetchFile(file))));
+		} catch (e) {
+			// the page keeps what it remembered
+		}
+		history.replaceState(null, "", location.pathname);
+	}
+
+	async function listFiles(select) {
+		const list = $("fileList");
+		try {
+			const r = await fetch("api/stations", { headers: { "X-Studio-Token": TOKEN }, cache: "no-store" });
+			if (!r.ok) {
+				throw new Error(await r.text());
+			}
+			const { stations } = await r.json();
+			list.innerHTML = "";
+			for (const s of stations) {
+				list.append(new Option(s.name || s.file, s.file));
+			}
+			if (select) {
+				list.value = select;
+			}
+			$("fileOpen").disabled = stations.length === 0;
+			if (stations.length === 0) {
+				list.append(new Option("No saved stations yet", ""));
+			}
+		} catch (e) {
+			$("fileNote").textContent = "Station files are not available: " + e.message;
+		}
+	}
+
+	function setupFiles() {
+		if (!IN_GAME || PAGE !== "station") {
+			return;
+		}
+		listFiles();
+		$("fileOpen").addEventListener("click", async () => {
+			const file = $("fileList").value;
+			if (!file) {
+				return;
+			}
+			try {
+				localStorage.setItem(STORE, JSON.stringify(fileToSaved(await fetchFile(file))));
+				location.reload();
+			} catch (e) {
+				$("fileNote").textContent = "Could not open it: " + e.message;
+			}
+		});
+		$("fileSave").addEventListener("click", async () => {
+			if (!$("name").value.trim()) {
+				$("fileNote").textContent = "Give the station a name first: the file is saved under it.";
+				$("name").focus();
+				return;
+			}
+			try {
+				const r = await fetch("api/station", { method: "POST", body: new URLSearchParams(values()), headers: { "X-Studio-Token": TOKEN } });
+				if (!r.ok) {
+					throw new Error(await r.text());
+				}
+				const saved = await r.json();
+				$("fileNote").textContent = "Saved as " + saved.file + ".json. Open it in the game: Station Wrench, Editor.";
+				listFiles(saved.file);
+			} catch (e) {
+				$("fileNote").textContent = "Could not save it: " + e.message;
+			}
+		});
 	}
 
 	async function send(action) {

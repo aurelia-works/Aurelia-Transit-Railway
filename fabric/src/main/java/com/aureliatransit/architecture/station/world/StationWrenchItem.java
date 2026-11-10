@@ -171,7 +171,9 @@ public class StationWrenchItem extends Item {
 		if (mode == WrenchMode.STATION || mode == WrenchMode.AIRPORT) {
 			StationActions.plan(player, mode.words(description), null);
 		} else {
-			player.sendMessage(Text.literal("The bridge tools are in the wrench menu; earthworks is coming soon.").formatted(Formatting.YELLOW), true);
+			player.sendMessage(Text.literal(mode == WrenchMode.EARTHWORKS
+					? "Earthworks: click point A and point B with the wrench, then pick a tool in the wrench menu."
+					: "The bridge tools are in the wrench menu.").formatted(Formatting.YELLOW), true);
 		}
 	}
 
@@ -231,8 +233,10 @@ public class StationWrenchItem extends Item {
 				}
 			} else if (player.isSneaking()) {
 				server.sendMessage(mode.label(), true);
+			} else if (mode == WrenchMode.EARTHWORKS) {
+				com.aureliatransit.architecture.earthworks.world.EarthworksCommand.point(server, context.getBlockPos());
 			} else {
-				server.sendMessage(Text.literal("Open the wrench menu for the bridge tools; earthworks is coming soon.").formatted(Formatting.YELLOW), true);
+				server.sendMessage(Text.literal("Open the wrench menu for the bridge tools.").formatted(Formatting.YELLOW), true);
 			}
 		}
 		// success on both sides, so use() (the screen) does not also fire

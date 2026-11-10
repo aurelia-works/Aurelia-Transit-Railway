@@ -61,11 +61,11 @@ Agent time is rough. Jah expects about 4-5 h of agent time with parallel workers
 | FG | Fare line: readers that block, station sealed with glass | 3-5 h | 4b | not started (picks 10-11) |
 | AP2 | Airport one block into the ground; default A320 model pass (Blockbench) | 3-6 h | 4b | not started (picks 15-16) |
 | T0 | Short guided look at UI, S2, FG, AP2 and today's merges, with Jah | 1-2 h | 4b | not started (pick 18) |
-| E1 | Editor screen: 2D plan, 3D pane, shared station file with Studio | 6-10 h | 5 | not started |
+| E1 | Editor screen: 2D plan, 3D pane, shared station file with Studio | 6-10 h | 5 | code on feat/e1-editor, not tested |
 | E2 | Freehand tracks that become real MTR rails (Opus only) | 6-10 h | 5 | not started |
 | E3 | Freehand platforms and buildings, auto-detail fills them | 6-10 h | 5 | not started |
 | EW1 | No approval, saved undo for every build, build over time, approval tests rewritten to undo | 4-6 h | 6 | merged (#66, e18957491) |
-| EW2 | Earthworks: level/slopes, retaining walls, dig, viaducts | 6-10 h | 6 | not started |
+| EW2 | Earthworks: level/slopes, retaining walls, dig, viaducts | 6-10 h | 6 | code on feat/ew2-earthworks, not tested |
 | AE | Airports in the editor: runways, taxiways, terminals | 5-8 h | 7 | not started |
 | L1 | Guard, dispatcher and signaller roles | 6-10 h | 8 | not started |
 | L2 | Drivable vehicle base, then free-driving cars and rideable bike share (picks 17, 19) | 13-24 h | 8 | not started |
