@@ -56,7 +56,7 @@ Agent time is rough. Jah expects about 4-5 h of agent time with parallel workers
 | PK | Private pack format | 2-4 h | 2 | merged (#56) |
 | W | One wrench with modes, one ATR menu, remove the word command | 3-5 h | 4 | merged (#67, 8fc27bed0) |
 | H | Hologram preview (Litematica style) | 4-6 h | 4 | merged (#68, 26bbe93dc) |
-| UI | Menus that fit: wrench Station tab, Bridge tab wording, Aurelia panel restyle | 4-6 h | 4b | not started (picks 12-13, check-in 2026-11-09) |
+| UI | Menus that fit: wrench Station tab, Bridge tab wording, Aurelia panel restyle | 4-6 h | 4b | merged (#71, a6cca1d8e); 3D wrench preview back on 1080p |
 | S2 | Station connections: fence, noise barrier, girders, help points, clock, lift tower, pylon | 4-6 h | 4b | not started (picks 1-9) |
 | FG | Fare line: readers that block, station sealed with glass | 3-5 h | 4b | not started (picks 10-11) |
 | AP2 | Airport one block into the ground; default A320 model pass (Blockbench) | 3-6 h | 4b | not started (picks 15-16) |
