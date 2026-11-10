@@ -5,6 +5,7 @@ import com.aureliatransit.architecture.station.Heading;
 import com.aureliatransit.architecture.station.LayoutValidator;
 import com.aureliatransit.architecture.station.LocalFrame;
 import com.aureliatransit.architecture.station.ParseResult;
+import com.aureliatransit.architecture.station.PlanTopView;
 import com.aureliatransit.architecture.station.PlannedBlock;
 import com.aureliatransit.architecture.station.StationAudit;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
@@ -98,6 +99,8 @@ public final class StationPreview {
 	private float zoom = 1;
 	private float panX;
 	private float panY;
+	/** The last planned station from above, for the editor's 2D plan; null until one is planned. */
+	private PlanTopView topView;
 
 	/** Plans and meshes {@code description} unless it is the one already shown or being built. */
 	public void show(String description) {
@@ -132,6 +135,7 @@ public final class StationPreview {
 		final LocalFrame frame;
 		final String summary;
 		final boolean buildable;
+		final PlanTopView top;
 		try {
 			final ParseResult parse = StationDescriptionParser.parse(description);
 			plan = StationPlanner.plan(parse.spec());
@@ -140,6 +144,7 @@ public final class StationPreview {
 			final List<Violation> violations = LayoutValidator.validate(plan);
 			final StationAudit.Result audit = StationAudit.audit(plan);
 			buildable = violations.isEmpty() && audit.buildable();
+			top = PlanTopView.of(plan);
 			final String size = String.format("%,d blocks · %d × %d × %d", plan.blocks().size(), audit.width(), audit.length(), audit.height());
 			if (buildable) {
 				summary = size + " · ready to build";
@@ -199,6 +204,7 @@ public final class StationPreview {
 				status = summary;
 				good = buildable;
 				busy = false;
+				topView = top;
 			} finally {
 				BUILDERS.release();
 			}
@@ -438,5 +444,15 @@ public final class StationPreview {
 			case SOUTH -> Direction.SOUTH;
 			case WEST -> Direction.WEST;
 		};
+	}
+
+	/** The shown station from above ({@link PlanTopView}), planned with the 3D mesh; null before the first one. */
+	public PlanTopView topView() {
+		return topView;
+	}
+
+	/** The line under the preview: block count and size, and whether it can be built. */
+	public String status() {
+		return status;
 	}
 }
