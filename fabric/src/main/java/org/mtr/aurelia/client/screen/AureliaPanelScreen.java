@@ -186,7 +186,7 @@ public final class AureliaPanelScreen extends Screen {
 	private int drivingFirst;
 	private int mapFirst;
 	private static final int MAP_ROWS = 10;
-	private static final int DRIVING_ROWS = 6;
+	private static final int DRIVING_ROWS = 7;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
 	private static final int PASSENGER_ROWS = 17;
 
@@ -1258,6 +1258,20 @@ public final class AureliaPanelScreen extends Screen {
 					percent -> Text.translatable("gui.aurelia.driving.hud_size", percent.intValue())))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.hud_size.tooltip")));
 		}
+		if (drivingRow(6)) {
+			// the crew role lives on the server; the button asks for the next one and shows it at once
+			addDrawableChild(ButtonWidget.builder(crewRoleLabel(org.mtr.aurelia.crew.CrewClient.role()), b -> {
+				final org.mtr.aurelia.crew.CrewRole next = org.mtr.aurelia.crew.CrewClient.role().next();
+				if (client != null && client.player != null) {
+					client.player.networkHandler.sendChatCommand("atr_crew role " + next.id());
+				}
+				b.setMessage(crewRoleLabel(next));
+			}).dimensions(left, drivingY(6), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.crew.role.tooltip")));
+		}
+	}
+
+	private static Text crewRoleLabel(org.mtr.aurelia.crew.CrewRole role) {
+		return Text.translatable("gui.aurelia.crew.role.button", Text.translatable("gui.aurelia.crew.role." + role.id()));
 	}
 
 	/** The minimap and big map (key N): what shows, the minimap's size, zoom and corner, the rail colour, the scan rate. */

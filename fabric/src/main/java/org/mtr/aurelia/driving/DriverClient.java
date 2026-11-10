@@ -21,6 +21,8 @@ import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 import org.mtr.aurelia.client.ui.AureliaPalette;
+import org.mtr.aurelia.crew.CrewClient;
+import org.mtr.aurelia.crew.CrewTrain;
 import org.mtr.aurelia.signal.PathSignals;
 import org.mtr.aurelia.signal.SignalAspect;
 import org.mtr.core.data.PathData;
@@ -92,6 +94,8 @@ public final class DriverClient {
 	private static PathData stopPath;
 	private static double stopDistance = Double.NaN;
 	private static int stopRefreshTicks;
+	/** The vehicle whose doors were open last tick, or -1: the crew signals reset when doors open, not while they stay open. */
+	private static long doorsOpenVehicle = -1;
 
 	private DriverClient() {
 	}
@@ -150,6 +154,15 @@ public final class DriverClient {
 		if (openLeft || openRight || close) {
 			doors(client.player, openLeft, openRight, close);
 		}
+
+		// the crew's signals count for one departure: doors opening at a stop mean the next one needs new ones; a right away
+		// rung while they are still open stands for that departure
+		final boolean doorsOpen = vehicle.persistentVehicleData.getDoorValue() > 0.01 || vehicle.vehicleExtraData.getDoorMultiplier() > 0;
+		final CrewTrain crew = CrewClient.train(vehicle.getId());
+		if (crew != null && doorsOpen && doorsOpenVehicle != vehicle.getId()) {
+			crew.reset();
+		}
+		doorsOpenVehicle = doorsOpen ? vehicle.getId() : -1;
 
 		if (!vehicle.vehicleExtraData.getIsManualAllowed()) {
 			AWS.clear();
@@ -258,6 +271,13 @@ public final class DriverClient {
 		if (speedMetresPerSecond > MOVING && !moving) {
 			moving = true;
 			SCORE.depart(now);
+			if (crew != null) {
+				if (crew.status() != CrewTrain.Status.READY) {
+					SCORE.noRightAway();
+					message("gui.aurelia.crew.no_right_away");
+				}
+				crew.reset();
+			}
 		} else if (speedMetresPerSecond <= STANDSTILL && moving) {
 			// Only a stop at a platform ends the run. A stop at a signal before the platform keeps the clock running,
 			// as it would on a real run.
@@ -440,6 +460,7 @@ public final class DriverClient {
 		drawAws(context, client, config);
 		drawTpws(context, client, config);
 		drawSignal(context, client);
+		drawCrew(context, client);
 		drawStop(context, client);
 		if (score) {
 			drawScore(context, client);
@@ -682,14 +703,44 @@ public final class DriverClient {
 		context.fill(pointer, 95, pointer + 2, 105, color);
 	}
 
+	/** The crew lamp under AWS and TPWS, only on a train a guard or dispatcher works. */
+	private static void drawCrew(DrawContext context, MinecraftClient client) {
+		final CrewTrain crew = vehicle == null ? null : CrewClient.train(vehicle.getId());
+		if (crew == null || !crew.working()) {
+			return;
+		}
+		final CrewTrain.Status status = crew.status();
+		final String text;
+		final int color;
+		switch (status) {
+			case READY -> {
+				text = crew.guard() ? "RTS" : "RIGHT AWAY";
+				color = GREEN;
+			}
+			case RIGHT_AWAY -> {
+				text = "RA: WAIT RTS";
+				color = YELLOW;
+			}
+			default -> {
+				text = "WAIT";
+				color = YELLOW;
+			}
+		}
+		context.drawText(client.textRenderer, crew.guard() ? "GUARD" : "DISPATCH", 238, 58, AureliaPalette.FG_LIGHT, false);
+		lamp(context, 240, 72, true, color);
+		context.drawText(client.textRenderer, text, 252, 70, color, false);
+	}
+
 	private static void drawScore(DrawContext context, MinecraftClient client) {
 		final DriverScore.Run last = SCORE.getLastRun();
 		if (SCORE.isRunning()) {
 			final long elapsed = System.currentTimeMillis() - SCORE.runStartedMillis();
-			context.drawText(client.textRenderer, "RUN " + time(elapsed) + "   " + SCORE.currentSpads() + " SPAD   " + SCORE.currentOverspeeds() + " OVS", 8, 114, AureliaPalette.FG, false);
+			context.drawText(client.textRenderer, "RUN " + time(elapsed) + "   " + SCORE.currentSpads() + " SPAD   " + SCORE.currentOverspeeds() + " OVS"
+					+ (SCORE.currentNoRightAways() > 0 ? "   " + SCORE.currentNoRightAways() + " NRA" : ""), 8, 114, AureliaPalette.FG, false);
 		} else if (last != null) {
 			final String accuracy = Double.isNaN(last.stopErrorMetres()) ? "no platform" : String.format("%.1f m", last.stopErrorMetres());
-			context.drawText(client.textRenderer, "LAST " + last.points() + " pts   " + accuracy + "   " + last.spads() + " SPAD   " + last.overspeeds() + " OVS   " + time(last.elapsedMillis()), 8, 114, AureliaPalette.FG, false);
+			context.drawText(client.textRenderer, "LAST " + last.points() + " pts   " + accuracy + "   " + last.spads() + " SPAD   " + last.overspeeds() + " OVS   "
+					+ (last.noRightAways() > 0 ? last.noRightAways() + " NRA   " : "") + time(last.elapsedMillis()), 8, 114, AureliaPalette.FG, false);
 		} else {
 			context.drawText(client.textRenderer, "NO RUN YET", 8, 114, AureliaPalette.FG_LIGHT, false);
 		}

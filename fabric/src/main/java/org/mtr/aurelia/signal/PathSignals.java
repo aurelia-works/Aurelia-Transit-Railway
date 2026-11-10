@@ -4,6 +4,8 @@ import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
+import org.mtr.aurelia.crew.CrewClient;
+import org.mtr.aurelia.crew.HoldSequence;
 import org.mtr.core.data.PathData;
 import org.mtr.core.data.Position;
 import org.mtr.core.data.Rail;
@@ -34,6 +36,7 @@ public final class PathSignals {
 	private static final int DEFAULT_ASPECTS = 4;
 	private static final long ASPECT_CACHE_MILLIS = 10_000;
 	private static final int MAX_ASPECT_CACHE = 2048;
+	private static final long NO_HEAD = Long.MIN_VALUE;
 	private static final Object2ObjectOpenHashMap<Position, CachedAspects> ASPECT_CACHE = new Object2ObjectOpenHashMap<>();
 	private static ClientWorld cachedWorld;
 
@@ -47,10 +50,13 @@ public final class PathSignals {
 
 		private final long time;
 		private final int aspects;
+		/** The head's block, or {@link #NO_HEAD}. */
+		private final long head;
 
-		private CachedAspects(long time, int aspects) {
+		private CachedAspects(long time, int aspects, long head) {
 			this.time = time;
 			this.aspects = aspects;
+			this.head = head;
 		}
 	}
 
@@ -78,12 +84,16 @@ public final class PathSignals {
 		}
 
 		final List<Boundary> boundaries = new ArrayList<>();
+		final boolean[] held = new boolean[4];
+		boolean anyHeld = false;
 		double metres = 0;
 		for (int i = 0; i + headIndex < end; i++) {
 			if (i > 0 && signatures[i] != 0 && signatures[i] != signatures[i - 1]) {
-				final int foundAspects = aspectsAt(path.get(headIndex + i));
-				final boolean signal = foundAspects > 0;
-				final int aspects = signal ? foundAspects : DEFAULT_ASPECTS;
+				final CachedAspects head = headAt(path.get(headIndex + i));
+				final boolean signal = head.aspects > 0;
+				final int aspects = signal ? head.aspects : DEFAULT_ASPECTS;
+				held[boundaries.size()] = signal && head.head != NO_HEAD && CrewClient.held(head.head);
+				anyHeld |= held[boundaries.size()];
 				boundaries.add(new Boundary(headIndex + i, aspect(signatures, blocked, lengths, i, end - headIndex, aspects, end == path.size()), metres, aspects, signal));
 				if (boundaries.size() >= 4) {
 					break;
@@ -91,7 +101,24 @@ public final class PathSignals {
 			}
 			metres += lengths[i];
 		}
-		return boundaries;
+		return anyHeld ? withHolds(boundaries, held) : boundaries;
+	}
+
+	/** The boundaries with a signaller's holds shown: held heads red, the heads before them stepping down. */
+	private static List<Boundary> withHolds(List<Boundary> boundaries, boolean[] held) {
+		final List<SignalAspect> aspects = new ArrayList<>(boundaries.size());
+		final int[] counts = new int[boundaries.size()];
+		for (int i = 0; i < boundaries.size(); i++) {
+			aspects.add(boundaries.get(i).aspect());
+			counts[i] = boundaries.get(i).aspects();
+		}
+		final List<SignalAspect> shown = HoldSequence.apply(aspects, counts, held);
+		final List<Boundary> result = new ArrayList<>(boundaries.size());
+		for (int i = 0; i < boundaries.size(); i++) {
+			final Boundary boundary = boundaries.get(i);
+			result.add(new Boundary(boundary.railIndex(), shown.get(i), boundary.metresFromHead(), boundary.aspects(), boundary.signal()));
+		}
+		return result;
 	}
 
 	private static SignalAspect aspect(int[] signatures, boolean[] blocked, double[] lengths, int from, int size, int aspects, boolean routeEnded) {
@@ -102,8 +129,8 @@ public final class PathSignals {
 		return SignalWalk.aspect(aspects, true, SignalWalk.walk(steps, routeEnded));
 	}
 
-	/** Two, three or four, from the signal block next to the boundary node; four when no head is found. */
-	private static int aspectsAt(PathData pathData) {
+	/** The signal head next to the boundary node: its aspects (two, three or four; 0 when none) and its block. */
+	private static CachedAspects headAt(PathData pathData) {
 		final Position start = pathData.getOrderedPosition1();
 		final ClientWorld world = MinecraftClient.getInstance().world;
 		if (world != cachedWorld) {
@@ -113,24 +140,25 @@ public final class PathSignals {
 		final long now = System.currentTimeMillis();
 		final CachedAspects cached = ASPECT_CACHE.get(start);
 		if (cached != null && now - cached.time < ASPECT_CACHE_MILLIS) {
-			return cached.aspects;
+			return cached;
 		}
-		final int aspects = scanAspects(start);
+		final CachedAspects scanned = scanAspects(start, now);
 		if (ASPECT_CACHE.size() > MAX_ASPECT_CACHE) {
 			ASPECT_CACHE.clear();
 		}
-		ASPECT_CACHE.put(start, new CachedAspects(now, aspects));
-		return aspects;
+		ASPECT_CACHE.put(start, scanned);
+		return scanned;
 	}
 
-	private static int scanAspects(Position start) {
+	private static CachedAspects scanAspects(Position start, long now) {
 		final ClientWorld world = MinecraftClient.getInstance().world;
 		if (world == null) {
-			return DEFAULT_ASPECTS;
+			return new CachedAspects(now, DEFAULT_ASPECTS, NO_HEAD);
 		}
 		final BlockPos pos = new BlockPos((int) start.getX(), (int) start.getY(), (int) start.getZ());
 		int closest = Integer.MAX_VALUE;
 		int aspects = 0;
+		long head = NO_HEAD;
 		for (int x = -5; x <= 5; x++) {
 			for (int z = -5; z <= 5; z++) {
 				for (int y = -5; y <= 5; y++) {
@@ -141,12 +169,13 @@ public final class PathSignals {
 						if (distance < closest) {
 							closest = distance;
 							aspects = aspectsOf(block);
+							head = checkPos.asLong();
 						}
 					}
 				}
 			}
 		}
-		return aspects;
+		return new CachedAspects(now, aspects, head);
 	}
 
 	private static int aspectsOf(Block block) {

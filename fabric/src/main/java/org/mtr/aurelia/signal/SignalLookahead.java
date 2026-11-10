@@ -78,6 +78,10 @@ public final class SignalLookahead {
 		if (world == null) {
 			return fallback;
 		}
+		if (org.mtr.aurelia.crew.CrewClient.held(signalPos.asLong())) {
+			// a signaller holds it at danger
+			return SignalAspect.RED.mtrAspect();
+		}
 
 		final long key = signalPos.asLong() * 31 + (isBackSide ? 1 : 0);
 		final long now = System.currentTimeMillis();
