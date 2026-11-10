@@ -79,6 +79,7 @@ public final class CrewClient {
 			role = CrewRole.NONE;
 			HOLDS.clear();
 			TRAINS.clear();
+			secondBellAt = -1;
 		}));
 	}
 
