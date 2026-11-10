@@ -94,6 +94,8 @@ public final class DriverClient {
 	private static PathData stopPath;
 	private static double stopDistance = Double.NaN;
 	private static int stopRefreshTicks;
+	/** The vehicle whose doors were open last tick, or -1: the crew signals reset when doors open, not while they stay open. */
+	private static long doorsOpenVehicle = -1;
 
 	private DriverClient() {
 	}
@@ -153,11 +155,14 @@ public final class DriverClient {
 			doors(client.player, openLeft, openRight, close);
 		}
 
-		// the crew's signals count for one departure: open doors mean the next one needs new ones
+		// the crew's signals count for one departure: doors opening at a stop mean the next one needs new ones; a right away
+		// rung while they are still open stands for that departure
+		final boolean doorsOpen = vehicle.persistentVehicleData.getDoorValue() > 0.01 || vehicle.vehicleExtraData.getDoorMultiplier() > 0;
 		final CrewTrain crew = CrewClient.train(vehicle.getId());
-		if (crew != null && (vehicle.persistentVehicleData.getDoorValue() > 0.01 || vehicle.vehicleExtraData.getDoorMultiplier() > 0)) {
+		if (crew != null && doorsOpen && doorsOpenVehicle != vehicle.getId()) {
 			crew.reset();
 		}
+		doorsOpenVehicle = doorsOpen ? vehicle.getId() : -1;
 
 		if (!vehicle.vehicleExtraData.getIsManualAllowed()) {
 			AWS.clear();
