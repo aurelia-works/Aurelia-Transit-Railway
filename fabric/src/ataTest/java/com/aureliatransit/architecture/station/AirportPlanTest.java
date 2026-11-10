@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -127,7 +128,7 @@ class AirportPlanTest {
 	@Test
 	void randomAirportWordsPlanCleanly() {
 		final Random r = new Random(7);
-		final List<String> out = new ArrayList<>();
+		final List<String> descriptions = new ArrayList<>();
 		for (int i = 0; i < 40; i++) {
 			final StringBuilder d = new StringBuilder(r.nextBoolean() ? "small airport" : "airport");
 			d.append(", ").append(1 + r.nextInt(2)).append(" runways");
@@ -138,13 +139,15 @@ class AirportPlanTest {
 				d.append(", no terminal");
 			}
 			d.append(", named Sweep ").append(i);
-			final StationPlan plan = plan(d.toString());
+			descriptions.add(d.toString());
+		}
+		// the same 40 airports as before; planned side by side, since each plan stands alone
+		final List<String> out = descriptions.parallelStream().map(d -> {
+			final StationPlan plan = plan(d);
 			final List<Violation> violations = LayoutValidator.validate(plan);
 			final StationAudit.Result audit = StationAudit.audit(plan);
-			if (!violations.isEmpty() || !audit.buildable()) {
-				out.add(d + " -> " + violations.size() + " " + audit.problems());
-			}
-		}
+			return !violations.isEmpty() || !audit.buildable() ? d + " -> " + violations.size() + " " + audit.problems() : null;
+		}).filter(Objects::nonNull).toList();
 		assertEquals(List.of(), out);
 	}
 

@@ -113,12 +113,17 @@ class EnviroFixesTest {
 		assertTrue(asked.spec().hasBuilding(), "an entrance asks for the building it is in");
 		// platform width words still mean the platforms
 		assertEquals(StationOptions.DEFAULTS.entranceWidth(), StationDescriptionParser.parse("2 track station, 6 wide").spec().options().entranceWidth());
+		// every preset with and without a wide entrance, planned side by side, since each plan stands alone
+		final List<String[]> cases = new ArrayList<>();
 		for (final StationPresets.Preset preset : StationPresets.ALL) {
 			for (final String extra : new String[]{"", ", entrance 9 wide"}) {
-				final StationPlan plan = plan(preset.description() + extra);
-				assertEquals(List.of(), LayoutValidator.validate(plan), preset.key() + extra);
-				assertTrue(StationAudit.audit(plan).buildable(), preset.key() + extra);
+				cases.add(new String[]{preset.description() + extra, preset.key() + extra});
 			}
 		}
+		cases.parallelStream().forEach(c -> {
+			final StationPlan plan = plan(c[0]);
+			assertEquals(List.of(), LayoutValidator.validate(plan), c[1]);
+			assertTrue(StationAudit.audit(plan).buildable(), c[1]);
+		});
 	}
 }
