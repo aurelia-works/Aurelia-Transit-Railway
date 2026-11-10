@@ -25,6 +25,7 @@ public class LegacyVehicleSound extends VehicleSoundBase {
 	private ProfileSounds profileSounds;
 	private String profileLoopKey = "";
 	private VehicleLoopingSoundInstance[] profileMotor = new VehicleLoopingSoundInstance[0];
+	private final ProfileLayerLoops profileLayers = new ProfileLayerLoops();
 	private float oldSpeedChange;
 
 	private final char[] SOUND_GROUP_LETTERS = {'a', 'b', 'c'};
@@ -50,6 +51,7 @@ public class LegacyVehicleSound extends VehicleSoundBase {
 			for (final VehicleLoopingSoundInstance motor : profileMotor) {
 				motor.setData(0, 1, blockPos);
 			}
+			profileLayers.silence(blockPos);
 			oldSpeedChange = speedChange;
 			return;
 		}
@@ -59,6 +61,9 @@ public class LegacyVehicleSound extends VehicleSoundBase {
 			ScheduledSound.schedule(blockPos, profile.brakeRelease, profile.brakeVolume, 1);
 		}
 		oldSpeedChange = speedChange;
+		if (profile != null) {
+			profileLayers.play(blockPos, speed * 3600, 1, speed > 0 ? 1 : 0);
+		}
 
 		if (profile != null && profileMotor.length > 0) {
 			final float gain = profile.motorGainAt(speed * 3600) * profile.motorVolume * (profile.motorAlwaysOn || speed > 0 ? 1 : 0);
@@ -86,6 +91,7 @@ public class LegacyVehicleSound extends VehicleSoundBase {
 			motor.dispose();
 		}
 		profileMotor = new VehicleLoopingSoundInstance[0];
+		profileLayers.dispose();
 	}
 
 	@Override
@@ -124,6 +130,7 @@ public class LegacyVehicleSound extends VehicleSoundBase {
 		} else {
 			profileMotor = new VehicleLoopingSoundInstance[0];
 		}
+		profileLayers.rebuild(profile);
 	}
 
 	@Nullable

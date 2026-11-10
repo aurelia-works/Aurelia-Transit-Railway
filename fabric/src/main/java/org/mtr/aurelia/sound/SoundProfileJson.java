@@ -44,6 +44,7 @@ public final class SoundProfileJson {
 					pitches,
 					gainSpeeds,
 					gainsAtSpeed,
+					motorLayers(root),
 					string(root, "door_chime"),
 					string(root, "door_open"),
 					string(root, "door_close"),
@@ -76,6 +77,29 @@ public final class SoundProfileJson {
 			return List.of(element.getAsString().trim());
 		}
 		return Collections.emptyList();
+	}
+
+	/** The optional {@code motor_layers} array: objects shaped like {@code motor}. A layer without sounds is dropped. */
+	private static List<MotorLayer> motorLayers(JsonObject root) {
+		final JsonArray array = array(root, "motor_layers");
+		if (array == null) {
+			return Collections.emptyList();
+		}
+		final List<MotorLayer> layers = new ArrayList<>();
+		for (final JsonElement element : array) {
+			if (!element.isJsonObject()) {
+				continue;
+			}
+			final JsonObject layer = element.getAsJsonObject();
+			final List<String> sounds = motorSounds(layer);
+			if (sounds.isEmpty()) {
+				continue;
+			}
+			final List<double[]> pitches = curve(layer, "pitch_curve", "pitch", "pitch", false);
+			final List<double[]> gains = curve(layer, "volume_curve", null, "volume", true);
+			layers.add(new MotorLayer(sounds, clampFloat(number(layer, "volume", 1), 0, 2), bool(layer, "always"), speeds(pitches), values(pitches), speeds(gains), values(gains)));
+		}
+		return Collections.unmodifiableList(layers);
 	}
 
 	private static List<String> motorSounds(@Nullable JsonObject motor) {
