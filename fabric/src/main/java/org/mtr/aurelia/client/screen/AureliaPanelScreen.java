@@ -1,8 +1,10 @@
 package org.mtr.aurelia.client.screen;
 
 import com.aureliatransit.architecture.client.AirportWrenchScreen;
+import com.aureliatransit.architecture.client.AtrMenuScreen;
 import com.aureliatransit.architecture.client.HologramSettings;
 import com.aureliatransit.architecture.client.StationHologramRenderer;
+import com.aureliatransit.architecture.client.StationPaceSlider;
 import com.aureliatransit.architecture.client.StationStudioClient;
 import com.aureliatransit.architecture.client.StationWrenchScreen;
 import com.aureliatransit.architecture.registry.ModItems;
@@ -13,8 +15,12 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.item.Item;
 import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.OrderedText;
+import net.minecraft.text.StringVisitable;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Language;
 import org.mtr.aurelia.client.Announcer;
 import org.mtr.aurelia.client.AureliaExamplePack;
 import org.mtr.aurelia.client.ui.AureliaUiSettings;
@@ -70,13 +76,38 @@ public final class AureliaPanelScreen extends Screen {
 
 	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS}
 
-	private static final int TAB_WIDTH = 90;
 	private static final int BUTTON_WIDTH = 200;
 	private static final int VALUE_WIDTH = 80;
 	private static final int ROW = 24;
-	private static final int TAB_ROW = 20;
-	private static final int BASE_TOP = 56;
-	private int top = BASE_TOP;
+	/** The Tools grid packs its rows closer, so two columns of tools fit on a 240 high screen. */
+	private static final int TOOL_ROW = 22;
+	/** The bar along the top: the panel's name and the ATR menu button. */
+	private static final int HEADER = 22;
+	/** The tab list down the left side, one row per tab, in four groups. */
+	private static final int SIDEBAR = 104;
+	private static final int SIDE_ROW = 12;
+	private static final int GROUP_GAP = 5;
+	/** First row of a tab's controls: under the header, the tab's name and its status line. */
+	private static final int CONTENT_TOP = HEADER + 36;
+	/** The Done button and the scroll line sit in this strip at the bottom. */
+	private static final int FOOTER = 28;
+	private static final int HEADER_BG = 0xF0101418;
+	private static final int SIDEBAR_BG = 0xD8101418;
+	private static final int LINE = 0xFF2A3240;
+	private static final int SELECTED = 0xFF1C2A40;
+	private static final int SELECTED_BAR = 0xFF4A90E2;
+	private static final int ROW_STRIPE = 0x14FFFFFF;
+	private static final int HOVER = 0x28FFFFFF;
+	/** Riding and driving, then the network, then building, then this client's look and speed. */
+	private static final Tab[][] GROUPS = {
+			{Tab.RIDING, Tab.DRIVING, Tab.PANTOGRAPH, Tab.TRAIN_SOUND, Tab.SOUND},
+			{Tab.ROUTES, Tab.TOOLS, Tab.PASSENGERS, Tab.ZIP},
+			{Tab.ARCHITECTURE, Tab.BUILD, Tab.BUILDER},
+			{Tab.RENDERING, Tab.LOOK, Tab.PACKS}
+	};
+	private int top = CONTENT_TOP;
+	private int contentLeft;
+	private int contentRight;
 
 	private sealed interface Row permits Toggle, Distance {
 		String key();
@@ -146,9 +177,10 @@ public final class AureliaPanelScreen extends Screen {
 	private static final int TRAIN_SOUND_ROWS = 15;
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
-	/** The Architecture tab's rows: studio, the two wrenches, hologram, fallback, More, tint and layer. */
+	/** The Architecture tab's rows: studio, the two wrenches, hologram, fallback, More, tint and layer, then build pace (operators). */
 	private int architectureFirst;
 	private static final int ARCHITECTURE_ROWS = 8;
+	private static final int PACE_WIDTH = 220;
 	private boolean hologramMore;
 	private int drivingFirst;
 	private static final int DRIVING_ROWS = 6;
@@ -163,26 +195,19 @@ public final class AureliaPanelScreen extends Screen {
 
 	@Override
 	protected void init() {
-		final Tab[] tabs = Tab.values();
-		final int columns = Math.max(1, Math.min(tabs.length, (width - 16 + 4) / (TAB_WIDTH + 4)));
-		final int rows = (tabs.length + columns - 1) / columns;
-		final int tabWidth = Math.max(1, Math.min(TAB_WIDTH, (width - 16 - (columns - 1) * 4) / columns));
-		final int tabsLeft = (width - columns * tabWidth - (columns - 1) * 4) / 2;
-		top = 28 + rows * TAB_ROW + 6;
-		for (int i = 0; i < tabs.length; i++) {
-			final Tab target = tabs[i];
-			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.panel.tab." + target.name().toLowerCase()), b -> {
-				tab = target;
-				firstRow = 0;
-				lookFirst = 0;
-				buildFirst = 0;
-				architectureFirst = 0;
-				trainSoundFirst = 0;
-				packsFirst = 0;
-				clearAndInit();
-			}).dimensions(tabsLeft + (i % columns) * (tabWidth + 4), 28 + (i / columns) * TAB_ROW, tabWidth, 18).build());
-			button.active = target != tab;
+		contentLeft = SIDEBAR + 8;
+		contentRight = width - 8;
+		top = CONTENT_TOP;
+		int y = HEADER + 6;
+		for (final Tab[] group : GROUPS) {
+			for (final Tab target : group) {
+				addDrawableChild(new SideTab(0, y, SIDEBAR, target));
+				y += SIDE_ROW;
+			}
+			y += GROUP_GAP;
 		}
+		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.open"), b -> client.setScreen(new AtrMenuScreen(this, AtrMenuScreen.Tab.BUILD)))
+				.dimensions(width - 98, 2, 90, 18).build());
 		switch (tab) {
 			case RENDERING -> initRendering();
 			case TOOLS -> initTools();
@@ -200,16 +225,40 @@ public final class AureliaPanelScreen extends Screen {
 			case DRIVING -> initDriving();
 			case PACKS -> initPacks();
 		}
-		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions((width - BUTTON_WIDTH) / 2, height - 28, BUTTON_WIDTH, 20).build());
+		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions(contentRight - 100, height - 24, 100, 20).build());
+	}
+
+	private void selectTab(Tab target) {
+		if (target == tab) {
+			return;
+		}
+		tab = target;
+		firstRow = 0;
+		lookFirst = 0;
+		buildFirst = 0;
+		architectureFirst = 0;
+		trainSoundFirst = 0;
+		packsFirst = 0;
+		clearAndInit();
+	}
+
+	/** Centre of the content column, right of the tab list. */
+	private int centerX() {
+		return (contentLeft + contentRight) / 2;
+	}
+
+	/** Left edge of a full-width button, centred in the content column. */
+	private int columnLeft() {
+		return centerX() - BUTTON_WIDTH / 2;
 	}
 
 	private int visibleRows() {
-		return Math.max(1, (height - 36 - top) / ROW);
+		return Math.max(1, (height - FOOTER - top) / ROW);
 	}
 
 	private void initRendering() {
 		firstRow = Math.max(0, Math.min(firstRow, renderingRows.size() - visibleRows()));
-		final int valueX = width - 16 - VALUE_WIDTH;
+		final int valueX = contentRight - VALUE_WIDTH;
 		for (int i = firstRow; i < Math.min(renderingRows.size(), firstRow + visibleRows()); i++) {
 			final int y = top + (i - firstRow) * ROW;
 			if (renderingRows.get(i) instanceof Toggle toggle) {
@@ -224,22 +273,23 @@ public final class AureliaPanelScreen extends Screen {
 	}
 
 	private void initTools() {
-		final int columns = Math.min(3, (TOOLS.size() + visibleRows() - 1) / visibleRows());
-		final int buttonWidth = columns == 1 ? BUTTON_WIDTH : Math.min(BUTTON_WIDTH, (width - 16 - (columns - 1) * 8) / columns);
+		final int fit = Math.max(1, (height - FOOTER - top + 2) / TOOL_ROW);
+		final int columns = Math.min(3, (TOOLS.size() + fit - 1) / fit);
+		final int buttonWidth = columns == 1 ? BUTTON_WIDTH : Math.min(BUTTON_WIDTH, (contentRight - contentLeft - (columns - 1) * 8) / columns);
 		final int rows = (TOOLS.size() + columns - 1) / columns;
-		final int left = (width - columns * buttonWidth - (columns - 1) * 8) / 2;
+		final int left = centerX() - (columns * buttonWidth + (columns - 1) * 8) / 2;
 		final boolean canEdit = MtrBridge.canEdit();
 		for (int i = 0; i < TOOLS.size(); i++) {
 			final Tool tool = TOOLS.get(i);
 			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.tools." + tool.key()), b -> client.setScreen(tool.open().apply(this)))
-					.dimensions(left + (i / rows) * (buttonWidth + 8), top + (i % rows) * ROW, buttonWidth, 20).build());
+					.dimensions(left + (i / rows) * (buttonWidth + 8), top + (i % rows) * TOOL_ROW, buttonWidth, 20).build());
 			button.active = canEdit || !tool.needsEdit();
 		}
 	}
 
 	/** Route control: the fallback master switch and the per-route editor. */
 	private void initRoutes() {
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		addDrawableChild(ButtonWidget.builder(masterLabel(), b -> {
 			RouteControlSettings.setFallbackMaster(!RouteControlSettings.fallbackMaster());
 			b.setMessage(masterLabel());
@@ -253,7 +303,7 @@ public final class AureliaPanelScreen extends Screen {
 	}
 
 	private void initSound() {
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		final ButtonWidget announcer = addDrawableChild(ButtonWidget.builder(announcerLabel(), b -> {
 			Announcer.setEnabled(!Announcer.enabled());
 			b.setMessage(announcerLabel());
@@ -285,7 +335,7 @@ public final class AureliaPanelScreen extends Screen {
 	 * Whether each ride starts sitting (the sit key flips it on the way), and how far a sitting rider drops onto the seat.
 	 */
 	private void initRiding() {
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		addDrawableChild(ButtonWidget.builder(sitLabel(), b -> {
 			RideClient.setSitWhenBoarding(!RideClient.sitWhenBoarding());
 			b.setMessage(sitLabel());
@@ -318,7 +368,7 @@ public final class AureliaPanelScreen extends Screen {
 	 * speed above which they stay up even off a route.
 	 */
 	private void initPantograph() {
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		addDrawableChild(ButtonWidget.builder(pantographAnimationLabel(), b -> {
 			config.togglePantographAnimation();
 			b.setMessage(pantographAnimationLabel());
@@ -339,7 +389,7 @@ public final class AureliaPanelScreen extends Screen {
 	 */
 	private void initTrainSound() {
 		trainSoundFirst = Math.max(0, Math.min(trainSoundFirst, TRAIN_SOUND_ROWS - visibleRows()));
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		final TrainView train = trainForSound();
 		if (trainSoundRow(0)) {
 			final ButtonWidget profile = addDrawableChild(ButtonWidget.builder(soundProfileLabel(train), b -> {
@@ -468,7 +518,7 @@ public final class AureliaPanelScreen extends Screen {
 
 	/** Zip lines: on/off, top speed, brake and how far the cable sags. Operators only; the ride is shared. */
 	private void initZip() {
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
 		final ZipSettings now = ZipClient.settings();
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.zip.enabled", ScreenTexts.onOrOff(now.enabled())), b -> {
@@ -493,7 +543,7 @@ public final class AureliaPanelScreen extends Screen {
 	/** One switch per restyled screen. Off returns that screen to MTR's widgets. */
 	private void initLook() {
 		lookFirst = Math.max(0, Math.min(lookFirst, LOOK_IDS.length - visibleRows()));
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		for (int i = lookFirst; i < Math.min(LOOK_IDS.length, lookFirst + visibleRows()); i++) {
 			final AureliaUiSettings.ScreenId id = LOOK_IDS[i];
 			addDrawableChild(ButtonWidget.builder(lookLabel(id), b -> {
@@ -512,7 +562,7 @@ public final class AureliaPanelScreen extends Screen {
 	 * by {@link #renderPacks}. The list has no buttons of its own; a pack with errors is skipped by the loader, not here.
 	 */
 	private void initPacks() {
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		addDrawableChild(ButtonWidget.builder(packsEnabledLabel(), b -> {
 			PackSettings.setEnabled(!PackSettings.enabled());
 			packsFirst = 0;
@@ -569,10 +619,25 @@ public final class AureliaPanelScreen extends Screen {
 	private record PackLine(String text, int colour) {
 	}
 
+	/** The pack lines wrapped to the content column, so a long path or error reads in full. */
+	private List<PackLine> wrappedPackLines() {
+		final List<PackLine> wrapped = new ArrayList<>();
+		for (final PackLine line : packLines()) {
+			final List<StringVisitable> parts = textRenderer.getTextHandler().wrapLines(line.text(), contentRight - contentLeft - 8, Style.EMPTY);
+			if (parts.isEmpty()) {
+				wrapped.add(line);
+			}
+			for (final StringVisitable part : parts) {
+				wrapped.add(new PackLine(part.getString(), line.colour()));
+			}
+		}
+		return wrapped;
+	}
+
 	/** Building tools: station guide, rail stylus and the box tunnel. Operators only; the dig is shared. */
 	private void initBuild() {
 		buildFirst = Math.max(0, Math.min(buildFirst, BUILD_ROWS - passengerVisible()));
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
 		final BuildSettings now = BuildClient.settings();
 		if (buildRow(0)) {
@@ -665,7 +730,7 @@ public final class AureliaPanelScreen extends Screen {
 	 */
 	private void initPassengers() {
 		passengerFirst = Math.max(0, Math.min(passengerFirst, PASSENGER_ROWS - passengerVisible()));
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
 		if (passengerRow(0)) {
 			final ButtonWidget enabled = addDrawableChild(ButtonWidget.builder(passengersLabel(PassengerClient.settings().enabled()), b -> {
@@ -829,7 +894,7 @@ public final class AureliaPanelScreen extends Screen {
 		if (!isRailBuilder(itemStack)) {
 			return;
 		}
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		final UnaryOperator<UnaryOperator<ItemRailBuilder.Settings>> update = change -> settings -> {
 			final ItemRailBuilder.Settings newSettings = change.apply(settings);
 			ItemRailBuilder.write(itemStack, newSettings);
@@ -861,7 +926,7 @@ public final class AureliaPanelScreen extends Screen {
 
 	/** ATA's tools: Station Studio opens in the browser; each wrench screen edits the wrench in the player's hand. */
 	private void initArchitecture() {
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		architectureFirst = Math.max(0, Math.min(architectureFirst, architectureRows() - visibleRows()));
 		if (architectureRow(0)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.studio"), b -> StationStudioClient.open())
@@ -912,10 +977,19 @@ public final class AureliaPanelScreen extends Screen {
 							: Text.translatable("gui.aurelia.architecture.hologram.layer", value.intValue())))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.layer.tooltip")));
 		}
+		final int pace = hologramMore ? ARCHITECTURE_ROWS : 6;
+		if (operator() && architectureRow(pace)) {
+			addDrawableChild(new StationPaceSlider(centerX() - PACE_WIDTH / 2, architectureY(pace), PACE_WIDTH))
+					.setTooltip(Tooltip.of(Text.translatable("screen.aurelia_transit_architecture.station_wrench.pace.tip")));
+		}
 	}
 
 	private int architectureRows() {
-		return hologramMore ? ARCHITECTURE_ROWS : 6;
+		return (hologramMore ? ARCHITECTURE_ROWS : 6) + (operator() ? 1 : 0);
+	}
+
+	private boolean operator() {
+		return client != null && client.player != null && client.player.hasPermissionLevel(2);
 	}
 
 	private boolean architectureRow(int row) {
@@ -929,7 +1003,7 @@ public final class AureliaPanelScreen extends Screen {
 	private void addWrenchButton(String key, Item wrench, Consumer<Hand> open, int y) {
 		final Hand hand = heldHand(wrench);
 		final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture." + key), b -> open.accept(hand))
-				.dimensions((width - BUTTON_WIDTH) / 2, y, BUTTON_WIDTH, 20).build());
+				.dimensions(columnLeft(), y, BUTTON_WIDTH, 20).build());
 		button.active = hand != null;
 		button.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture." + key + (hand == null ? ".hold" : ".tooltip"))));
 	}
@@ -1027,7 +1101,7 @@ public final class AureliaPanelScreen extends Screen {
 		}
 		if (tab == Tab.PACKS) {
 			final int visible = packsVisible();
-			final int newFirst = Math.max(0, Math.min(Math.max(0, packLines().size() - visible), packsFirst - (int) Math.signum(amount)));
+			final int newFirst = Math.max(0, Math.min(Math.max(0, wrappedPackLines().size() - visible), packsFirst - (int) Math.signum(amount)));
 			if (newFirst != packsFirst) {
 				packsFirst = newFirst;
 			}
@@ -1039,41 +1113,52 @@ public final class AureliaPanelScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		renderBackground(context);
-		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
+		renderChrome(context);
 		if (tab == Tab.RENDERING) {
 			renderBlockEntityCounter(context);
+			final int labelRoom = contentRight - VALUE_WIDTH - contentLeft - 14;
 			for (int i = firstRow; i < Math.min(renderingRows.size(), firstRow + visibleRows()); i++) {
-				context.drawTextWithShadow(textRenderer, Text.translatable(renderingRows.get(i).key()), 16, top + (i - firstRow) * ROW + 6, 0xFFFFFF);
+				final int y = top + (i - firstRow) * ROW;
+				if ((i & 1) == 0) {
+					context.fill(contentLeft, y - 2, contentRight, y + 22, ROW_STRIPE);
+				}
+				context.drawTextWithShadow(textRenderer, fitted(Text.translatable(renderingRows.get(i).key()), labelRoom), contentLeft + 6, y + 6, 0xFFFFFF);
 			}
-			if (renderingRows.size() > visibleRows()) {
-				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", firstRow + 1, Math.min(renderingRows.size(), firstRow + visibleRows()), renderingRows.size()), width / 2, height - 44, 0xAAAAAA);
-			}
+			scrollLine(context, firstRow, visibleRows(), renderingRows.size());
 		} else if (tab == Tab.PASSENGERS) {
 			final PassengerService.Stats stats = PassengerClient.stats();
 			final int statsY = top + passengerVisible() * ROW;
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.stats", stats.waiting(), stats.riding(), stats.boarded(), stats.alighted()), width / 2, statsY + 6, 0xFFFFFF);
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.cost", String.format("%.2f", stats.costMicros() / 1000D)), width / 2, statsY + 18, 0xAAAAAA);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.stats", stats.waiting(), stats.riding(), stats.boarded(), stats.alighted()), centerX(), statsY + 6, 0xFFFFFF);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.cost", String.format("%.2f", stats.costMicros() / 1000D)), centerX(), statsY + 18, 0xAAAAAA);
 			final Text drawCost = PassengerDrawSettings.get().draw()
 					? Text.translatable("gui.aurelia.passengers.draw_cost", String.format("%.2f", PassengerRenderer.renderMicros / 1000D), PassengerRenderer.lastWalkers, PassengerRenderer.lastFigures)
 					: Text.translatable("gui.aurelia.passengers.draw_cost.off");
-			context.drawCenteredTextWithShadow(textRenderer, drawCost, width / 2, statsY + 30, 0xAAAAAA);
+			context.drawCenteredTextWithShadow(textRenderer, drawCost, centerX(), statsY + 30, 0xAAAAAA);
 			if (client.player != null && !client.player.hasPermissionLevel(2)) {
-				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), width / 2, top - 10, 0xFF5555);
+				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), centerX(), top - 12, 0xFF5555);
 			}
 		} else if (tab == Tab.BUILD && client.player != null && !client.player.hasPermissionLevel(2)) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), width / 2, top - 10, 0xFF5555);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.ZIP && client.player != null && !client.player.hasPermissionLevel(2)) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), width / 2, top - 10, 0xFF5555);
-		} else if (tab == Tab.TRAIN_SOUND && TRAIN_SOUND_ROWS > visibleRows()) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", trainSoundFirst + 1, Math.min(TRAIN_SOUND_ROWS, trainSoundFirst + visibleRows()), TRAIN_SOUND_ROWS), width / 2, height - 44, 0xAAAAAA);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), centerX(), top - 12, 0xFF5555);
+		} else if (tab == Tab.TRAIN_SOUND) {
+			scrollLine(context, trainSoundFirst, visibleRows(), TRAIN_SOUND_ROWS);
 		} else if (tab == Tab.TOOLS && !MtrBridge.canEdit()) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), width / 2, top - 10, 0xFF5555);
-		} else if (tab == Tab.DRIVING && DRIVING_ROWS > visibleRows()) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", drivingFirst + 1, Math.min(DRIVING_ROWS, drivingFirst + visibleRows()), DRIVING_ROWS), width / 2, height - 44, 0xAAAAAA);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), centerX(), top - 12, 0xFF5555);
+		} else if (tab == Tab.DRIVING) {
+			scrollLine(context, drivingFirst, visibleRows(), DRIVING_ROWS);
 		} else if (tab == Tab.BUILDER && !isRailBuilder(client.player.getMainHandStack()) && !isRailBuilder(client.player.getOffHandStack())) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), width / 2, top + 6, 0xAAAAAA);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), centerX(), top + 6, 0xAAAAAA);
 		} else if (tab == Tab.PACKS) {
 			renderPacks(context);
+		}
+		switch (tab) {
+			case LOOK -> scrollLine(context, lookFirst, visibleRows(), LOOK_IDS.length);
+			case ARCHITECTURE -> scrollLine(context, architectureFirst, visibleRows(), architectureRows());
+			case BUILD -> scrollLine(context, buildFirst, passengerVisible(), BUILD_ROWS);
+			case PASSENGERS -> scrollLine(context, passengerFirst, passengerVisible(), PASSENGER_ROWS);
+			default -> {
+			}
 		}
 		super.render(context, mouseX, mouseY, delta);
 	}
@@ -1081,27 +1166,24 @@ public final class AureliaPanelScreen extends Screen {
 	/** Packs header, then the list. A bad file and its line sit under the pack rows in red. */
 	private void renderPacks(DrawContext context) {
 		final int errors = AureliaPacks.errorCount();
-		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.summary", AureliaPacks.packs().size(), AureliaPacks.entryCount(), errors, AureliaPacks.warningCount()), width / 2, top - 10, errors > 0 ? 0xFF5555 : 0xAAAAAA);
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.summary", AureliaPacks.packs().size(), AureliaPacks.entryCount(), errors, AureliaPacks.warningCount()), centerX(), top - 12, errors > 0 ? 0xFF5555 : 0xAAAAAA);
 		if (!PackSettings.enabled()) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.off"), width / 2, top + ROW * 2 + 8, 0xAAAAAA);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.pack.off"), centerX(), top + ROW * 2 + 8, 0xAAAAAA);
 			return;
 		}
-		final List<PackLine> lines = packLines();
+		final List<PackLine> lines = wrappedPackLines();
 		final int listTop = top + ROW * 2 + 4;
 		final int visible = packsVisible();
 		packsFirst = Math.max(0, Math.min(packsFirst, Math.max(0, lines.size() - visible)));
 		for (int i = packsFirst; i < Math.min(lines.size(), packsFirst + visible); i++) {
 			final PackLine line = lines.get(i);
-			final String text = textRenderer.trimToWidth(line.text(), width - 32);
-			context.drawTextWithShadow(textRenderer, Text.literal(text), 16, listTop + (i - packsFirst) * 10, line.colour());
+			context.drawTextWithShadow(textRenderer, Text.literal(line.text()), contentLeft + 4, listTop + (i - packsFirst) * 10, line.colour());
 		}
-		if (lines.size() > visible) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", packsFirst + 1, Math.min(lines.size(), packsFirst + visible), lines.size()), width / 2, height - 44, 0xAAAAAA);
-		}
+		scrollLine(context, packsFirst, visible, lines.size());
 	}
 
 	private int packsVisible() {
-		return Math.max(1, (height - 36 - (top + ROW * 2 + 4)) / 10);
+		return Math.max(1, (height - FOOTER - (top + ROW * 2 + 4)) / 10);
 	}
 
 	/** The block entities drawn in the last frame, red past the player's warning threshold. */
@@ -1109,7 +1191,7 @@ public final class AureliaPanelScreen extends Screen {
 		final int count = BlockEntityCounter.lastFrame();
 		final int warn = config.getBlockEntityWarn();
 		final String limit = warn > 0 ? String.valueOf(warn) : "-";
-		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.block_entities", count, limit), width / 2, top - 10, warn > 0 && count > warn ? 0xFF5555 : 0xAAAAAA);
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.block_entities", count, limit), centerX(), top - 12, warn > 0 && count > warn ? 0xFF5555 : 0xAAAAAA);
 	}
 
 	@Override
@@ -1125,7 +1207,7 @@ public final class AureliaPanelScreen extends Screen {
 	 */
 	private void initDriving() {
 		drivingFirst = Math.max(0, Math.min(drivingFirst, DRIVING_ROWS - visibleRows()));
-		final int left = (width - BUTTON_WIDTH) / 2;
+		final int left = columnLeft();
 		if (drivingRow(0)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.driving.aws", ScreenTexts.onOrOff(config.getDrivingAws())), b -> {
 				config.toggleDrivingAws();
@@ -1295,6 +1377,56 @@ public final class AureliaPanelScreen extends Screen {
 		@Override
 		protected void applyValue() {
 			set.accept(current());
+		}
+	}
+
+	/** "Rows 3-8 of 20 (scroll)" in the footer, only when the tab has more rows than fit. */
+	private void scrollLine(DrawContext context, int first, int visible, int total) {
+		if (total > visible) {
+			context.drawTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.scroll", first + 1, Math.min(total, first + visible), total), contentLeft, height - 18, 0xAAAAAA);
+		}
+	}
+
+	/** The text cut to {@code room} pixels with an ellipsis, or whole when it fits. */
+	private OrderedText fitted(Text text, int room) {
+		if (textRenderer.getWidth(text) <= room) {
+			return text.asOrderedText();
+		}
+		final StringVisitable cut = textRenderer.trimToWidth(text, room - textRenderer.getWidth("…"));
+		return Language.getInstance().reorder(StringVisitable.concat(cut, Text.literal("…")));
+	}
+
+	/** The header bar, the tab list's background and the open tab's name over the content column. */
+	private void renderChrome(DrawContext context) {
+		context.fill(0, 0, width, HEADER, HEADER_BG);
+		context.fill(0, HEADER - 1, width, HEADER, LINE);
+		context.fill(0, HEADER, SIDEBAR, height, SIDEBAR_BG);
+		context.fill(SIDEBAR - 1, HEADER, SIDEBAR, height, LINE);
+		context.drawTextWithShadow(textRenderer, title, 8, (HEADER - 8) / 2, 0xFFFFFF);
+		context.drawTextWithShadow(textRenderer, Text.translatable("gui.aurelia.panel.tab." + tab.name().toLowerCase()), contentLeft, HEADER + 8, 0xFFFFFF);
+		context.fill(contentLeft, HEADER + 19, contentRight, HEADER + 20, LINE);
+	}
+
+	/** One row of the tab list: flat, the open tab lit with a bar on its left edge. Still a button, so Tab and Enter reach it. */
+	private final class SideTab extends ButtonWidget {
+
+		private final Tab target;
+
+		private SideTab(int x, int y, int w, Tab target) {
+			super(x, y, w, SIDE_ROW, Text.translatable("gui.aurelia.panel.tab." + target.name().toLowerCase()), b -> selectTab(target), DEFAULT_NARRATION_SUPPLIER);
+			this.target = target;
+		}
+
+		@Override
+		protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
+			final boolean open = target == tab;
+			if (open) {
+				context.fill(getX(), getY(), getX() + getWidth() - 1, getY() + getHeight(), SELECTED);
+				context.fill(getX(), getY(), getX() + 2, getY() + getHeight(), SELECTED_BAR);
+			} else if (isHovered() || isFocused()) {
+				context.fill(getX(), getY(), getX() + getWidth() - 1, getY() + getHeight(), HOVER);
+			}
+			context.drawTextWithShadow(textRenderer, getMessage(), getX() + 8, getY() + (getHeight() - 8) / 2, open ? 0xFFFFFF : 0xB0B4BA);
 		}
 	}
 }

@@ -59,6 +59,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class StationPreview {
 
+	private static final String HINT = "Drag: turn · Scroll: zoom · Right-drag: move";
+	private static final String HINT_SHORT = "Drag · Scroll · Right-drag";
+
 	/** One worker for every preview; meshing a 60 000 block station takes well under a second. */
 	private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(runnable -> {
 		final Thread thread = new Thread(runnable, "ATA station preview");
@@ -367,9 +370,19 @@ public final class StationPreview {
 			RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, MinecraftClient.IS_SYSTEM_MAC);
 			context.disableScissor();
 		}
+		final int room = x1 - x0 - 8;
 		final String line = busy ? "Planning…" : status;
-		context.drawTextWithShadow(client.textRenderer, line, x0 + 4, y1 + 4, busy ? 0x9AA0A6 : good ? 0x5FC77A : 0xF0A83A);
-		context.drawTextWithShadow(client.textRenderer, "Drag: turn · Scroll: zoom · Right-drag: move", x0 + 4, y0 + 4, 0x6B737C);
+		context.drawTextWithShadow(client.textRenderer, fit(client, line, room), x0 + 4, y1 + 4, busy ? 0x9AA0A6 : good ? 0x5FC77A : 0xF0A83A);
+		final String hint = client.textRenderer.getWidth(HINT) <= room ? HINT : HINT_SHORT;
+		context.drawTextWithShadow(client.textRenderer, fit(client, hint, room), x0 + 4, y0 + 4, 0x6B737C);
+	}
+
+	/** Cuts a line to the box width with an ellipsis, so a narrow preview never draws past its edge. */
+	private static String fit(MinecraftClient client, String text, int room) {
+		if (client.textRenderer.getWidth(text) <= room) {
+			return text;
+		}
+		return client.textRenderer.trimToWidth(text, Math.max(0, room - client.textRenderer.getWidth("…"))) + "…";
 	}
 
 	/** Left-drag turns the station, right-drag moves it. */

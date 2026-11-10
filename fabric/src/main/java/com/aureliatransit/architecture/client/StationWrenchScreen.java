@@ -36,9 +36,11 @@ import java.util.function.Supplier;
  */
 public class StationWrenchScreen extends Screen {
 
+	/** The control column on a wide screen; narrower ones shrink it (down to {@link #MIN_COLUMN}) to keep the 3D preview. */
 	private static final int WIDTH = 320;
-	private static final int HALF = (WIDTH - 4) / 2;
-	private static final int COLUMNS = 5;
+	private static final int MIN_COLUMN = 260;
+	/** The preview width a shrunk column aims to leave. */
+	private static final int FIT_PREVIEW = 180;
 	private static final int ROW = 22;
 	/** The look and preset grids: shorter buttons, so sixteen cities fit on a small screen. */
 	private static final int GRID_ROW = 18;
@@ -47,8 +49,6 @@ public class StationWrenchScreen extends Screen {
 	private static final int SUMMARY = 24;
 	private static final String KEY = EditorWidgets.KEY + "station_wrench.";
 	private static final int GAP = 10;
-	/** A third of the page, for the three buttons of the bottom row. */
-	private static final int THIRD = (WIDTH - 8) / 3;
 	/** The size a fresh station gets when it becomes a terminus (as the parser gives a bare "terminus"). */
 	private static final int TERMINUS_TRACKS = 8;
 	private static final int TERMINUS_LENGTH = 160;
@@ -76,6 +76,14 @@ public class StationWrenchScreen extends Screen {
 	private boolean dragging;
 	/** Bridge and airport: whether the secondary tools are open under More. */
 	private boolean more;
+	/** Station: the city look grid or the preset grid is open on its own page instead of the choices. */
+	private Picker picker = Picker.NONE;
+	/** The control column's width, its half and third, set by {@link #fitColumn()} on each layout. */
+	private int column = WIDTH;
+	private int half = (WIDTH - 4) / 2;
+	private int third = (WIDTH - 8) / 3;
+
+	private enum Picker {NONE, LOOK, PRESET}
 
 	public StationWrenchScreen(Hand hand, String description, StationRecipe recipe) {
 		this(hand, description, recipe, modeOf(hand));
@@ -142,12 +150,15 @@ public class StationWrenchScreen extends Screen {
 
 	@Override
 	protected void init() {
+		fitColumn();
 		switch (mode) {
 			case AIRPORT -> initAirport();
 			case BRIDGE -> initBridge();
 			case EARTHWORKS -> initEarthworks();
 			case STATION -> {
-				if (advanced) {
+				if (picker != Picker.NONE) {
+					initPicker();
+				} else if (advanced) {
 					initAdvanced();
 				} else {
 					initSimple();
@@ -163,7 +174,7 @@ public class StationWrenchScreen extends Screen {
 	/** The four modes along the top; the active one is lit and the others switch the stack and redraw the page. */
 	private void initModes() {
 		final int left = left();
-		final int button = (WIDTH - 9) / 4;
+		final int button = (column - 9) / 4;
 		final WrenchMode[] modes = WrenchMode.values();
 		for (int i = 0; i < modes.length; i++) {
 			final WrenchMode target = modes[i];
@@ -181,6 +192,7 @@ public class StationWrenchScreen extends Screen {
 		mode = target;
 		advanced = false;
 		more = false;
+		picker = Picker.NONE;
 		if (client != null && client.player != null) {
 			final ItemStack stack = client.player.getStackInHand(hand);
 			StationWrenchItem.setMode(stack, target);
@@ -201,6 +213,7 @@ public class StationWrenchScreen extends Screen {
 		mode = mode.next(step);
 		advanced = false;
 		more = false;
+		picker = Picker.NONE;
 		StationWrenchItem.setMode(client.player.getStackInHand(hand), mode);
 		if (ClientPlayNetworking.canSend(ModPackets.STATION_WRENCH)) {
 			ClientPlayNetworking.send(ModPackets.STATION_WRENCH, ModPackets.writeStationWrench(hand, StationWrenchItem.Action.MODE,
@@ -218,21 +231,39 @@ public class StationWrenchScreen extends Screen {
 		if (mode != WrenchMode.STATION) {
 			return 0;
 		}
-		final int room = width - WIDTH - GAP - 16;
+		final int room = width - column - GAP - 16;
 		return room >= MIN_PREVIEW ? Math.min(room, MAX_PREVIEW) : 0;
+	}
+
+	/**
+	 * Station mode on a screen too narrow for the full column and a preview (1920x1080 on automatic GUI scale is 480 wide):
+	 * the column shrinks so the 3D preview still fits beside it. Below {@link #MIN_COLUMN} the labels would be cut, so the
+	 * column stays full width and the preview is left out.
+	 */
+	private void fitColumn() {
+		int fitted = WIDTH;
+		if (mode == WrenchMode.STATION && width - WIDTH - GAP - 16 < MIN_PREVIEW) {
+			final int shrunk = Math.max(MIN_COLUMN, width - GAP - 16 - FIT_PREVIEW);
+			if (width - shrunk - GAP - 16 >= MIN_PREVIEW) {
+				fitted = shrunk;
+			}
+		}
+		column = fitted;
+		half = (fitted - 4) / 2;
+		third = (fitted - 8) / 3;
 	}
 
 	/** The controls' left edge: centred alone, or centred together with the preview. */
 	private int left() {
 		final int preview = previewWidth();
-		return preview == 0 ? (width - WIDTH) / 2 : (width - WIDTH - GAP - preview) / 2;
+		return preview == 0 ? (width - column) / 2 : (width - column - GAP - preview) / 2;
 	}
 
 	/** x0, y0, x1, y1 of the preview box, beside the controls and as tall as the page. */
 	private int[] previewBox() {
-		final int total = advanced ? advancedHeight() : simpleHeight();
+		final int total = stationHeight();
 		final int top = top(total);
-		final int x0 = left() + WIDTH + GAP;
+		final int x0 = left() + column + GAP;
 		return new int[]{x0, top, x0 + previewWidth(), top + total - 12};
 	}
 
@@ -308,69 +339,63 @@ public class StationWrenchScreen extends Screen {
 
 	// ---- simple page ----------------------------------------------------------------------------------------------
 
+	/**
+	 * The step line, five rows of two choices, the summary, then Place / Build it and Undo / Cancel / More. The city look is
+	 * one button that opens its own grid, so the page fits a 427x240 GUI (an 854x480 window, or 1920x1080 on GUI scale 4).
+	 */
 	private static int simpleHeight() {
-		return summaryOffset() + SUMMARY + 26 + ROW + 20;
+		return summaryOffset() + SUMMARY + ROW + 20;
 	}
 
-	/** From the page top to the summary line: the look grid, then the mix, tracks, length, width and building rows. */
+	/** From the page top to the summary line: the step line, then five rows of choices. */
 	private static int summaryOffset() {
-		return 12 + lookRows() * GRID_ROW + ROW - GRID_ROW + 5 * ROW;
-	}
-
-	/** Rows of look buttons, four to a row. */
-	private static int lookRows() {
-		return (StationRecipe.Look.values().length + COLUMNS - 1) / COLUMNS;
+		return 12 + 5 * ROW;
 	}
 
 	private void initSimple() {
 		final int left = left();
 		int y = top(simpleHeight()) + 12;
-		final int lookWidth = (WIDTH - (COLUMNS - 1) * 4) / COLUMNS;
-		final StationRecipe.Look[] looks = StationRecipe.Look.values();
-		for (int i = 0; i < looks.length; i++) {
-			final StationRecipe.Look look = looks[i];
-			addDrawableChild(ButtonWidget.builder(lookLabel(look, recipe.look() == look, lookWidth - 8), b -> change(recipe.withLook(look)))
-					.dimensions(left + i % COLUMNS * (lookWidth + 4), y + i / COLUMNS * GRID_ROW, lookWidth, GRID_BUTTON)
-					.tooltip(Tooltip.of(Text.translatable(KEY + (look == StationRecipe.Look.AUTO ? "look.auto.tip" : "look.tip")))).build());
-		}
-		y += lookRows() * GRID_ROW + ROW - GRID_ROW;
-		final ButtonWidget mix = cycle(left, y, HALF, "mix",
+		final Text lookName = Text.literal(recipe.look() == StationRecipe.Look.AUTO ? Text.translatable(KEY + "look.auto").getString() : recipe.look().label());
+		// the look opens its own grid rather than cycling: twenty-odd cities are too many to step through
+		addDrawableChild(opener(left, y, half, "look", lookName, Picker.LOOK, "look.pick.tip"));
+		final ButtonWidget mix = cycle(left + half + 4, y, half, "mix",
 				recipe.mix() == null ? Text.translatable(KEY + "none") : Text.literal(recipe.mix().label()), () -> recipe.withMix(recipe.nextMix()));
 		mix.setTooltip(Tooltip.of(Text.translatable(KEY + "mix.tip")));
 		addDrawableChild(mix);
-		final ButtonWidget type = cycle(left + HALF + 4, y, HALF, "type", Text.translatable(KEY + (recipe.hub() ? "hub" : recipe.terminus() ? "terminus" : "through")),
+		y += ROW;
+		final ButtonWidget type = cycle(left, y, half, "type", Text.translatable(KEY + (recipe.hub() ? "hub" : recipe.terminus() ? "terminus" : "through")),
 				this::nextType);
 		type.setTooltip(Tooltip.of(Text.translatable(KEY + "type.tip")));
 		addDrawableChild(type);
-		y += ROW;
 		final int trackStep = recipe.trackStep();
-		addDrawableChild(ButtonWidget.builder(Text.literal("-"), b -> change(recipe.withTracks(recipe.tracks() - trackStep))).dimensions(left, y, 20, 20).build());
+		final int tracksX = left + half + 4;
+		addDrawableChild(ButtonWidget.builder(Text.literal("-"), b -> change(recipe.withTracks(recipe.tracks() - trackStep))).dimensions(tracksX, y, 20, 20).build());
 		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "tracks", recipe.tracks()), b -> change(recipe.withTracks(
-				recipe.tracks() % StationRecipe.MAX_TRACKS + trackStep))).dimensions(left + 22, y, HALF - 44, 20).build());
+				recipe.tracks() % StationRecipe.MAX_TRACKS + trackStep))).dimensions(tracksX + 22, y, half - 44, 20).build());
 		addDrawableChild(ButtonWidget.builder(Text.literal("+"), b -> change(recipe.withTracks(recipe.tracks() + trackStep)))
-				.dimensions(left + HALF - 20, y, 20, 20).build());
-		addDrawableChild(cycle(left + HALF + 4, y, HALF, "platforms", Text.literal(recipe.platforms().label()),
-				() -> recipe.withPlatforms(StyleCycle.next(recipe.platforms()))));
+				.dimensions(tracksX + half - 20, y, 20, 20).build());
 		y += ROW;
-		addDrawableChild(cycle(left, y, HALF, "length", Text.literal(Integer.toString(recipe.length())),
+		addDrawableChild(cycle(left, y, half, "platforms", Text.literal(recipe.platforms().label()),
+				() -> recipe.withPlatforms(StyleCycle.next(recipe.platforms()))));
+		addDrawableChild(cycle(left + half + 4, y, half, "length", Text.literal(Integer.toString(recipe.length())),
 				() -> recipe.withLength(nextLength(recipe.length()))));
-		final ButtonWidget roof = cycle(left + HALF + 4, y, HALF, "roof", Text.literal(recipe.roof().label()), () -> recipe.withRoof(StyleCycle.next(recipe.roof())));
+		y += ROW;
+		final ButtonWidget roof = cycle(left, y, half, "roof", Text.literal(recipe.roof().label()), () -> recipe.withRoof(StyleCycle.next(recipe.roof())));
 		roof.setTooltip(Tooltip.of(Text.translatable(KEY + "roof.tip")));
 		addDrawableChild(roof);
-		y += ROW;
-		final WidthSlider width = new WidthSlider(left, y, WIDTH);
+		final WidthSlider width = new WidthSlider(left + half + 4, y, half);
 		width.setTooltip(Tooltip.of(Text.translatable(KEY + "width.tip")));
 		addDrawableChild(width);
 		y += ROW;
 		final Text buildingLabel = !recipe.building() ? ScreenTexts.NO
 				: recipe.size() == StationRecipe.Size.AUTO ? ScreenTexts.YES : Text.literal(recipe.size().label());
-		final ButtonWidget building = cycle(left, y, HALF, "building", buildingLabel, this::nextBuilding);
+		final ButtonWidget building = cycle(left, y, half, "building", buildingLabel, this::nextBuilding);
 		building.setTooltip(Tooltip.of(Text.translatable(KEY + "building.tip")));
 		if (recipe.terminus()) {
 			building.setTooltip(Tooltip.of(Text.translatable(KEY + "building.terminus")));
 		}
 		addDrawableChild(building);
-		final TextFieldWidget name = new TextFieldWidget(textRenderer, left + HALF + 5, y + 1, HALF - 2, 18, Text.translatable(KEY + "name"));
+		final TextFieldWidget name = new TextFieldWidget(textRenderer, left + half + 5, y + 1, half - 2, 18, Text.translatable(KEY + "name"));
 		name.setMaxLength(32);
 		name.setText(recipe.name());
 		name.setPlaceholder(Text.translatable(KEY + "name").formatted(Formatting.DARK_GRAY));
@@ -380,25 +405,89 @@ public class StationWrenchScreen extends Screen {
 		});
 		addDrawableChild(name);
 		y += ROW + SUMMARY;
-		final ButtonWidget place = action(left, y, HALF, "place", StationWrenchItem.Action.PLAN);
+		final ButtonWidget place = action(left, y, half, "place", StationWrenchItem.Action.PLAN);
 		place.setTooltip(Tooltip.of(Text.translatable(KEY + "place.tip")));
 		addDrawableChild(place);
-		final ButtonWidget build = action(left + HALF + 4, y, HALF, "build_it", StationWrenchItem.Action.CONFIRM);
+		final ButtonWidget build = action(left + half + 4, y, half, "build_it", StationWrenchItem.Action.CONFIRM);
 		build.setTooltip(Tooltip.of(Text.translatable(KEY + "build_it.tip")));
 		addDrawableChild(build);
-		y += 26;
-		addDrawableChild(action(left, y, HALF, "undo", StationWrenchItem.Action.UNDO));
-		addDrawableChild(action(left + HALF + 4, y, HALF, "cancel_plan", StationWrenchItem.Action.CANCEL));
 		y += ROW;
+		addDrawableChild(action(left, y, third, "undo", StationWrenchItem.Action.UNDO));
+		addDrawableChild(action(left + third + 4, y, third, "cancel_plan", StationWrenchItem.Action.CANCEL));
 		final ButtonWidget more = ButtonWidget.builder(Text.translatable(KEY + "advanced"), b -> {
 			advanced = true;
 			if (!custom) {
 				typed = recipe.description();
 			}
 			clearAndInit();
-		}).dimensions(left, y, WIDTH, 20).build();
+		}).dimensions(left + 2 * (third + 4), y, third, 20).build();
 		more.setTooltip(Tooltip.of(Text.translatable(KEY + "advanced.tip")));
 		addDrawableChild(more);
+	}
+
+	// ---- look and preset pickers -------------------------------------------------------------------------------------
+
+	/** The step line, the grid, then Back; the grid takes as few columns as the window's height allows. */
+	private int pickerHeight() {
+		return 12 + pickerRows() * GRID_ROW + 6 + 20;
+	}
+
+	private int pickerCount() {
+		return picker == Picker.LOOK ? StationRecipe.Look.values().length : StationPresets.ALL.size();
+	}
+
+	/** Three columns when they fit under the mode row, else four, five or six. */
+	private int pickerColumns() {
+		final int room = height - MODE_ROW - 26;
+		for (int columns = 3; columns < 6; columns++) {
+			if (12 + (pickerCount() + columns - 1) / columns * GRID_ROW + 26 <= room) {
+				return columns;
+			}
+		}
+		return 6;
+	}
+
+	private int pickerRows() {
+		final int columns = pickerColumns();
+		return (pickerCount() + columns - 1) / columns;
+	}
+
+	private void initPicker() {
+		final int left = left();
+		int y = top(pickerHeight()) + 12;
+		final int columns = pickerColumns();
+		final int buttonWidth = (column - (columns - 1) * 4) / columns;
+		if (picker == Picker.LOOK) {
+			final StationRecipe.Look[] looks = StationRecipe.Look.values();
+			for (int i = 0; i < looks.length; i++) {
+				final StationRecipe.Look look = looks[i];
+				final String name = look == StationRecipe.Look.AUTO ? Text.translatable(KEY + "look.auto").getString() : look.label();
+				addDrawableChild(ButtonWidget.builder(lookLabel(name, recipe.look() == look, buttonWidth - 8), b -> {
+							recipe = recipe.withLook(look);
+							picker = Picker.NONE;
+							clearAndInit();
+						}).dimensions(left + i % columns * (buttonWidth + 4), y + i / columns * GRID_ROW, buttonWidth, GRID_BUTTON)
+						.tooltip(Tooltip.of(Text.literal(name).append("\n").append(Text.translatable(KEY + (look == StationRecipe.Look.AUTO ? "look.auto.tip" : "look.tip"))))).build());
+			}
+		} else {
+			for (int i = 0; i < StationPresets.ALL.size(); i++) {
+				final StationPresets.Preset preset = StationPresets.ALL.get(i);
+				final String name = Text.translatable(KEY + "preset." + preset.key()).getString();
+				addDrawableChild(ButtonWidget.builder(lookLabel(name, false, buttonWidth - 8), b -> {
+							typed = preset.description();
+							custom = true;
+							editedAt = System.currentTimeMillis();
+							picker = Picker.NONE;
+							clearAndInit();
+						}).dimensions(left + i % columns * (buttonWidth + 4), y + i / columns * GRID_ROW, buttonWidth, GRID_BUTTON)
+						.tooltip(Tooltip.of(Text.literal(name).append("\n").append(Text.literal(preset.description()).formatted(Formatting.GRAY)))).build());
+			}
+		}
+		y += pickerRows() * GRID_ROW + 6;
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "back"), b -> {
+			picker = Picker.NONE;
+			clearAndInit();
+		}).dimensions(left, y, column, 20).build());
 	}
 
 	// ---- airport page ----------------------------------------------------------------------------------------------
@@ -408,10 +497,10 @@ public class StationWrenchScreen extends Screen {
 	}
 
 	private void initAirport() {
-		final int left = (width - WIDTH) / 2;
+		final int left = (width - column) / 2;
 		int y = top(airportHeight()) + 12;
 		if (more) {
-			final int presetWidth = (WIDTH - (AIRPORT_COLUMNS - 1) * 4) / AIRPORT_COLUMNS;
+			final int presetWidth = (column - (AIRPORT_COLUMNS - 1) * 4) / AIRPORT_COLUMNS;
 			for (int i = 0; i < AirportPresets.ALL.size(); i++) {
 				final AirportPresets.Preset preset = AirportPresets.ALL.get(i);
 				addDrawableChild(ButtonWidget.builder(Text.translatable("screen.aurelia_transit_architecture.airport_wrench.preset." + preset.key()),
@@ -421,7 +510,7 @@ public class StationWrenchScreen extends Screen {
 			}
 			y += ((AirportPresets.ALL.size() + AIRPORT_COLUMNS - 1) / AIRPORT_COLUMNS) * AIRPORT_GRID_ROW + 6;
 		}
-		final TextFieldWidget field = new TextFieldWidget(textRenderer, left, y, WIDTH, 18,
+		final TextFieldWidget field = new TextFieldWidget(textRenderer, left, y, column, 18,
 				Text.translatable("screen.aurelia_transit_architecture.airport_wrench.description"));
 		field.setMaxLength(StationDescriptionParser.MAX_INPUT);
 		field.setText(typed);
@@ -432,9 +521,8 @@ public class StationWrenchScreen extends Screen {
 		});
 		addDrawableChild(field);
 		y += 30;
-		addDrawableChild(airportAction(left, y, WIDTH, "plan", StationWrenchItem.Action.PLAN));
+		addDrawableChild(airportAction(left, y, column, "plan", StationWrenchItem.Action.PLAN));
 		y += ROW;
-		final int third = (WIDTH - 8) / 3;
 		addDrawableChild(airportAction(left, y, third, "build", StationWrenchItem.Action.CONFIRM));
 		addDrawableChild(airportAction(left + third + 4, y, third, "undo", StationWrenchItem.Action.UNDO));
 		addDrawableChild(airportAction(left + 2 * (third + 4), y, third, "cancel", StationWrenchItem.Action.CANCEL));
@@ -442,7 +530,7 @@ public class StationWrenchScreen extends Screen {
 		addDrawableChild(ButtonWidget.builder(moreLabel(), b -> {
 			more = !more;
 			clearAndInit();
-		}).dimensions(left, y, WIDTH, 20).build());
+		}).dimensions(left, y, column, 20).build());
 	}
 
 	private void airportText(String text) {
@@ -453,31 +541,32 @@ public class StationWrenchScreen extends Screen {
 
 	// ---- bridge page -----------------------------------------------------------------------------------------------
 
+	/** Three steps in plain words (save one, lay it along a rail, undo); the rest under More. */
 	private int bridgeHeight() {
-		return 12 + 2 * ROW + (more ? 2 * ROW : 0) + 24;
+		return 12 + 3 * ROW + (more ? 4 * ROW + 4 : 0) + 24;
 	}
 
 	private void initBridge() {
-		final int left = (width - WIDTH) / 2;
+		final int left = (width - column) / 2;
 		int y = top(bridgeHeight()) + 12;
-		final int half = HALF;
-		commandButton(left, y, half, "bridge.capture", "atr_bridge capture ");
-		commandButton(left + half + 4, y, half, "bridge.preview", "atr_bridge preview ");
+		commandButton(left, y, column, "bridge.capture", "atr_bridge capture ");
 		y += ROW;
-		commandButton(left, y, half, "bridge.build", "atr_bridge build ");
-		runButton(left + half + 4, y, half, "bridge.undo", "atr_bridge undo");
+		commandButton(left, y, column, "bridge.build", "atr_bridge build ");
+		y += ROW;
+		runButton(left, y, column, "bridge.undo", "atr_bridge undo");
 		if (more) {
 			y += ROW + 4;
-			runButton(left, y, half, "bridge.list", "atr_bridge list");
-			commandButton(left + half + 4, y, half, "bridge.delete", "atr_bridge delete ");
+			commandButton(left, y, half, "bridge.preview", "atr_bridge preview ");
+			runButton(left + half + 4, y, half, "bridge.list", "atr_bridge list");
 			y += ROW;
-			runButton(left, y, WIDTH, "bridge.help", "atr_bridge help");
+			commandButton(left, y, half, "bridge.delete", "atr_bridge delete ");
+			runButton(left + half + 4, y, half, "bridge.help", "atr_bridge help");
 		}
 		y = top(bridgeHeight()) + bridgeHeight() - 20;
 		addDrawableChild(ButtonWidget.builder(moreLabel(), b -> {
 			more = !more;
 			clearAndInit();
-		}).dimensions(left, y, WIDTH, 20).build());
+		}).dimensions(left, y, column, 20).build());
 	}
 
 	/** Puts a command in the chat box so the player can fill in its arguments. */
@@ -486,7 +575,7 @@ public class StationWrenchScreen extends Screen {
 			sent = true;
 			close();
 			client.setScreen(new ChatScreen("/" + command));
-		}).dimensions(x, y, w, 20).build());
+		}).dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + key + ".tip"))).build());
 	}
 
 	/** Runs a command with no arguments. */
@@ -497,7 +586,7 @@ public class StationWrenchScreen extends Screen {
 			if (client != null && client.player != null) {
 				client.player.networkHandler.sendChatCommand(command);
 			}
-		}).dimensions(x, y, w, 20).build());
+		}).dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + key + ".tip"))).build());
 	}
 
 	// ---- earthworks page -------------------------------------------------------------------------------------------
@@ -507,12 +596,12 @@ public class StationWrenchScreen extends Screen {
 	}
 
 	private void initEarthworks() {
-		final int left = (width - WIDTH) / 2;
+		final int left = (width - column) / 2;
 		final int top = top(earthworksHeight());
 		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "earthworks.guide"), b -> {
 			close();
 			CodexScreen.openChapter("Getting started");
-		}).dimensions(left, top + 12 + 24, WIDTH, 20).build());
+		}).dimensions(left, top + 12 + 24, column, 20).build());
 	}
 
 	private Text moreLabel() {
@@ -531,14 +620,24 @@ public class StationWrenchScreen extends Screen {
 		}).dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + "clear.tip"))).build();
 	}
 
-	/** A look's button text within {@code room} pixels: "> label <" when chosen, without the arrows when that is too wide. */
-	private Text lookLabel(StationRecipe.Look look, boolean chosen, int room) {
-		final String name = look == StationRecipe.Look.AUTO ? Text.translatable(KEY + "look.auto").getString() : look.label();
-		if (!chosen) {
-			return Text.literal(name);
-		}
+	/**
+	 * A grid button's text within {@code room} pixels: "> name <" when chosen, without the arrows when that is too wide, and
+	 * cut with an ellipsis when even the name is too wide (the tooltip has it in full).
+	 */
+	private Text lookLabel(String name, boolean chosen, int room) {
 		final String marked = "> " + name + " <";
-		return Text.literal(textRenderer.getWidth(marked) <= room ? marked : name).formatted(Formatting.YELLOW);
+		final String fitted = textRenderer.getWidth(name) <= room ? name : textRenderer.trimToWidth(name, room - textRenderer.getWidth("…")) + "…";
+		final Text text = Text.literal(chosen && textRenderer.getWidth(marked) <= room ? marked : fitted);
+		return chosen ? text.copy().formatted(Formatting.YELLOW) : text;
+	}
+
+	/** A "Label: value" button that opens a picker page. */
+	private ButtonWidget opener(int x, int y, int w, String key, Text value, Picker target, String tip) {
+		final Text label = Text.translatable(KEY + key).append(": ").append(value.copy().formatted(Formatting.AQUA));
+		return ButtonWidget.builder(label, b -> {
+			picker = target;
+			clearAndInit();
+		}).dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + tip))).build();
 	}
 
 	/** A "Label: value" button that replaces the choices with {@code next} when pressed. */
@@ -634,13 +733,13 @@ public class StationWrenchScreen extends Screen {
 	// ---- advanced page --------------------------------------------------------------------------------------------
 
 	private static int advancedHeight() {
-		return 46 + presetRows() * GRID_ROW + 6 + 24 + 24 + 28 + 20;
+		return 46 + ROW + 24 + 24 + 28 + 20;
 	}
 
 	private void initAdvanced() {
 		final int left = left();
 		int y = top(advancedHeight());
-		final TextFieldWidget field = new TextFieldWidget(textRenderer, left, y, WIDTH, 18, Text.translatable(KEY + "description"));
+		final TextFieldWidget field = new TextFieldWidget(textRenderer, left, y, column, 18, Text.translatable(KEY + "description"));
 		field.setMaxLength(StationDescriptionParser.MAX_INPUT);
 		field.setText(typed);
 		field.setPlaceholder(Text.translatable(KEY + "description").formatted(Formatting.DARK_GRAY));
@@ -651,35 +750,23 @@ public class StationWrenchScreen extends Screen {
 		});
 		addDrawableChild(field);
 		y += 46;
-		final int presetWidth = (WIDTH - (COLUMNS - 1) * 4) / COLUMNS;
-		for (int i = 0; i < StationPresets.ALL.size(); i++) {
-			final StationPresets.Preset preset = StationPresets.ALL.get(i);
-			addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "preset." + preset.key()), b -> {
-				field.setText(preset.description());
-				field.setCursorToStart();
-			}).dimensions(left + i % COLUMNS * (presetWidth + 4), y + i / COLUMNS * GRID_ROW, presetWidth, GRID_BUTTON)
-					.tooltip(Tooltip.of(Text.literal(preset.description()))).build());
-		}
-		y += presetRows() * GRID_ROW + 6;
-		addDrawableChild(action(left, y, HALF, "plan", StationWrenchItem.Action.PLAN));
-		addDrawableChild(action(left + HALF + 4, y, HALF, "preview", StationWrenchItem.Action.PREVIEW));
+		addDrawableChild(opener(left, y, column, "presets", Text.literal(Integer.toString(StationPresets.ALL.size())), Picker.PRESET, "presets.tip"));
+		y += ROW;
+		addDrawableChild(action(left, y, half, "plan", StationWrenchItem.Action.PLAN));
+		addDrawableChild(action(left + half + 4, y, half, "preview", StationWrenchItem.Action.PREVIEW));
 		y += 24;
-		addDrawableChild(action(left, y, WIDTH, "build", StationWrenchItem.Action.CONFIRM));
+		addDrawableChild(action(left, y, column, "build", StationWrenchItem.Action.CONFIRM));
 		y += 24;
-		addDrawableChild(action(left, y, HALF, "cancel", StationWrenchItem.Action.CANCEL));
-		addDrawableChild(action(left + HALF + 4, y, HALF, "undo", StationWrenchItem.Action.UNDO));
+		addDrawableChild(action(left, y, half, "cancel", StationWrenchItem.Action.CANCEL));
+		addDrawableChild(action(left + half + 4, y, half, "undo", StationWrenchItem.Action.UNDO));
 		y += 28;
 		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "simple"), b -> {
 			advanced = false;
 			clearAndInit();
-		}).dimensions(left, y, THIRD, 20).tooltip(Tooltip.of(Text.translatable(KEY + "simple.tip"))).build());
-		addDrawableChild(clearButton(left + THIRD + 4, y, THIRD));
-		addDrawableChild(studioButton(left + 2 * (THIRD + 4), y, THIRD));
+		}).dimensions(left, y, third, 20).tooltip(Tooltip.of(Text.translatable(KEY + "simple.tip"))).build());
+		addDrawableChild(clearButton(left + third + 4, y, third));
+		addDrawableChild(studioButton(left + 2 * (third + 4), y, third));
 		setInitialFocus(field);
-	}
-
-	private static int presetRows() {
-		return (StationPresets.ALL.size() + COLUMNS - 1) / COLUMNS;
 	}
 
 	/** Opens Station Studio in the browser (bigger description, 3D preview, checks); Escape closes this screen. */
@@ -732,36 +819,44 @@ public class StationWrenchScreen extends Screen {
 		switch (mode) {
 			case AIRPORT -> {
 				final int top = top(airportHeight());
-				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + WIDTH / 2, top - 16, 0xFFFFFF);
+				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
 				context.drawTextWithShadow(textRenderer, Text.translatable("screen.aurelia_transit_architecture.airport_wrench.hint"), left, top, 0x9AA0A6);
 			}
 			case BRIDGE -> {
 				final int top = top(bridgeHeight());
-				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + WIDTH / 2, top - 16, 0xFFFFFF);
+				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
 				context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "bridge.hint"), left, top, 0x9AA0A6);
 			}
 			case EARTHWORKS -> {
 				final int top = top(earthworksHeight());
-				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + WIDTH / 2, top - 16, 0xFFFFFF);
-				context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.soon"), left + WIDTH / 2, top + 12, 0xE0C060);
-				context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.body"), left + WIDTH / 2, top + 12 + 12, 0x9AA0A6);
+				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
+				context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.soon"), left + column / 2, top + 12, 0xE0C060);
+				context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.body"), left + column / 2, top + 12 + 12, 0x9AA0A6);
 			}
 			case STATION -> {
-				if (advanced) {
+				if (picker != Picker.NONE) {
+					final int top = top(pickerHeight());
+					context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
+					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + (picker == Picker.LOOK ? "look.pick" : "presets.pick")), left, top, 0xE0C060);
+				} else if (advanced) {
 					final int top = top(advancedHeight());
-					context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + WIDTH / 2, top - 16, 0xFFFFFF);
+					context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
 					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "example"), left, top + 22, 0x9AA0A6);
 					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "hint"), left, top + 32, 0x9AA0A6);
 				} else {
 					final int top = top(simpleHeight());
-					context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + WIDTH / 2, top - 16, 0xFFFFFF);
+					context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
 					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "step_look"), left, top, 0xE0C060);
 					final int summary = top + summaryOffset() + 1;
-					context.drawCenteredTextWithShadow(textRenderer, Text.literal(recipe.title()), left + WIDTH / 2, summary, 0xFFFFFF);
-					context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "step_place"), left + WIDTH / 2, summary + 11, 0x9AA0A6);
+					context.drawCenteredTextWithShadow(textRenderer, Text.literal(recipe.title()), left + column / 2, summary, 0xFFFFFF);
+					context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "step_place"), left + column / 2, summary + 11, 0x9AA0A6);
 				}
 			}
 		}
+	}
+
+	private int stationHeight() {
+		return picker != Picker.NONE ? pickerHeight() : advanced ? advancedHeight() : simpleHeight();
 	}
 
 	/** The first row's y; the whole page is centred vertically under the mode row and its title. */

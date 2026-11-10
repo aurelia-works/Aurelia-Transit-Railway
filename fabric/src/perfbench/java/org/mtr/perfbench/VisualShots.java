@@ -29,7 +29,7 @@ import java.util.UUID;
  * rail level; yaw 0 looks down the station's length), {@code shaders on|off}, {@code hud on|off}, {@code view <chunks>}
  * (render distance), {@code settle <ticks>} (wait after each later tp, tpst or shader switch; 60 by default),
  * {@code tpblock <block id part> <n> <dx> <dy> <dz> <yaw> <pitch>} (stands dx/dy/dz blocks from the n-th planned block whose id
- * contains the text, in world axes), {@code shot <name>} (saves {@code screenshots/vis-<name>.png}), {@code fov <degrees>}, {@code quit}. Lines starting with {@code #} are comments. Writes visualshots.txt with each step and its result, so the same views can be re-shot after
+ * contains the text, in world axes), {@code shot <name>} (saves {@code screenshots/vis-<name>.png}), {@code fov <degrees>}, {@code window <width> <height>} (window size in screen points), {@code guiscale <n>} (0 is automatic), {@code screen panel <tab>|wrench|menu [tab]|close}, {@code mouse <x> <y>} (cursor, in window points), {@code click <x> <y>} (GUI-scaled), {@code quit}. Lines starting with {@code #} are comments. Writes visualshots.txt with each step and its result, so the same views can be re-shot after
  * every change.
  * <p>
  * With {@code -Datr.visualshots.watch=<folder>} the client stays open after the script: every {@code .txt} script dropped
@@ -126,6 +126,35 @@ public final class VisualShots implements ClientModInitializer {
 				case "view" -> client.options.getViewDistance().setValue(Integer.parseInt(arg.strip()));
 				case "hud" -> client.options.hudHidden = arg.strip().equals("off");
 				case "fov" -> client.options.getFov().setValue(Integer.parseInt(arg.strip()));
+				case "window" -> {
+					final String[] size = arg.strip().split("\\s+");
+					org.lwjgl.glfw.GLFW.glfwSetWindowSize(client.getWindow().getHandle(), Integer.parseInt(size[0]), Integer.parseInt(size[1]));
+				}
+				case "screen" -> openScreen(client, arg.strip());
+				case "click" -> {
+					// a left click at GUI-scaled x y on the open screen
+					final String[] at = arg.strip().split("\\s+");
+					if (client.currentScreen != null) {
+						client.currentScreen.mouseClicked(Double.parseDouble(at[0]), Double.parseDouble(at[1]), 0);
+						client.currentScreen.mouseReleased(Double.parseDouble(at[0]), Double.parseDouble(at[1]), 0);
+					}
+				}
+				case "mouse" -> {
+					final String[] at = arg.strip().split("\\s+");
+					org.lwjgl.glfw.GLFW.glfwSetCursorPos(client.getWindow().getHandle(), Double.parseDouble(at[0]), Double.parseDouble(at[1]));
+					// GLFW sends no move event for a cursor set from code, so tell the game's mouse handler directly (dev names)
+					try {
+						final java.lang.reflect.Method move = net.minecraft.client.Mouse.class.getDeclaredMethod("onCursorPos", long.class, double.class, double.class);
+						move.setAccessible(true);
+						move.invoke(client.mouse, client.getWindow().getHandle(), Double.parseDouble(at[0]), Double.parseDouble(at[1]));
+					} catch (ReflectiveOperationException e) {
+						LOGGER.warn("Could not move the game's cursor", e);
+					}
+				}
+				case "guiscale" -> {
+					client.options.getGuiScale().setValue(Integer.parseInt(arg.strip()));
+					client.onResolutionChanged();
+				}
 				case "quit" -> {
 					finish(client);
 					return;
@@ -142,6 +171,21 @@ public final class VisualShots implements ClientModInitializer {
 		} catch (RuntimeException e) {
 			LOGGER.error("Step failed: {}", step, e);
 			results.add(step + ": FAILED " + e);
+		}
+	}
+
+	/** {@code panel <TAB>} the Aurelia panel on a tab, {@code wrench} the wrench in the main hand, {@code menu} the ATR menu, {@code close}. */
+	private static void openScreen(MinecraftClient client, String arg) {
+		final String[] words = arg.split("\\s+");
+		switch (words[0]) {
+			case "panel" -> client.setScreen(new org.mtr.aurelia.client.screen.AureliaPanelScreen(null,
+					org.mtr.aurelia.client.screen.AureliaPanelScreen.Tab.valueOf(words[1].toUpperCase(Locale.ROOT))));
+			case "wrench" -> com.aureliatransit.architecture.client.StationWrenchScreen.open(net.minecraft.util.Hand.MAIN_HAND);
+			case "menu" -> com.aureliatransit.architecture.client.AtrMenuScreen.open(null, words.length > 1
+					? com.aureliatransit.architecture.client.AtrMenuScreen.Tab.valueOf(words[1].toUpperCase(Locale.ROOT))
+					: com.aureliatransit.architecture.client.AtrMenuScreen.Tab.BUILD);
+			case "close" -> client.setScreen(null);
+			default -> throw new IllegalArgumentException("unknown screen " + arg);
 		}
 	}
 
