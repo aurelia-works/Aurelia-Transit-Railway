@@ -44,6 +44,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		PocketTimetableClient.init();
 		StationStudioClient.init();
 		StationPaceClient.register();
+		FarePolicyClient.register();
 		WrenchClient.init();
 		WrenchSettings.load(FabricLoader.getInstance().getConfigDir());
 		initMenuEntries();

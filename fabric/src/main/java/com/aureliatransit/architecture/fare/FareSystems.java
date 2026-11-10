@@ -9,7 +9,8 @@ import net.minecraft.server.network.ServerPlayerEntity;
 
 /**
  * Common/server init of fares: the {@code /card} command and a free transit card for every player on their first join
- * (remembered with a player command tag, so it survives relogs and is never given twice).
+ * (remembered with a player command tag, so it survives relogs and is never given twice). Each joining player is also
+ * sent the zone fare ({@link FareSync}) for the terminals' journey planner.
  */
 public final class FareSystems {
 
@@ -22,6 +23,7 @@ public final class FareSystems {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> CardCommand.register(dispatcher));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			final ServerPlayerEntity player = handler.getPlayer();
+			FareSync.send(player);
 			if (MtrFareContract.available() && player.addCommandTag(GIVEN_TAG)) {
 				if (!CardCommand.hasCard(player)) {
 					player.getInventory().offerOrDrop(new ItemStack(ModItems.TRANSIT_CARD));

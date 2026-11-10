@@ -115,6 +115,27 @@ public final class JourneyPlanner {
 		return new Journey(legs, transfers, fare);
 	}
 
+	/**
+	 * Every stop on the map other than {@code here}, once each (names match as in {@link #plan}), sorted by name. These are
+	 * the places a terminal can plan to.
+	 */
+	public static List<String> destinations(SystemMap map, String here) {
+		if (map == null) {
+			return List.of();
+		}
+		final String start = key(here);
+		final Map<String, String> seen = new java.util.TreeMap<>();
+		for (final MapLine line : map.lines()) {
+			for (final MapStop stop : line.stops()) {
+				final String name = key(stop.name());
+				if (!name.isEmpty() && !name.equals(start)) {
+					seen.putIfAbsent(name, stop.name().trim());
+				}
+			}
+		}
+		return List.copyOf(seen.values());
+	}
+
 	/** The soonest departure whose route number or name contains the leg's line label. */
 	public static ServiceSnapshot nextDeparture(List<ServiceSnapshot> services, String lineLabel, long now) {
 		final List<ServiceSnapshot> upcoming = TerminalDepartures.select(

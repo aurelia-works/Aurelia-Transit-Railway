@@ -28,7 +28,7 @@ public final class StationAudit {
 		TRACKS("Tracks"), FACES("Boarding edges"), RAIL_NODES("Rail nodes"), ROOF("Roof cover"), HEADROOM("Headroom"), ACCESS("Step-free access"),
 		NAME_SIGNS("Name signs"), GROUNDED("Nothing floating"), FALLS("No falls"), SIZE("Size"), LIGHTING("Lighting"), FURNISHING("Furnishing"),
 		RUNWAYS("Runways"), TAXIWAYS("Taxiways"), GATES("Gates"), TERMINAL("Terminal"), SKIPPED("Skipped blocks"),
-		TRAIN_LENGTH("Train fit"), PLATFORM_HEIGHT("Platform height"), REAL("Real station fit");
+		TRAIN_LENGTH("Train fit"), PLATFORM_HEIGHT("Platform height"), REAL("Real station fit"), FARE_LINE("Fare line sealed");
 
 		private final String title;
 
@@ -167,6 +167,8 @@ public final class StationAudit {
 		private final List<Access> access = new ArrayList<>();
 		/** Lifts as step-free links between their ground and upper landings; found by {@link #access()}. */
 		private List<Flight> lifts = List.of();
+		/** Set while {@link #fareLine()} walks: fare gates and check-in lanes count as shut. */
+		private boolean gatesShut;
 
 		Audit(StationPlan plan) {
 			this.plan = plan;
@@ -211,6 +213,7 @@ public final class StationAudit {
 			roof();
 			headroom();
 			access();
+			fareLine();
 			nameSigns();
 			grounded();
 			falls();
@@ -233,6 +236,7 @@ public final class StationAudit {
 		}
 
 		private void faces() {
+			drawnCells = DrawnShape.cellsOf(spec.options().shapes());
 			final int before = checks.size();
 			final List<Integer> through = new ArrayList<>();
 			for (final TrackLayout.Track track : layout.tracks()) {
@@ -255,6 +259,9 @@ public final class StationAudit {
 			pass(Topic.FACES, message.toString());
 		}
 
+		/** Cells inside the platforms and buildings drawn in the editor, whose edges are not the planned faces. */
+		private java.util.Set<Long> drawnCells = java.util.Set.of();
+
 		/** Measures the edge cells facing one side of a track and records the face, or fails. */
 		private void face(TrackLayout.Track track, boolean left, boolean wanted) {
 			final int edgeU = left ? track.u() - StationGeometry.EDGE_OFFSET : track.u() + StationGeometry.EDGE_OFFSET;
@@ -264,7 +271,9 @@ public final class StationAudit {
 			int start = Integer.MIN_VALUE;
 			for (int v = layout.vMin(); v <= layout.vMax() + 1; v++) {
 				final PlannedBlock block = v <= layout.vMax() ? at(edgeU, track.level(), v) : null;
-				final boolean edge = block != null && block.role() == Role.PLATFORM_EDGE && block.front() == toward;
+				// a platform drawn by hand (PlanFreehand) has its own edge; only the planned platforms are faces
+				final boolean edge = block != null && block.role() == Role.PLATFORM_EDGE && block.front() == toward
+						&& !drawnCells.contains(DrawnShape.key(edgeU, v));
 				if (edge && start == Integer.MIN_VALUE) {
 					start = v;
 				} else if (!edge && start != Integer.MIN_VALUE) {
@@ -419,7 +428,12 @@ public final class StationAudit {
 
 		private boolean standableAt(int u, int walkY, int v) {
 			final PlannedBlock block = at(u, walkY, v);
-			return block == null || block.role().passable();
+			return block == null || passes(block);
+		}
+
+		/** A passenger walks through this planned cell: an open fare gate or lane (unless {@link #gatesShut}), a rail on the ground. */
+		private boolean passes(PlannedBlock block) {
+			return block.role().passable() && !(gatesShut && block.role() == Role.GATE);
 		}
 
 		private void headroom() {
@@ -560,7 +574,7 @@ public final class StationAudit {
 				return Ground.BLOCKED;
 			}
 			final PlannedBlock atWalk = at(u, StationGeometry.WALK_Y, v);
-			if (atWalk != null && !atWalk.role().passable()) {
+			if (atWalk != null && !passes(atWalk)) {
 				return Ground.BLOCKED;
 			}
 			return trackColumn(u, v) ? Ground.TRACK : Ground.GROUND;
@@ -906,29 +920,12 @@ public final class StationAudit {
 				deepAccess();
 				return;
 			}
-			final Ground[] grid = new Ground[(uMax() - uMin() + 1) * (vMax() - vMin() + 1)];
-			for (int u = uMin(); u <= uMax(); u++) {
-				for (int v = vMin(); v <= vMax(); v++) {
-					grid[index(u, v)] = ground(u, v);
-				}
-			}
+			final Ground[] grid = groundGrid();
 			final StationLayout site = StationLayout.of(spec, layout);
 			final boolean hasStairs = site.building() || site.bridge();
-			final Ground[] upper;
-			final List<Flight> flights;
-			if (hasStairs) {
-				upper = new Ground[grid.length];
-				for (int u = uMin(); u <= uMax(); u++) {
-					for (int v = vMin(); v <= vMax(); v++) {
-						upper[index(u, v)] = upperGround(u, v);
-					}
-				}
-				flights = flights(grid, upper);
-				lifts = lifts(grid, upper);
-			} else {
-				upper = null;
-				flights = List.of();
-			}
+			final Ground[] upper = hasStairs ? upperGrid() : null;
+			final List<Flight> flights = hasStairs ? flights(grid, upper) : List.of();
+			lifts = hasStairs ? lifts(grid, upper) : List.of();
 			final boolean[] stepFree = hasStairs ? reach(grid, upper, flights, false, false, false) : reach(grid, false, false);
 			final boolean[] viaStairs = hasStairs ? stairFed(grid, upper, flights) : new boolean[grid.length];
 			final boolean[] stepped = hasStairs ? reach(grid, upper, flights, true, false, true) : reach(grid, true, false);
@@ -973,6 +970,92 @@ public final class StationAudit {
 			}
 		}
 
+		private Ground[] groundGrid() {
+			final Ground[] grid = new Ground[(uMax() - uMin() + 1) * (vMax() - vMin() + 1)];
+			for (int u = uMin(); u <= uMax(); u++) {
+				for (int v = vMin(); v <= vMax(); v++) {
+					grid[index(u, v)] = ground(u, v);
+				}
+			}
+			return grid;
+		}
+
+		private Ground[] upperGrid() {
+			final Ground[] upper = new Ground[(uMax() - uMin() + 1) * (vMax() - vMin() + 1)];
+			for (int u = uMin(); u <= uMax(); u++) {
+				for (int v = vMin(); v <= vMax(); v++) {
+					upper[index(u, v)] = upperGround(u, v);
+				}
+			}
+			return upper;
+		}
+
+		/**
+		 * The paid area is sealed: with every fare gate and check-in lane shut, nobody walking in from the street (stepping up
+		 * kerbs, climbing stairs, riding lifts) reaches a platform's boarding edge. Walking along the tracks is left out: the
+		 * line has to stay open for the trains. Checked where the station has check-in poles with their lanes
+		 * (street entrances); stations whose only fare line is a building's gate line are not checked yet, since closing their
+		 * open platforms means fencing them with glass, which is Jah's call (11-09). A leak is a warning, not a failure.
+		 */
+		private void fareLine() {
+			if (spec.options().openFareLine()) {
+				pass(Topic.FARE_LINE, "Open fare line: anyone walks past the check-in poles, as asked");
+				return;
+			}
+			if (plan.blocks().stream().noneMatch(block -> block.blockId().equals(PlanPlatforms.CHECK_IN_LANE))) {
+				// no check-in poles: gate lines in station buildings are not walked round yet (fencing open platforms is Jah's call)
+				return;
+			}
+			gatesShut = true;
+			final List<Flight> openLifts = lifts;
+			final List<String> leaks = new ArrayList<>();
+			try {
+				if (spec.options().deepStation()) {
+					dyMin = -1;
+					dyMax = spec.options().streetDepth() + PlanDeep.HALL_HEIGHT + 2;
+					dvMin = layout.vMin();
+					dvMax = layout.vMax();
+					final boolean[] seen = deepReach(true, deepLifts());
+					for (final TrackLayout.PlatformBand band : layout.platforms()) {
+						for (int u = band.uMin(); u <= band.uMax(); u++) {
+							for (int v = band.vFrom(); v <= band.vTo(); v++) {
+								final int walkY = band.level() + StationGeometry.WALK_Y;
+								if (has(u, band.level(), v, Role.PLATFORM_EDGE) && at(u, walkY, v) == null && seen[deepIndex(u, walkY, v)]) {
+									leaks.add("platform " + band.number() + " at u=" + u + " v=" + v);
+								}
+							}
+						}
+					}
+				} else {
+					final Ground[] grid = groundGrid();
+					final StationLayout site = StationLayout.of(spec, layout);
+					final boolean hasStairs = site.building() || site.bridge();
+					final Ground[] upper = hasStairs ? upperGrid() : null;
+					final List<Flight> flights = hasStairs ? flights(grid, upper) : List.of();
+					lifts = hasStairs ? lifts(grid, upper) : List.of();
+					final boolean[] seen = hasStairs ? reach(grid, upper, flights, true, false, true) : reach(grid, true, false);
+					for (final TrackLayout.PlatformBand band : layout.platforms()) {
+						for (int u = band.uMin(); u <= band.uMax(); u++) {
+							for (int v = band.vFrom(); v <= band.vTo(); v++) {
+								if (grid[index(u, v)] == Ground.PLATFORM && has(u, StationGeometry.PLATFORM_Y, v, Role.PLATFORM_EDGE) && seen[index(u, v)]) {
+									leaks.add("platform " + band.number() + " at u=" + u + " v=" + v);
+								}
+							}
+						}
+					}
+				}
+			} finally {
+				gatesShut = false;
+				lifts = openLifts;
+			}
+			if (leaks.isEmpty()) {
+				pass(Topic.FARE_LINE, "Every way onto the platforms passes the check-in poles or a fare gate");
+			} else {
+				warn(Topic.FARE_LINE, "A passenger can walk onto " + leaks.get(0) + " without passing a card reader or fare gate (" + leaks.size() + " edge cells)",
+						"Something stands where the glass along the street walkway should be, or a new way on was built; rebuild, and report it if this stays.");
+			}
+		}
+
 		// ---- a deep station's access: a walk through the plan's own cells -----------------------------------------------
 
 		/** Walkers' feet cell grid of a deep station: bounds of the plan, with the street's level and some air above it. */
@@ -992,7 +1075,7 @@ public final class StationAudit {
 			}
 			final PlannedBlock block = at(u, y, v);
 			if (block != null) {
-				return block.role().passable() || block.role() == Role.ESCALATOR && !block.blockId().equals(StylePalette.MTR_ESCALATOR_STEP);
+				return passes(block) || block.role() == Role.ESCALATOR && !block.blockId().equals(StylePalette.MTR_ESCALATOR_STEP);
 			}
 			return y >= spec.options().streetDepth() || dug(u, y, v);
 		}

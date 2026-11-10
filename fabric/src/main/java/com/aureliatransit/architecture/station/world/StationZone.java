@@ -10,21 +10,34 @@ import java.util.List;
  * clearing and fill left out), one block wider all round so the platforms' rail nodes at the ends are inside. MTR areas are
  * columns: like the dashboard, the zone covers every height.
  */
-public record StationZone(String name, int color, int minX, int minZ, int maxX, int maxZ, int centerY, List<PlatformRail> rails, List<com.aureliatransit.architecture.station.AirportRails.AirRail> airRails) {
+public record StationZone(String name, int color, int minX, int minZ, int maxX, int maxZ, int centerY, List<PlatformRail> rails,
+		List<com.aureliatransit.architecture.station.AirportRails.AirRail> airRails, List<com.aureliatransit.architecture.station.DrawnTrack.Leg> drawnRails) {
 
 	public StationZone {
 		rails = List.copyOf(rails);
 		airRails = List.copyOf(airRails);
+		drawnRails = drawnRails == null ? List.of() : List.copyOf(drawnRails);
+	}
+
+	/** A zone with no drawn tracks (as before the station editor drew them). */
+	public StationZone(String name, int color, int minX, int minZ, int maxX, int maxZ, int centerY, List<PlatformRail> rails,
+			List<com.aureliatransit.architecture.station.AirportRails.AirRail> airRails) {
+		this(name, color, minX, minZ, maxX, maxZ, centerY, rails, airRails, List.of());
 	}
 
 	/** The same zone with the platform rails the build lays and numbers. */
 	public StationZone withRails(List<PlatformRail> platformRails) {
-		return new StationZone(name, color, minX, minZ, maxX, maxZ, centerY, platformRails, airRails);
+		return new StationZone(name, color, minX, minZ, maxX, maxZ, centerY, platformRails, airRails, drawnRails);
 	}
 
 	/** The same zone with the gate-loop rails of an airport, which the build lays. */
 	public StationZone withAirRails(List<com.aureliatransit.architecture.station.AirportRails.AirRail> loopRails) {
-		return new StationZone(name, color, minX, minZ, maxX, maxZ, centerY, rails, loopRails);
+		return new StationZone(name, color, minX, minZ, maxX, maxZ, centerY, rails, loopRails, drawnRails);
+	}
+
+	/** The same zone with the rails of the tracks drawn in the station editor ({@link com.aureliatransit.architecture.station.DrawnTrack}). */
+	public StationZone withDrawnRails(List<com.aureliatransit.architecture.station.DrawnTrack.Leg> legs) {
+		return new StationZone(name, color, minX, minZ, maxX, maxZ, centerY, rails, airRails, legs);
 	}
 
 	public static final String UNNAMED = "New Station";

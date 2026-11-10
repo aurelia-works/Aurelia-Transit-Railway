@@ -79,6 +79,8 @@ public final class StudioServer {
 	private final String token;
 	/** Changes on every start, so pages can tell a restarted server; not the token. */
 	private final String boot;
+	/** Where station files live ({@link StationFiles}); null until the game sets it, and then the page has no Open/Save. */
+	private volatile StationFiles stations;
 
 	private StudioServer(HttpServer server, StudioApi api, BlockModels.AssetSource assets, Sender sender, Player player) {
 		this.server = server;
@@ -195,6 +197,8 @@ public final class StudioServer {
 			export(exchange, method.equals("GET"));
 		} else if (path.equals("/api/send") && method.equals("POST")) {
 			send(exchange);
+		} else if (path.equals("/api/stations") || path.equals("/api/station")) {
+			stationFile(exchange, path.equals("/api/stations"), method);
 		} else if (path.matches("/thumbs/[A-Z_]{1,32}\\.jpg")) {
 			thumbnail(exchange, path.substring(1));
 		} else if (path.startsWith("/tex/") && path.endsWith(".png")) {
@@ -468,6 +472,57 @@ public final class StudioServer {
 		exchange.sendResponseHeaders(status, bytes.length);
 		try (OutputStream out = exchange.getResponseBody()) {
 			out.write(bytes);
+		}
+	}
+
+	/** Sets the folder the page opens and saves station files in (the game's {@code config/aurelia/stations}). */
+	public void stations(StationFiles files) {
+		this.stations = files;
+	}
+
+	/**
+	 * Station files: GET {@code /api/stations} lists them, GET {@code /api/station?file=id} reads one, POST {@code /api/station}
+	 * (the form, as for {@code /api/plan}) saves one under its name. All need the page token: they read and write files.
+	 */
+	private void stationFile(HttpExchange exchange, boolean list, String method) throws IOException {
+		if (!token.equals(exchange.getRequestHeaders().getFirst("X-Studio-Token"))) {
+			reply(exchange, 403, "text/plain", "Reload the studio page.");
+			return;
+		}
+		final StationFiles files = stations;
+		if (files == null) {
+			reply(exchange, 409, "text/plain", "Open the studio from the game to open and save station files.");
+			return;
+		}
+		exchange.getResponseHeaders().set("Cache-Control", "no-store");
+		try {
+			if (list && method.equals("GET")) {
+				reply(exchange, 200, "application/json", StationFiles.listJson(files.list()));
+			} else if (!list && method.equals("GET")) {
+				final String query = exchange.getRequestURI().getRawQuery();
+				final String file = form(query == null ? "" : query).getOrDefault("file", "");
+				if (!StationFiles.validFile(file)) {
+					reply(exchange, 400, "text/plain", "No such station file.");
+					return;
+				}
+				reply(exchange, 200, "application/json", StationFiles.formJson(file, files.read(file)));
+			} else if (!list && method.equals("POST")) {
+				final Map<String, String> form = form(body(exchange));
+				form.remove("action");
+				// as the in-game Save: a station without a name would replace the shared "station" file
+				if (form.getOrDefault("name", "").isBlank()) {
+					reply(exchange, 400, "text/plain", "Give the station a name before saving it.");
+					return;
+				}
+				final String file = files.write(form);
+				reply(exchange, 200, "application/json", "{\"file\":" + Json.quote(file) + ",\"dir\":" + Json.quote(files.dir().toString()) + "}");
+			} else {
+				reply(exchange, 405, "text/plain", "Use GET or POST.");
+			}
+		} catch (java.nio.file.NoSuchFileException e) {
+			reply(exchange, 404, "text/plain", "That station file is gone.");
+		} catch (IllegalArgumentException e) {
+			reply(exchange, 400, "text/plain", "That is not a station file.");
 		}
 	}
 }

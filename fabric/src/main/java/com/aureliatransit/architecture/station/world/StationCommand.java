@@ -280,7 +280,8 @@ public final class StationCommand {
 		if (zone == null) {
 			return null;
 		}
-		final StationZone railed = zone.withRails(com.aureliatransit.architecture.station.PlatformRail.of(pending.plan(), frame));
+		final StationZone railed = zone.withRails(com.aureliatransit.architecture.station.PlatformRail.of(pending.plan(), frame))
+				.withDrawnRails(pending.spec().isAirport() ? List.of() : com.aureliatransit.architecture.station.DrawnTrack.legs(pending.plan(), frame));
 		if (!pending.spec().isAirport()) {
 			return railed;
 		}

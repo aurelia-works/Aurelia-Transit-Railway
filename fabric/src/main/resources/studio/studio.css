@@ -474,3 +474,7 @@ body[data-page="airport"] .st-only, body:not([data-page="airport"]) .ap-only { d
 /* The airport page has no pickers for its shape, so its words box is the main input: no advanced fold. */
 body[data-page="airport"] #wordsAdvanced > summary { display: none; }
 body[data-page="airport"] #wordsAdvanced { border: 0; background: transparent; }
+
+/* station files shared with the game's station editor: the list takes the row, Open and Save sit beside it */
+.dock-row.files { grid-template-columns: minmax(0, 1fr) auto auto; margin-top: 8px; }
+.dock-row.files select { width: 100%; min-width: 0; }

@@ -2,6 +2,10 @@ package com.aureliatransit.architecture.gametest;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.TextSignBlock;
+import com.aureliatransit.architecture.earthworks.EarthJob;
+import com.aureliatransit.architecture.earthworks.EarthLook;
+import com.aureliatransit.architecture.earthworks.EarthPlanner;
+import com.aureliatransit.architecture.earthworks.EarthTool;
 import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
 import com.aureliatransit.architecture.registry.ModItems;
 import com.aureliatransit.architecture.station.world.MtrLiftContract;
@@ -332,6 +336,82 @@ public class StationGameTests implements FabricGameTest {
 			for (final Map.Entry<BlockPos, BlockState> cell : ground.entrySet()) {
 				check(world.getBlockState(cell.getKey()).equals(cell.getValue()), "undo did not give back the ground at " + cell.getKey()
 						+ ": " + world.getBlockState(cell.getKey()));
+			}
+			context.complete();
+		});
+	}
+
+	/** Earthworks Level cuts a hill and fills a hollow, and undo gives the ground back block for block (Jah 11-10). */
+	@GameTest(templateName = SITE_LARGE, tickLimit = 600)
+	public void earthworksLevelIsUndoneBlockForBlock(TestContext context) {
+		final ServerWorld world = context.getWorld();
+		final UUID owner = new UUID(0, 90);
+		// grass ground at y 2, a stone hill three high in the middle and a hollow in one corner
+		for (int x = 4; x <= 12; x++) {
+			for (int z = 4; z <= 12; z++) {
+				context.setBlockState(new BlockPos(x, 1, z), Blocks.DIRT);
+				context.setBlockState(new BlockPos(x, 2, z), Blocks.GRASS_BLOCK);
+			}
+		}
+		for (int x = 7; x <= 9; x++) {
+			for (int z = 7; z <= 9; z++) {
+				for (int y = 3; y <= 5; y++) {
+					context.setBlockState(new BlockPos(x, y, z), Blocks.STONE);
+				}
+			}
+		}
+		context.setBlockState(new BlockPos(5, 2, 5), Blocks.AIR);
+		final Map<BlockPos, BlockState> ground = new HashMap<>();
+		for (int x = 3; x <= 13; x++) {
+			for (int z = 3; z <= 13; z++) {
+				for (int y = 0; y <= 20; y++) {
+					final BlockPos pos = context.getAbsolutePos(new BlockPos(x, y, z));
+					ground.put(pos, world.getBlockState(pos));
+				}
+			}
+		}
+		final BlockPos a = context.getAbsolutePos(new BlockPos(4, 2, 4));
+		final BlockPos b = context.getAbsolutePos(new BlockPos(12, 2, 12));
+		final EarthJob earth = new EarthJob(EarthTool.LEVEL, new EarthJob.Point(a.getX(), a.getY(), a.getZ()),
+				new EarthJob.Point(b.getX(), b.getY(), b.getZ()), 0, 0, EarthLook.STONE);
+		check(earth.problem() == null, "job: " + earth.problem());
+		final WorldSiteProbe probe = WorldSiteProbe.loading(world);
+		final EarthPlanner.Result result = EarthPlanner.plan(earth, probe);
+		probe.release();
+		check(!result.tooBig() && !result.ops().isEmpty(), "planned " + result.ops().size() + " ops, too big " + result.tooBig());
+		final BlockStateResolver.Resolution resolution = BlockStateResolver.resolve(result.ops());
+		check(resolution.ok(), "unknown blocks " + resolution.missing());
+		final List<Text> said = new ArrayList<>();
+		final StationBuildJob job = StationBuildJob.build(world, owner, resolution, true, said::add, null);
+		check(StationSessions.start(job), "a build was already running");
+		context.runAtEveryTick(() -> {
+			if (!job.finished()) {
+				return;
+			}
+			check(job.state() == StationBuildJob.State.DONE, "job " + job.state() + " " + said);
+			final List<String> problems = new ArrayList<>();
+			for (int x = 7; x <= 9; x++) {
+				for (int z = 7; z <= 9; z++) {
+					for (int y = 3; y <= 5; y++) {
+						if (!context.getBlockState(new BlockPos(x, y, z)).isAir()) {
+							problems.add("hill not cut at " + x + " " + y + " " + z);
+						}
+					}
+				}
+			}
+			if (context.getBlockState(new BlockPos(5, 2, 5)).isAir()) {
+				problems.add("hollow not filled");
+			}
+			Fixtures.failIfAny(problems, "the level");
+			StationSessions.cancelJob(owner);
+			final StationBuildJob undo = StationBuildJob.undo(world, owner, job.undoLog(), text -> {
+			});
+			while (!undo.finished()) {
+				undo.step(StationBuildJob.OPS_PER_TICK);
+			}
+			for (final Map.Entry<BlockPos, BlockState> cell : ground.entrySet()) {
+				check(world.getBlockState(cell.getKey()).equals(cell.getValue()), "undo did not give back " + cell.getKey()
+						+ ": " + world.getBlockState(cell.getKey()) + ", was " + cell.getValue());
 			}
 			context.complete();
 		});

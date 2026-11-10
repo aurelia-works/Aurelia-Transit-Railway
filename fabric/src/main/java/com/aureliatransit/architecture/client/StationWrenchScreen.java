@@ -2,6 +2,9 @@ package com.aureliatransit.architecture.client;
 
 import com.aureliatransit.architecture.block.elevated.StyleCycle;
 import com.aureliatransit.architecture.client.interactive.EditorWidgets;
+import com.aureliatransit.architecture.earthworks.EarthJob;
+import com.aureliatransit.architecture.earthworks.EarthLook;
+import com.aureliatransit.architecture.earthworks.EarthTool;
 import com.aureliatransit.architecture.network.ModPackets;
 import com.aureliatransit.architecture.station.AirportPresets;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
@@ -600,17 +603,61 @@ public class StationWrenchScreen extends Screen {
 
 	// ---- earthworks page -------------------------------------------------------------------------------------------
 
+	/** The earthworks choices, kept while the game runs so the next job starts from the last one. */
+	private static EarthTool earthTool = EarthTool.LEVEL;
+	private static int earthWidth;
+	private static int earthHeight;
+	private static EarthLook earthLook = EarthLook.STONE;
+
+	/** A hint line, then tool, sizes, look and points, build and undo, clear and guide. */
 	private static int earthworksHeight() {
-		return 12 + 24 + ROW + 16;
+		return 24 + 5 * ROW;
 	}
 
 	private void initEarthworks() {
 		final int left = (width - column) / 2;
-		final int top = top(earthworksHeight());
+		int y = top(earthworksHeight()) + 24;
+		final EarthJob job = earthJob();
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "earthworks.tool", Text.translatable(KEY + "earthworks.tool." + earthTool.id())), b -> {
+			earthTool = earthTool.next();
+			earthWidth = 0;
+			earthHeight = 0;
+			clearAndInit();
+		}).dimensions(left, y, column, 20).tooltip(Tooltip.of(Text.translatable(KEY + "earthworks.tool." + earthTool.id() + ".tip"))).build());
+		y += ROW;
+		final ButtonWidget widthButton = ButtonWidget.builder(Text.translatable(KEY + "earthworks.width", job.width()), b -> {
+			earthWidth = job.width() + 2 > EarthJob.MAX_WIDTH ? 1 : job.width() + 2;
+			clearAndInit();
+		}).dimensions(left, y, half, 20).tooltip(Tooltip.of(Text.translatable(KEY + "earthworks.width.tip"))).build();
+		widthButton.active = earthTool.usesWidth();
+		addDrawableChild(widthButton);
+		final ButtonWidget heightButton = ButtonWidget.builder(Text.translatable(KEY + "earthworks.height", job.height()), b -> {
+			earthHeight = job.height() + 1 > EarthJob.MAX_HEIGHT ? EarthJob.MIN_HEIGHT : job.height() + 1;
+			clearAndInit();
+		}).dimensions(left + half + 4, y, half, 20).tooltip(Tooltip.of(Text.translatable(KEY + "earthworks.height.tip"))).build();
+		heightButton.active = earthTool.usesHeight();
+		addDrawableChild(heightButton);
+		y += ROW;
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "earthworks.look", Text.translatable(KEY + "earthworks.look." + earthLook.id())), b -> {
+			earthLook = earthLook.next();
+			clearAndInit();
+		}).dimensions(left, y, half, 20).tooltip(Tooltip.of(Text.translatable(KEY + "earthworks.look.tip"))).build());
+		runButton(left + half + 4, y, half, "earthworks.points", "atr_earthworks points");
+		y += ROW;
+		runButton(left, y, half, "earthworks.build", "atr_earthworks build " + earthTool.id() + " " + job.width() + " " + job.height() + " " + earthLook.id());
+		runButton(left + half + 4, y, half, "earthworks.undo", "atr_earthworks undo");
+		y += ROW;
+		runButton(left, y, half, "earthworks.clear", "atr_earthworks clear");
 		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "earthworks.guide"), b -> {
 			close();
 			CodexScreen.openChapter("Getting started");
-		}).dimensions(left, top + 12 + 24, column, 20).build());
+		}).dimensions(left + half + 4, y, half, 20).build());
+	}
+
+	/** The sizes the earthworks buttons show and send: the tool's own until the player changes them, kept in range. */
+	private static EarthJob earthJob() {
+		final EarthJob.Point origin = new EarthJob.Point(0, 0, 0);
+		return new EarthJob(earthTool, origin, origin, earthWidth, earthHeight, earthLook);
 	}
 
 	private Text moreLabel() {
@@ -778,12 +825,16 @@ public class StationWrenchScreen extends Screen {
 		setInitialFocus(field);
 	}
 
-	/** Opens Station Studio in the browser (bigger description, 3D preview, checks); Escape closes this screen. */
+	/**
+	 * Opens the station editor on this station ({@link StationEditorScreen}: plan from above, 3D view, station files shared with
+	 * Station Studio, which it opens in the browser).
+	 */
 	private ButtonWidget studioButton(int x, int y, int w) {
-		return ButtonWidget.builder(Text.translatable(KEY + "studio"), b -> {
-			close();
-			StationStudioClient.open();
-		}).dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + "studio.tip"))).build();
+		return ButtonWidget.builder(Text.translatable(KEY + "editor"), b -> {
+			if (client != null) {
+				client.setScreen(new StationEditorScreen(hand, description()));
+			}
+		}).dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + "editor.tip"))).build();
 	}
 
 	// ---- shared ---------------------------------------------------------------------------------------------------
@@ -839,8 +890,8 @@ public class StationWrenchScreen extends Screen {
 			case EARTHWORKS -> {
 				final int top = top(earthworksHeight());
 				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
-				context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.soon"), left + column / 2, top + 12, 0xE0C060);
-				context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.body"), left + column / 2, top + 12 + 12, 0x9AA0A6);
+				context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.hint"), left, top, 0x9AA0A6);
+				context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.hint2"), left, top + 11, 0x9AA0A6);
 			}
 			case STATION -> {
 				if (picker != Picker.NONE) {

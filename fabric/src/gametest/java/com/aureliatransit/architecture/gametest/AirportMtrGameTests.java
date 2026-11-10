@@ -2,6 +2,7 @@ package com.aureliatransit.architecture.gametest;
 
 import com.aureliatransit.architecture.station.Heading;
 import com.aureliatransit.architecture.station.world.StationBuildJob;
+import com.aureliatransit.architecture.station.world.StationBuildSettings;
 import com.aureliatransit.architecture.station.world.StationCommand;
 import com.aureliatransit.architecture.station.world.StationSessions;
 import java.lang.reflect.Field;
@@ -39,6 +40,18 @@ public class AirportMtrGameTests implements FabricGameTest {
 	private static final int UNDO_TICKS = 200;
 	/** Ten minutes at 50 ms, for the build and the depot to generate. */
 	static final int SETUP_TICKS = 12000;
+
+	/**
+	 * Sets the server's build rate to the highest a player may set (the station command's blocks-per-tick setting), so the
+	 * airport's 800,000 blocks go down in seconds of CI instead of about three minutes; MTR's own waits stay in real time.
+	 * Returns what puts the rate back. The test checks the same finished airport either way.
+	 */
+	static Runnable fastBuilds(ServerWorld world) {
+		final net.minecraft.server.MinecraftServer server = world.getServer();
+		final int before = StationBuildSettings.blocksPerTick(server);
+		StationBuildSettings.set(server, StationBuildSettings.MAX);
+		return () -> StationBuildSettings.set(server, before);
+	}
 
 	static void say(String line) {
 		System.out.println("AIRPORT-MTR: " + line);
@@ -97,6 +110,7 @@ public class AirportMtrGameTests implements FabricGameTest {
 		final UUID owner = new UUID(23, 1);
 		final List<String> said = new ArrayList<>();
 		final StationSessions.Pending pending = StationCommand.prepare(world, WORDS, context.getAbsolutePos(FEET), Heading.SOUTH);
+		final Runnable normalBuilds = fastBuilds(world);
 		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, true, text -> {
 			said.add(text.getString());
 			say("build says: " + text.getString());
@@ -140,6 +154,7 @@ public class AirportMtrGameTests implements FabricGameTest {
 			if (undoneAt[0] >= 0) {
 				if (!airportInMtr(sim[0])) {
 					say("undo removed the airport's route, depot and gate platforms from MTR");
+					normalBuilds.run();
 					context.complete();
 					return;
 				}

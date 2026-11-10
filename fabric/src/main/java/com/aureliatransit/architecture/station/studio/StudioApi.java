@@ -308,6 +308,16 @@ public final class StudioApi {
 		if (features.height() != StationFeatures.PlatformHeight.AUTO) {
 			text = (text.isEmpty() ? "" : text + ", ") + features.height().key() + " platforms";
 		}
+		// tracks drawn in the station editor, kept in the station file as words
+		final String drawn = com.aureliatransit.architecture.station.DrawnTrack.words(com.aureliatransit.architecture.station.DrawnTrack.parse(q.getOrDefault("drawn", "")));
+		if (!drawn.isEmpty()) {
+			text = (text.isEmpty() ? "" : text + ", ") + drawn;
+		}
+		// platforms and buildings drawn in the station editor, likewise
+		final String shapes = com.aureliatransit.architecture.station.DrawnShape.words(com.aureliatransit.architecture.station.DrawnShape.parse(q.getOrDefault("shapes", "")));
+		if (!shapes.isEmpty()) {
+			text = (text.isEmpty() ? "" : text + ", ") + shapes;
+		}
 		final String seed = q.getOrDefault("seed", "").strip().toLowerCase(Locale.ROOT);
 		return StationSeed.valid(seed) ? text + ", seed " + seed : text;
 	}
