@@ -509,6 +509,11 @@ public final class StudioServer {
 			} else if (!list && method.equals("POST")) {
 				final Map<String, String> form = form(body(exchange));
 				form.remove("action");
+				// as the in-game Save: a station without a name would replace the shared "station" file
+				if (form.getOrDefault("name", "").isBlank()) {
+					reply(exchange, 400, "text/plain", "Give the station a name before saving it.");
+					return;
+				}
 				final String file = files.write(form);
 				reply(exchange, 200, "application/json", "{\"file\":" + Json.quote(file) + ",\"dir\":" + Json.quote(files.dir().toString()) + "}");
 			} else {

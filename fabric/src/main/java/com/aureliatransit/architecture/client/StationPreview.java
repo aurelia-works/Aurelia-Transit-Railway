@@ -450,9 +450,4 @@ public final class StationPreview {
 	public PlanTopView topView() {
 		return topView;
 	}
-
-	/** The line under the preview: block count and size, and whether it can be built. */
-	public String status() {
-		return status;
-	}
 }
