@@ -9,8 +9,8 @@ import java.util.Locale;
  * What the one Aurelia wrench builds. Its screen shows one mode at a time and the mode travels on the stack under a new NBT
  * key, so old {@code station_wrench} and {@code airport_wrench} stacks keep loading and open in their own mode.
  *
- * <p>Station and Airport plan through the parser; Bridge is a front end for the {@code /atr_bridge} tools; Earthworks is a
- * placeholder until that phase lands.
+ * <p>Station and Airport plan through the parser; Bridge is a front end for the {@code /atr_bridge} tools; Earthworks takes
+ * two clicked points and builds with {@code /atr_earthworks}.
  */
 public enum WrenchMode {
 	STATION("station"),
