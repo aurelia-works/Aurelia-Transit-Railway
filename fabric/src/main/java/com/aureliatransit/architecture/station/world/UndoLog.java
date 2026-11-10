@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -284,9 +285,17 @@ public final class UndoLog {
 		return railNodes.contains(pos);
 	}
 
+	/** The rail nodes the build laid, still in the log. */
+	List<BlockPos> railNodes() {
+		return List.copyOf(railNodes);
+	}
+
 	/** A rebuild keeps the last build's platform rails (MTR routes use them) and its undo still removes them. */
-	void copyRails(UndoLog last) {
+	void copyRails(UndoLog last, Set<BlockPos> keep) {
 		for (final BlockPos node : last.railNodes) {
+			if (!keep.contains(node)) {
+				continue;
+			}
 			railNodes.add(node);
 			record(position("rail", node));
 		}
