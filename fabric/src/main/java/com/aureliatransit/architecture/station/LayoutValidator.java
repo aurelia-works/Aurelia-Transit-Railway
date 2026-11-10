@@ -131,9 +131,11 @@ public final class LayoutValidator {
 			// an airport's railway station is dug under its terminal, down to the box's floor
 			final AirportStation rail = plan.spec().isAirport() ? AirportStation.of(plan.spec()) : null;
 			final int minY = plan.spec().underpass() ? StationGeometry.UNDERPASS_FLOOR_Y : rail != null ? rail.dy() + MIN_Y : MIN_Y;
+			// platforms and buildings drawn in the station editor may stand past the footprint, inside their own outlines
+			final java.util.Set<Long> drawn = DrawnShape.cellsOf(plan.spec().options().shapes());
 			for (final PlannedBlock block : plan.blocks()) {
-				if (block.u() < 0 || block.u() >= layout.width() || block.v() < layout.vMin() || block.v() > layout.vMax() || block.y() < minY
-						|| block.y() > MAX_Y) {
+				final boolean outside = block.u() < 0 || block.u() >= layout.width() || block.v() < layout.vMin() || block.v() > layout.vMax();
+				if (outside && !drawn.contains(DrawnShape.key(block.u(), block.v())) || block.y() < minY || block.y() > MAX_Y) {
 					found.add(at(Violation.Kind.OUT_OF_BOUNDS, block, where(block) + " is outside the footprint"));
 				}
 			}

@@ -372,6 +372,7 @@ public final class StationDescriptionParser {
 			}
 			text = extractSwaps(text);
 			text = extractDrawn(text);
+			text = extractShapes(text);
 			text = extractPlatforms(text);
 			text = extractName(text);
 			text = extractSeed(text);
@@ -552,6 +553,17 @@ public final class StationDescriptionParser {
 			options = options.withDrawn(drawn);
 			understood.add(new Note(-1, drawn.size() == 1 ? "1 drawn track" : drawn.size() + " drawn tracks"));
 			return DrawnTrack.strip(text);
+		}
+
+		/** Platforms and buildings drawn in the station editor ("platform shape 2/4 12/4 12/40"), planned by {@link PlanFreehand}. */
+		private String extractShapes(String text) {
+			final List<DrawnShape> shapes = DrawnShape.parse(text);
+			if (shapes.isEmpty()) {
+				return text;
+			}
+			options = options.withShapes(shapes);
+			understood.add(new Note(-1, shapes.size() == 1 ? "1 drawn shape" : shapes.size() + " drawn shapes"));
+			return DrawnShape.strip(text);
 		}
 
 		/** Takes out the block swaps ({@link #SWAPS}), so their block words do not also pick a look or a material. */

@@ -2,6 +2,7 @@ package com.aureliatransit.architecture.client;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.network.ModPackets;
+import com.aureliatransit.architecture.station.DrawnShape;
 import com.aureliatransit.architecture.station.DrawnTrack;
 import com.aureliatransit.architecture.station.PlanTopView;
 import com.aureliatransit.architecture.station.StationRecipe;
@@ -61,8 +62,29 @@ public final class StationEditorScreen extends Screen {
 	private boolean dragging;
 	private PlanTopView uploaded;
 	private boolean textureLive;
-	/** Draw mode: clicks on the plan add points to {@link #path}; right-click finishes it as a drawn track. */
-	private boolean drawing;
+	/** What clicks on the plan draw: points go into {@link #path}; right-click finishes a track or closes a shape. */
+	private enum DrawMode {
+		OFF, TRACK, PLATFORM, BUILDING;
+
+		DrawMode next() {
+			return values()[(ordinal() + 1) % values().length];
+		}
+
+		boolean shape() {
+			return this == PLATFORM || this == BUILDING;
+		}
+
+		DrawnShape.Kind kind() {
+			return this == BUILDING ? DrawnShape.Kind.BUILDING : DrawnShape.Kind.PLATFORM;
+		}
+	}
+
+	private DrawMode mode = DrawMode.OFF;
+	/** For the next shape drawn: a platform's canopy (lamp posts when off) and a building's wall height. */
+	private boolean shapeCanopy = true;
+	private int shapeHeight = DrawnShape.DEFAULT_HEIGHT;
+	/** Left edge of the buttons over the plan, so its heading is only drawn where they leave room. */
+	private int headerLeft;
 	private final List<DrawnTrack.Point> path = new java.util.ArrayList<>();
 	/** Where the plan image was last drawn: its left, top and pixels per block, for turning clicks into cells. */
 	private int planX;
@@ -152,24 +174,48 @@ public final class StationEditorScreen extends Screen {
 		}).dimensions(planBox[2] - roofWidth, 4, roofWidth, 16).tooltip(Tooltip.of(Text.translatable(KEY + "roof.tip"))).build());
 		final Text clearLabel = Text.translatable(KEY + "clear_tracks");
 		final int clearWidth = textRenderer.getWidth(clearLabel) + 12;
-		final ButtonWidget clear = addDrawableChild(ButtonWidget.builder(clearLabel, b -> {
-			path.clear();
-			set("drawn", "", false);
-			say(Text.translatable(KEY + "tracks_cleared").getString(), false);
-			clearAndInit();
-		}).dimensions(planBox[2] - roofWidth - 4 - clearWidth, 4, clearWidth, 16).build());
-		clear.active = !drawn().isEmpty() || !path.isEmpty();
-		final Text drawLabel = Text.translatable(KEY + "draw", net.minecraft.screen.ScreenTexts.onOrOff(drawing));
+		final ButtonWidget clear = addDrawableChild(ButtonWidget.builder(clearLabel, b -> clearDrawn())
+				.dimensions(planBox[2] - roofWidth - 4 - clearWidth, 4, clearWidth, 16).tooltip(Tooltip.of(Text.translatable(KEY + "clear.tip"))).build());
+		clear.active = !path.isEmpty() || (mode != DrawMode.PLATFORM && mode != DrawMode.BUILDING && !drawn().isEmpty())
+				|| (mode != DrawMode.TRACK && shapes().stream().anyMatch(shape -> mode == DrawMode.OFF || shape.kind() == mode.kind()));
+		final Text drawLabel = Text.translatable(KEY + "draw", Text.translatable(KEY + "draw." + mode.name().toLowerCase(java.util.Locale.ROOT)));
 		final int drawWidth = textRenderer.getWidth(drawLabel) + 12;
+		final int drawX = planBox[2] - roofWidth - 4 - clearWidth - 4 - drawWidth;
+		final Text drawTip = switch (mode) {
+			case OFF -> Text.translatable(KEY + "draw.off.tip");
+			case TRACK -> Text.translatable(KEY + "draw.tip", DrawnTrack.LEAD);
+			case PLATFORM, BUILDING -> Text.translatable(KEY + "draw.shape.tip", Text.translatable(KEY + "draw." + mode.name().toLowerCase(java.util.Locale.ROOT)));
+		};
 		addDrawableChild(ButtonWidget.builder(drawLabel, b -> {
-			drawing = !drawing;
+			mode = mode.next();
 			path.clear();
-			if (drawing) {
+			if (mode == DrawMode.TRACK) {
 				say(Text.translatable(KEY + "draw.start").getString(), false);
+			} else if (mode.shape()) {
+				say(Text.translatable(KEY + "draw.shape_start", Text.translatable(KEY + "draw." + mode.name().toLowerCase(java.util.Locale.ROOT))).getString(), false);
 			}
 			clearAndInit();
-		}).dimensions(planBox[2] - roofWidth - 4 - clearWidth - 4 - drawWidth, 4, drawWidth, 16)
-				.tooltip(Tooltip.of(Text.translatable(KEY + "draw.tip", DrawnTrack.LEAD))).build());
+		}).dimensions(drawX, 4, drawWidth, 16).tooltip(Tooltip.of(drawTip)).build());
+		headerLeft = drawX;
+		// the look of the next shape drawn: a platform's canopy, a building's height
+		if (mode == DrawMode.PLATFORM) {
+			final Text label = Text.translatable(KEY + "canopy", net.minecraft.screen.ScreenTexts.onOrOff(shapeCanopy));
+			final int w = textRenderer.getWidth(label) + 12;
+			headerLeft = drawX - 4 - w;
+			addDrawableChild(ButtonWidget.builder(label, b -> {
+				shapeCanopy = !shapeCanopy;
+				clearAndInit();
+			}).dimensions(headerLeft, 4, w, 16).tooltip(Tooltip.of(Text.translatable(KEY + "canopy.tip"))).build());
+		} else if (mode == DrawMode.BUILDING) {
+			final Text label = Text.translatable(KEY + "height", shapeHeight);
+			final int w = textRenderer.getWidth(Text.translatable(KEY + "height", DrawnShape.MAX_HEIGHT)) + 12;
+			headerLeft = drawX - 4 - w;
+			addDrawableChild(ButtonWidget.builder(label, b -> {
+				shapeHeight = shapeHeight + 2 > DrawnShape.MAX_HEIGHT ? DrawnShape.MIN_HEIGHT : shapeHeight + 2;
+				clearAndInit();
+			}).dimensions(headerLeft, 4, w, 16)
+					.tooltip(Tooltip.of(Text.translatable(KEY + "height.tip", DrawnShape.MIN_HEIGHT, DrawnShape.MAX_HEIGHT))).build());
+		}
 		setInitialFocus(name);
 		preview.show(description());
 	}
@@ -351,7 +397,7 @@ public final class StationEditorScreen extends Screen {
 		preview.render(context, boxes[1][0], boxes[1][1], boxes[1][2], boxes[1][3]);
 		super.render(context, mouseX, mouseY, delta);
 		context.drawTextWithShadow(textRenderer, getTitle(), GAP, 8, 0xFFFFFF);
-		if (boxes[0][2] - boxes[0][0] > 320) {
+		if (boxes[0][0] + textRenderer.getWidth(Text.translatable(KEY + "plan_view")) + 6 < headerLeft) {
 			context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "plan_view"), boxes[0][0], 8, 0xE0C060);
 		}
 		if (!message.isEmpty()) {
@@ -381,6 +427,7 @@ public final class StationEditorScreen extends Screen {
 		planY = y;
 		planScale = scale;
 		drawTracks(context, top);
+		drawShapes(context, top);
 		// track numbers at the near end, where they fit
 		if (scale >= 2) {
 			for (final PlanTopView.Label label : top.labels()) {
@@ -422,7 +469,7 @@ public final class StationEditorScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		if (drawing && drawClick(mouseX, mouseY, button)) {
+		if (mode == DrawMode.TRACK && drawClick(mouseX, mouseY, button) || mode.shape() && shapeClick(mouseX, mouseY, button)) {
 			return true;
 		}
 		if (inPreview(mouseX, mouseY)) {
@@ -459,13 +506,17 @@ public final class StationEditorScreen extends Screen {
 	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
 		// while drawing (and not typing): Backspace takes the last point back, Enter finishes, Escape drops the track being drawn
-		if (drawing && !(getFocused() instanceof TextFieldWidget && ((TextFieldWidget) getFocused()).isFocused())) {
+		if (mode != DrawMode.OFF && !(getFocused() instanceof TextFieldWidget && ((TextFieldWidget) getFocused()).isFocused())) {
 			if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE && !path.isEmpty()) {
 				path.remove(path.size() - 1);
 				return true;
 			}
 			if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER && !path.isEmpty()) {
-				finishPath();
+				if (mode.shape()) {
+					finishShape();
+				} else {
+					finishPath();
+				}
 				return true;
 			}
 			if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && !path.isEmpty()) {
@@ -505,7 +556,7 @@ public final class StationEditorScreen extends Screen {
 		for (final DrawnTrack track : drawn()) {
 			line(context, top, track.points(), track.check(top.anchors(), top.station()) == null ? 0xFF4FC3F7 : 0xFFEF5350);
 		}
-		if (!path.isEmpty()) {
+		if (!path.isEmpty() && mode == DrawMode.TRACK) {
 			line(context, top, path, 0xFFFFD54F);
 		}
 	}
@@ -602,6 +653,86 @@ public final class StationEditorScreen extends Screen {
 		set("drawn", DrawnTrack.words(tracks), false);
 		final String problem = track.check(top.anchors(), top.station());
 		say(problem == null ? Text.translatable(KEY + "draw.done").getString() : problem, problem != null);
+		clearAndInit();
+	}
+
+	// ---- drawn platforms and buildings ----------------------------------------------------------------------------------
+
+	/** The platforms and buildings drawn so far, from the form. */
+	private List<DrawnShape> shapes() {
+		return DrawnShape.parse(form.getOrDefault("shapes", ""));
+	}
+
+	/** The drawn shapes (green platforms, orange buildings, red when they cannot be built) and the one being drawn (yellow). */
+	private void drawShapes(DrawContext context, PlanTopView top) {
+		for (final DrawnShape shape : shapes()) {
+			final int colour = shape.check(top.station()) != null ? 0xFFEF5350 : shape.kind() == DrawnShape.Kind.BUILDING ? 0xFFFFB74D : 0xFF81C784;
+			final List<DrawnTrack.Point> closed = new java.util.ArrayList<>(shape.points());
+			closed.add(shape.points().get(0));
+			line(context, top, closed, colour);
+		}
+		if (!path.isEmpty() && mode.shape()) {
+			line(context, top, path, 0xFFFFD54F);
+		}
+	}
+
+	/** A click on the plan while drawing a shape: each click adds a corner; right-click closes the shape. */
+	private boolean shapeClick(double mouseX, double mouseY, int button) {
+		final DrawnTrack.Point at = cellAt(mouseX, mouseY);
+		if (at == null) {
+			return false;
+		}
+		if (button == 1) {
+			finishShape();
+			return true;
+		}
+		if (path.size() < DrawnShape.MAX_POINTS && (path.isEmpty() || !at.equals(path.get(path.size() - 1)))) {
+			path.add(at);
+			if (path.size() == 1) {
+				say(Text.translatable(KEY + "draw.shape_next").getString(), false);
+			}
+		}
+		return true;
+	}
+
+	/** Closes the shape being drawn: kept in the form when it has three corners, with what keeps it from being built, if anything. */
+	private void finishShape() {
+		final PlanTopView top = preview.topView();
+		if (path.size() < 3 || top == null) {
+			path.clear();
+			say(Text.translatable(KEY + "draw.shape_short").getString(), true);
+			return;
+		}
+		final DrawnShape shape = new DrawnShape(mode.kind(), path, !shapeCanopy, shapeHeight);
+		path.clear();
+		final List<DrawnShape> all = new java.util.ArrayList<>(shapes());
+		if (all.size() >= DrawnShape.MAX_SHAPES) {
+			say(Text.translatable(KEY + "draw.shapes_full", DrawnShape.MAX_SHAPES).getString(), true);
+			return;
+		}
+		all.add(shape);
+		set("shapes", DrawnShape.words(all), false);
+		final String problem = shape.check(top.station());
+		say(problem == null ? Text.translatable(KEY + "draw.shape_done").getString() : problem, problem != null);
+		clearAndInit();
+	}
+
+	/** Clears what the draw mode draws: the drawn tracks, the drawn platforms or buildings, or all of them when drawing is off. */
+	private void clearDrawn() {
+		path.clear();
+		if (mode == DrawMode.OFF || mode == DrawMode.TRACK) {
+			set("drawn", "", false);
+		}
+		if (mode != DrawMode.TRACK) {
+			final List<DrawnShape> kept = new java.util.ArrayList<>();
+			for (final DrawnShape shape : shapes()) {
+				if (mode != DrawMode.OFF && shape.kind() != mode.kind()) {
+					kept.add(shape);
+				}
+			}
+			set("shapes", DrawnShape.words(kept), false);
+		}
+		say(Text.translatable(mode == DrawMode.TRACK ? KEY + "tracks_cleared" : mode == DrawMode.OFF ? KEY + "drawings_cleared" : KEY + "shapes_cleared").getString(), false);
 		clearAndInit();
 	}
 }

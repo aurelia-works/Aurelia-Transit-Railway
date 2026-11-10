@@ -155,16 +155,28 @@ public record DrawnTrack(List<Point> points) {
 		return null;
 	}
 
-	/** The station's cells in the plan, {uMin, uMax, vMin, vMax}, from its blocks. */
+	/**
+	 * The station's cells in the plan, {uMin, uMax, vMin, vMax}, from its blocks; the platforms and buildings drawn in the editor
+	 * ({@link DrawnShape}) do not count, so drawing one never changes whether a track can be laid.
+	 */
 	static int[] footprint(StationPlan plan) {
 		final int[] box = {Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE};
+		final java.util.Set<Long> drawn = DrawnShape.cellsOf(plan.spec().options().shapes());
 		for (final PlannedBlock block : plan.blocks()) {
+			if (!drawn.isEmpty() && drawn.contains(DrawnShape.key(block.u(), block.v())) && outsideLayout(plan.layout(), block)) {
+				continue;
+			}
 			box[0] = Math.min(box[0], block.u());
 			box[1] = Math.max(box[1], block.u());
 			box[2] = Math.min(box[2], block.v());
 			box[3] = Math.max(box[3], block.v());
 		}
 		return box;
+	}
+
+	/** True when a block stands outside the station's own footprint (only a drawn platform or building can). */
+	private static boolean outsideLayout(TrackLayout layout, PlannedBlock block) {
+		return layout != null && (block.u() < 0 || block.u() >= layout.width() || block.v() < layout.vMin() || block.v() > layout.vMax());
 	}
 
 	/**

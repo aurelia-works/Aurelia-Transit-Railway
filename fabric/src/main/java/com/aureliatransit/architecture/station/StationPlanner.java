@@ -125,6 +125,8 @@ public final class StationPlanner {
 		planning.overheadLine();
 		planning.linesideFence();
 		planning.edgeRailings();
+		// drawn in the station editor: last, into the cells the station left free
+		PlanFreehand.plan(planning);
 		return planning.finish();
 	}
 
