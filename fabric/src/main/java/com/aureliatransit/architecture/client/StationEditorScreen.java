@@ -127,6 +127,7 @@ public final class StationEditorScreen extends Screen {
 		addDrawableChild(words);
 		y += 24;
 		final StationRecipe recipe = StudioApi.recipe(form);
+		final int length = StudioApi.requestedLength(form);
 		final int third = (PANEL - 8) / 3;
 		addDrawableChild(ButtonWidget.builder(Text.literal("-"), b -> tracks(-1)).dimensions(x, y, 20, 20).build());
 		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "tracks", recipe.tracks()), b -> tracks(0))
@@ -134,7 +135,7 @@ public final class StationEditorScreen extends Screen {
 		addDrawableChild(ButtonWidget.builder(Text.literal("+"), b -> tracks(1)).dimensions(x + PANEL - 20, y, 20, 20).build());
 		y += 22;
 		addDrawableChild(ButtonWidget.builder(Text.literal("-"), b -> length(-LENGTH_STEP)).dimensions(x, y, 20, 20).build());
-		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "length", recipe.length()), b -> length(0))
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "length", length), b -> length(0))
 				.dimensions(x + 22, y, PANEL - 44, 20).build());
 		addDrawableChild(ButtonWidget.builder(Text.literal("+"), b -> length(LENGTH_STEP)).dimensions(x + PANEL - 20, y, 20, 20).build());
 		y += 22;
@@ -261,7 +262,7 @@ public final class StationEditorScreen extends Screen {
 	}
 
 	private void length(int step) {
-		final int length = Math.max(StationRecipe.MIN_LENGTH, Math.min(StationRecipe.MAX_LENGTH, StudioApi.recipe(form).length() + step));
+		final int length = Math.max(StationRecipe.MIN_LENGTH, Math.min(StationRecipe.MAX_LENGTH, StudioApi.requestedLength(form) + step));
 		set("length", Integer.toString(length), true);
 		clearAndInit();
 	}
