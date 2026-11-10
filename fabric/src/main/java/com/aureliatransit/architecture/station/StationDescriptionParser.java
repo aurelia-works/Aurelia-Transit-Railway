@@ -371,6 +371,7 @@ public final class StationDescriptionParser {
 				warn("the description is longer than " + MAX_INPUT + " characters; the rest was ignored");
 			}
 			text = extractSwaps(text);
+			text = extractDrawn(text);
 			text = extractPlatforms(text);
 			text = extractName(text);
 			text = extractSeed(text);
@@ -542,6 +543,17 @@ public final class StationDescriptionParser {
 		 * Takes "seed k7f2ra" out of the text (after the name, so a station named Seed Lane keeps its name). A seed that is not one
 		 * to twelve letters or digits is ignored with a warning, never an error; the first valid one wins.
 		 */
+		/** Tracks drawn in the station editor ("track path 4/-2 4/-12 10/-40"), laid as MTR rails out from the track ends. */
+		private String extractDrawn(String text) {
+			final List<DrawnTrack> drawn = DrawnTrack.parse(text);
+			if (drawn.isEmpty()) {
+				return text;
+			}
+			options = options.withDrawn(drawn);
+			understood.add(new Note(-1, drawn.size() == 1 ? "1 drawn track" : drawn.size() + " drawn tracks"));
+			return DrawnTrack.strip(text);
+		}
+
 		/** Takes out the block swaps ({@link #SWAPS}), so their block words do not also pick a look or a material. */
 		private String extractSwaps(String text) {
 			String rest = text;
@@ -929,7 +941,7 @@ public final class StationDescriptionParser {
 
 		private void scan(int i) {
 			final String token = tokens[i];
-			if (negation(i) || entranceWords(i) || deepWords(i) || number(i) || gateWords(i) || phrase(i)) {
+			if (negation(i) || entranceWords(i) || deepWords(i) || number(i) || gateWords(i) || openFareLine(i) || phrase(i)) {
 				return;
 			}
 			keyword(i, token);
@@ -1081,6 +1093,25 @@ public final class StationDescriptionParser {
 			options = options.withGates(style);
 			note(i, style == StationOptions.GateStyle.MTR ? "MTR's own ticket barriers in the gate lines (entry and exit lanes)"
 					: "ATA's two-way fare gates in the gate lines");
+			return true;
+		}
+
+		/** "open fare line", "open check-in": the check-in poles stand without lanes, so anyone walks past them. */
+		private boolean openFareLine(int i) {
+			if (!tokens[i].equals("open")) {
+				return false;
+			}
+			final int j;
+			if (at(i + 1).equals("fare") && (at(i + 2).equals("line") || at(i + 2).equals("lines"))) {
+				j = i + 2;
+			} else if (at(i + 1).equals("checkin")) {
+				j = i + 1;
+			} else {
+				return false;
+			}
+			use(i, j);
+			options = options.withOpenFareLine(true);
+			note(i, "an open fare line: check-in poles without lanes, anyone walks past them");
 			return true;
 		}
 

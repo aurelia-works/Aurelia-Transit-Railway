@@ -7,6 +7,7 @@ import com.aureliatransit.architecture.block.ShapedBlock;
 import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.block.TextLayout;
 import com.aureliatransit.architecture.block.elevated.CardReaderBlock;
+import com.aureliatransit.architecture.block.elevated.CheckInLaneBlock;
 import com.aureliatransit.architecture.block.elevated.CctvCameraBlock;
 import com.aureliatransit.architecture.block.elevated.CurvedScreenDoorBlock;
 import com.aureliatransit.architecture.block.elevated.TrainEdgeBlock;
@@ -89,7 +90,9 @@ public final class ElevatedBlocks {
 	public static final Block FARE_GATE = ModBlocks.register("fare_gate", BlockFamily.STATION_EQUIPMENT, RenderKind.TRANSLUCENT,
 			new FareGateBlock(ModBlocks.metal().nonOpaque()), TIP_STYLE, TIP + "fare_gate");
 	public static final Block CARD_READER = ModBlocks.register("card_reader", BlockFamily.STATION_EQUIPMENT, RenderKind.CUTOUT,
-			new CardReaderBlock(ModBlocks.metal().nonOpaque().luminance(state -> 4)), TIP_STYLE, TIP + "prop_only");
+			new CardReaderBlock(ModBlocks.metal().nonOpaque().luminance(state -> 4)), TIP_STYLE, TIP + "card_reader");
+	public static final Block CHECK_IN_LANE = ModBlocks.register("check_in_lane", BlockFamily.STATION_EQUIPMENT, RenderKind.CUTOUT,
+			new CheckInLaneBlock(ModBlocks.metal().nonOpaque()), TIP + "check_in_lane");
 	public static final Block BOOTH_WINDOW = ModBlocks.register("booth_window", BlockFamily.STATION_EQUIPMENT, RenderKind.TRANSLUCENT,
 			new FacingShapedBlock(ModBlocks.glass().sounds(net.minecraft.sound.BlockSoundGroup.METAL), Placement.TOWARD_PLAYER,
 					union(box(0, 0, 12, 16, 16, 16), box(0, 6, 8, 16, 7, 12))), TIP + "prop_only");

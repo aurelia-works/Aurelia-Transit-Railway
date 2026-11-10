@@ -875,6 +875,10 @@ abstract class PlanPlatforms extends PlanState {
 				continue;
 			}
 			final int outer = street.trackRight() ? street.uMin() : street.uMax();
+			boolean checkIn = false;
+			// sealed only where the steps end on the station's own landing (a cess): with no bed the ground at their foot is the
+			// world's, left alone, and a walkway closed along its side might have no way on
+			final boolean seal = !spec.options().openFareLine() && StationGeometry.cess(spec) > 0;
 			for (final int dir : layout.terminus() ? new int[]{-1} : new int[]{-1, 1}) {
 				final int top = dir < 0 ? street.vFrom() : street.vTo();
 				final PlannedBlock step = at(street.uMin() + 1, StationGeometry.PLATFORM_Y, top + dir);
@@ -905,6 +909,28 @@ abstract class PlanPlatforms extends PlanState {
 				for (final int u : new int[]{street.uMin() + 1, street.uMax() - 1}) {
 					if (free(u, StationGeometry.WALK_Y, top) && free(u, StationGeometry.WALK_Y + 1, top)) {
 						put(Role.FIXTURE, u, StationGeometry.WALK_Y, top, out, CARD_READER);
+						checkIn = true;
+					}
+				}
+				// the way past the poles: a check-in lane in every open cell of the row, shut until the passenger taps in (Jah
+				// 11-09: tapping is required, nobody gets past without it); an open fare line leaves the row open
+				if (seal) {
+					for (int u = street.uMin(); u <= street.uMax(); u++) {
+						final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, top);
+						if (floor != null && floor.role().platformFloor() && free(u, StationGeometry.WALK_Y, top) && free(u, StationGeometry.WALK_Y + 1, top)) {
+							put(Role.GATE, u, StationGeometry.WALK_Y, top, out, CHECK_IN_LANE);
+						}
+					}
+				}
+			}
+			if (checkIn && seal) {
+				// glass along the walkway's open side, so the check-in poles are the only way on (Jah 11-09: "nobody gets in around
+				// the readers by any means; close the open sides with glass")
+				final LocalDir outward = outer == street.uMin() ? LocalDir.MINUS_U : LocalDir.PLUS_U;
+				for (int v = street.vFrom() + 1; v < street.vTo(); v++) {
+					final PlannedBlock floor = at(outer, StationGeometry.PLATFORM_Y, v);
+					if (floor != null && floor.role().platformFloor() && free(outer, StationGeometry.WALK_Y, v)) {
+						put(Role.BARRIER, outer, StationGeometry.WALK_Y, v, outward, Planning.GLASS_BARRIER, "edge=true");
 					}
 				}
 			}
@@ -917,4 +943,6 @@ abstract class PlanPlatforms extends PlanState {
 
 	/** An NS-style check-in pole: tap in and out at the way onto the platforms. */
 	static final String CARD_READER = "aurelia_transit_architecture:card_reader";
+	/** The way past a row of check-in poles, shut until the passenger taps in. */
+	static final String CHECK_IN_LANE = "aurelia_transit_architecture:check_in_lane";
 }

@@ -90,10 +90,12 @@ public final class AureliaClient implements ClientModInitializer {
 		org.mtr.aurelia.sound.SoundProfileReloadListener.register();
 		PassengerRenderer.register();
 		ZipClient.register();
+		org.mtr.aurelia.client.map.MapClient.register();
 		ZipCableRenderer.register();
 		BuildClient.register();
 		BuildPreviewRenderer.register();
 		org.mtr.aurelia.driving.DriverClient.register();
+		org.mtr.aurelia.crew.CrewClient.register();
 		LOGGER.info("[ATR] Aurelia panel ready");
 	}
 

@@ -674,6 +674,7 @@ public final class StationBuildJob {
 			MtrStationContract.register(world, zone, log, out);
 			if (zone != null) {
 				MtrRailContract.lay(world, zone.rails(), log, out);
+				MtrRailContract.layDrawn(world, zone.drawnRails(), log, out);
 				AirportMtr.lay(world, zone.airRails(), log, out);
 			}
 		});
