@@ -57,8 +57,12 @@ public final class AureliaChrome {
 		context.fill(x, y, x + w, y + h, AureliaPalette.FIELD);
 		frame(context, x, y, w, h, AureliaPalette.BORDER);
 		final int span = Math.max(1, w - HANDLE);
-		final int handleX = x + (int) (clamp01(value) * span);
-		context.fill(handleX, y, handleX + HANDLE, y + h, hovered ? AureliaPalette.ACCENT : AureliaPalette.FG_LIGHT);
+		final int centre = x + (int) (clamp01(value) * span) + HANDLE / 2;
+		// A tinted fill up to the value, marked only at the top and bottom edges so it never crosses the label
+		context.fill(x + 1, y + 1, centre, y + h - 1, (AureliaPalette.ACCENT & 0xFFFFFF) | 0x48000000);
+		final int marker = hovered ? AureliaPalette.ACCENT : AureliaPalette.FG_LIGHT;
+		context.fill(centre - 1, y, centre + 1, y + 3, marker);
+		context.fill(centre - 1, y + h - 3, centre + 1, y + h, marker);
 	}
 
 	/**

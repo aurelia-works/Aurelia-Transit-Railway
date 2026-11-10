@@ -49,6 +49,8 @@ public class StationWrenchScreen extends Screen {
 	private static final int SUMMARY = 24;
 	private static final String KEY = EditorWidgets.KEY + "station_wrench.";
 	private static final int GAP = 10;
+	/** Space left of the controls and right of the preview. */
+	private static final int MARGIN = 16;
 	/** The size a fresh station gets when it becomes a terminus (as the parser gives a bare "terminus"). */
 	private static final int TERMINUS_TRACKS = 8;
 	private static final int TERMINUS_LENGTH = 160;
@@ -156,6 +158,7 @@ public class StationWrenchScreen extends Screen {
 			case BRIDGE -> initBridge();
 			case EARTHWORKS -> initEarthworks();
 			case STATION -> {
+				// no title: the lit Station tab names the page, and the rows start right under it
 				if (picker != Picker.NONE) {
 					initPicker();
 				} else if (advanced) {
@@ -171,10 +174,10 @@ public class StationWrenchScreen extends Screen {
 		}
 	}
 
-	/** The four modes along the top; the active one is lit and the others switch the stack and redraw the page. */
+	/** The four modes along the top, centred on the screen so they stay put between pages; the active one is lit. */
 	private void initModes() {
-		final int left = left();
-		final int button = (column - 9) / 4;
+		final int left = (width - WIDTH) / 2;
+		final int button = (WIDTH - 9) / 4;
 		final WrenchMode[] modes = WrenchMode.values();
 		for (int i = 0; i < modes.length; i++) {
 			final WrenchMode target = modes[i];
@@ -231,20 +234,20 @@ public class StationWrenchScreen extends Screen {
 		if (mode != WrenchMode.STATION) {
 			return 0;
 		}
-		final int room = width - column - GAP - 16;
+		final int room = width - column - GAP - 2 * MARGIN;
 		return room >= MIN_PREVIEW ? Math.min(room, MAX_PREVIEW) : 0;
 	}
 
 	/**
 	 * Station mode on a screen too narrow for the full column and a preview (1920x1080 on automatic GUI scale is 480 wide):
 	 * the column shrinks so the 3D preview still fits beside it. Below {@link #MIN_COLUMN} the labels would be cut, so the
-	 * column stays full width and the preview is left out.
+	 * column stays full width and the preview is left out. The look and preset grids keep the full width: their names need it.
 	 */
 	private void fitColumn() {
 		int fitted = WIDTH;
-		if (mode == WrenchMode.STATION && width - WIDTH - GAP - 16 < MIN_PREVIEW) {
-			final int shrunk = Math.max(MIN_COLUMN, width - GAP - 16 - FIT_PREVIEW);
-			if (width - shrunk - GAP - 16 >= MIN_PREVIEW) {
+		if (mode == WrenchMode.STATION && picker == Picker.NONE && width - WIDTH - GAP - 2 * MARGIN < MIN_PREVIEW) {
+			final int shrunk = Math.max(MIN_COLUMN, width - GAP - 2 * MARGIN - FIT_PREVIEW);
+			if (width - shrunk - GAP - 2 * MARGIN >= MIN_PREVIEW) {
 				fitted = shrunk;
 			}
 		}
@@ -327,6 +330,12 @@ public class StationWrenchScreen extends Screen {
 		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_R && !(getFocused() instanceof TextFieldWidget) && mode == WrenchMode.STATION
 				&& previewWidth() > 0) {
 			preview.reset();
+			return true;
+		}
+		// Esc in a look or preset grid goes back to the page it came from instead of closing the wrench
+		if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && picker != Picker.NONE) {
+			picker = Picker.NONE;
+			clearAndInit();
 			return true;
 		}
 		// V cycles the mode, like the keybinding while no screen is open
@@ -836,16 +845,13 @@ public class StationWrenchScreen extends Screen {
 			case STATION -> {
 				if (picker != Picker.NONE) {
 					final int top = top(pickerHeight());
-					context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
 					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + (picker == Picker.LOOK ? "look.pick" : "presets.pick")), left, top, 0xE0C060);
 				} else if (advanced) {
 					final int top = top(advancedHeight());
-					context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
 					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "example"), left, top + 22, 0x9AA0A6);
 					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "hint"), left, top + 32, 0x9AA0A6);
 				} else {
 					final int top = top(simpleHeight());
-					context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
 					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "step_look"), left, top, 0xE0C060);
 					final int summary = top + summaryOffset() + 1;
 					context.drawCenteredTextWithShadow(textRenderer, Text.literal(recipe.title()), left + column / 2, summary, 0xFFFFFF);

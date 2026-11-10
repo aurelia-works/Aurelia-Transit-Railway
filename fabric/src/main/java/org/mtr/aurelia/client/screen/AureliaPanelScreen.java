@@ -180,7 +180,6 @@ public final class AureliaPanelScreen extends Screen {
 	/** The Architecture tab's rows: studio, the two wrenches, hologram, fallback, More, tint and layer, then build pace (operators). */
 	private int architectureFirst;
 	private static final int ARCHITECTURE_ROWS = 8;
-	private static final int PACE_WIDTH = 220;
 	private boolean hologramMore;
 	private int drivingFirst;
 	private static final int DRIVING_ROWS = 6;
@@ -636,7 +635,7 @@ public final class AureliaPanelScreen extends Screen {
 
 	/** Building tools: station guide, rail stylus and the box tunnel. Operators only; the dig is shared. */
 	private void initBuild() {
-		buildFirst = Math.max(0, Math.min(buildFirst, BUILD_ROWS - passengerVisible()));
+		buildFirst = Math.max(0, Math.min(buildFirst, BUILD_ROWS - visibleRows()));
 		final int left = columnLeft();
 		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
 		final BuildSettings now = BuildClient.settings();
@@ -712,7 +711,7 @@ public final class AureliaPanelScreen extends Screen {
 	}
 
 	private boolean buildRow(int row) {
-		return row >= buildFirst && row < buildFirst + passengerVisible();
+		return row >= buildFirst && row < buildFirst + visibleRows();
 	}
 
 	private int buildY(int row) {
@@ -979,7 +978,7 @@ public final class AureliaPanelScreen extends Screen {
 		}
 		final int pace = hologramMore ? ARCHITECTURE_ROWS : 6;
 		if (operator() && architectureRow(pace)) {
-			addDrawableChild(new StationPaceSlider(centerX() - PACE_WIDTH / 2, architectureY(pace), PACE_WIDTH))
+			addDrawableChild(new StationPaceSlider(columnLeft(), architectureY(pace), BUTTON_WIDTH))
 					.setTooltip(Tooltip.of(Text.translatable("screen.aurelia_transit_architecture.station_wrench.pace.tip")));
 		}
 	}
@@ -1068,7 +1067,7 @@ public final class AureliaPanelScreen extends Screen {
 			return true;
 		}
 		if (tab == Tab.BUILD) {
-			final int newFirstRow = Math.max(0, Math.min(BUILD_ROWS - passengerVisible(), buildFirst - (int) Math.signum(amount)));
+			final int newFirstRow = Math.max(0, Math.min(BUILD_ROWS - visibleRows(), buildFirst - (int) Math.signum(amount)));
 			if (newFirstRow != buildFirst) {
 				buildFirst = newFirstRow;
 				clearAndInit();
@@ -1155,7 +1154,7 @@ public final class AureliaPanelScreen extends Screen {
 		switch (tab) {
 			case LOOK -> scrollLine(context, lookFirst, visibleRows(), LOOK_IDS.length);
 			case ARCHITECTURE -> scrollLine(context, architectureFirst, visibleRows(), architectureRows());
-			case BUILD -> scrollLine(context, buildFirst, passengerVisible(), BUILD_ROWS);
+			case BUILD -> scrollLine(context, buildFirst, visibleRows(), BUILD_ROWS);
 			case PASSENGERS -> scrollLine(context, passengerFirst, passengerVisible(), PASSENGER_ROWS);
 			default -> {
 			}

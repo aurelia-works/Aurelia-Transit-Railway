@@ -372,9 +372,31 @@ public final class StationPreview {
 		}
 		final int room = x1 - x0 - 8;
 		final String line = busy ? "Planning…" : status;
-		context.drawTextWithShadow(client.textRenderer, fit(client, line, room), x0 + 4, y1 + 4, busy ? 0x9AA0A6 : good ? 0x5FC77A : 0xF0A83A);
+		// the status breaks between its " · " parts under a narrow box instead of losing its end
+		int lineY = y1 + 4;
+		for (final String part : statusLines(client, line, room)) {
+			context.drawTextWithShadow(client.textRenderer, fit(client, part, room), x0 + 4, lineY, busy ? 0x9AA0A6 : good ? 0x5FC77A : 0xF0A83A);
+			lineY += 10;
+		}
 		final String hint = client.textRenderer.getWidth(HINT) <= room ? HINT : HINT_SHORT;
 		context.drawTextWithShadow(client.textRenderer, fit(client, hint, room), x0 + 4, y0 + 4, 0x6B737C);
+	}
+
+	/** The status as few lines as fit {@code room}, each break between two " · " parts. */
+	private static java.util.List<String> statusLines(MinecraftClient client, String status, int room) {
+		final java.util.List<String> lines = new java.util.ArrayList<>();
+		String current = "";
+		for (final String part : status.split(" · ")) {
+			final String joined = current.isEmpty() ? part : current + " · " + part;
+			if (current.isEmpty() || client.textRenderer.getWidth(joined) <= room) {
+				current = joined;
+			} else {
+				lines.add(current);
+				current = part;
+			}
+		}
+		lines.add(current);
+		return lines;
 	}
 
 	/** Cuts a line to the box width with an ellipsis, so a narrow preview never draws past its edge. */

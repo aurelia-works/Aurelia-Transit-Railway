@@ -193,7 +193,7 @@ public final class AtrMenuScreen extends Screen {
 			renderBackground(context);
 		}
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
-		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.menu.subtitle"), width / 2, top - 12, 0xAAAAAA);
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.menu.subtitle." + tab.name().toLowerCase(java.util.Locale.ROOT)), width / 2, top - 12, 0xAAAAAA);
 		super.render(context, mouseX, mouseY, delta);
 		if (tab == Tab.BUILD && client != null && client.player != null && WrenchClient.wrenchHand(client) == null) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.menu.build.no_wrench"),
