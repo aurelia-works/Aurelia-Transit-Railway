@@ -20,7 +20,6 @@ import uuid
 import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODELS = os.path.join(ROOT, "fabric/src/main/resources/assets/mtr/models/a320_200")
 OBJ_PATH = "fabric/src/main/resources/assets/mtr/models/a320_200/a320.obj"
 BASE_COMMIT = "4f1aa883a"  # the A320 OBJ before the nose was replaced
 SEAM_Z = 14.70
@@ -240,7 +239,6 @@ def body_mesh(nose):
 
 # Cockpit panes in (d, y) side-view terms for the +x side, mirrored to -x. The windshield's inner edge is
 # given as an angle from the top centre line instead, because it runs along the top.
-POST = 1.6  # half the width of the centre post, degrees
 # measured on the G-EUYF photo (side) and D-AIQT (front)
 # The windshields are flat panes, given as seen from straight ahead (x, y): inner-bottom, outer-bottom, outer-top,
 # inner-top. Their bottom and top edges are near level, the outer edge leans in. The hull under them is flattened
@@ -283,9 +281,6 @@ def windshield(nose, side):
 			t = i / 8
 			samples.append((nose.point(*nose.at(side * (x0 + (x1 - x0) * t), y0 + (y1 - y0) * t)), weight))
 	n, centre = fit_plane(samples, n)
-	sag = [0.0]
-	shift = sum(sag) / len(sag)
-	centre = [centre[i] + n[i] * shift for i in range(3)]
 	flat = [tuple(c[i] - n[i] * sum((c[k] - centre[k]) * n[k] for k in range(3)) for i in range(3)) for c in corners]
 	return centre, n, flat
 
