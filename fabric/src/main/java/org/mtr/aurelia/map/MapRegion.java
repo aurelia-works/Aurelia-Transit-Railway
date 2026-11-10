@@ -46,14 +46,6 @@ public final class MapRegion {
 		return ((long) regionX << 32) | (regionZ & 0xFFFFFFFFL);
 	}
 
-	public static int keyX(long key) {
-		return (int) (key >> 32);
-	}
-
-	public static int keyZ(long key) {
-		return (int) key;
-	}
-
 	public long key() {
 		return key(regionX, regionZ);
 	}
