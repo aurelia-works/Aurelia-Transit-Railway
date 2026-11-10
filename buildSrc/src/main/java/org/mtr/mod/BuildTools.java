@@ -259,7 +259,8 @@ public class BuildTools {
 
 					fileObject.getAsJsonArray("vehicles").forEach(vehicleElement -> {
 						// a template that gives its own gear positions (an airliner's nose and main gear) keeps them
-						final boolean ownGear = vehicleElement.getAsJsonObject().has("bogie1Position");
+						final JsonObject vehicleTemplate = vehicleElement.getAsJsonObject();
+						final boolean ownGear = vehicleTemplate.has("bogie1Position") && vehicleTemplate.has("transportMode") && "AIRPLANE".equals(vehicleTemplate.get("transportMode").getAsString());
 						for (int i = 0; i < variationCount; i++) {
 							final JsonObject vehicleObject = vehicleElement.getAsJsonObject();
 							final double length = replacementObject.getAsJsonArray("lengths").get(i).getAsDouble();
