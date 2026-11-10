@@ -4,7 +4,6 @@ import com.aureliatransit.architecture.registry.ModItems;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
-import org.mtr.mod.config.Config;
 
 import java.util.Map;
 import java.util.UUID;
@@ -37,10 +36,9 @@ public final class CardTaps {
 			CardHistory.remember(card, new CardHistory.Tap(place, true, 0, now));
 			return;
 		}
-		final FarePolicy policy = FarePolicy.parse(Config.getServer().getZoneFareBase(), Config.getServer().getZoneFareStep(),
-				Config.getServer().getDailyFareCap(), Config.getServer().getFareZoneTable());
+		final FarePolicy policy = FareSync.charged();
 		int fare = 0;
-		if (policy.enabled() && Config.getServer().getFreeTicketBarriers()) {
+		if (policy.enabled()) {
 			fare = policy.quote(open.station(), place, CardHistory.spentOnDay(CardHistory.read(card), now));
 			if (fare > 0) {
 				com.aureliatransit.architecture.block.mtr.MtrFareContract.addBalance(player.getWorld(), player, -fare);

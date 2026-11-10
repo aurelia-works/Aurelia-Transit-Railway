@@ -69,7 +69,7 @@ Agent time is rough. Jah expects about 4-5 h of agent time with parallel workers
 | AE | Airports in the editor: runways, taxiways, terminals | 5-8 h | 7 | not started |
 | L1 | Guard, dispatcher and signaller roles | 6-10 h | 8 | not started |
 | L2 | Drivable vehicle base, then free-driving cars and rideable bike share (picks 17, 19) | 13-24 h | 8 | not started |
-| L3 | Journey planner extras | 2-4 h | 8 | not started |
+| L3 | Journey planner extras | 2-4 h | 8 | code done, not built: Plan tab destination picker, zone fare sent on join (FareSync), estimate labelled |
 | L4 | In-game map (1d.4) | 5-8 h | 8 | not started |
 | T | Full in-game test pass | 4-6 h | 9 | not started |
 | TR | Trailer (editor + earthworks construction shots lead) | 4-8 h | 9 | recorder (#58) and scripted shots (#63) merged; trailer not started |
