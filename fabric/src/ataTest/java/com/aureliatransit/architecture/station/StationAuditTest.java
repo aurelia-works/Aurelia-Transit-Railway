@@ -58,7 +58,7 @@ class StationAuditTest {
 
 	@Test
 	void everyPlannablePlanPassesExceptIslandsReachedAtGrade() {
-		int audited = 0;
+		final List<StationSpec.Builder> builders = new ArrayList<>();
 		for (int tracks = StationSpec.MIN_TRACKS; tracks <= StationSpec.MAX_TRACKS; tracks++) {
 			for (final PlatformLayout layout : PlatformLayout.values()) {
 				if (layout == PlatformLayout.ISLAND && tracks < 2) {
@@ -68,36 +68,40 @@ class StationAuditTest {
 					for (final boolean stepFree : new boolean[]{true, false}) {
 						for (final int length : new int[]{StationSpec.MIN_LENGTH, 48, 101, StationSpec.MAX_LENGTH}) {
 							for (final String name : new String[]{"", "Leidsche Rijn"}) {
-								final StationSpec.Builder builder = StationSpec.builder().trackCount(tracks).platformLayout(layout).roof(roof)
+								builders.add(StationSpec.builder().trackCount(tracks).platformLayout(layout).roof(roof)
 										.stepFree(stepFree).platformLength(length).name(name)
-										.platformWidth(layout == PlatformLayout.ISLAND ? StationSpec.DEFAULT_ISLAND_WIDTH : StationSpec.DEFAULT_SIDE_WIDTH);
-								final StationPlan plan = plan(builder);
-								if (!LayoutValidator.validate(plan).isEmpty()) {
-									continue; // e.g. side platforms with 3-4 tracks under a hall roof: refused before the audit
-								}
-								final StationAudit.Result result = StationAudit.audit(plan);
-								final String context = builder.build() + "\n" + messages(result);
-								assertTrue(result.buildable(), context);
-								for (final StationAudit.Check check : result.problems()) {
-									assertEquals(StationAudit.Topic.ACCESS, check.topic(), context);
-									assertTrue(check.message().contains("walking across a track"), context);
-								}
-								for (int i = 0; i < plan.layout().platforms().size(); i++) {
-									final TrackLayout.PlatformBand band = plan.layout().platforms().get(i);
-									// only a platform on the outside of the station is reached without crossing a track
-									final boolean outer = band.uMin() == 0 || band.uMax() == plan.layout().width() - 1;
-									final StationAudit.Access expected = !outer ? StationAudit.Access.AT_GRADE
-											: stepFree ? StationAudit.Access.STEP_FREE : StationAudit.Access.STEP;
-									assertEquals(expected, result.access().get(i), "platform " + band.number() + "\n" + context);
-								}
-								assertEquals(messages(result), messages(StationAudit.audit(plan(builder))), "not deterministic");
-								audited++;
+										.platformWidth(layout == PlatformLayout.ISLAND ? StationSpec.DEFAULT_ISLAND_WIDTH : StationSpec.DEFAULT_SIDE_WIDTH));
 							}
 						}
 					}
 				}
 			}
 		}
+		// the plans are independent, so they are audited side by side, the way StationSweepTest plans its stations
+		final long audited = builders.parallelStream().filter(builder -> {
+			final StationPlan plan = plan(builder);
+			if (!LayoutValidator.validate(plan).isEmpty()) {
+				return false; // e.g. side platforms with 3-4 tracks under a hall roof: refused before the audit
+			}
+			final boolean stepFree = builder.build().stepFree();
+			final StationAudit.Result result = StationAudit.audit(plan);
+			final String context = builder.build() + "\n" + messages(result);
+			assertTrue(result.buildable(), context);
+			for (final StationAudit.Check check : result.problems()) {
+				assertEquals(StationAudit.Topic.ACCESS, check.topic(), context);
+				assertTrue(check.message().contains("walking across a track"), context);
+			}
+			for (int i = 0; i < plan.layout().platforms().size(); i++) {
+				final TrackLayout.PlatformBand band = plan.layout().platforms().get(i);
+				// only a platform on the outside of the station is reached without crossing a track
+				final boolean outer = band.uMin() == 0 || band.uMax() == plan.layout().width() - 1;
+				final StationAudit.Access expected = !outer ? StationAudit.Access.AT_GRADE
+						: stepFree ? StationAudit.Access.STEP_FREE : StationAudit.Access.STEP;
+				assertEquals(expected, result.access().get(i), "platform " + band.number() + "\n" + context);
+			}
+			assertEquals(messages(result), messages(StationAudit.audit(plan(builder))), "not deterministic");
+			return true;
+		}).count();
 		assertTrue(audited > 100, "only " + audited + " plans audited");
 	}
 
