@@ -222,7 +222,7 @@ public final class ModBlocks {
 	// ---- Catenary --------------------------------------------------------------------------------------------------
 
 	public static final Block CATENARY_MAST = register("catenary_mast", BlockFamily.CATENARY, RenderKind.SOLID,
-			new AxisShapedBlock(metal(), box(5, 0, 5, 11, 16, 11)));
+			new com.aureliatransit.architecture.block.CatenaryMastBlock(metal(), box(5, 0, 5, 11, 16, 11)));
 	public static final Block CATENARY_CANTILEVER = register("catenary_cantilever", BlockFamily.CATENARY, RenderKind.SOLID,
 			new FacingShapedBlock(metal(), Placement.AWAY_FROM_PLAYER, box(6, 4, 0, 10, 15, 16)), TIP_POINTS_AWAY);
 	public static final Block CATENARY_GANTRY = register("catenary_gantry", BlockFamily.CATENARY, RenderKind.CUTOUT,

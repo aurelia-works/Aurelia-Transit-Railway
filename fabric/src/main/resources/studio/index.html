@@ -380,6 +380,12 @@
 						<button type="button" data-send="undo">Undo last build</button>
 					</div>
 					<p id="sent" class="note" role="status"></p>
+					<div class="dock-row files">
+						<select id="fileList" aria-label="Station files" title="Stations saved here or in the game's station editor"></select>
+						<button type="button" id="fileOpen" title="Open this station file">Open</button>
+						<button type="button" id="fileSave" title="Save this station under its name, for the editor in the game">Save</button>
+					</div>
+					<p id="fileNote" class="note" role="status"></p>
 				</div>
 				<div id="offline" class="offline" hidden>
 					<button type="button" class="primary wide" id="copyCmd">Copy /ata_station command</button>

@@ -18,6 +18,7 @@ public final class WrenchSettings {
 	private static final Logger LOGGER = LoggerFactory.getLogger("ATR Aurelia");
 	private static boolean actionBar = true;
 	private static boolean menuLook = true;
+	private static boolean planRoof = true;
 
 	private WrenchSettings() {
 	}
@@ -53,6 +54,10 @@ public final class WrenchSettings {
 			if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean()) {
 				actionBar = element.getAsBoolean();
 			}
+			final JsonElement roof = json.get("planRoof");
+			if (roof != null && roof.isJsonPrimitive() && roof.getAsJsonPrimitive().isBoolean()) {
+				planRoof = roof.getAsBoolean();
+			}
 			final JsonElement look = json.get("menuLook");
 			if (look != null && look.isJsonPrimitive() && look.getAsJsonPrimitive().isBoolean()) {
 				menuLook = look.getAsBoolean();
@@ -69,10 +74,21 @@ public final class WrenchSettings {
 			final JsonObject json = new JsonObject();
 			json.addProperty("actionBar", actionBar);
 			json.addProperty("menuLook", menuLook);
+			json.addProperty("planRoof", planRoof);
 			Files.writeString(file, json.toString());
 		} catch (Exception e) {
 			LOGGER.error("[ATR] wrench.json could not be written", e);
 		}
+	}
+
+	/** Whether the station editor's plan from above shows roofs as a light wash over what they cover. */
+	public static boolean planRoof() {
+		return planRoof;
+	}
+
+	public static void togglePlanRoof() {
+		planRoof = !planRoof;
+		save();
 	}
 
 	private static Path file(Path configDir) {

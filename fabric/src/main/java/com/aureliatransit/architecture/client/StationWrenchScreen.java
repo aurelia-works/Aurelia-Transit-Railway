@@ -778,12 +778,16 @@ public class StationWrenchScreen extends Screen {
 		setInitialFocus(field);
 	}
 
-	/** Opens Station Studio in the browser (bigger description, 3D preview, checks); Escape closes this screen. */
+	/**
+	 * Opens the station editor on this station ({@link StationEditorScreen}: plan from above, 3D view, station files shared with
+	 * Station Studio, which it opens in the browser).
+	 */
 	private ButtonWidget studioButton(int x, int y, int w) {
-		return ButtonWidget.builder(Text.translatable(KEY + "studio"), b -> {
-			close();
-			StationStudioClient.open();
-		}).dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + "studio.tip"))).build();
+		return ButtonWidget.builder(Text.translatable(KEY + "editor"), b -> {
+			if (client != null) {
+				client.setScreen(new StationEditorScreen(hand, description()));
+			}
+		}).dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + "editor.tip"))).build();
 	}
 
 	// ---- shared ---------------------------------------------------------------------------------------------------
