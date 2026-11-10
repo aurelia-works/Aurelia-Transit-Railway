@@ -1,11 +1,7 @@
 {
-  "variants": {
-    "axis=x": {
-      "model": "aurelia_transit_architecture:block/catenary_mast"
-    },
-    "axis=z": {
-      "model": "aurelia_transit_architecture:block/catenary_mast",
-      "y": 90
-    }
-  }
+  "multipart": [
+    { "when": { "axis": "x" }, "apply": { "model": "aurelia_transit_architecture:block/catenary_mast" } },
+    { "when": { "axis": "z" }, "apply": { "model": "aurelia_transit_architecture:block/catenary_mast", "y": 90 } },
+    { "when": { "ballast": "true" }, "apply": { "model": "aurelia_transit_architecture:block/gravel_ballast_slab" } }
+  ]
 }
