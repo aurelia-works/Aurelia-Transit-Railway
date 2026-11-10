@@ -41,7 +41,8 @@ jobs:
           name: ATR-fabric-1.20.1
           path: build/release/*.jar
           retention-days: 7
-  # ATA's unit tests, split by class name hash over 4 jobs (-Pata.tests.shard, fabric/build.gradle)
+  # ATA's unit tests over 4 jobs, balanced by each class's time on CI (-Pata.tests.shard, fabric/build.gradle,
+  # fabric/ata-test-times.properties)
   ata-unit:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -58,7 +59,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: ATA unit tests, shard ${{ matrix.shard }}
         run: ./gradlew setupFiles :fabric:ataTest -Pata.tests.exclude="$SLOW_UNIT_TESTS" -Pata.tests.shard=${{ matrix.shard }}
-      # Per-class times, for rebalancing the shards
+      # Per-class times, for rebalancing the shards (tools/ci/ata_test_times.py)
       - name: Keep the test results
         if: always()
         uses: actions/upload-artifact@v4

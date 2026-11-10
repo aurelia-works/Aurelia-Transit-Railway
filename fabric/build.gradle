@@ -260,8 +260,10 @@ tasks.register("ataTest", Test) {
 			project.property("ata.tests.exclude").toString().split(",").each { excludeTestsMatching it.trim() }
 		}
 	}
-	// CI splits the rest over parallel jobs: -Pata.tests.shard=2/3 runs the classes whose name hashes to shard 2 of 3, so new
-	// classes land in a shard on their own. Nested classes go with their outer class.
+	// CI splits the rest over parallel jobs: -Pata.tests.shard=2/3 runs shard 2 of 3. The classes timed in
+	// ata-test-times.properties (tools/ci/ata_test_times.py writes it from CI's results) are dealt out longest first, each to
+	// the shard with the least time so far, so the shards take about as long as each other; classes not timed yet go by name
+	// hash. Nested classes go with their outer class.
 	if (project.hasProperty("ata.tests.shard")) {
 		final List<Integer> shard = project.property("ata.tests.shard").toString().split("/").collect { it.trim() as int }
 		final int index = shard[0], count = shard[shard.size() - 1]
@@ -269,12 +271,37 @@ tasks.register("ataTest", Test) {
 			throw new GradleException("ata.tests.shard must be i/n with 1 <= i <= n, got " + project.property("ata.tests.shard"))
 		}
 		inputs.property("ata.tests.shard", "${index}/${count}")
+		final File timesFile = file("ata-test-times.properties")
+		final Map<String, Integer> timedShard = [:]
+		if (timesFile.exists()) {
+			inputs.file(timesFile)
+			final Properties times = new Properties()
+			timesFile.withInputStream { times.load(it) }
+			final double[] load = new double[count]
+			final Map<String, Double> seconds = [:]
+			for (final String name : times.stringPropertyNames()) {
+				seconds[name] = Double.parseDouble(times.getProperty(name).trim())
+			}
+			final List<String> longestFirst = new ArrayList<>(seconds.keySet())
+			longestFirst.sort(Comparator.comparing({ String name -> -seconds[name] } as java.util.function.Function<String, Double>).thenComparing(Comparator.naturalOrder()))
+			for (final String name : longestFirst) {
+				int lightest = 0
+				for (int i = 1; i < count; i++) {
+					if (load[i] < load[lightest]) {
+						lightest = i
+					}
+				}
+				load[lightest] += seconds[name]
+				timedShard[name] = lightest
+			}
+		}
 		exclude { element ->
 			if (element.directory || !element.name.endsWith(".class")) {
 				return false
 			}
 			final String outer = element.relativePath.pathString.replaceAll(/\.class$/, "").replaceAll(/\$.*$/, "")
-			return Math.floorMod(outer.hashCode(), count) != index - 1
+			final Integer timed = timedShard[outer]
+			return (timed == null ? Math.floorMod(outer.hashCode(), count) : timed) != index - 1
 		}
 	}
 }
