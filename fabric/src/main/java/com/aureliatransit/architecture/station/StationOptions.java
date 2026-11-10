@@ -54,18 +54,6 @@ public record StationOptions(GateStyle gates, int entranceWidth, Map<String, Str
 		shapes = shapes == null ? List.of() : List.copyOf(shapes);
 	}
 
-	/** As before the fare line option: lanes shut. */
-	public StationOptions(GateStyle gates, int entranceWidth, Map<String, String> swaps, boolean underground, String tile, String sheet,
-			UndergroundType type, int depth, AirportSpec airport, List<DrawnTrack> drawn, List<DrawnShape> shapes) {
-		this(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, airport, false, drawn, shapes);
-	}
-
-	/** As before drawn shapes: none drawn. */
-	public StationOptions(GateStyle gates, int entranceWidth, Map<String, String> swaps, boolean underground, String tile, String sheet,
-			UndergroundType type, int depth, AirportSpec airport, List<DrawnTrack> drawn) {
-		this(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, airport, false, drawn, List.of());
-	}
-
 	/** As before drawn tracks: none drawn. */
 	public StationOptions(GateStyle gates, int entranceWidth, Map<String, String> swaps, boolean underground, String tile, String sheet,
 			UndergroundType type, int depth, AirportSpec airport, boolean openFareLine) {
