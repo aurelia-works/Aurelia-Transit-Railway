@@ -6,7 +6,7 @@ package org.mtr.aurelia.vehicle;
  */
 public enum RoadVehicleKind {
 
-	CAR("car", "hatchback", 4.3, 1.8, 1.45, 2.64, 0.315, 3.0, 8.0, 15, 35, new double[][]{{0.36, -0.22, 0.22}, {-0.36, -0.22, 0.22}});
+	CAR("car", "hatchback", 4.05, 1.8, 1.5, 2.55, 0.3125, 3.0, 8.0, 15, 35, new double[][]{{0.36, -0.22, 0.22}, {-0.36, -0.22, 0.22}});
 
 	public final String id;
 	/** {@code assets/mtr/models/road_vehicle/<model>.bbmodel} and {@code textures/entity/road_vehicle/<model>.png}. */
