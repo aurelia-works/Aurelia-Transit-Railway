@@ -15311,5 +15311,41 @@
 				"stream": false
 			}
 		]
+	},
+	"a320_200_motor0": {
+		"sounds": [
+			{
+				"name": "mtr:a320_200/motor0",
+				"pitch": 1,
+				"attenuation_distance": 96
+			}
+		]
+	},
+	"a320_200_motor1": {
+		"sounds": [
+			{
+				"name": "mtr:a320_200/motor1",
+				"pitch": 1,
+				"attenuation_distance": 96
+			}
+		]
+	},
+	"a320_200_door_open": {
+		"sounds": [
+			{
+				"name": "mtr:a320_200/door_open",
+				"pitch": 1,
+				"stream": false
+			}
+		]
+	},
+	"a320_200_door_close": {
+		"sounds": [
+			{
+				"name": "mtr:a320_200/door_close",
+				"pitch": 1,
+				"stream": false
+			}
+		]
 	}
 }

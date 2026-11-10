@@ -1,58 +1,60 @@
 {
 	"replacements": {
 		"lengths": [
-			30,
 			30
 		],
 		"id": [
-			"a320",
-			"a320_lufthansa"
-		],
-		"name": [
-			"Airbus A320",
-			"Airbus A320 (Lufthansa)"
-		],
-		"color": [
-			"CCCCCC",
-			"00235F"
-		],
-		"tag": [
-			"None",
-			"Lufthansa"
-		],
-		"texture": [
-			"a320",
-			"a320_lufthansa"
+			"a320"
 		]
 	},
 	"vehicles": [
 		{
 			"id": "@id@",
-			"name": "@name@",
-			"color": "@color@",
+			"name": "Airbus A320",
+			"color": "F3F4F6",
 			"transportMode": "AIRPLANE",
-			"width": 2,
+			"width": 2.0,
+			"bogie1Position": -14.25,
+			"bogie2Position": -2,
+			"couplingPadding1": 0,
+			"couplingPadding2": 0,
+			"description": "Airbus A320-200, true scale (37.57 m long, 35.8 m span with sharklets) from the Airbus A320 AC document. CFM56 engines, 2 Type C doors per side, 3-3 economy cabin. Synthesised engine sound.",
 			"wikipediaArticle": "Airbus_A320_family",
 			"tags": [
 				"family:A320",
-				"brand:@tag@"
+				"brand:Airbus",
+				"doors:2"
 			],
 			"models": [
 				{
-					"modelResource": "mtr:models/vehicle/a320.bbmodel",
-					"textureResource": "mtr:textures/vehicle/@texture@.png",
-					"modelPropertiesResource": "mtr:properties/vehicle/a320.json",
-					"positionDefinitionsResource": "mtr:properties/definition/a320.json"
+					"modelResource": "mtr:models/a320_200/a320.obj",
+					"textureResource": "mtr:textures/a320_200/white.png",
+					"modelPropertiesResource": "mtr:properties/a320_200/a320_obj.json",
+					"positionDefinitionsResource": "mtr:properties/a320_200/a320_def.json",
+					"flipTextureV": false
+				},
+				{
+					"modelResource": "mtr:models/a320_200/a320_200_helper.bbmodel",
+					"textureResource": "mtr:textures/a320_200/white.png",
+					"modelPropertiesResource": "mtr:properties/a320_200/a320_helper.json",
+					"positionDefinitionsResource": "mtr:properties/a320_200/a320_def.json",
+					"flipTextureV": false
 				}
 			],
-			"bogie1Models": [
-				{
-					"modelResource": "mtr:models/vehicle/a320.bbmodel",
-					"textureResource": "mtr:textures/vehicle/@texture@.png",
-					"modelPropertiesResource": "mtr:properties/vehicle/a320_landing_gear.json",
-					"positionDefinitionsResource": "mtr:properties/definition/a320.json"
-				}
-			]
+			"bogie1Models": [],
+			"bogie2Models": [],
+			"hasGangway1": false,
+			"hasGangway2": false,
+			"hasBarrier1": false,
+			"hasBarrier2": false,
+			"legacyRiderOffset": 0,
+			"bveSoundBaseResource": "a320_200",
+			"legacySpeedSoundBaseResource": "",
+			"legacySpeedSoundCount": 0,
+			"legacyUseAccelerationSoundsWhenCoasting": false,
+			"legacyConstantPlaybackSpeed": false,
+			"legacyDoorSoundBaseResource": "",
+			"legacyDoorCloseSoundTime": 1
 		}
 	]
 }
