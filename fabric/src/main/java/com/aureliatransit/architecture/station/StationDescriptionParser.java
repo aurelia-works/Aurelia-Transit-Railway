@@ -411,6 +411,12 @@ public final class StationDescriptionParser {
 			}
 			defaulted.addAll(reading.defaulted());
 			reading.warnings().forEach(this::warn);
+			// drawn shapes are a railway station's platform and building layer; an airport has its own layout, so say so
+			// instead of silently dropping them (the shapes also stop excusing out-of-bounds airport blocks)
+			if (!options.shapes().isEmpty()) {
+				warn("drawn shapes do not apply to airports; the airport's own words lay out its runways, gates and terminal");
+				options = options.withShapes(List.of());
+			}
 			if (seed != 0) {
 				understood.add(new Note(Integer.MAX_VALUE, "seed " + seedText + ": an airport does not vary with it yet"));
 			}

@@ -644,8 +644,6 @@ abstract class PlanPlatforms extends PlanState {
 	/** The contact wire's cell: the wire runs mid-block, about 5.5 m over the rail, just over the track clearance. */
 	static final int WIRE_Y = StationGeometry.ENVELOPE_HEIGHT;
 	static final String MAST = "aurelia_transit_architecture:catenary_mast";
-	/** The raised shoulder's half block that a mast's {@code ballast} state draws round its foot. */
-	private static final String BALLAST_SHOULDER = TrackBed.GRAVEL.shoulder();
 	/** The messenger's deepest sag mid-span, as the contact wire's kind number (ContactWireKind.MAX_LEVEL). */
 	static final int WIRE_SAG_LEVELS = 6;
 	/** The cantilever from a mast to the hanger over its track: root at the mast, spans, tip over the wire. */
@@ -793,17 +791,18 @@ abstract class PlanPlatforms extends PlanState {
 
 	private void mast(int u, int v, List<Integer> tracks) {
 		int base = mastBase(u, v);
-		// on a raised gravel shoulder the mast takes the half slab's cell and carries the slab round its foot, so it neither
-		// stands on top of the shoulder nor leaves a hole in it (Jah 11-10)
+		// on a raised ballast shoulder the mast takes the half slab's cell and carries the slab round its foot, so it neither
+		// stands on top of the shoulder nor leaves a hole in it (Jah 11-10); the slab matches the track bed's ballast
 		final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, v);
 		final boolean ballast = base == StationGeometry.WALK_Y && floor != null && floor.role() == Role.TRACK_BED
-				&& floor.blockId().equals(BALLAST_SHOULDER);
+				&& floor.blockId().equals(spec.trackBed().shoulder());
+		final String ballastState = ballast ? (spec.trackBed() == TrackBed.ANDESITE ? "andesite" : "gravel") : "";
 		if (ballast) {
 			cells.remove(new Cell(u, StationGeometry.PLATFORM_Y, v));
 			base = StationGeometry.PLATFORM_Y;
 		}
 		for (int y = base; y <= WIRE_Y + 1; y++) {
-			put(Role.FIXTURE, u, y, v, LocalDir.PLUS_U, MAST, ballast && y == base ? "ballast=true" : "");
+			put(Role.FIXTURE, u, y, v, LocalDir.PLUS_U, MAST, ballast && y == base ? "ballast=" + ballastState : "");
 		}
 		if (base == StationGeometry.PLATFORM_Y) {
 			extraSupport.add(new Box(u, -1, v, u, -1, v));

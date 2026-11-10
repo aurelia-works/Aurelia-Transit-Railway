@@ -5,6 +5,7 @@ import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
 import com.aureliatransit.architecture.station.CellKind;
 import com.aureliatransit.architecture.station.RebuildDiff;
+import com.aureliatransit.architecture.station.Role;
 import com.aureliatransit.architecture.station.StylePalette;
 import com.aureliatransit.architecture.station.WorldOp;
 import com.aureliatransit.architecture.station.world.BlockStateResolver.Prepared;
@@ -236,9 +237,24 @@ public final class StationBuildJob {
 		MtrLiftContract.remove(world, last.takeLifts());
 		MtrStationContract.remove(world, last.takeStations());
 		AirportMtr.remove(world, last.takeAirports());
+		// rails the last build laid at nodes the new plan no longer has (an edited drawn track, a changed airport rail) go
+		// from MTR now; a rebuild keeps only the platform rails whose nodes are still planned
+		final Set<BlockPos> railNodesNow = new HashSet<>();
+		for (final Prepared prepared : resolution.ops()) {
+			if (prepared.op().role() == Role.RAIL_NODE) {
+				railNodesNow.add(pos(prepared.op()));
+			}
+		}
+		final Set<BlockPos> staleRails = new HashSet<>();
+		for (final BlockPos node : last.railNodes()) {
+			if (!railNodesNow.contains(node)) {
+				staleRails.add(node);
+			}
+		}
+		MtrRailContract.remove(world, new ArrayList<>(staleRails));
 		final UndoLog log = new UndoLog(world.getRegistryKey());
 		log.copySoil(last);
-		log.copyRails(last);
+		log.copyRails(last, railNodesNow);
 		// kept cells carry over first; then the left-out ones, oldest first, so the undo phase takes them newest first
 		final Set<BlockPos> leaving = new HashSet<>(diff.remove());
 		final Set<BlockPos> rewritten = new HashSet<>();

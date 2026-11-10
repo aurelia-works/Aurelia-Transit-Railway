@@ -42,8 +42,10 @@ public record DrawnTrack(List<Point> points) {
 	/** How far a first point snaps to a track end. */
 	public static final int SNAP = 6;
 
-	private static final Pattern WORDS = Pattern.compile("(?i)\\btrack path((?:\\s+-?\\d{1,4}/-?\\d{1,4})+)");
-	private static final Pattern POINT = Pattern.compile("(-?\\d{1,4})/(-?\\d{1,4})");
+	/** A plan coordinate as typed: up to Minecraft's world border, so an out-of-reach point is refused, not cut off. */
+	private static final String COORD = "-?\\d{1,8}";
+	private static final Pattern WORDS = Pattern.compile("(?i)\\btrack path((?:\\s+" + COORD + "/" + COORD + ")+)");
+	private static final Pattern POINT = Pattern.compile("(" + COORD + ")/(" + COORD + ")");
 
 	public DrawnTrack {
 		points = List.copyOf(points);

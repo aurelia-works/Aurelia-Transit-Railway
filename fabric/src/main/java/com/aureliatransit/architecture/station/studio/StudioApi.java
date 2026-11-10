@@ -75,6 +75,18 @@ public final class StudioApi {
 		return recipe.withName(q.getOrDefault("name", ""));
 	}
 
+	/**
+	 * The length the request asks for: the words' own when they give one ("48 long"), else the controls'. The editor and the
+	 * page show this, so neither shows the recipe's default where the words have already set the station's length.
+	 */
+	public static int requestedLength(Map<String, String> q) {
+		final String typed = typed(q);
+		if (StationDescriptionParser.controlsSaid(typed).contains("length")) {
+			return StationDescriptionParser.parse(typed).spec().platformLength();
+		}
+		return recipe(q).length();
+	}
+
 	/** The longest platform list a request may carry: ten platforms with every setting. */
 	public static final int MAX_PLATFORM_WORDS = 600;
 
@@ -663,7 +675,7 @@ public final class StudioApi {
 		out.append(",\"wordsWon\":").append(Json.strings(wordsWon(q)));
 		out.append(",\"requested\":{\"mode\":").append(Json.quote(recipe.hub() ? "Hub" : recipe.terminus() ? "Terminus" : "Through station"))
 				.append(",\"layout\":").append(Json.quote(recipe.platforms().label())).append(",\"tracks\":").append(recipe.tracks())
-				.append(",\"length\":").append(recipe.length()).append(",\"look\":").append(Json.quote(recipe.look().label()))
+				.append(",\"length\":").append(requestedLength(q)).append(",\"look\":").append(Json.quote(recipe.look().label()))
 				.append(",\"roof\":").append(Json.quote(recipe.roof().label())).append(",\"building\":").append(recipe.building())
 				.append(",\"size\":").append(Json.quote(recipe.size().label())).append('}');
 		out.append(",\"built\":{\"mode\":").append(Json.quote(spec.isAirport() ? "Airport" : spec.hub() ? "Hub" : spec.terminus() ? "Terminus" : "Through station"))
