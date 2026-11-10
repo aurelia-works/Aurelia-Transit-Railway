@@ -44,9 +44,11 @@ public record PlanTopView(int width, int height, int[] argb, boolean[] roofed, i
 		if (uMin > uMax) {
 			return new PlanTopView(1, 1, new int[]{BACKGROUND}, new boolean[1], 0, 0, false, List.of(), List.of(), new int[]{0, 0, 0, 0});
 		}
-		final int stationVMin = vMin;
-		final int stationVMax = vMax;
-		final int[] station = {uMin, uMax, vMin, vMax};
+		// the station without the platforms and buildings drawn round it, as the drawn tracks are checked against
+		final int[] own = DrawnTrack.footprint(plan);
+		final int[] station = own[0] <= own[1] ? own : new int[]{uMin, uMax, vMin, vMax};
+		final int stationVMin = station[2];
+		final int stationVMax = station[3];
 		uMin -= PAD_ACROSS;
 		uMax += PAD_ACROSS;
 		vMin -= PAD_ALONG;

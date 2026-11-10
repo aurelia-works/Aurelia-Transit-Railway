@@ -313,6 +313,11 @@ public final class StudioApi {
 		if (!drawn.isEmpty()) {
 			text = (text.isEmpty() ? "" : text + ", ") + drawn;
 		}
+		// platforms and buildings drawn in the station editor, likewise
+		final String shapes = com.aureliatransit.architecture.station.DrawnShape.words(com.aureliatransit.architecture.station.DrawnShape.parse(q.getOrDefault("shapes", "")));
+		if (!shapes.isEmpty()) {
+			text = (text.isEmpty() ? "" : text + ", ") + shapes;
+		}
 		final String seed = q.getOrDefault("seed", "").strip().toLowerCase(Locale.ROOT);
 		return StationSeed.valid(seed) ? text + ", seed " + seed : text;
 	}

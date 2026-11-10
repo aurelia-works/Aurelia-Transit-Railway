@@ -236,6 +236,7 @@ public final class StationAudit {
 		}
 
 		private void faces() {
+			drawnCells = DrawnShape.cellsOf(spec.options().shapes());
 			final int before = checks.size();
 			final List<Integer> through = new ArrayList<>();
 			for (final TrackLayout.Track track : layout.tracks()) {
@@ -258,6 +259,9 @@ public final class StationAudit {
 			pass(Topic.FACES, message.toString());
 		}
 
+		/** Cells inside the platforms and buildings drawn in the editor, whose edges are not the planned faces. */
+		private java.util.Set<Long> drawnCells = java.util.Set.of();
+
 		/** Measures the edge cells facing one side of a track and records the face, or fails. */
 		private void face(TrackLayout.Track track, boolean left, boolean wanted) {
 			final int edgeU = left ? track.u() - StationGeometry.EDGE_OFFSET : track.u() + StationGeometry.EDGE_OFFSET;
@@ -267,7 +271,9 @@ public final class StationAudit {
 			int start = Integer.MIN_VALUE;
 			for (int v = layout.vMin(); v <= layout.vMax() + 1; v++) {
 				final PlannedBlock block = v <= layout.vMax() ? at(edgeU, track.level(), v) : null;
-				final boolean edge = block != null && block.role() == Role.PLATFORM_EDGE && block.front() == toward;
+				// a platform drawn by hand (PlanFreehand) has its own edge; only the planned platforms are faces
+				final boolean edge = block != null && block.role() == Role.PLATFORM_EDGE && block.front() == toward
+						&& !drawnCells.contains(DrawnShape.key(edgeU, v));
 				if (edge && start == Integer.MIN_VALUE) {
 					start = v;
 				} else if (!edge && start != Integer.MIN_VALUE) {
