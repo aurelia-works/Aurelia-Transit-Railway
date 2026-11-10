@@ -2,6 +2,8 @@
   "multipart": [
     { "when": { "axis": "x" }, "apply": { "model": "aurelia_transit_architecture:block/catenary_mast" } },
     { "when": { "axis": "z" }, "apply": { "model": "aurelia_transit_architecture:block/catenary_mast", "y": 90 } },
-    { "when": { "ballast": "true" }, "apply": { "model": "aurelia_transit_architecture:block/gravel_ballast_slab" } }
+    { "when": { "ballast": "true" }, "apply": { "model": "aurelia_transit_architecture:block/gravel_ballast_slab" } },
+    { "when": { "ballast": "gravel" }, "apply": { "model": "aurelia_transit_architecture:block/gravel_ballast_slab" } },
+    { "when": { "ballast": "andesite" }, "apply": { "model": "minecraft:block/andesite_slab" } }
   ]
 }
