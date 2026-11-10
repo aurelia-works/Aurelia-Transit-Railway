@@ -3,14 +3,14 @@ on:
   push:
     branches: [master]
   pull_request:
-# ATA's four slowest unit test classes: ata-slow-unit runs them, ata-unit leaves them out
+# ATA's five slowest unit test classes: ata-slow-unit runs them, ata-unit leaves them out
 env:
-  SLOW_UNIT_TESTS: '*StationPlannerTest,*RealCitiesATest,*CityLandmarksTest,*StationAuditTest'
+  SLOW_UNIT_TESTS: '*StationPlannerTest,*RealCitiesATest,*CityLandmarksTest,*StationAuditTest,*AirportPlanTest'
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 # The suites are split over jobs that run side by side, so the run takes as long as the slowest job: ATR's build and tests,
-# ATA's unit tests in 4 shards, ATA's four slowest unit test classes one per job, and ATA's game tests in 3 servers (the airport rebuild test
+# ATA's unit tests in 4 shards, ATA's five slowest unit test classes one per job, and ATA's game tests in 3 servers (the airport rebuild test
 # and the plane-leaves-a-gate test, each real-time MTR waits over 3 minutes, alone in one each; everything else in the third).
 jobs:
   build:
@@ -74,7 +74,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        class: ['*StationPlannerTest', '*RealCitiesATest', '*CityLandmarksTest', '*StationAuditTest']
+        class: ['*StationPlannerTest', '*RealCitiesATest', '*CityLandmarksTest', '*StationAuditTest', '*AirportPlanTest']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
