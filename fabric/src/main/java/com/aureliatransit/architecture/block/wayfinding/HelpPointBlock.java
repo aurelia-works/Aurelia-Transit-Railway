@@ -4,18 +4,23 @@ import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.FacingShapedBlock;
 import com.aureliatransit.architecture.block.FreePlacement;
 import com.aureliatransit.architecture.block.Placement;
+import com.aureliatransit.architecture.live.WallSpeakerBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
+import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldAccess;
 
 import java.util.function.Consumer;
 
@@ -23,6 +28,8 @@ import java.util.function.Consumer;
  * Wall-mounted help point: a lit unit with a help symbol. Right-click with an empty hand and it says where you are
  * ("This is Central, platform 3.") through the announcement voice (client side, from MTR's nearest platform); with an
  * item in hand, or away from any station, it shows a short action-bar line. There is no network or telephony behind it.
+ * Against a column, whose face is set back from the block's edge, it stands on a short bracket ({@link #POST}) like the
+ * wall speaker, instead of hanging in the air in front of it (Jah 11-09).
  */
 public class HelpPointBlock extends FacingShapedBlock {
 
@@ -31,9 +38,11 @@ public class HelpPointBlock extends FacingShapedBlock {
 	 * Installed by the client: speaks the station and platform at a help point (falls back to {@link #MESSAGE}).
 	 */
 	public static Consumer<BlockPos> speak;
+	public static final BooleanProperty POST = BooleanProperty.of("post");
 
 	public HelpPointBlock(Settings settings, VoxelShape northOutline) {
 		super(settings, Placement.TOWARD_PLAYER, northOutline);
+		setDefaultState(getDefaultState().with(POST, false));
 	}
 
 	@Override
@@ -41,6 +50,22 @@ public class HelpPointBlock extends FacingShapedBlock {
 		super.appendProperties(builder);
 		FreePlacement.addTurn(builder);
 		FreePlacement.addNudge(builder);
+		builder.add(POST);
+	}
+
+	@Override
+	public BlockState getPlacementState(ItemPlacementContext ctx) {
+		final BlockState state = super.getPlacementState(ctx);
+		return state == null ? null : state.with(POST, WallSpeakerBlock.onPost(ctx.getWorld(), ctx.getBlockPos(), state.get(FACING)));
+	}
+
+	@Override
+	public BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighborState, WorldAccess world,
+			BlockPos pos, BlockPos neighborPos) {
+		if (direction == state.get(FACING).getOpposite()) {
+			return state.with(POST, WallSpeakerBlock.onPost(world, pos, state.get(FACING)));
+		}
+		return super.getStateForNeighborUpdate(state, direction, neighborState, world, pos, neighborPos);
 	}
 
 	@Override

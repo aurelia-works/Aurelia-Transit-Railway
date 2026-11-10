@@ -46,7 +46,7 @@ public class WallSpeakerBlock extends SpeakerBlock {
 	}
 
 	/** True when the block behind a speaker facing {@code facing} is there but has no full face towards it: a column or pole. */
-	static boolean onPost(BlockView world, BlockPos pos, Direction facing) {
+	public static boolean onPost(BlockView world, BlockPos pos, Direction facing) {
 		final BlockPos back = pos.offset(facing.getOpposite());
 		final BlockState behind = world.getBlockState(back);
 		return !behind.isAir() && !behind.isSideSolidFullSquare(world, back, facing);

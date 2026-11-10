@@ -420,11 +420,12 @@ public final class StylePalette {
 
 	/**
 	 * The frame of a free-standing lift tower: its corner posts, floor band and head. NS towers are glass boxes framed in
-	 * anthracite steel; elsewhere the frame is the building's trim and piers.
+	 * full anthracite steel panels, corners too (a slim post read as a pole standing on nothing: Jah 11-09); elsewhere the
+	 * frame is the building's trim and piers.
 	 */
 	public String liftFrame(boolean corner) {
 		if (glassLiftHead()) {
-			return ata(corner ? "ns_lift_post" : "steel_panel_dark");
+			return ata("steel_panel_dark");
 		}
 		return corner ? building.pier() : building.trim();
 	}

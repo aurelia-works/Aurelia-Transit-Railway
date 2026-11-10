@@ -107,7 +107,7 @@ abstract class PlanLifts extends PlanBuilding {
 
 	void liftButtons() {
 		final String post = palette.building().pier();
-		// an NS tower's slim corner post is clad in its dark frame panel instead of the building's plinth
+		// an NS tower's corner is already its dark frame panel; a building's pier is clad in its plinth
 		final String towerPost = palette.liftFrame(true);
 		for (final LiftButton button : buttons) {
 			final int landing = button.v() - button.o();
@@ -230,7 +230,8 @@ abstract class PlanLifts extends PlanBuilding {
 					put(Role.WALL, c, y, vD, in.opposite(), id);
 				}
 				if (!backDoor || y > low + 1 || c < c0 || c > c1) {
-					put(Role.WALL, c, y, vBack, in, id);
+					// an NS tower's back face is clad in its top row, where the station clock is fixed (on glass it floated: Jah 11-09)
+					put(Role.WALL, c, y, vBack, in, tower && palette.glassLiftHead() && y == roof - 1 ? clad : id);
 				}
 			}
 			for (int v = vD + o; v != vBack; v += o) {
@@ -243,8 +244,9 @@ abstract class PlanLifts extends PlanBuilding {
 		if (roofId != null) {
 			for (int c = c0 - 1; c <= c1 + 1; c++) {
 				for (int v = vD + o; v != vBack + o; v += o) {
-					// a tower's shaft is lit from its head, so the glass box glows at night and the car shows through it
-					final boolean shaftLight = tower && c >= c0 && c <= c1 && v != vBack;
+					// a tower's shaft is lit from its head, so the glass box glows at night and the car shows through it; an NS
+					// tower's top over the canopy is the dark steel panel only (Jah 11-09)
+					final boolean shaftLight = tower && !palette.glassLiftHead() && c >= c0 && c <= c1 && v != vBack;
 					put(Role.BUILDING_ROOF, c, roof, v, LocalDir.PLUS_V, shaftLight ? palette.building().light() : tower ? clad : roofId);
 				}
 			}
@@ -256,7 +258,7 @@ abstract class PlanLifts extends PlanBuilding {
 					if (at(c, roof, v) == null) {
 						put(Role.BUILDING_ROOF, c, roof, v, LocalDir.PLUS_V, clad);
 					}
-					if (c == c0 - 1 || c == c1 + 1 || v == vD || v == vBack) {
+					if (!palette.glassLiftHead() && (c == c0 - 1 || c == c1 + 1 || v == vD || v == vBack)) {
 						put(Role.BUILDING_ROOF, c, roof + 1, v, LocalDir.PLUS_V, LIFT_COPING, "type=bottom");
 					}
 				}

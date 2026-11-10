@@ -476,8 +476,37 @@ abstract class PlanFurniture extends PlanRoofs {
 				}
 			}
 			final int middle = (band.vFrom() + band.vTo()) / 2;
-			onPost(band, targets.stream().min(java.util.Comparator.comparingInt(t -> Math.abs(t - middle))).orElseThrow(), StationGeometry.WALK_Y, HELP_POINT);
+			final int target = targets.stream().min(java.util.Comparator.comparingInt(t -> Math.abs(t - middle))).orElseThrow();
+			// under the screen on its column, at hand height; else on a post at that height; else on the floor beside one
+			if (!helpUnderScreen(band, target) && !onPost(band, target, StationGeometry.WALK_Y + 1, HELP_POINT)) {
+				onPost(band, target, StationGeometry.WALK_Y, HELP_POINT);
+			}
 		}
+	}
+
+	/**
+	 * The platform's help point under the departure screen fixed to the column nearest {@code target}, on the same face of
+	 * the column at hand height, as on NS platforms (Jah 11-09: it floated on a short post of its own). True if placed.
+	 */
+	boolean helpUnderScreen(TrackLayout.PlatformBand band, int target) {
+		final int y = StationGeometry.WALK_Y + 1;
+		final List<PlannedBlock> screens = new ArrayList<>();
+		for (final PlannedBlock block : cells.values()) {
+			if (block.blockId().equals(PIDS) && block.y() == y + 1 && block.state().contains(ON_ARM) && band.contains(block.u(), block.v())) {
+				screens.add(block);
+			}
+		}
+		screens.sort(Comparator.comparingInt((PlannedBlock screen) -> Math.abs(screen.v() - target)).thenComparingInt(PlannedBlock::v)
+				.thenComparingInt(PlannedBlock::u));
+		for (final PlannedBlock screen : screens) {
+			final int post = screen.v() + (screen.front() == LocalDir.PLUS_V ? -1 : 1);
+			final PlannedBlock column = at(screen.u(), y, post);
+			if (column != null && column.role() == Role.COLUMN && !nearStairs(band, screen.v()) && !taken(screen.u(), y, screen.v())
+					&& put(Role.FIXTURE, screen.u(), y, screen.v(), screen.front(), HELP_POINT, "post=true")) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Where a platform's screens go: one per {@link #SCREEN_SPACING} blocks of platform, evenly spread, at least one. */
@@ -849,8 +878,8 @@ abstract class PlanFurniture extends PlanRoofs {
 				final int v = post.v() + (side == LocalDir.PLUS_V ? 1 : -1);
 				// above the floor the unit needs the post itself at that height to be fixed to
 				final boolean held = y == StationGeometry.WALK_Y || cells.containsKey(new Cell(post.u(), y, post.v()));
-				// a wall speaker on a post stands on its bracket arm, back to the post's face
-				final String state = blockId.equals(WALL_SPEAKER) ? "post=true" : "";
+				// a wall speaker or help point on a post stands on its bracket arm, back to the post's face
+				final String state = blockId.equals(WALL_SPEAKER) || blockId.equals(HELP_POINT) ? "post=true" : "";
 				// not tucked under the end of a screen hung from the same column (it looked stuck on, 10-20)
 				final boolean underScreen = blockId.equals(WALL_SPEAKER) && (screenAt(post.u(), y + 1, v) || screenAt(post.u(), y + 2, v));
 				if (held && !underScreen && band.runs(v) && !isEdge(band, post.u()) && !nearStairs(band, v) && !taken(post.u(), y, v)
