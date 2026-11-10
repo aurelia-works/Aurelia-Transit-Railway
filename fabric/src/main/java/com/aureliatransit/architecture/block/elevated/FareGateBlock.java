@@ -142,8 +142,13 @@ public class FareGateBlock extends FacingKindBlock<FareGateKind> {
 				if (opened && now.isOf(this)) {
 					world.setBlockState(gatePos, now.with(OPEN, FareGateOpen.OPEN));
 					rememberPayer(world, gatePos, player, world.getTime());
-					if (player instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
-						com.aureliatransit.architecture.fare.CardTaps.onPass(serverPlayer, gatePos.getX() + " " + gatePos.getY() + " " + gatePos.getZ());
+					if (player instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer && world instanceof ServerWorld serverWorld) {
+						// zone fares are keyed by the MTR station's shown name, as the terminal's journey planner quotes them;
+						// a gate outside every station keys by its own place
+						final String place = gatePos.getX() + " " + gatePos.getY() + " " + gatePos.getZ();
+						com.aureliatransit.architecture.station.world.MtrStationContract.namesNear(serverWorld, gatePos, 0, names ->
+								com.aureliatransit.architecture.fare.CardTaps.onPass(serverPlayer,
+										names.isEmpty() ? place : com.aureliatransit.architecture.transit.StationNames.display(names.get(0))));
 					}
 				}
 			});

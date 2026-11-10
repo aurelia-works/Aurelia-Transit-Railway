@@ -2,7 +2,9 @@ package com.aureliatransit.architecture.client.wayfinding;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.entity.WayfindingSignBlockEntity;
+import com.aureliatransit.architecture.client.FarePolicyClient;
 import com.aureliatransit.architecture.client.wayfinding.logic.ClientServiceMessages;
+import com.aureliatransit.architecture.fare.FarePolicy;
 import com.aureliatransit.architecture.client.wayfinding.logic.ClientStationSuffixes;
 import com.aureliatransit.architecture.wayfinding.SuffixContext;
 import com.aureliatransit.architecture.terminal.JourneyPlanner;
@@ -49,6 +51,9 @@ public class PassengerTerminalScreen extends Screen {
 	private static final int DELAY = 0xFFFF9A6B;
 	private static final int CHIP = 0xFF272C32;
 	private static final long DEPARTURES_MILLIS = 1000;
+	/** The Plan tab's fare when the server charges no zone fare: a guess, labelled as one. */
+	private static final int ESTIMATE_BASE = 2;
+	private static final int ESTIMATE_PER_CHANGE = 2;
 	private static final long INFO_MILLIS = 10_000;
 	private static final int SIDEBAR = 84;
 	private static final int DEPARTURE_ROW = 16;
@@ -91,6 +96,11 @@ public class PassengerTerminalScreen extends Screen {
 	private long[] homeSlots = new long[0];
 	private ButtonWidget prevButton;
 	private ButtonWidget nextButton;
+	/** Cycles the Plan tab's destination through {@link #destinations}. */
+	private ButtonWidget goalButton;
+	private List<String> destinations = List.of();
+	/** The destination picked on the Plan tab, kept by name so a map refresh does not move it. */
+	private String goal = "";
 
 	private record Row(OrderedText text, int argb) {
 	}
@@ -120,6 +130,9 @@ public class PassengerTerminalScreen extends Screen {
 		final int pagerY = top + panelH - 24;
 		prevButton = addDrawableChild(ButtonWidget.builder(Text.literal("<"), button -> turn(-1)).dimensions(contentX, pagerY, 40, 18).build());
 		nextButton = addDrawableChild(ButtonWidget.builder(Text.literal(">"), button -> turn(1)).dimensions(contentX + contentW - 40, pagerY, 40, 18).build());
+		goalButton = addDrawableChild(ButtonWidget.builder(Text.empty(), button -> nextGoal(hasShiftDown() ? -1 : 1))
+				.dimensions(contentX + 44, pagerY, Math.max(40, contentW - 88), 18)
+				.tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.translatable(KEY + "term_plan_pick_hint"))).build());
 		nextDepartures = 0;
 		nextInfo = 0;
 		dirty = true;
@@ -128,6 +141,25 @@ public class PassengerTerminalScreen extends Screen {
 	private void turn(int delta) {
 		subPage = TerminalPaging.clamp(subPage + delta, pageCount);
 		dirty = true;
+	}
+
+	private void nextGoal(int delta) {
+		if (destinations.isEmpty()) {
+			return;
+		}
+		final int at = indexOfGoal();
+		goal = destinations.get(Math.floorMod((at < 0 ? (delta > 0 ? -1 : 0) : at) + delta, destinations.size()));
+		subPage = 0;
+		dirty = true;
+	}
+
+	private int indexOfGoal() {
+		for (int i = 0; i < destinations.size(); i++) {
+			if (destinations.get(i).equalsIgnoreCase(goal)) {
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	private void select(TerminalPage tab) {
@@ -216,24 +248,25 @@ public class PassengerTerminalScreen extends Screen {
 			pageCount = 1;
 			subPage = 0;
 		}
+		goalButton.visible = page == TerminalPage.PLAN && !destinations.isEmpty();
+		goalButton.setMessage(Text.translatable(KEY + "term_plan_pick", goal));
 		prevButton.visible = pageCount > 1;
 		nextButton.visible = pageCount > 1;
 		prevButton.active = subPage > 0;
 		nextButton.active = subPage < pageCount - 1;
 	}
 
-	/** A to the far end of the first other line that leaves this station. Fare is 2 plus 2 per transfer. */
+	/**
+	 * This station to the destination picked with the goal button (the first by name until one is picked). The fare is
+	 * the server's zone fare when it charges one at the card readers, else an estimate of 2 plus 2 per change.
+	 */
 	private List<TerminalText.Line> planLines() {
 		final String here = stationName();
-		String goal = "";
-		for (final MapLine line : map.lines()) {
-			for (final com.aureliatransit.architecture.terminal.MapStop stop : line.stops()) {
-				if (!stop.name().equalsIgnoreCase(here) && goal.isEmpty()) {
-					goal = stop.name();
-				}
-			}
+		destinations = JourneyPlanner.destinations(map, here);
+		if (indexOfGoal() < 0) {
+			goal = destinations.isEmpty() ? "" : destinations.get(0);
 		}
-		final JourneyPlanner.Journey journey = JourneyPlanner.plan(map, here, goal.isEmpty() ? here : goal, 2, 2);
+		final JourneyPlanner.Journey journey = JourneyPlanner.plan(map, here, goal.isEmpty() ? here : goal, ESTIMATE_BASE, ESTIMATE_PER_CHANGE);
 		final List<TerminalText.Line> lines = new ArrayList<>();
 		lines.add(new TerminalText.Line(here + " → " + (goal.isEmpty() ? here : goal), TerminalText.Kind.HEADING));
 		if (!journey.found()) {
@@ -248,7 +281,13 @@ public class PassengerTerminalScreen extends Screen {
 				lines.add(new TerminalText.Line(Text.translatable("screen." + AureliaTransitArchitecture.MOD_ID + ".term_plan_next", minutes, next.destination()).getString(), TerminalText.Kind.DIM));
 			}
 		}
-		lines.add(new TerminalText.Line(Text.translatable("screen." + AureliaTransitArchitecture.MOD_ID + ".term_plan_fare", journey.transfers(), journey.fare()).getString(), TerminalText.Kind.INFO));
+		final FarePolicy policy = FarePolicyClient.policy();
+		// zones are keyed by MTR's station name, like the card readers use, not the terminal's display name
+		final String zoneHere = snapshot.station() == null ? here : snapshot.station().displayName();
+		final String fare = policy.enabled()
+				? Text.translatable(KEY + "term_plan_fare", journey.transfers(), policy.quote(zoneHere, goal, 0)).getString()
+				: Text.translatable(KEY + "term_plan_fare_estimate", journey.transfers(), journey.fare()).getString();
+		lines.add(new TerminalText.Line(fare, TerminalText.Kind.INFO));
 		return lines;
 	}
 
