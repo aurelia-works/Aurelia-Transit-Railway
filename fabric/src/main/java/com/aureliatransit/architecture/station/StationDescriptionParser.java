@@ -543,7 +543,6 @@ public final class StationDescriptionParser {
 		 * Takes "seed k7f2ra" out of the text (after the name, so a station named Seed Lane keeps its name). A seed that is not one
 		 * to twelve letters or digits is ignored with a warning, never an error; the first valid one wins.
 		 */
-		/** Takes out the block swaps ({@link #SWAPS}), so their block words do not also pick a look or a material. */
 		/** Tracks drawn in the station editor ("track path 4/-2 4/-12 10/-40"), laid as MTR rails out from the track ends. */
 		private String extractDrawn(String text) {
 			final List<DrawnTrack> drawn = DrawnTrack.parse(text);
@@ -555,6 +554,7 @@ public final class StationDescriptionParser {
 			return DrawnTrack.strip(text);
 		}
 
+		/** Takes out the block swaps ({@link #SWAPS}), so their block words do not also pick a look or a material. */
 		private String extractSwaps(String text) {
 			String rest = text;
 			for (final Pattern pattern : SWAPS) {

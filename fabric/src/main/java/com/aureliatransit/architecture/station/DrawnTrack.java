@@ -69,7 +69,8 @@ public record DrawnTrack(List<Point> points) {
 		return String.join(", ", parts);
 	}
 
-	/** The drawn tracks in {@code text}, in order, at most {@link #MAX_TRACKS} with at most {@link #MAX_POINTS} points each. */
+	/** The drawn tracks in {@code text}, in order, at most {@link #MAX_TRACKS} each; a track of more than {@link #MAX_POINTS} points or out of reach is
+	 * kept as written, for {@link #check} to refuse. */
 	public static List<DrawnTrack> parse(String text) {
 		final List<DrawnTrack> tracks = new ArrayList<>();
 		if (text == null) {
@@ -79,12 +80,9 @@ public record DrawnTrack(List<Point> points) {
 		while (matcher.find() && tracks.size() < MAX_TRACKS) {
 			final List<Point> points = new ArrayList<>();
 			final Matcher point = POINT.matcher(matcher.group(1));
-			while (point.find() && points.size() < MAX_POINTS) {
-				final int u = Integer.parseInt(point.group(1));
-				final int v = Integer.parseInt(point.group(2));
-				if (Math.abs(u) <= MAX_REACH && Math.abs(v) <= MAX_REACH) {
-					points.add(new Point(u, v));
-				}
+			// one point past the cap is kept, so check() refuses the track instead of laying a shortened one
+			while (point.find() && points.size() <= MAX_POINTS) {
+				points.add(new Point(Integer.parseInt(point.group(1)), Integer.parseInt(point.group(2))));
 			}
 			if (points.size() >= 2) {
 				tracks.add(new DrawnTrack(points));
@@ -172,16 +170,20 @@ public record DrawnTrack(List<Point> points) {
 	/**
 	 * What keeps this track from being laid, or null when it can be: it must start on a track end, run straight out along that
 	 * track for {@link #LEAD} blocks, stay out of the station after that, take no step shorter than {@link #MIN_STEP} and no
-	 * turn sharper than {@link #MAX_TURN} degrees.
+	 * turn sharper than {@link #MAX_TURN} degrees. {@code anchors} are the plan's track ends and {@code box} its cells
+	 * {uMin, uMax, vMin, vMax}.
 	 */
-	public String check(StationPlan plan) {
-		return check(anchors(plan), footprint(plan));
-	}
-
-	/** {@link #check(StationPlan)} with the plan's track ends and its cells {uMin, uMax, vMin, vMax} given. */
 	public String check(List<Point> anchors, int[] box) {
 		if (points.size() < 2) {
 			return "a drawn track needs two points";
+		}
+		if (points.size() > MAX_POINTS) {
+			return "a drawn track takes at most " + MAX_POINTS + " points";
+		}
+		for (int i = 0; i < points.size(); i++) {
+			if (Math.abs(points.get(i).u()) > MAX_REACH || Math.abs(points.get(i).v()) > MAX_REACH) {
+				return "point " + (i + 1) + " is more than " + MAX_REACH + " blocks from the station";
+			}
 		}
 		final Point start = points.get(0);
 		if (!anchors.contains(start)) {
