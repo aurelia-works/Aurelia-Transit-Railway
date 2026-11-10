@@ -48,7 +48,11 @@ public final class MapClient {
 		ClientTickEvents.END_CLIENT_TICK.register(MapClient::tick);
 		HudRenderCallback.EVENT.register((context, tickDelta) -> MinimapHud.render(context));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(MapClient::close));
-		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> close());
+		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+			close();
+			// the saver is a daemon thread: without this the last regions seen are lost when the game quits
+			ExploredMap.flush();
+		});
 	}
 
 	@Nullable

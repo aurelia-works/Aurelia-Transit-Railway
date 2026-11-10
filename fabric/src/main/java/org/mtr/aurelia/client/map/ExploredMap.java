@@ -123,6 +123,16 @@ public final class ExploredMap {
 		loaded.clear();
 	}
 
+	/** Waits (at most 5 seconds) for the queued saves to reach the disk; the game calls it as it quits, before the saver thread dies with it. */
+	public static void flush() {
+		try {
+			SAVER.submit(() -> {
+			}).get(5, java.util.concurrent.TimeUnit.SECONDS);
+		} catch (Exception e) {
+			AureliaClient.LOGGER.warn("[ATR] map saves still running at quit", e);
+		}
+	}
+
 	private void trim() {
 		final Iterator<Map.Entry<Long, MapRegion>> oldest = loaded.entrySet().iterator();
 		while (loaded.size() > MAX_LOADED && oldest.hasNext()) {
