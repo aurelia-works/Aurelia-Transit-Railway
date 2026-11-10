@@ -525,7 +525,7 @@ class StationPlannerTest {
 				}
 			}
 			for (final PlannedBlock block : plan.blocks()) {
-				if (!block.blockId().equals(StationPlanner.HELP_POINT) || block.y() != StationGeometry.WALK_Y) {
+				if (!block.blockId().equals(StationPlanner.HELP_POINT)) {
 					continue;
 				}
 				for (final TrackLayout.PlatformBand band : plan.layout().platforms()) {
@@ -1104,8 +1104,9 @@ class StationPlannerTest {
 			for (final PlatformLayout layout : PlatformLayout.values()) {
 				final StationSpec spec = StationSpec.builder().trackCount(2).platformLayout(layout).platformLength(48).roof(roof).build();
 				final StationPlan plan = plan(spec);
-				final List<PlannedBlock> units = plan.blocks().stream().filter(b -> b.y() == StationGeometry.WALK_Y
-						&& (b.blockId().endsWith(":help_point") || b.blockId().endsWith(":platform_pids"))).toList();
+				// a help point hangs at hand height under a screen on its column (Jah 11-09), or stands beside a post
+				final List<PlannedBlock> units = plan.blocks().stream().filter(b -> b.blockId().endsWith(":help_point")
+						|| b.y() == StationGeometry.WALK_Y && b.blockId().endsWith(":platform_pids")).toList();
 				assertEquals(plan.layout().platforms().size(), units.stream().filter(b -> b.blockId().endsWith(":help_point")).count(),
 						"one help point per platform: " + describe(spec));
 				for (final PlannedBlock unit : units) {

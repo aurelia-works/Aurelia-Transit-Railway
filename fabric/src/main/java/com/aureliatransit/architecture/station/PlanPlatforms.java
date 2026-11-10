@@ -659,7 +659,8 @@ abstract class PlanPlatforms extends PlanState {
 	}
 
 	/**
-	 * The overhead line: a mast every {@link #MAST_SPACING} rows on each open outer side (and between two tracks with no
+	 * The overhead line: a mast every {@link #MAST_SPACING} rows on each open outer side, on the ballast shoulder inside the
+	 * lineside fence (and between two tracks with no
 	 * platform between them), an arm across to the track's centre at the top, a hanger at its end, and the contact wire along
 	 * every track a mast reaches. Planned after everything else, on free cells only, so a canopy or a stair is never moved
 	 * for it; a mast row with no room is left out.
@@ -675,7 +676,9 @@ abstract class PlanPlatforms extends PlanState {
 						|| layout.tracks().stream().anyMatch(other -> other != track && Integer.signum(other.u() - track.u()) == side)) {
 					continue;
 				}
-				final int mast = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + StationGeometry.CESS);
+				// on the ballast shoulder where the track has a cess, so the fence or noise screen on the cess's outer edge runs
+				// on unbroken behind it (a mast in the fence line broke the run: Jah 11-09); else at the edge of the layout
+				final int mast = track.u() + side * (StationGeometry.ENVELOPE_HALF_WIDTH + (cessSide(track, side) ? 1 : StationGeometry.CESS));
 				if (mast < 0 || mast >= layout.width()) {
 					continue;
 				}
@@ -774,13 +777,16 @@ abstract class PlanPlatforms extends PlanState {
 		return true;
 	}
 
-	/** The lowest cell of a mast at {@code (u, v)}: on the ground, or on a platform's paving; -1 when neither is there. */
+	/**
+	 * The lowest cell of a mast at {@code (u, v)}: on the ground, or on a platform's paving or the ballast shoulder; -1 when
+	 * none of those is there.
+	 */
 	private int mastBase(int u, int v) {
 		if (free(u, StationGeometry.PLATFORM_Y, v)) {
 			return StationGeometry.PLATFORM_Y;
 		}
 		final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, v);
-		return floor != null && floor.role() == Role.PLATFORM_SURFACE ? StationGeometry.WALK_Y : -1;
+		return floor != null && (floor.role() == Role.PLATFORM_SURFACE || floor.role() == Role.TRACK_BED) ? StationGeometry.WALK_Y : -1;
 	}
 
 	private void mast(int u, int v, List<Integer> tracks) {
@@ -875,9 +881,12 @@ abstract class PlanPlatforms extends PlanState {
 						}
 					}
 				}
+				// the pylon faces across the landing, like the ticket machine beside it: facing the street it looked straight into
+				// the machine's side (Jah 11-09)
+				final LocalDir across = outer == street.uMin() ? LocalDir.PLUS_U : LocalDir.MINUS_U;
 				if (inFootprint(foot) && free(outer, StationGeometry.PLATFORM_Y, foot) && free(outer, StationGeometry.WALK_Y, foot)) {
-					putText(Role.FIXTURE, outer, StationGeometry.PLATFORM_Y, foot, out, PlanUnderground.PYLON, "NONE:" + spec.name());
-					put(Role.FIXTURE, outer, StationGeometry.WALK_Y, foot, out, PlanUnderground.PYLON, "half=upper");
+					putText(Role.FIXTURE, outer, StationGeometry.PLATFORM_Y, foot, across, PlanUnderground.PYLON, "NONE:" + spec.name());
+					put(Role.FIXTURE, outer, StationGeometry.WALK_Y, foot, across, PlanUnderground.PYLON, "half=upper");
 				}
 				if (inFootprint(foot + dir)) {
 					ticketMachine(outer, StationGeometry.PLATFORM_Y, foot + dir, outer == street.uMin() ? LocalDir.PLUS_U : LocalDir.MINUS_U);

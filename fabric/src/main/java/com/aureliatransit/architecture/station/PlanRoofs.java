@@ -154,6 +154,31 @@ abstract class PlanRoofs extends PlanColumns {
 			}
 		}
 		pruneLooseGirders(y - 1);
+		girdersOverPiers(y - 1);
+	}
+
+	/**
+	 * A slim steel pier rising into a canopy's girder row carries the girders framed into its sides on a girder of its own
+	 * at the top: the girder block's arms end at its cell's edge and the column stands in the middle of its own, so they
+	 * stopped short of it (Jah 11-09). The cell keeps its pier role, so the bridge deck still rests on a pier.
+	 */
+	void girdersOverPiers(int y) {
+		final String girder = palette.blockId(Role.BEAM);
+		final String kind = "kind=" + palette.girderKind();
+		for (final PlannedBlock pier : List.copyOf(cells.values())) {
+			if (pier.role() != Role.BRIDGE_PIER || pier.y() != y || !pier.blockId().contains("steel_column")) {
+				continue;
+			}
+			for (final LocalDir side : new LocalDir[]{LocalDir.PLUS_U, LocalDir.PLUS_V}) {
+				final boolean alongU = side == LocalDir.PLUS_U;
+				final PlannedBlock before = at(pier.u() - (alongU ? 1 : 0), y, pier.v() - (alongU ? 0 : 1));
+				final PlannedBlock after = at(pier.u() + (alongU ? 1 : 0), y, pier.v() + (alongU ? 0 : 1));
+				if (before != null && before.role() == Role.BEAM || after != null && after.role() == Role.BEAM) {
+					cells.put(new Cell(pier.u(), y, pier.v()), new PlannedBlock(pier.u(), y, pier.v(), Role.BRIDGE_PIER, girder, side, "", kind));
+					break;
+				}
+			}
+		}
 	}
 
 	/** The lamp offset of a row with no lamp. */
