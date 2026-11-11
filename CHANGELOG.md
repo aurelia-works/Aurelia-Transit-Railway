@@ -18,6 +18,7 @@
 
 ### Fixed
 - The Aurelia panel's twelve tabs wrap into rows on narrow windows, so their labels stay readable (#43).
+- A taxiway meets a runway on a curve. The square link's corner is a quarter-circle a plane can follow, on the generated field and on a drawn taxiway that meets a drawn runway at a right angle.
 
 ## 1.0.2 (4.0.5+atr.1.0.2), Minecraft 1.20.1, Fabric
 

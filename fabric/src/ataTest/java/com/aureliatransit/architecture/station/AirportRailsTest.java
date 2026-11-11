@@ -47,6 +47,7 @@ class AirportRailsTest {
 	@Test
 	void curvesPassThroughAOneBlockCornerBetweenTheirEnds() {
 		int curves = 0;
+		int fillets = 0;
 		for (final AirRail rail : rails()) {
 			assertNotEquals(rail.from(), rail.to());
 			if (rail.via() == null) {
@@ -55,10 +56,19 @@ class AirportRailsTest {
 				continue;
 			}
 			curves++;
+			final int dx = Math.abs(rail.to().x() - rail.from().x());
+			final int dz = Math.abs(rail.to().z() - rail.from().z());
+			// a fillet is one quadratic between the tangent points, so the via cell is the middle of the arc
+			if (perpendicular(rail.startDir(), opposite(rail.endDir())) && dx == dz && dx > 1) {
+				fillets++;
+				continue;
+			}
 			assertOneStep(rail.from(), rail.via());
 			assertOneStep(rail.via(), rail.to());
 		}
 		assertTrue(curves > 0, "the loops have corners");
+		// five gates, two links, two quarter-arcs each: a miss here means the route never became one rail
+		assertEquals(20, fillets, "fillet rails");
 	}
 
 	/** Every two rails that meet inside a loop pass straight through the node: one leaves it back along itself, the other away. */
@@ -81,6 +91,12 @@ class AirportRailsTest {
 			case N -> Dir.S;
 			case S -> Dir.N;
 		};
+	}
+
+	private static boolean perpendicular(Dir a, Dir b) {
+		final boolean aEast = a == Dir.E || a == Dir.W;
+		final boolean bEast = b == Dir.E || b == Dir.W;
+		return aEast != bEast;
 	}
 
 	private static void assertOneStep(Pos a, Pos b) {

@@ -93,18 +93,50 @@ public final class AirportRails {
 	private static void emit(Chunk chunk, int gate, LocalFrame frame, int y, List<AirRail> out) {
 		final List<Cell> cs = chunk.cells();
 		final List<Kind> ks = chunk.kinds();
-		final int n = ks.size();
-		// straight runs: edges going one way; a run is cells [first, end]
+		if (cs.size() < 2) {
+			return;
+		}
+		// a fillet is one quadratic from tangent to tangent; the siding and the gate stay one-step corners
+		final List<int[]> arcs = arcs(cs);
+		int cursor = 0;
+		for (final int[] arc : arcs) {
+			emitRange(cs, ks, cursor, arc[0], gate, frame, y, out);
+			fillet(cs, ks, arc[0], arc[1], gate, frame, y, out);
+			cursor = arc[1];
+		}
+		emitRange(cs, ks, cursor, cs.size() - 1, gate, frame, y, out);
+	}
+
+	/** Cell index pairs {@code [start, end]} of each quarter-arc, end cell included. */
+	private static List<int[]> arcs(List<Cell> cs) {
+		final List<int[]> out = new ArrayList<>();
+		for (int i = 0; i < cs.size();) {
+			final int n = TaxiwayCurve.arcCells(cs, i);
+			if (n >= 4) {
+				out.add(new int[] {i, i + n - 1});
+				i += n - 1;
+			} else {
+				i++;
+			}
+		}
+		return out;
+	}
+
+	/** The old run-and-cut over cells {@code from..to} inclusive. A fillet's cells are not in here. */
+	private static void emitRange(List<Cell> cs, List<Kind> ks, int from, int to, int gate, LocalFrame frame, int y, List<AirRail> out) {
+		if (to <= from) {
+			return;
+		}
 		final List<int[]> runs = new ArrayList<>();
-		for (int i = 0; i < n;) {
+		for (int i = from; i < to;) {
 			int j = i;
-			while (j + 1 < n && sameStep(cs, j + 1, i)) {
+			while (j + 1 < to && sameStep(cs, j + 1, i)) {
 				j++;
 			}
 			runs.add(new int[] {i, j});
 			i = j + 1;
 		}
-		int start = 0;
+		int start = from;
 		for (int r = 0; r < runs.size(); r++) {
 			final int end = runs.get(r)[1] + 1;
 			final Kind kind = ks.get(runs.get(r)[0]);
@@ -126,6 +158,17 @@ public final class AirportRails {
 				start = end;
 			}
 		}
+	}
+
+	/** One rail across a fillet. Directions come from the first and last steps; the middle cell is only the via point. */
+	private static void fillet(List<Cell> cs, List<Kind> ks, int a, int b, int gate, LocalFrame frame, int y, List<AirRail> out) {
+		final Pos from = pos(frame, y, cs.get(a));
+		final Pos to = pos(frame, y, cs.get(b));
+		final Pos via = pos(frame, y, cs.get((a + b) / 2));
+		final Pos first = pos(frame, y, cs.get(a + 1));
+		final Pos last = pos(frame, y, cs.get(b - 1));
+		out.add(new AirRail(ks.get(a), gate, from, via, to, Dir.of(first.x() - from.x(), first.z() - from.z()),
+				Dir.of(last.x() - to.x(), last.z() - to.z())));
 	}
 
 	/** True when edge {@code edge} (cell edge to edge+1) goes the same way as edge {@code like}. */

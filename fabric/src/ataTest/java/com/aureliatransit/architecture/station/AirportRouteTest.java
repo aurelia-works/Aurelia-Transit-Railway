@@ -108,12 +108,24 @@ class AirportRouteTest {
 			final Leg exitLink = legs.get(6);
 			assertEquals(Kind.LINK, takeOffLink.kind());
 			assertEquals(Kind.LINK, exitLink.kind());
+			final int reach = TaxiwayCurve.radius(REAL);
+			assertTrue(reach >= 2, "the real fillet has a radius");
+			boolean takeOffOnRow = false;
 			for (final Cell cell : takeOffLink.cells()) {
-				assertEquals(takeOffRow, cell.v(), "take-off link row");
+				assertTrue(Math.abs(cell.v() - takeOffRow) <= reach, "take-off link stays at that link " + cell);
+				if (cell.v() == takeOffRow) {
+					takeOffOnRow = true;
+				}
 			}
+			assertTrue(takeOffOnRow, "the take-off link still crosses on the link row");
+			boolean exitOnRow = false;
 			for (final Cell cell : exitLink.cells()) {
-				assertEquals(exitRow, cell.v(), "exit link row");
+				assertTrue(Math.abs(cell.v() - exitRow) <= reach, "exit link stays at that link " + cell);
+				if (cell.v() == exitRow) {
+					exitOnRow = true;
+				}
 			}
+			assertTrue(exitOnRow, "the exit link still crosses on the link row");
 			final Leg takeOff = legs.get(4);
 			final Leg landing = legs.get(5);
 			assertEquals(new Cell(REAL.runwayCentre(0), REAL.runwayV1()), last(takeOff), "the take-off roll ends at the far end");

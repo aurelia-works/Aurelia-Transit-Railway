@@ -19,10 +19,10 @@ import java.util.List;
  * <li>SIDING: the stand's siding along row s (half a stand pitch from the platform's row, so sidings never meet), toward the taxiway;</li>
  * <li>PUSH_BACK: the taxiway cell the siding joins;</li>
  * <li>TAXI: down the taxiway to the near link;</li>
- * <li>LINK: across to the runway at the near link;</li>
- * <li>TAKE_OFF: the take-off roll from the near link to the far end;</li>
+ * <li>LINK: across to the runway at the near link, on a quarter-circle when the fillet fits;</li>
+ * <li>TAKE_OFF: the take-off roll from that curve to the far end;</li>
  * <li>the flight: not a cell, the one break in the loop, from the far end back to the threshold;</li>
- * <li>LANDING: the landing roll from the threshold to the far link;</li>
+ * <li>LANDING: the landing roll from the threshold to the far link's curve;</li>
  * <li>LINK: off the runway at the far link, to the taxiway;</li>
  * <li>TAXI: down the taxiway to the stand's row;</li>
  * <li>GATE: the lead-in and the platform along the stand's row, nose at {@link AirportGeometry#stopU()};</li>
@@ -89,6 +89,8 @@ public record AirportRoute(List<Gate> gates, String problem) {
 		if (siding < PLANE_LENGTH) {
 			return none("the siding would be " + siding + " blocks; a plane is " + PLANE_LENGTH);
 		}
+		// one radius for every gate: the paint and the rail have to be the same arc
+		final int radius = TaxiwayCurve.radius(g);
 		final List<Gate> gates = new ArrayList<>();
 		for (int i = 0; i < count; i++) {
 			final int c = g.standV().get(i);
@@ -96,7 +98,7 @@ public record AirportRoute(List<Gate> gates, String problem) {
 			if (!(v0 < m0 && m0 < c && c < s && s < m1 && m1 < v1)) {
 				return none("stand " + (i + 1) + " at row " + c + " is not between the take-off link " + m0 + " and the exit link " + m1);
 			}
-			final List<Leg> legs = loop(stop, tc, rc, c, s, m0, m1, v0, v1);
+			final List<Leg> legs = loop(stop, tc, rc, c, s, m0, m1, v0, v1, radius);
 			final List<Cell> platform = new ArrayList<>();
 			for (final Cell cell : legs.stream().filter(leg -> leg.kind() == Kind.GATE).findFirst().orElseThrow().cells()) {
 				if (cell.u() <= g.apronU1()) {
@@ -116,16 +118,26 @@ public record AirportRoute(List<Gate> gates, String problem) {
 		return (link[0] + link[1]) / 2;
 	}
 
-	private static List<Leg> loop(int stop, int tc, int rc, int c, int s, int m0, int m1, int v0, int v1) {
+	private static List<Leg> loop(int stop, int tc, int rc, int c, int s, int m0, int m1, int v0, int v1, int radius) {
 		final List<Leg> legs = new ArrayList<>();
 		legs.add(new Leg(Kind.SIDING, runU(stop, tc - 1, s)));
 		legs.add(new Leg(Kind.PUSH_BACK, List.of(new Cell(tc, s))));
-		legs.add(new Leg(Kind.TAXI, runV(tc, s - 1, m0)));
-		legs.add(new Leg(Kind.LINK, runU(tc + 1, rc, m0)));
-		legs.add(new Leg(Kind.TAKE_OFF, runV(rc, m0 + 1, v1)));
-		legs.add(new Leg(Kind.LANDING, runV(rc, v0, m1)));
-		legs.add(new Leg(Kind.LINK, runU(rc - 1, tc, m1)));
-		legs.add(new Leg(Kind.TAXI, runV(tc, m1 - 1, c)));
+		if (radius < 2) {
+			legs.add(new Leg(Kind.TAXI, runV(tc, s - 1, m0)));
+			legs.add(new Leg(Kind.LINK, runU(tc + 1, rc, m0)));
+			legs.add(new Leg(Kind.TAKE_OFF, runV(rc, m0 + 1, v1)));
+			legs.add(new Leg(Kind.LANDING, runV(rc, v0, m1)));
+			legs.add(new Leg(Kind.LINK, runU(rc - 1, tc, m1)));
+			legs.add(new Leg(Kind.TAXI, runV(tc, m1 - 1, c)));
+		} else {
+			// the straight stops on the tangent; the link carries both arcs and the throat between them
+			legs.add(new Leg(Kind.TAXI, runV(tc, s - 1, m0 + radius + 1)));
+			legs.add(new Leg(Kind.LINK, TaxiwayCurve.ontoRunway(tc, rc, m0, radius)));
+			legs.add(new Leg(Kind.TAKE_OFF, runV(rc, m0 + radius + 1, v1)));
+			legs.add(new Leg(Kind.LANDING, runV(rc, v0, m1 - radius - 1)));
+			legs.add(new Leg(Kind.LINK, TaxiwayCurve.offRunway(tc, rc, m1, radius)));
+			legs.add(new Leg(Kind.TAXI, runV(tc, m1 - radius - 1, c)));
+		}
 		legs.add(new Leg(Kind.GATE, runU(tc - 1, stop, c)));
 		legs.add(new Leg(Kind.TURN, runV(stop, c + 1, s)));
 		return legs;

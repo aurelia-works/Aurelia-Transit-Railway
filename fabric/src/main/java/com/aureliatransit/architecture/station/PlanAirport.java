@@ -362,7 +362,7 @@ abstract class PlanAirport extends PlanFitOut {
 		// four PAPI boxes beside the touchdown zone, one cell outside the runway shoulder
 		final int u = air.runwayU0().get(0) - air.dims().shoulder() - 1;
 		int v0 = air.runwayV0() + Math.max(44, spec.airport().runwayLength() / 10);
-		for (int attempt = 0; attempt < 4; attempt++) {
+		for (int attempt = 0; attempt < 4 + TaxiwayCurve.radius(air); attempt++) {
 			boolean clear = true;
 			for (int k = 0; k < 4; k++) {
 				clear &= !onTaxiway(u, v0 + 4 * k);
@@ -638,34 +638,50 @@ abstract class PlanAirport extends PlanFitOut {
 			paint(centre, v, PAINT_YELLOW);
 			if (spec.airport().taxiwayLights() && v % air.dims().taxiLightEvery() == 0) {
 				light(air.taxiU0(), v, TAXI_LIGHT);
-				light(air.taxiU1(), v, TAXI_LIGHT);
+				// the fillet's new edge carries the line; a light here would sit in the middle of that pavement
+				if (!TaxiwayCurve.opensEdge(air, v)) {
+					light(air.taxiU1(), v, TAXI_LIGHT);
+				}
 			}
-			// yellow edge lines one cell in from the pavement's edge; they break where a link joins
+			// yellow edge lines one cell in from the pavement's edge; they break where a link joins. The fillet opens only the
+			// runway side, so the apron-side line stays except on the link row itself.
 			if (!onLink(v)) {
 				paint(air.taxiU0() + 1, v, PAINT_YELLOW);
+			}
+			if (!onLink(v) && !TaxiwayCurve.opensEdge(air, v)) {
 				paint(air.taxiU1() - 1, v, PAINT_YELLOW);
 			}
 		}
 		final int gapFrom = air.taxiU1() + 1;
 		final int gapTo = air.runwayU0().get(0) - 1;
+		final int fillet = TaxiwayCurve.radius(air);
 		for (final int[] link : air.links()) {
-			final int middle = (link[0] + link[1]) / 2;
-			for (int u = gapFrom; u <= gapTo; u++) {
-				// a link is an ordinary taxiway: yellow centre and edges, green lead-on lights and blue edge lights. The green
-				// lights stop a cell short of the runway, so none touches its pavement (they share the threshold lights' block)
-				if (spec.airport().taxiwayLights() && u % greenEvery == 0 && u < gapTo) {
-					light(u, middle, THRESHOLD_LIGHT);
+			if (fillet < 2) {
+				final int middle = (link[0] + link[1]) / 2;
+				for (int u = gapFrom; u <= gapTo; u++) {
+					// a link is an ordinary taxiway: yellow centre and edges, green lead-on lights and blue edge lights. The green
+					// lights stop a cell short of the runway, so none touches its pavement (they share the threshold lights' block)
+					if (spec.airport().taxiwayLights() && u % greenEvery == 0 && u < gapTo) {
+						light(u, middle, THRESHOLD_LIGHT);
+					}
+					paint(u, middle, PAINT_YELLOW);
+					if (spec.airport().taxiwayLights() && u % air.dims().taxiLightEvery() == 0) {
+						light(u, link[0], TAXI_LIGHT);
+						light(u, link[1], TAXI_LIGHT);
+					}
+					paint(u, link[0], PAINT_YELLOW);
+					paint(u, link[1], PAINT_YELLOW);
 				}
-				paint(u, middle, PAINT_YELLOW);
-				if (spec.airport().taxiwayLights() && u % air.dims().taxiLightEvery() == 0) {
-					light(u, link[0], TAXI_LIGHT);
-					light(u, link[1], TAXI_LIGHT);
-				}
-				paint(u, link[0], PAINT_YELLOW);
-				paint(u, link[1], PAINT_YELLOW);
+				// the runway holding position: two solid and two dashed yellow lines, solid side to the runway, 14 cells outside the strip
+				holdingPositionV(air.holdU(), link[0], link[1]);
+			} else {
+				paintCurvedLink(link, greenEvery, gapFrom, gapTo, fillet);
 			}
-			// the runway holding position: two solid and two dashed yellow lines, solid side to the runway, 14 cells outside the strip
-			holdingPositionV(air.holdU(), link[0], link[1]);
+		}
+		if (fillet >= 2) {
+			for (final AirportRoute.Cell cell : TaxiwayCurve.boundary(air)) {
+				paint(cell.u(), cell.v(), PAINT_YELLOW);
+			}
 		}
 		// rapid exits: the same centreline, edge lines, edge lights and hold-short bar as the links, along each exit's diagonal strip
 		final int half = air.exitHalf();
@@ -700,6 +716,43 @@ abstract class PlanAirport extends PlanFitOut {
 				holdingPositionH(high ? s0 : s1, high ? -1 : 1, far - air.dims().taxi() / 2, far + air.dims().taxi() / 2);
 			}
 		}
+	}
+
+	/** Yellow centre, the straight edges the fillet did not replace, and the hold bar, for one curved link. */
+	private void paintCurvedLink(int[] link, int greenEvery, int gapFrom, int gapTo, int radius) {
+		final int middle = (link[0] + link[1]) / 2;
+		final int runwayU0 = air.runwayU0().get(0);
+		final int throat0 = air.taxiCentre() + radius + 1;
+		final int throat1 = air.runwayCentre(0) - radius - 1;
+		final Set<Long> extra = TaxiwayCurve.extraCells(air);
+		for (final AirportRoute.Cell cell : TaxiwayCurve.centreline(air, link)) {
+			if (cell.u() >= runwayU0) {
+				continue;
+			}
+			final boolean throat = cell.v() == middle && cell.u() >= throat0 && cell.u() <= throat1;
+			if (throat && spec.airport().taxiwayLights() && cell.u() < gapTo && cell.u() % greenEvery == 0) {
+				light(cell.u(), cell.v(), THRESHOLD_LIGHT);
+			}
+			paint(cell.u(), cell.v(), PAINT_YELLOW);
+		}
+		for (int u = gapFrom; u <= gapTo; u++) {
+			if (!extra.contains(TaxiwayCurve.key(u, link[0] - 1))) {
+				markLinkEdge(u, link[0]);
+			}
+			if (!extra.contains(TaxiwayCurve.key(u, link[1] + 1))) {
+				markLinkEdge(u, link[1]);
+			}
+		}
+		for (final AirportRoute.Cell cell : TaxiwayCurve.hold(air, link)) {
+			paint(cell.u(), cell.v(), PAINT_YELLOW);
+		}
+	}
+
+	private void markLinkEdge(int u, int v) {
+		if (spec.airport().taxiwayLights() && u % air.dims().taxiLightEvery() == 0) {
+			light(u, v, TAXI_LIGHT);
+		}
+		paint(u, v, PAINT_YELLOW);
 	}
 
 	/** True when row {@code v} is inside a link's pavement, where the taxiway's edge line must break. */
@@ -790,7 +843,9 @@ abstract class PlanAirport extends PlanFitOut {
 
 	/** The first row outside a link, on either side, where a three-wide sign at column {@code u} stays off every taxiway area. */
 	private int signV(int[] link, int u) {
-		for (int step = 1; step <= 4; step++) {
+		// the fillet widens the link, so the sign has to step past that pavement, not just four rows
+		final int reach = Math.max(4, TaxiwayCurve.radius(air) + air.dims().taxi() / 2 + 2);
+		for (int step = 1; step <= reach; step++) {
 			for (final int v : new int[]{link[1] + step, link[0] - step}) {
 				boolean clear = true;
 				for (int du = 0; du <= 2; du++) {
