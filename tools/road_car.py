@@ -244,298 +244,286 @@ def wheel(model, suffix, cx, cz):
 	ring(model, group, "disc", cx, WHEEL_Y, cz, RIM_R - 0.05, 0.7, da, db, 16, "black", 0, 360)
 
 
-def arch(model, side, axle, z_name):
-	"""Body-coloured lip around the upper three-quarters of the wheel, plus the dark liner inside it."""
-	cx = side * WHEEL_X
-	r_out = OPEN_R + LIP_T
-	x_out = side * ARCH_X
-	x_in = side * (DOOR_X - 0.15)
-	xa, xb = min(x_in, x_out), max(x_in, x_out)
-	ring(model, "body", "lip_%s" % z_name, cx, WHEEL_Y, axle, r_out, OPEN_R, xa, xb, 18, "paint_side", -92, 92)
-	# Liner, just inside the opening, so the hole reads as a wheel arch and not a cut in a flat wall.
-	lx0, lx1 = min(cx - 0.4, cx + 0.4), max(cx - 0.4, cx + 0.4)
-	ring(model, "trim", "liner_%s" % z_name, cx, WHEEL_Y, axle, OPEN_R - 0.05, OPEN_R - 0.55, lx0, lx1, 14, "black", -100, 100)
-
-
-def fender_fill(model, side, axle, z0, z1, y_top, name):
-	"""Side skin above the arch opening. The lip covers the steps."""
-	step = 1.15
-	z = z0
-	i = 0
-	while z < z1 - 0.01:
-		z2 = min(z1, z + step)
-		zm = (z + z2) / 2 - axle
-		if abs(zm) >= OPEN_R - 0.2:
-			y0 = SILL
-		else:
-			y0 = WHEEL_Y + math.sqrt(max(0.0, OPEN_R * OPEN_R - zm * zm)) - 0.15
-		if y_top - y0 > 0.2:
-			side_skin(model, "body", "%s_%d" % (name, i), side, side * ARCH_X, SKIN + 0.15, y0, y_top, z, z2, "paint_side")
-		z = z2
-		i += 1
-
-
-def mirrors(model, side):
-	"""Door mirror: painted head, black stalk, flat glass. The head is in body so it takes the paint."""
-	x_door = side * DOOR_X
-	z, y = 0.62 * PX, BELT_F + 0.35
-	reach = side * 1.55
-	box(model, "trim", "stalk", x_door - side * 0.1, y, z - 0.28, x_door + reach * 0.45, y + 0.55, z + 0.28, "black")
-	hx0, hx1 = x_door + reach * 0.35, x_door + reach
-	box(model, "body", "mirror_head", min(hx0, hx1), y - 0.15, z - 1.15, max(hx0, hx1), y + 1.55, z + 0.85, "paint_side")
-	# The glass faces back and slightly in, on the inner face of the head.
-	gx = hx0 if side > 0 else hx1
-	box(model, "mirror", "mirror_glass", gx - side * 0.12, y + 0.15, z - 0.85, gx, y + 1.25, z + 0.45, "glass")
-
-
-def lamps_front(model):
-	"""Thin lamps set into the nose, with an amber outer end and a side repeater."""
-	for side in (1, -1):
-		x0 = side * 0.28 * PX
-		x1 = side * 0.72 * PX
-		y0, y1 = 0.470 * PX, 0.630 * PX
-		z0, z1 = HALF_L - 0.20, HALF_L + 0.55
-		box(model, "lamps", "head", min(x0, x1), y0, z0, max(x0, x1), y1, z1, "lamp_front",
-			flip_u=(side < 0),
-			face_material={"north": "black", "up": "black", "down": "black", "south": "lamp_front"})
-		box(model, "lamps", "repeater", side * DOOR_X - side * 0.02, 0.72 * PX, AXLE_F + 0.15 * PX, side * DOOR_X + side * 0.22, 0.78 * PX, AXLE_F + 0.55 * PX, "amber")
-
-
-def lamps_rear(model):
-	for side in (1, -1):
-		x0 = side * 0.22 * PX
-		x1 = side * 0.78 * PX
-		y0, y1 = 0.500 * PX, 0.660 * PX
-		z0, z1 = -HALF_L - 0.55, -HALF_L + 0.20
-		box(model, "lamps", "tail", min(x0, x1), y0, z0, max(x0, x1), y1, z1, "lamp_tail",
-			flip_u=(side < 0),
-			face_material={"south": "black", "up": "black", "down": "black", "north": "lamp_tail", "east": "lamp_tail", "west": "lamp_tail"})
-		box(model, "lamps", "tail_side", min(side * 0.74 * PX, side * 0.82 * PX), y0 + 0.25, -HALF_L - 0.20, max(side * 0.74 * PX, side * 0.82 * PX), y1 - 0.20, -HALF_L + 1.4, "lamp_tail")
-		# Pale reverse lamp inboard, and a small reflector below.
-		rx0, rx1 = side * 0.08 * PX, side * 0.20 * PX
-		box(model, "lamps", "reverse", min(rx0, rx1), y0 + 0.35, -HALF_L - 0.85, max(rx0, rx1), y1 - 0.35, -HALF_L - 0.15, "reverse")
-	box(model, "lamps", "stop_high", -0.80, ROOF_B_Y + 0.05, ROOF_B_Z - 0.20, 0.80, ROOF_B_Y + 0.38, ROOF_B_Z + 1.10, "lamp_tail")
-
-
-def plates(model):
-	"""Recessed plain plates. The pocket is a dark cube set behind the bumper skin; the plate sits in it."""
-	# Front, low on the bumper.
-	box(model, "trim", "plate_pocket_f", -1.55 * PX / 2, 0.210 * PX, HALF_L - 0.40, 1.55 * PX / 2, 0.390 * PX, HALF_L + 0.02, "black")
-	box(model, "plates", "plate_f", -1.35 * PX / 2, 0.225 * PX, HALF_L - 0.05, 1.35 * PX / 2, 0.375 * PX, HALF_L + 0.16, "plate",
-		face_material={"south": "plate", "north": "black", "up": "black", "down": "black", "east": "black", "west": "black"})
-	# Rear, on the hatch.
-	box(model, "trim", "tail_garnish", -0.220 * PX, 0.470 * PX, -HALF_L - 0.70, 0.220 * PX, 0.690 * PX, -HALF_L + 0.20, "black")
-	box(model, "trim", "plate_pocket_r", -1.55 * PX / 2, 0.230 * PX, -HALF_L - 0.20, 1.55 * PX / 2, 0.420 * PX, -HALF_L + 0.40, "black")
-	box(model, "plates", "plate_r", -1.35 * PX / 2, 0.250 * PX, -HALF_L - 0.70, 1.35 * PX / 2, 0.400 * PX, -HALF_L - 0.05, "plate",
-		face_material={"north": "plate", "south": "black", "up": "black", "down": "black", "east": "black", "west": "black"})
-
-
-def seams(model):
-	"""Door gaps: a dark strip set just inside the skin, with the doors themselves slightly inboard of the wings."""
-	gap = 0.11
-	pairs = (
-		("a", AXLE_F - OPEN_R + 0.4, SILL, BELT_F),
-		("b", 0.10 * PX, SILL, (BELT_F + BELT_R) / 2),
-		("c", AXLE_R + OPEN_R - 0.2, SILL, BELT_R),
-	)
-	for side in (1, -1):
-		x_out = side * DOOR_X
-		for name, z, y0, y1 in pairs:
-			box(model, "trim", "seam_%s" % name, x_out - side * 0.04, y0, z - gap / 2, x_out + side * 0.20, y1, z + gap / 2, "black")
-		# The crease along the doors, a shallow groove proud of the paint.
-		box(model, "trim", "crease", x_out - side * 0.04, CREASE - 0.09, AXLE_R + OPEN_R, x_out + side * 0.16, CREASE + 0.09, AXLE_F - OPEN_R, "black")
-		for z in (0.55 * PX, -0.40 * PX):
-			box(model, "body", "handle", x_out - side * 0.02, CREASE + 0.70, z, x_out + side * 0.28, CREASE + 1.15, z + 2.4, "paint_side")
-
-
-def lerp_desc(points, z):
-	"""points are (z, value) with z descending."""
-	if z >= points[0][0]:
-		return points[0][1]
-	if z <= points[-1][0]:
-		return points[-1][1]
-	for (z0, v0), (z1, v1) in zip(points, points[1:]):
-		if z1 <= z <= z0 and z0 != z1:
-			return v0 + (v1 - v0) * ((z0 - z) / (z0 - z1))
-	return points[-1][1]
-
-
-def belt_m(z_m):
-	t = max(0.0, min(1.0, (0.70 - z_m) / 2.00))
-	return 0.800 + 0.070 * t
-
-
-def glass_opening(z_m):
-	"""Side-window hole as (bottom, top) in metres, or None on a pillar or a wing."""
-	belt = belt_m(z_m)
-	if 0.100 <= z_m <= 0.580:
-		top = 1.000 + 0.260 * max(0.0, min(1.0, (0.580 - z_m) / 0.400))
-		return (belt, top) if top - belt > 0.100 else None
-	if -1.020 <= z_m <= -0.060:
-		if z_m < -0.700:
-			top = 1.260 + (1.000 - 1.260) * max(0.0, min(1.0, (-0.700 - z_m) / 0.320))
-		else:
-			top = 1.260
-		return (belt, top) if top - belt > 0.100 else None
-	return None
-
-
-def wall(model, group, name, side, x_outer, thick, y0, y1, z0, z1, material):
-	if y1 - y0 < 0.10 or abs(z1 - z0) < 0.10:
-		return
-	x_in = x_outer - side * thick
-	box(model, group, name, x_in, y0, z0, x_outer, y1, z1, material)
-
-
-def side_body(model):
-	"""Solid side skin along the silhouette, with window holes and wheel-arch cutouts."""
-	z = 2.150
-	i = 0
-	while z > -2.150 + 1e-6:
-		z2 = max(-2.150, z - STEP_M)
-		zm = (z + z2) / 2
-		y_top = max(lerp_desc(SIL_M, z), lerp_desc(SIL_M, z2)) + 0.012
-		y_floor = 0.180
-		for axle_m in (AXLE_F / PX, AXLE_R / PX):
-			dz = abs(zm - axle_m)
-			opening = OPEN_R / PX
-			if dz < opening:
-				y_floor = max(y_floor, WHEEL_Y / PX + math.sqrt(opening * opening - dz * dz) + 0.010)
-		hx = lerp_desc(PLAN_M, zm) * PX
-		door = (AXLE_R + OPEN_R) / PX < zm < (AXLE_F - OPEN_R) / PX
-		cabin = -1.150 < zm < 0.720
-		hx_lo = DOOR_X if door else hx
-		hx_hi = UPPER_X if cabin else hx
-		opening_y = glass_opening(zm)
-		spans = []
-		if opening_y is not None and y_floor < opening_y[0] - 0.02:
-			spans.append((y_floor, opening_y[0] + 0.015, hx_lo, True))
-			if y_top > opening_y[1]:
-				spans.append((opening_y[1] - 0.015, y_top, hx_hi, False))
-		elif cabin and y_top > 0.980:
-			spans.append((y_floor, 0.930, hx_lo, True))
-			spans.append((0.900, y_top, hx_hi, False))
-		else:
-			spans.append((y_floor, y_top, hx_lo, True))
-		for y0, y1, x_outer, may_split in spans:
-			cuts = [y0]
-			if may_split and y0 < 0.340 < y1 and door:
-				cuts.append(0.340)
-			if may_split and y0 < 0.620 < y1:
-				cuts.append(0.620)
-			if (zm > 1.550 or zm < -1.600) and y0 < 0.400 < y1:
-				cuts.append(0.400)
-			cuts.append(y1)
-			cuts = sorted(set(cuts))
-			for a, b in zip(cuts, cuts[1:]):
-				if b - a < 0.015:
-					continue
-				if (zm > 1.550 or zm < -1.600) and b <= 0.400 + 1e-6:
-					material = "black"
-					group = "trim"
-				elif a < 0.300 and door:
-					material = "black"
-					group = "trim"
-				else:
-					material = "paint_side"
-					group = "body"
-				wall(model, group, "skin_%d" % i, 1, x_outer, SKIN_T, a * PX, b * PX, z2 * PX - 0.18, z * PX + 0.18, material)
-				wall(model, group, "skin_%d" % i, -1, -x_outer, SKIN_T, a * PX, b * PX, z2 * PX - 0.18, z * PX + 0.18, material)
-				i += 1
-		z = z2
-
-
-def greenhouse(model):
-	"""Windscreen, hatch glass and the side panes that fill the holes in the skin."""
-	half = 0.700 * PX
-	slope_x(model, "glass", "windscreen", COWL_Y, COWL_Z, HEADER_Y, HEADER_Z, -half, half, "glass", thick=0.22)
-	slope_x(model, "glass", "rear_screen", ROOF_B_Y, ROOF_B_Z, HATCH_Y, HATCH_Z, -0.640 * PX, 0.640 * PX, "glass_dark", thick=0.22)
-	z = 0.580
-	i = 0
-	while z > -1.020:
-		z2 = max(-1.020, z - STEP_M)
-		zm = (z + z2) / 2
-		opening = glass_opening(zm)
-		if opening is not None:
-			y0, y1 = opening
-			for side in (1, -1):
-				x_outer = side * (DOOR_X - 0.040 * PX)
-				wall(model, "glass", "win_%d" % i, side, x_outer, 0.28, y0 * PX + 0.12, y1 * PX - 0.12, z2 * PX, z * PX, "glass")
-				i += 1
-		z = z2
-	# Frames, proud of the paint by a hair so the glass reads as a window.
-	for side in (1, -1):
-		x = side * (DOOR_X + 0.04)
-		wall(model, "trim", "pillar_b", side, x, 0.55, BELT_F - 0.10, 1.260 * PX, -0.060 * PX, 0.100 * PX, "black")
-		wall(model, "trim", "pillar_a", side, x, 0.50, BELT_F, 1.050 * PX, 0.560 * PX, 0.680 * PX, "black")
-		wall(model, "trim", "pillar_c", side, x, 0.50, BELT_R - 0.10, 1.080 * PX, -1.080 * PX, -0.960 * PX, "black")
-	box(model, "trim", "cowl", -0.760 * PX, COWL_Y - 0.10, COWL_Z - 0.15, 0.760 * PX, COWL_Y + 0.28, COWL_Z + 0.55, "black")
-	slope_x(model, "trim", "wiper_d", COWL_Y + 0.40, COWL_Z - 0.20, HEADER_Y - 1.6, HEADER_Z + 2.2, 0.10 * PX, 0.22 * PX, "black", thick=0.12)
-	slope_x(model, "trim", "wiper_p", COWL_Y + 0.40, COWL_Z - 0.20, HEADER_Y - 2.2, HEADER_Z + 3.0, -0.48 * PX, -0.34 * PX, "black", thick=0.12)
-	slope_x(model, "trim", "wiper_rear", HATCH_Y + 0.6, HATCH_Z + 0.4, HATCH_Y + 2.4, HATCH_Z + 2.2, -0.10, 0.10, "black", thick=0.12)
-
-
 def cabin(model):
-	"""What shows through the glass: dash, wheel, two front seats and a rear bench."""
-	box(model, "cabin", "floor", -0.78 * PX, 0.28 * PX, AXLE_R + 0.2 * PX, 0.78 * PX, 0.40 * PX, COWL_Z - 0.4, "interior")
+	"""What shows through the glass: dash, wheel, two front seats and a rear bench. The cushions are low, because a
+	seated player is 1.2 m from seat to crown and has to fit under a 1.44 m roof (RoadVehicleKind seats)."""
+	box(model, "cabin", "floor", -0.78 * PX, 0.14 * PX, AXLE_R + 0.2 * PX, 0.78 * PX, 0.18 * PX, COWL_Z - 0.4, "interior")
 	box(model, "cabin", "dash", -0.75 * PX, 0.55 * PX, 0.55 * PX, 0.75 * PX, COWL_Y - 0.15, COWL_Z - 0.15, "dash")
 	# Steering wheel in front of the left seat. A ring of cubes, plus a hub.
-	sx, sy, sz = 0.36 * PX, 0.82 * PX, 0.50 * PX
+	sx, sy, sz = 0.36 * PX, 0.74 * PX, 0.50 * PX
 	ring_z(model, "cabin", "steer", sx, sy, sz, 0.95, 0.70, sz - 0.10, sz + 0.10, 14, "black")
 	box(model, "cabin", "steer_hub", sx - 0.22, sy - 0.22, sz - 0.16, sx + 0.22, sy + 0.22, sz + 0.16, "black")
 	for side, x in ((1, 0.36 * PX), (-1, -0.36 * PX)):
-		box(model, "cabin", "cushion", x - 0.42 * PX, 0.40 * PX, -0.05 * PX, x + 0.42 * PX, 0.62 * PX, 0.55 * PX, "seat")
-		box(model, "cabin", "back", x - 0.42 * PX, 0.55 * PX, -0.15 * PX, x + 0.42 * PX, 1.05 * PX, 0.05 * PX, "seat")
-		box(model, "cabin", "head", x - 0.28 * PX, 1.00 * PX, -0.12 * PX, x + 0.28 * PX, 1.22 * PX, 0.08 * PX, "seat")
-	box(model, "cabin", "rear_bench", -0.72 * PX, 0.42 * PX, -0.85 * PX, 0.72 * PX, 0.66 * PX, -0.35 * PX, "seat")
-	box(model, "cabin", "rear_back", -0.72 * PX, 0.58 * PX, -1.00 * PX, 0.72 * PX, 1.10 * PX, -0.78 * PX, "seat")
+		box(model, "cabin", "cushion", x - 0.42 * PX, 0.16 * PX, -0.05 * PX, x + 0.42 * PX, 0.30 * PX, 0.55 * PX, "seat")
+		box(model, "cabin", "back", x - 0.42 * PX, 0.28 * PX, -0.15 * PX, x + 0.42 * PX, 0.86 * PX, 0.05 * PX, "seat")
+		box(model, "cabin", "head", x - 0.28 * PX, 0.84 * PX - 2, -0.12 * PX, x + 0.28 * PX, 0.98 * PX - 2, 0.08 * PX, "seat")
+	box(model, "cabin", "rear_bench", -0.72 * PX, 0.16 * PX, -0.85 * PX, 0.72 * PX, 0.32 * PX, -0.35 * PX, "seat")
+	box(model, "cabin", "rear_back", -0.72 * PX, 0.30 * PX, -1.00 * PX, 0.72 * PX, 0.88 * PX, -0.78 * PX, "seat")
 
 
-def shell(model):
-	"""Painted shell. The side skin carries the silhouette; the sheets close the top and the ends."""
+# ---- the shell: few large cubes and tilted plates, so the surfaces read as panels and not as slices ----------------
+
+W = WIDTH / 2               # half width at the doors and wings
+GH = 0.765 * PX             # half width of the glasshouse, tucked in from the doors (the shoulder)
+BELT = 0.880 * PX           # window sill line
+ROOF_Y = 1.430 * PX
+SILL_Y = 0.260 * PX         # underside of the doors
+ARCH_TOP = WHEEL_Y + OPEN_R
+NOSE_Y = 0.770 * PX         # top of the nose, where the bonnet starts
+BONNET_NOSE = (NOSE_Y - 0.6, HALF_L - 1.6)  # the bonnet's front edge, dipping towards the lamps
+# glasshouse corners (y, z): cowl -> header, then the flat roof, then the tailgate down to the rear shelf
+COWL = (COWL_Y - 0.4, COWL_Z + 1.4)
+HEADER = (ROOF_Y - 0.5, 0.20 * PX)
+ROOF_END = (ROOF_Y - 0.5, -1.55 * PX)
+SHELF = (BELT + 1.0, -1.99 * PX)
+GLASS_END = -1.02 * PX     # rear edge of the rear door glass; the C-pillar starts here
+TAIL_Z = -HALF_L + 0.3
+BUMPER_TOP = SILL_Y + 3.3    # top of the rear bumper, which stands proud of the tailgate
+
+
+def line_z(p0, p1, y):
+	"""z on the line p0 -> p1 (each y, z) at height y."""
+	return p0[1] + (p1[1] - p0[1]) * (y - p0[0]) / (p1[0] - p0[0])
+
+
+def line_z_inv(p0, p1, z):
+	"""y on the line p0 -> p1 (each y, z) at depth z."""
+	return p0[0] + (p1[0] - p0[0]) * (z - p0[1]) / (p1[1] - p0[1])
+
+
+def band(model, group, name, p0, p1, xa, xb, width, material):
+	"""A flat band in a side plane with one long edge on the line p0 -> p1 (each y, z); the band lies below that line."""
+	dy, dz = p1[0] - p0[0], p1[1] - p0[1]
+	length = math.hypot(dy, dz)
+	ny, nz = dz / length, -dy / length
+	if ny > 0:
+		ny, nz = -ny, -nz
+	oy, oz = ny * width / 2, nz * width / 2
+	slope_x(model, group, name, p0[0] + oy, p0[1] + oz, p1[0] + oy, p1[1] + oz, xa, xb, material, thick=width)
+
+
+def lower_body(model):
+	"""Wings, doors and quarters up to the belt, with round arches cut by building round them."""
+	arch_f = (AXLE_F - OPEN_R, AXLE_F + OPEN_R)
+	arch_r = (AXLE_R - OPEN_R, AXLE_R + OPEN_R)
 	for side in (1, -1):
-		arch(model, side, AXLE_F, "f" if side > 0 else "fr")
-		arch(model, side, AXLE_R, "r" if side > 0 else "rr")
-		mirrors(model, side)
-		# Wheel well, so the arch is not a window into the cabin.
-		cx = side * WHEEL_X
-		well = cx - side * 0.55 * PX
-		box(model, "trim", "well_f", min(cx, well), 0.12 * PX, AXLE_F - OPEN_R, max(cx, well), WHEEL_Y + OPEN_R, AXLE_F + OPEN_R, "black")
-		box(model, "trim", "well_r", min(cx, well), 0.12 * PX, AXLE_R - OPEN_R, max(cx, well), WHEEL_Y + OPEN_R, AXLE_R + OPEN_R, "black")
-	side_body(model)
+		def skin(name, y0, y1, z0, z1, material="paint_side", group="body", out=0.0):
+			xa, xb = sorted((side * (W - 1.4), side * (W + out)))
+			box(model, group, name, xa, y0, z0, xb, y1, z1, material)
 
-	half_bonnet = 0.830 * PX
-	slope_x(model, "body", "bonnet", LIP_Y, LIP_Z, COWL_Y, COWL_Z, -half_bonnet, half_bonnet, "paint_top", thick=0.70)
-	slope_x(model, "body", "roof", HEADER_Y, HEADER_Z, ROOF_B_Y, ROOF_B_Z, -0.740 * PX, 0.740 * PX, "paint_top", thick=0.70)
-	slope_x(model, "body", "tailgate", HATCH_Y, HATCH_Z, TAIL_TOP_Y, TAIL_TOP_Z, -0.760 * PX, 0.760 * PX, "paint_side", thick=0.70)
-	box(model, "trim", "antenna", -0.14, ROOF_B_Y - 0.10, ROOF_B_Z + 2.2, 0.14, ROOF_B_Y + 0.70, ROOF_B_Z + 5.4, "black")
+		skin("doors", SILL_Y, BELT, arch_r[1], arch_f[0])
+		skin("over_arch_r", ARCH_TOP, BELT, arch_r[0], arch_r[1])
+		skin("quarter", SILL_Y + 0.5, BELT, TAIL_Z + 2.5, arch_r[0])
+		skin("over_arch_f", ARCH_TOP, NOSE_Y + 0.6, arch_f[0], arch_f[1])
+		skin("wing_nose", SILL_Y + 0.5, BONNET_NOSE[0] - 1.0, arch_f[1], HALF_L - 3.2)
+		skin("wing_cowl", BONNET_NOSE[0] - 1.0, BELT, arch_f[0] - 6.5, arch_f[0] + 1.5)
+		# the wing's top edge rises with the bonnet, a hair above the plate's centre so its edge doesn't show
+		wa, wb = sorted((side * (W - 1.4), side * W))
+		start = BONNET_NOSE[1] - 2.0
+		lift = (line_z_inv(BONNET_NOSE, COWL, start) + 0.3, start), (COWL[0] + 0.3, COWL[1])
+		band(model, "body", "wing_top", lift[0], lift[1], wa, wb, 3.0, "paint_side")
+		skin("rocker", SILL_Y - 0.9, SILL_Y, arch_r[1], arch_f[0], "black", "trim", -0.5)
+		skin("skirt", SILL_Y, SILL_Y + 0.9, arch_r[1] + 0.3, arch_f[0] - 0.3, "paint_low", "body", 0.05)
+		for name, axle in (("f", AXLE_F), ("r", AXLE_R)):
+			cx = side * WHEEL_X
+			xa, xb = sorted((side * (W - 1.4), side * (W + 0.18)))
+			ring(model, "body", "lip_" + name, cx, WHEEL_Y, axle, OPEN_R + 0.9, OPEN_R - 0.1, xa, xb, 14, "paint_top", -90, 90)
+			# the corners between the round opening and the square panels round it
+			fa, fb = sorted((side * (W - 1.4), side * (W - 0.03)))
+			ring(model, "body", "arch_fill_" + name, cx, WHEEL_Y, axle, OPEN_R + 2.6, OPEN_R, fa, fb, 7, "paint_side", -88, 88)
+			# the well behind the wheel, so the arch is not a window into the car
+			wa, wb = sorted((side * (W - 1.4), side * (WHEEL_X - 0.62 * PX)))
+			box(model, "trim", "well_" + name, wa, 0.14 * PX, axle - OPEN_R - 1.5, wb, ARCH_TOP + 0.6, axle + OPEN_R + 1.5, "black")
+		# shoulder: the step in from the doors to the glass
+		xa, xb = sorted((side * (GH - 0.6), side * W))
+		box(model, "body", "shoulder", xa, BELT - 0.5, SHELF[1] - 2.0, xb, BELT, COWL[1], "paint_top")
+		# shut lines and handles
+		for name, z, y0 in (("front", COWL[1] - 0.6, SILL_Y), ("mid", -0.37 * PX, SILL_Y), ("rear", arch_r[1] + 0.5, ARCH_TOP - 2.0)):
+			skin("seam_" + name, y0, BELT - 0.5, z - 0.07, z + 0.07, "black", "trim", 0.05)
+		for name, z in (("front", 0.02 * PX), ("rear", -0.90 * PX)):
+			skin("handle_" + name, BELT - 2.6, BELT - 2.1, z, z + 2.8, "black", "trim", 0.22)
+		skin("sill_line", SILL_Y + 1.6, SILL_Y + 1.9, arch_r[1] + 0.6, arch_f[0] - 0.6, "paint_top", "body", 0.22)
+		skin("shoulder_line", BELT - 1.0, BELT - 0.75, arch_r[0], arch_f[1] - 2.5, "paint_top", "body", 0.18)
+		skin("crease", BELT - 3.6, BELT - 3.2, arch_r[1] + 1.0, arch_f[0] - 1.0, "paint_top", "body", 0.25)
+		# door mirror on the front corner of the door glass
+		xa, xb = sorted((side * (GH - 0.2), side * (W + 0.2)))
+		box(model, "trim", "mirror_stalk", xa, BELT - 0.3, COWL[1] - 3.5, xb, BELT + 0.9, COWL[1] - 2.8, "black")
+		xa, xb = sorted((side * (W + 0.2), side * (W + 1.2)))
+		box(model, "body", "mirror", xa, BELT + 0.4, COWL[1] - 3.8, xb, BELT + 1.6, COWL[1] - 2.6, "paint_side")
+	# ends: the nose and tail close the box, rounded in plan by one narrower step
+	box(model, "body", "nose", -W + 1.3, SILL_Y + 0.8, HALF_L - 3.2, W - 1.3, BONNET_NOSE[0], HALF_L - 0.9, "paint_side")
+	box(model, "trim", "chin", -W + 3.0, SILL_Y + 0.3, HALF_L - 1.4, W - 3.0, SILL_Y + 0.8, HALF_L - 0.45, "black")
+	box(model, "body", "nose_tip", -W + 2.6, SILL_Y + 0.8, HALF_L - 0.9, W - 2.6, NOSE_Y - 3.8, HALF_L, "paint_side")
+	box(model, "body", "tail", -W + 1.3, SILL_Y + 1.2, TAIL_Z + 0.8, W - 1.3, SHELF[0], TAIL_Z + 2.5, "paint_side")
+	box(model, "body", "tail_tip", -W + 2.6, SILL_Y + 1.2, TAIL_Z, W - 2.6, BUMPER_TOP, TAIL_Z + 0.8, "paint_side")
+	box(model, "trim", "diffuser", -W + 3.0, SILL_Y + 0.3, TAIL_Z + 0.5, W - 3.0, SILL_Y + 1.2, TAIL_Z + 1.0, "black")
+	box(model, "body", "tail_face", -W + 2.6, BUMPER_TOP, TAIL_Z + 0.8, W - 2.6, SHELF[0] - 0.3, TAIL_Z + 1.0, "paint_side")
+	box(model, "body", "rear_deck", -W + 1.4, BELT - 0.5, TAIL_Z + 0.8, W - 1.4, SHELF[0], SHELF[1] + 1.0, "paint_top")
+	slope_x(model, "body", "bonnet", BONNET_NOSE[0], BONNET_NOSE[1], COWL[0], COWL[1], -W + 1.3, W - 1.3, "paint_top", thick=0.70)
+	slope_x(model, "body", "bonnet_cap", NOSE_Y - 1.4, HALF_L - 0.85, BONNET_NOSE[0] + 0.3, BONNET_NOSE[1] - 0.3, -W + 1.4, W - 1.4, "paint_top", thick=0.7)
+	# what is behind the skin: engine bay, boot and floor, all dark
+	box(model, "trim", "bay", -W + 1.4, 0.14 * PX, COWL[1], W - 1.4, NOSE_Y - 0.2, HALF_L - 3.2, "black")
+	box(model, "trim", "bay_cowl", -W + 1.4, NOSE_Y - 0.2, COWL[1], W - 1.4, BELT - 1.2, COWL[1] + 7.0, "black")
+	box(model, "trim", "boot", -W + 1.4, 0.14 * PX, TAIL_Z + 2.5, W - 1.4, BELT - 0.6, AXLE_R + OPEN_R, "black")
+	box(model, "trim", "floor", -W + 1.4, 0.14 * PX, AXLE_R + OPEN_R, W - 1.4, SILL_Y + 0.4, COWL[1], "black")
+	# bumpers are body colour; a dark lip runs under them from arch to arch, with a chamfer at each corner
+	for name, z_end, z_arch in (("front", HALF_L + 0.1, AXLE_F + OPEN_R), ("rear", TAIL_Z - 0.1, AXLE_R - OPEN_R)):
+		sign = 1 if name == "front" else -1
+		za, zb = sorted((z_end - sign * 2.6, z_end))
+		box(model, "trim", "lip_" + name, -W + 3.6, SILL_Y - 0.6, za, W - 2.6, SILL_Y + 0.3, zb, "black")
+		for side in (1, -1):
+			xa, xb = sorted((side * (W - 1.5), side * (W - 0.6)))
+			sa, sb = sorted((z_arch, z_end - sign * 2.2))
+			box(model, "trim", "lip_side_" + name, xa, SILL_Y - 0.6, sa, xb, SILL_Y + 0.3, sb, "black")
+			cx, cz = side * (W - 1.5), z_end - sign * 1.7
+			model.add("trim", "lip_corner_" + name, (cx - 1.05, SILL_Y - 0.6, cz - 1.05), (cx + 1.05, SILL_Y + 0.3, cz + 1.05), "black",
+					rotation=(0, 45, 0), origin=(cx, SILL_Y, cz))
+			model.add("body", "corner_" + name, (cx - 0.85, SILL_Y + 0.3, cz - 0.85), (cx + 0.85, (NOSE_Y if name == "front" else BELT) - 3.7, cz + 0.85), "paint_side",
+					rotation=(0, 45, 0), origin=(cx, SILL_Y, cz))
 
-	# Nose and tail faces. Lamps and the plate sit just proud of these.
-	box(model, "body", "nose_face", -0.760 * PX, 0.400 * PX, HALF_L - 0.22 * PX, 0.760 * PX, LIP_Y + 0.04, HALF_L - 0.02, "paint_side")
-	box(model, "body", "tail_face", -0.760 * PX, 0.400 * PX, -HALF_L + 0.02, 0.760 * PX, TAIL_TOP_Y + 0.06, -HALF_L + 0.20 * PX, "paint_low")
-	box(model, "trim", "front_bumper", -0.780 * PX, 0.160 * PX, HALF_L - 0.16 * PX, 0.780 * PX, 0.400 * PX, HALF_L + 0.04, "black")
-	box(model, "trim", "rear_bumper", -0.760 * PX, 0.160 * PX, -HALF_L - 0.04, 0.760 * PX, 0.400 * PX, -HALF_L + 0.18 * PX, "black")
-	# Grille, three slats in a dark pocket, no badge. A black bay behind it hides the cabin.
-	box(model, "trim", "bay", -0.640 * PX, 0.300 * PX, 1.150 * PX, 0.640 * PX, 0.620 * PX, HALF_L - 0.28 * PX, "black")
-	box(model, "trim", "grille_pocket", -0.280 * PX, 0.430 * PX, HALF_L - 0.36 * PX, 0.280 * PX, 0.600 * PX, HALF_L - 0.02, "black")
-	for i, y in enumerate((0.445 * PX, 0.500 * PX, 0.555 * PX)):
-		box(model, "trim", "slat_%d" % i, -0.250 * PX, y, HALF_L - 0.18 * PX, 0.250 * PX, y + 0.045 * PX, HALF_L - 0.02, "chrome")
-	box(model, "trim", "floor_mid", -0.70 * PX, 0.12 * PX, AXLE_R + OPEN_R, 0.70 * PX, ROCKER, AXLE_F - OPEN_R, "black")
-	box(model, "trim", "floor_front", -0.62 * PX, 0.14 * PX, AXLE_F + 0.15 * PX, 0.62 * PX, 0.30 * PX, HALF_L - 0.5 * PX, "black")
-	box(model, "trim", "floor_rear", -0.62 * PX, 0.14 * PX, -HALF_L + 0.5 * PX, 0.62 * PX, 0.30 * PX, AXLE_R - 0.15 * PX, "black")
-	box(model, "trim", "exhaust", -0.55 * PX, 0.20 * PX, -HALF_L - 0.10, -0.28 * PX, 0.36 * PX, -HALF_L + 0.40, "chrome")
+
+TUMBLE = 15.0              # the side glass leans in by this many degrees, so the roof is narrower than the doors
+SIDE_TOP = ROOF_Y - 1.2
+
+
+def half_at(y, inset=0.0):
+	"""Half width of the glasshouse at height y, with the tumblehome."""
+	return GH - max(0.0, y - BELT) * math.tan(math.radians(TUMBLE)) - inset
+
+
+def roll(elements, side):
+	"""Lean side elements in about the belt line at x = side * GH. Each cube keeps its own origin, so the move that
+	rolling about the belt would add is applied as a shift."""
+	a = math.radians(side * TUMBLE)
+	c, s = math.cos(a), math.sin(a)
+	for e in elements:
+		ox, oy, oz = e["origin"]
+		vx, vy = side * GH - ox, BELT - oy
+		dx = vx - (vx * c - vy * s)
+		dy = vy - (vx * s + vy * c)
+		for key in ("from", "to", "origin"):
+			e[key][0] = round(e[key][0] + dx, 4)
+			e[key][1] = round(e[key][1] + dy, 4)
+		e["rotation"][2] = round(side * TUMBLE, 4)
+
+
+def tapered(model, group, name, p0, p1, inset, material, thick, n=6):
+	"""A sloped plate (p0 -> p1, each y, z) cut in n strips whose width follows the tumblehome."""
+	for i in range(n):
+		a = (p0[0] + (p1[0] - p0[0]) * i / n, p0[1] + (p1[1] - p0[1]) * i / n)
+		b = (p0[0] + (p1[0] - p0[0]) * (i + 1) / n, p0[1] + (p1[1] - p0[1]) * (i + 1) / n)
+		half = half_at((a[0] + b[0]) / 2, inset)
+		slope_x(model, group, name, a[0], a[1], b[0], b[1], -half, half, material, thick=thick)
+
+
+def glasshouse(model):
+	"""Windscreen, side glass, roof and tailgate. The sides lean in (TUMBLE); pillars cover the stepped glass edges."""
+	gt = half_at(ROOF_Y, 0.45)  # the roof sits between the leaning roof sides
+	box(model, "body", "roof", -gt, ROOF_Y - 1.2, ROOF_END[1], gt, ROOF_Y - 0.4, HEADER[1], "paint_top")
+	box(model, "body", "roof_top", -gt + 0.5, ROOF_Y - 0.4, ROOF_END[1], gt - 0.5, ROOF_Y, HEADER[1] - 0.3, "paint_top")
+	box(model, "body", "spoiler", -gt + 0.3, ROOF_Y - 0.7, ROOF_END[1] - 0.8, gt - 0.3, ROOF_Y, ROOF_END[1] + 1.0, "paint_top")
+	box(model, "trim", "cowl", -GH, COWL[0] - 0.7, COWL[1] - 0.8, GH, COWL[0] + 0.1, COWL[1] + 1.2, "black")
+	# one screen at its top width; the A-pillar faces fill out to the leaning sides, widest at the foot
+	ws = half_at(HEADER[0], 0.9)
+	slope_x(model, "glass", "windscreen", COWL[0], COWL[1], HEADER[0], HEADER[1], -ws, ws, "glass", thick=0.30)
+	for side in (1, -1):
+		fa, fb = sorted((side * (ws - 0.45), side * (ws + 0.2)))
+		slope_x(model, "trim", "screen_frit", COWL[0], COWL[1], HEADER[0], HEADER[1], fa, fb, "black", thick=0.36)
+	n = 14
+	for i in range(n):
+		a = (COWL[0] + (HEADER[0] - COWL[0]) * i / n, COWL[1] + (HEADER[1] - COWL[1]) * i / n)
+		b = (COWL[0] + (HEADER[0] - COWL[0]) * (i + 1) / n, COWL[1] + (HEADER[1] - COWL[1]) * (i + 1) / n)
+		out = half_at(max(a[0], b[0]), 0.1)
+		ends = tuple(f for f, keep in (("north", i > 0), ("south", i < n - 1)) if keep)
+		for side in (1, -1):
+			xa, xb = sorted((side * (ws - 0.15), side * out))
+			slope_x(model, "body", "a_face", a[0], a[1], b[0], b[1], xa, xb, "paint_side", thick=0.45, skip=ends)
+	tapered(model, "body", "tailgate", SHELF, ROOF_END, 0.2, "paint_side", 0.50)
+	gy0, gy1 = SHELF[0] + 1.0, ROOF_END[0] - 1.2
+	rf = half_at(gy1 + 0.4, 1.0)
+	slope_x(model, "trim", "rear_frame", gy0 - 0.6, line_z(SHELF, ROOF_END, gy0 - 0.6) - 0.12, gy1 + 0.4, line_z(SHELF, ROOF_END, gy1 + 0.4) - 0.12,
+			-rf, rf, "black", thick=0.40)
+	box(model, "trim", "rear_wiper", -0.4, gy0 - 0.2, line_z(SHELF, ROOF_END, gy0) - 0.42, 0.4, gy0 + 0.5, line_z(SHELF, ROOF_END, gy0) - 0.22, "black")
+	wy0, wy1 = COWL[0] + 0.9, COWL[0] + 1.25
+	slope_x(model, "trim", "wiper", wy0, line_z(COWL, HEADER, wy0) + 0.25, wy1, line_z(COWL, HEADER, wy1) + 0.25, -GH + 2.5, 1.0, "black", thick=0.10)
+	rs = half_at(gy1, 1.6)
+	slope_x(model, "glass", "rear_screen", gy0, line_z(SHELF, ROOF_END, gy0) - 0.2, gy1, line_z(SHELF, ROOF_END, gy1) - 0.2,
+			-rs, rs, "glass_dark", thick=0.50)
+	for side in (1, -1):
+		first = len(model.elements)
+		xa, xb = sorted((side * (GH - 0.5), side * GH))
+		box(model, "glass", "side_glass", xa, BELT, GLASS_END, xb, SIDE_TOP, HEADER[1], "glass")
+		box(model, "body", "c_pillar_top", xa, BELT, ROOF_END[1], xb, SIDE_TOP, GLASS_END, "paint_side")
+		# the side plane runs on up to the roof top, so the roof edge is a leaning face and not a slab on top
+		box(model, "body", "roof_side", xa, SIDE_TOP - 0.05, ROOF_END[1] - 0.8, xb, ROOF_Y - 0.4, HEADER[1], "paint_top")
+		pa, pb = sorted((side * (GH - 0.6), side * (GH + 0.08)))
+		box(model, "trim", "b_pillar", pa, BELT, -0.44 * PX, pb, SIDE_TOP, -0.30 * PX, "black")
+		# the corner in front of the door glass: steps under the screen's line, which the A-pillar covers
+		ga, gb = sorted((side * (GH - 0.48), side * (GH - 0.02)))
+		steps = 8
+		for i in range(steps):
+			y0 = BELT + (SIDE_TOP - BELT) * i / steps
+			y1 = BELT + (SIDE_TOP - BELT) * (i + 1) / steps
+			inner = tuple(f for f, keep in (("down", i > 0), ("up", i < steps - 1)) if keep)
+			# a fixed quarter light: tinted and opaque, so the stacked steps show no seams
+			box(model, "trim", "front_quarter", ga, y0, HEADER[1] + 0.35, gb, y1, line_z(COWL, HEADER, y1), "glass_dark", skip=inner)
+		fa, fb = sorted((side * (GH - 0.6), side * (GH + 0.06)))
+		box(model, "trim", "quarter_frame", fa, BELT, HEADER[1] - 0.05, fb, SIDE_TOP, HEADER[1] + 0.35, "black")
+		front = ((BELT, line_z(COWL, HEADER, BELT)), (SIDE_TOP, line_z(COWL, HEADER, SIDE_TOP)))
+		rear = ((BELT + 0.3, line_z(SHELF, ROOF_END, BELT)), (SIDE_TOP + 0.3, line_z(SHELF, ROOF_END, SIDE_TOP)))  # lifted over the tailgate plate's edge
+		lifted = ((front[0][0], front[0][1] + 0.4), (front[1][0], front[1][1] + 0.4))  # over the screen plate's edge
+		band(model, "body", "a_pillar", lifted[0], lifted[1], pa, pb, 1.7, "paint_side")
+		ia, ib = sorted((side * (GH - 0.5), side * (GH - 0.03)))
+		band(model, "body", "c_pillar", rear[0], rear[1], ia, ib, 6.0, "paint_side")
+		# window frame along the belt
+		box(model, "trim", "belt_strip", pa, BELT - 0.05, GLASS_END, pb, BELT + 0.4, HEADER[1] + 6.0, "black")
+		roll(model.elements[first:], side)
+
+
+def nose_and_tail(model):
+	"""Lamps that wrap the corners, grille and lower intake, plates in their recesses. No maker's mark."""
+	zf, zr = HALF_L - 0.9, TAIL_Z + 0.8  # zr: the tailgate face above the bumper
+	for side in (1, -1):
+		xa, xb = sorted((side * 0.38 * PX, side * (W - 2.4)))
+		box(model, "trim", "head_lens", xa, NOSE_Y - 3.4, zf - 0.8, xb, NOSE_Y - 1.0, zf + 0.15, "glass_dark")
+		ia, ib = sorted((side * 0.41 * PX, side * (W - 3.2)))
+		box(model, "lamps", "head", ia, NOSE_Y - 3.0, zf - 0.2, ib, NOSE_Y - 1.4, zf + 0.25, "lamp_front", flip_u=(side < 0),
+			face_material={"north": "black", "up": "black", "down": "black", "south": "lamp_front", "east": "black", "west": "black"})
+		box(model, "trim", "head_chrome", xa, NOSE_Y - 3.75, zf - 0.2, xb, NOSE_Y - 3.45, zf + 0.12, "chrome")
+		wa, wb = sorted((side * (W - 2.7), side * (W - 1.25)))
+		box(model, "lamps", "head_wrap", wa, NOSE_Y - 3.0, zf - 1.9, wb, NOSE_Y - 1.6, zf - 0.7, "amber")
+		ta, tb = sorted((side * 0.50 * PX, side * (W - 2.4)))
+		box(model, "lamps", "tail", ta, BELT - 3.0, zr - 0.05, tb, BELT + 0.2, zr + 0.8, "lamp_tail", flip_u=(side < 0))
+		box(model, "body", "tail_border", ta - side * 0.2, BELT - 3.2, zr - 0.02, tb, BELT + 0.35, zr + 0.8, "paint_side")
+		aa, ab = sorted((side * 0.50 * PX, side * (0.50 * PX + 1.4)))
+		box(model, "lamps", "tail_turn", aa, BELT - 2.6, zr - 0.1, ab, BELT - 0.2, zr + 0.05, "amber")
+		ra, rb = sorted((side * (W - 2.7), side * (W - 1.3)))
+		box(model, "lamps", "tail_wrap", ra, BELT - 3.0, zr - 0.05, rb, BELT + 0.2, TAIL_Z + 2.5, "lamp_tail")
+		qa, qb = sorted((side * (W - 0.3), side * (W + 0.02)))
+		box(model, "lamps", "tail_quarter", qa, BELT - 3.0, TAIL_Z + 2.5, qb, BELT + 0.2, TAIL_Z + 4.3, "lamp_tail")
+	box(model, "body", "tail_crease", -W + 2.6, BUMPER_TOP - 0.3, TAIL_Z - 0.1, W - 2.6, BUMPER_TOP, TAIL_Z + 0.9, "paint_top")
+	band(model, "trim", "screen_foot", (SHELF[0] + 1.3, SHELF[1] - 0.15), (SHELF[0] + 1.3 + 0.01, SHELF[1] - 0.15 - 0.01 * (SHELF[1] - ROOF_END[1]) / (SHELF[0] - ROOF_END[0])), -GH + 1.6, GH - 1.6, 0.8, "black")
+	box(model, "body", "tail_shelf", -W + 2.6, BELT + 0.5, zr - 0.05, W - 2.6, BELT + 1.0, zr + 1.0, "paint_top")
+	box(model, "body", "bumper_crease", -W + 2.6, SILL_Y + 2.7, HALF_L - 0.2, W - 2.6, SILL_Y + 2.95, HALF_L + 0.12, "paint_top")
+	box(model, "body", "grille_frame", -0.36 * PX - 0.5, NOSE_Y - 3.6, zf - 0.3, 0.36 * PX + 0.5, NOSE_Y - 0.9, zf + 0.05, "paint_side")
+	box(model, "trim", "grille", -0.36 * PX, NOSE_Y - 3.2, zf - 0.5, 0.36 * PX, NOSE_Y - 1.3, zf + 0.1, "grille")
+	box(model, "trim", "grille_strip", -0.36 * PX, NOSE_Y - 1.5, zf, 0.36 * PX, NOSE_Y - 1.25, zf + 0.18, "chrome")
+	for x0, x1 in ((-0.36 * PX, -0.3), (0.3, 0.36 * PX)):  # lower intake, two slots
+		box(model, "trim", "intake", x0, SILL_Y + 3.3, HALF_L - 0.4, x1, SILL_Y + 4.4, HALF_L + 0.02, "black")
+	box(model, "plates", "plate_f", -0.26 * PX, SILL_Y + 0.9, HALF_L + 0.05, 0.26 * PX, SILL_Y + 2.5, HALF_L + 0.15, "plate",
+		face_material={"south": "plate", "north": "black", "up": "black", "down": "black", "east": "black", "west": "black"})
+	box(model, "trim", "plate_pocket_r", -0.29 * PX, BELT - 6.6, zr - 0.1, 0.29 * PX, BELT - 4.2, zr + 0.5, "black")
+	box(model, "plates", "plate_r", -0.26 * PX, BELT - 6.3, zr - 0.2, 0.26 * PX, BELT - 4.5, zr - 0.1, "plate",
+		face_material={"north": "plate", "south": "black", "up": "black", "down": "black", "east": "black", "west": "black"})
 
 
 def build():
 	model = Model()
 	for name in ("body", "trim", "lamps", "plates", "glass", "mirror", "cabin"):
 		model.group(name, (0, 0, 0))
-	shell(model)
-	seams(model)
-	greenhouse(model)
-	lamps_front(model)
-	lamps_rear(model)
-	plates(model)
+	lower_body(model)
+	glasshouse(model)
+	nose_and_tail(model)
 	cabin(model)
 	wheel(model, "fl", WHEEL_X, AXLE_F)
 	wheel(model, "fr", -WHEEL_X, AXLE_F)
@@ -556,7 +544,7 @@ def paint_texture():
 			draw.line([(x, y + row), (x + w - 1, y + row)], fill=colour)
 
 	# Body maps are light, because the game multiplies them by the paint colour.
-	fill_gradient("paint_side", (250, 250, 252), (168, 170, 176))
+	fill_gradient("paint_side", (240, 240, 243), (228, 229, 233))  # nearly flat: one region covers faces of every size
 	fill_gradient("paint_top", (255, 255, 255), (230, 232, 236))
 	fill_gradient("paint_low", (190, 192, 198), (140, 142, 148))
 	x, y, w, h = REGIONS["paint_side"]
@@ -583,7 +571,7 @@ def paint_texture():
 		draw.ellipse([cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r], outline=colour)
 
 	x, y, w, h = REGIONS["glass"]
-	draw.rectangle([x, y, x + w - 1, y + h - 1], fill=(186, 206, 214))
+	draw.rectangle([x, y, x + w - 1, y + h - 1], fill=(150, 172, 186))
 	draw.rectangle([x, y, x + w - 1, y + 6], fill=(220, 232, 236))
 	x, y, w, h = REGIONS["glass_dark"]
 	draw.rectangle([x, y, x + w - 1, y + h - 1], fill=(120, 146, 158))
