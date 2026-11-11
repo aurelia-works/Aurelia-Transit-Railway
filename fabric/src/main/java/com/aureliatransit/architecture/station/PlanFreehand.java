@@ -18,7 +18,7 @@ import com.aureliatransit.architecture.station.StationPlanner.Cell;
  *
  * <p>An airport's shapes use the airport's own blocks ({@link PlanAirport}): an apron is concrete slabs with floodlight masts, a
  * taxiway is asphalt with a yellow centreline and blue edge lights, a runway is black with white edges, edge lights, a dashed
- * centreline and threshold stripes at both ends, and a terminal is a glass-walled building. A station only plans a station's
+ * centreline and threshold stripes at both ends, and a terminal is the same hall as a planned terminal. A station only plans a station's
  * shapes and an airport only an airport's (the parser drops the others with a warning).
  */
 final class PlanFreehand {
@@ -44,8 +44,6 @@ final class PlanFreehand {
 	/** A drawn runway's threshold stripes: how far in from each end they start, and how long they are. */
 	static final int THRESHOLD_INSET = 2;
 	static final int THRESHOLD_LENGTH = 8;
-	/** A drawn terminal's glass is broken by a steel mullion every this many cells. */
-	static final int MULLION_EVERY = 6;
 
 	private final PlanState s;
 	/** The cells the station planned before the shapes: what a shape must stay within reach of. */
@@ -73,15 +71,16 @@ final class PlanFreehand {
 			}
 			switch (shape.kind()) {
 				case PLATFORM -> freehand.platform(cells, shape.open());
-				case BUILDING -> freehand.building(cells, shape.height(), false);
-				case TERMINAL -> freehand.building(cells, shape.height(), true);
+				case BUILDING -> freehand.building(cells, shape.height());
+				case TERMINAL -> TerminalBuilding.drawn(s, cells, shape.height());
 				case APRON -> freehand.apron(cells);
 				case TAXIWAY -> freehand.taxiway(cells);
 				case RUNWAY -> freehand.runway(cells);
 			}
 			freehand.ground(cells, switch (shape.kind()) {
 				case PLATFORM -> StationGeometry.HEADROOM;
-				case BUILDING, TERMINAL -> shape.height();
+				case BUILDING -> shape.height();
+				case TERMINAL -> shape.height() + TerminalBuilding.ROOF_CLEAR;
 				case APRON -> MAST_HEIGHT + 1;
 				case TAXIWAY, RUNWAY -> AirportGeometry.OPEN_CLEARANCE;
 			});
@@ -328,7 +327,7 @@ final class PlanFreehand {
 	private static final int[][] SIDES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 	private static final LocalDir[] SIDE_DIRS = {LocalDir.PLUS_U, LocalDir.MINUS_U, LocalDir.PLUS_V, LocalDir.MINUS_V};
 
-	private void building(Set<Long> cells, int height, boolean terminal) {
+	private void building(Set<Long> cells, int height) {
 		final int roofY = StationGeometry.WALK_Y + height;
 		// the outline: cells with a side open to the outside, and which way it faces
 		final List<long[]> outline = new ArrayList<>();
@@ -349,11 +348,7 @@ final class PlanFreehand {
 		}
 		final Set<Long> door = doorway(outline);
 		for (final long key : cells) {
-			if (terminal) {
-				s.put(Role.FLOOR, DrawnShape.u(key), StationGeometry.PLATFORM_Y, DrawnShape.v(key), LocalDir.PLUS_V, PlanAirport.TERMINAL_FLOOR);
-			} else {
-				s.put(Role.FLOOR, DrawnShape.u(key), StationGeometry.PLATFORM_Y, DrawnShape.v(key), LocalDir.PLUS_V);
-			}
+			s.put(Role.FLOOR, DrawnShape.u(key), StationGeometry.PLATFORM_Y, DrawnShape.v(key), LocalDir.PLUS_V);
 		}
 		for (final long[] cell : outline) {
 			final int u = (int) cell[0];
@@ -363,16 +358,6 @@ final class PlanFreehand {
 			for (int y = StationGeometry.WALK_Y; y < roofY; y++) {
 				if (door.contains(DrawnShape.key(u, v)) && y < StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT) {
 					s.air.add(new Cell(u, y, v));
-					continue;
-				}
-				if (terminal) {
-					// a terminal is glass from the floor to under the roof, between mullions
-					final boolean mullion = corner || Math.floorMod(u + v, MULLION_EVERY) == 0 || y == roofY - 1;
-					if (mullion) {
-						s.put(Role.WALL, u, y, v, front);
-					} else {
-						s.put(Role.WINDOW, u, y, v, front, PlanAirport.TOWER_GLASS);
-					}
 					continue;
 				}
 				final int row = (y - StationGeometry.WALK_Y) % StationGeometry.STOREY;
@@ -386,11 +371,7 @@ final class PlanFreehand {
 			final boolean inner = cells.contains(DrawnShape.key(u - 1, v)) && cells.contains(DrawnShape.key(u + 1, v))
 					&& cells.contains(DrawnShape.key(u, v - 1)) && cells.contains(DrawnShape.key(u, v + 1));
 			final boolean panel = inner && Math.floorMod(u, PANEL_GRID) == PANEL_GRID / 2 && Math.floorMod(v, PANEL_GRID) == PANEL_GRID / 2;
-			if (terminal && panel) {
-				s.put(Role.LIGHT_PANEL, u, roofY, v, LocalDir.PLUS_V, PlanAirport.ROOF_LIGHT);
-			} else {
-				s.put(panel ? Role.LIGHT_PANEL : Role.BUILDING_ROOF, u, roofY, v, LocalDir.PLUS_V);
-			}
+			s.put(panel ? Role.LIGHT_PANEL : Role.BUILDING_ROOF, u, roofY, v, LocalDir.PLUS_V);
 		}
 	}
 

@@ -81,22 +81,10 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String TOWER_RAILING = "minecraft:iron_bars";
 	/** The tower's beacon on the cab roof. */
 	static final String TOWER_BEACON = "minecraft:sea_lantern";
-	/** The terminal's pitched metal roof, full steps and half steps, and how many blocks it rises from eave to clerestory. */
-	static final String ROOF_SHEET = "minecraft:smooth_stone";
-	static final String ROOF_SHEET_STEP = "minecraft:smooth_stone_slab";
-	static final int PITCH_RISE = 2;
-	/** The rooflight bands in the pitched roof over the deck's skylight strips. */
-	static final String ROOF_LIGHT = "minecraft:light_blue_stained_glass";
-	/** Half the clerestory's width across the terminal, from its centre line to its glass sides. */
-	static final int CLERESTORY_HALF = 3;
 	/** A plant box's barred vent: plain iron, no block entity. */
 	static final String PLANT_VENT = "minecraft:iron_bars";
 	static final String MAST_LAMP = "aurelia_transit_architecture:apron_floodlight";
 	static final String BOLLARD = "aurelia_transit_architecture:bollard";
-	/** The terminal's name, in navy block letters on the landside glass. */
-	static final String NAME_LETTER = "minecraft:blue_concrete";
-	/** How far the entrance pavilion's roof stands above the terminal's roof deck. */
-	static final int PAVILION_RISE = 2;
 	static final String CHECK_IN_DESK = "aurelia_transit_architecture:check_in_desk";
 	static final String DEPARTURES_BOARD = "aurelia_transit_architecture:departures_board";
 	static final String JET_BRIDGE = "aurelia_transit_architecture:jet_bridge";
@@ -104,10 +92,8 @@ abstract class PlanAirport extends PlanFitOut {
 	static final String BRIDGE_BAND = "minecraft:light_gray_concrete";
 	static final String BRIDGE_COLUMN = "minecraft:iron_block";
 	static final String BRIDGE_WHEEL = "minecraft:black_concrete";
-	/** The landside canopy's diagonal brace: a slim 45-degree steel bar that rises the way it faces. */
+	/** The entrance canopy's diagonal brace: a slim 45-degree steel bar that rises the way it faces. */
 	static final String VIADUCT_BRACE = "aurelia_transit_architecture:viaduct_brace";
-	/** Rows between the airside wall's mullions, each carrying a roof strut. */
-	static final int AIRSIDE_BAY = 6;
 	static final String BAGGAGE_BELT = "aurelia_transit_architecture:baggage_belt";
 	static final String WINDSOCK = "aurelia_transit_architecture:windsock";
 	static final String TERMINAL_FLOOR = "aurelia_transit_architecture:terminal_terrazzo";
@@ -147,14 +133,9 @@ abstract class PlanAirport extends PlanFitOut {
 		this.rail = spec.isAirport() ? AirportStation.of(spec) : null;
 	}
 
-	/** The terminal's roof, one above its walls. */
-	int terminalRoofY() {
-		return air.dims().wallTop() + 1;
-	}
-
-	/** The landside canopy's deck: level with the forecourt canopy, and below the name band on a compact terminal. */
+	/** The landside canopy's deck: level with the forecourt canopy, and below the name band on a low terminal. */
 	int landsideCanopyY() {
-		return Math.min(StationGeometry.WALK_Y + 6, air.dims().wallTop() - 1);
+		return TerminalBuilding.canopyLine(air.dims().wallTop());
 	}
 
 	/** The airport's rules, in order. Structures first: a cell keeps the first block planned in it, so paint comes before pavement. */
@@ -556,60 +537,6 @@ abstract class PlanAirport extends PlanFitOut {
 			row0 += h + gap;
 		}
 		return out;
-	}
-
-	/**
-	 * The entrance pavilion (ap03): a glazed box standing on the landside canopy over the doors, wider than the entrance and
-	 * {@link #PAVILION_RISE} rows above the eave, so the way in reads from the forecourt. Its front is a solid panel at the canopy's
-	 * outer edge, glazed, with the airport's name set in it in block letters, where the canopy cannot hide it; glass sides, a closed back and a
-	 * flat roof, and nothing inside. Built before the walls and the roof, which give way to it. Only on terminals tall enough for
-	 * the letters above the canopy (not the compact one). True when it carried the name, so the caller hangs no other sign.
-	 */
-	private boolean entrancePavilion(int u0, int v0, int v1, int door, int half) {
-		final int deckY = landsideCanopyY();
-		final int roofY = terminalRoofY() + PAVILION_RISE;
-		if (air.dims() == AirportGeometry.COMPACT || roofY - 1 - (deckY + 2) + 1 < AirportGlyphs.GLYPH_HEIGHT + 1) {
-			return false;
-		}
-		final StylePalette.Building b = palette.building();
-		final int outer = u0 - 5;
-		final String name = spec.name().toUpperCase(java.util.Locale.ROOT);
-		final boolean letters = !name.isBlank() && name.chars().allMatch(c -> AirportGlyphs.has((char) c));
-		final int w = letters ? AirportGlyphs.width(name, 1) : 0;
-		final int pw = Math.min(Math.max(half + 6, w / 2 + 3), (v1 - v0) / 2 - 4);
-		final boolean named = letters && w / 2 + 2 <= pw;
-		if (named) {
-			// set in the front panel's glass, one row under its trim top, on the canopy fascia; read from the forecourt
-			// looking +u, so the reader's right is -v
-			for (final int[] px : AirportGlyphs.pixels(name, 1)) {
-				put(Role.WALL, outer, roofY - 2 - px[1], door + w / 2 - px[0], LocalDir.MINUS_U, NAME_LETTER);
-			}
-		}
-		for (int v = door - pw; v <= door + pw; v++) {
-			final boolean side = v == door - pw || v == door + pw;
-			for (int y = deckY + 1; y < roofY; y++) {
-				// the front panel stands on the canopy's two-block fascia: glass framed in trim at its top row and both ends
-				if (y >= deckY + 2) {
-					final boolean frame = side || y == roofY - 1;
-					put(frame ? Role.WALL : Role.WINDOW, outer, y, v, LocalDir.MINUS_U, frame ? b.trim() : b.window());
-				}
-				// the back closes the box above the terminal's wall
-				if (y > air.dims().wallTop()) {
-					put(Role.WALL, u0, y, v, LocalDir.PLUS_U, b.trim());
-				}
-				for (int u = outer + 1; u < u0; u++) {
-					if (side) {
-						put(Role.WINDOW, u, y, v, v < door ? LocalDir.MINUS_V : LocalDir.PLUS_V, b.window());
-					} else {
-						keepClear(u, y, v);
-					}
-				}
-			}
-			for (int u = outer - 1; u <= u0; u++) {
-				put(Role.BUILDING_ROOF, u, roofY, v, LocalDir.MINUS_U, b.trim());
-			}
-		}
-		return named;
 	}
 
 	/** One approach light: a white lamp on a one-block post over the grass, or a flush lamp where it crosses pavement. */
@@ -1446,14 +1373,13 @@ abstract class PlanAirport extends PlanFitOut {
 	}
 
 	/**
-	 * The terminal: a floor, glass along the airside with pilasters, a landside wall with a five-wide entrance and the name over it,
-	 * end walls, columns, a roof with lights, check-in counters with bag drops and queue posts on the landside, kiosks and trolleys
-	 * by the entrance, a security line across the hall, a baggage hall with carousels at the landside's far end, and at every gate a
-	 * desk, its number over the door and rows of linked seats; and a doorway onto every boarding bridge. Built from the modern
-	 * building set; the security and gate blocks are Null's (10-26).
+	 * The terminal hall ({@link TerminalBuilding}), then the name over the entrance, departures boards on the columns,
+	 * check-in counters with bag drops and queue posts, kiosks and trolleys by the door, a security line, a baggage hall,
+	 * and at every gate a desk, its number over the door and rows of linked seats. The gate doors are openings the boarding
+	 * bridges floor afterwards. The security and gate blocks are Null's (10-26).
 	 */
 	void terminal() {
-		final StylePalette.Building b = palette.building();
+		TerminalBuilding.planned(this);
 		final AirportGeometry.Dims d = air.dims();
 		final int u0 = air.terminalU0();
 		final int u1 = air.terminalU1();
@@ -1461,96 +1387,17 @@ abstract class PlanAirport extends PlanFitOut {
 		final int v1 = air.terminalV1();
 		final int door = entranceV();
 		final int half = d.entrance() / 2;
-		final int top = d.wallTop();
-		// openings first: the entrance and the gate doors stay air
-		for (int v = door - half; v <= door + half; v++) {
-			for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT; y++) {
-				keepClear(u0, y, v);
-			}
-		}
-		for (final int c : air.standV()) {
-			for (int v = c - d.bridgeWidth() / 2; v <= c + d.bridgeWidth() / 2; v++) {
-				for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT; y++) {
-					keepClear(u1, y, v);
-				}
-			}
-		}
-		final boolean namedOnPavilion = entrancePavilion(u0, v0, v1, door, half);
-		// recessed lights in the ceiling, in rows between the column lines and clear of the skylight strips, so the hall is lit
-		// under the pitched roof (the deck's own skylights only light the strips under them)
-		final int span = u1 - u0 + 1;
-		for (final int u : new int[]{u0 + span / 6, u0 + span / 2, u0 + 5 * span / 6}) {
-			for (int v = v0 + 4; v < v1 - 2; v += 4) {
-				if (Math.floorMod(v - v0, 16) >= 2) {
-					put(Role.LIGHT_PANEL, u, terminalRoofY(), v, LocalDir.PLUS_V, HALL_LIGHT);
-				}
-			}
-		}
-		for (int v = v0; v <= v1; v++) {
-			for (int u = u0; u <= u1; u++) {
-				put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V, TERMINAL_FLOOR);
-				if (u > u0 && u < u1 && v > v0 && v < v1) {
-					// a glazed skylight strip across the roof every 16 rows; the rest is the roof deck
-					final boolean lit = overSkylight(u, v);
-					put(Role.BUILDING_ROOF, u, terminalRoofY(), v, LocalDir.PLUS_V, lit ? b.window() : b.roof());
-				} else {
-					put(Role.BUILDING_ROOF, u, terminalRoofY(), v, LocalDir.PLUS_V, b.roof());
-				}
-			}
-		}
-		for (int y = StationGeometry.WALK_Y; y <= top; y++) {
-			for (int v = v0; v <= v1; v++) {
-				// airside: a full-height glass curtain wall on a solid plinth, a metal mullion every six rows (where the roof's struts
-				// meet it) and a transom at door height, so it reads as a glazed grid as at Southend (ap03), not a row of pillars
-				final boolean plinth = y == StationGeometry.WALK_Y;
-				final boolean mullionAir = Math.floorMod(v - v0, AIRSIDE_BAY) == 0 || v == v1
-						|| y == StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT;
-				put(plinth || mullionAir ? Role.WALL : Role.WINDOW, u1, y, v, LocalDir.PLUS_U,
-						plinth ? b.plinth() : mullionAir ? b.trim() : b.window());
-				// landside: a plinth, a band of glass with the same rhythm, a fascia
-				final boolean band = y >= 2 && y <= top - 2 && Math.abs(v - door) > half;
-				final boolean mullionLand = band && Math.floorMod(v - door, 4) == 0;
-				final boolean glass = band && !mullionLand;
-				final boolean lintel = y == StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT && Math.abs(v - door) <= half;
-				put(glass ? Role.WINDOW : Role.WALL, u0, y, v, LocalDir.MINUS_U,
-						plinth ? b.plinth() : glass ? b.window() : mullionLand || lintel ? b.trim() : b.wall());
-			}
-			// the gable ends: the landside band of glass wraps round them, mullions every four rows, solid two rows from each corner
-			for (int u = u0 + 1; u < u1; u++) {
-				final boolean endBand = y >= 2 && y <= top - 2 && u > u0 + 2 && u < u1 - 2;
-				final boolean endGlass = endBand && Math.floorMod(u - u0, 4) != 0;
-				final String end = y == StationGeometry.WALK_Y ? b.plinth() : endGlass ? b.window() : endBand ? b.trim() : b.wall();
-				put(endGlass ? Role.WINDOW : Role.WALL, u, y, v0, LocalDir.MINUS_V, end);
-				put(endGlass ? Role.WINDOW : Role.WALL, u, y, v1, LocalDir.PLUS_V, end);
-			}
-		}
-		// the roof's first overhang ring: one row over the forecourt, the apron and both gable ends; terminalRoofEdge adds the rest
-		for (int v = v0 - 1; v <= v1 + 1; v++) {
-			put(Role.BUILDING_ROOF, u0 - 1, terminalRoofY(), v, LocalDir.MINUS_U, b.roof());
-			put(Role.BUILDING_ROOF, u1 + 1, terminalRoofY(), v, LocalDir.PLUS_U, b.roof());
-		}
-		for (int u = u0; u <= u1; u++) {
-			put(Role.BUILDING_ROOF, u, terminalRoofY(), v0 - 1, LocalDir.MINUS_V, b.roof());
-			put(Role.BUILDING_ROOF, u, terminalRoofY(), v1 + 1, LocalDir.PLUS_V, b.roof());
-		}
-		// the name, over the entrance, fixed flat to the landside wall; a compact terminal's canopy sits just below it
-		final int nameY = Math.max(top - 1, landsideCanopyY() + 1);
-		if (!namedOnPavilion && !spec.name().isEmpty()) {
+		final int nameY = TerminalBuilding.nameBandY(d.wallTop());
+		if (!spec.name().isEmpty()) {
 			for (int v = door - half - 3; v <= door + half + 3; v++) {
 				putText(Role.FIXTURE, u0 - 1, nameY, v, LocalDir.MINUS_U, LETTERING, spec.name());
 			}
 		}
-		// columns in two lines, each under the roof
-		final int depth = u1 - u0 + 1;
-		for (final int u : new int[]{u0 + depth / 3, u0 + 2 * depth / 3}) {
-			for (int v = v0 + 4; v < v1 - 2; v += 8) {
-				for (int y = StationGeometry.WALK_Y; y < top; y++) {
-					put(Role.COLUMN, u, y, v, LocalDir.PLUS_V, HALL_COLUMN);
-				}
-				put(Role.COLUMN_CAP, u, top, v, LocalDir.PLUS_V, HALL_COLUMN);
-				// departures boards on both faces of every column along v, above head height
-				put(Role.FIXTURE, u, StationGeometry.WALK_Y + 2, v - 1, LocalDir.MINUS_V, DEPARTURES_BOARD);
-				put(Role.FIXTURE, u, StationGeometry.WALK_Y + 2, v + 1, LocalDir.PLUS_V, DEPARTURES_BOARD);
+		for (final int[] column : TerminalBuilding.hallColumns(u0, u1, v0, v1, door)) {
+			final PlannedBlock post = at(column[0], StationGeometry.WALK_Y, column[1]);
+			if (post != null && HALL_COLUMN.equals(post.blockId())) {
+				put(Role.FIXTURE, column[0], StationGeometry.WALK_Y + 2, column[1] - 1, LocalDir.MINUS_V, DEPARTURES_BOARD);
+				put(Role.FIXTURE, column[0], StationGeometry.WALK_Y + 2, column[1] + 1, LocalDir.PLUS_V, DEPARTURES_BOARD);
 			}
 		}
 		final int security = securityU();
@@ -1593,245 +1440,16 @@ abstract class PlanAirport extends PlanFitOut {
 			}
 			put(Role.BIN, u1 - 2, StationGeometry.WALK_Y, c + off + 4, LocalDir.PLUS_U);
 		}
-		terminalRoofEdge();
-		terminalAirsideStruts();
-		terminalClerestory();
-		terminalPitchedRoof();
-		terminalSkylights();
-		terminalLandsideCanopy();
 	}
 
-	/**
-	 * The terminal roof's edge: the deck reaches two blocks past the landside wall and three past the airside one, two past the
-	 * gable ends, with a light metal fascia at the rim, a soffit under the whole overhang and a low parapet above, so the glass
-	 * box has a deep roof rather than a lid. It stays over the terminal, the road and the apron, clear of the boarding bridges.
-	 */
-	void terminalRoofEdge() {
-		final StylePalette.Building b = palette.building();
-		final int roofY = terminalRoofY();
-		final int u0 = air.terminalU0();
-		final int u1 = air.terminalU1();
-		final int v0 = air.terminalV0();
-		final int v1 = air.terminalV1();
-		// the deck: landside 2 deep, airside 3, and 2 past each gable end, the outermost ring in the metal fascia
-		for (int v = v0 - 2; v <= v1 + 2; v++) {
-			for (int u = u0 - 2; u <= u1 + 3; u++) {
-				if (u >= u0 && u <= u1 && v >= v0 && v <= v1) {
-					continue;
-				}
-				final boolean rim = u == u0 - 2 || u == u1 + 3 || v == v0 - 2 || v == v1 + 2;
-				final LocalDir front = u < u0 ? LocalDir.MINUS_U : u > u1 ? LocalDir.PLUS_U : v < v0 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
-				put(Role.BUILDING_ROOF, u, roofY, v, front, rim ? b.trim() : b.roof());
-			}
-		}
-		// the soffit under the overhang, the older one-block ring included; a forecourt column keeps its cap
-		for (int v = v0 - 2; v <= v1 + 2; v++) {
-			for (int u = u0 - 2; u <= u1 + 3; u++) {
-				if (u >= u0 && u <= u1 && v >= v0 && v <= v1 || forecourtCap(u, roofY - 1, v)) {
-					continue;
-				}
-				final LocalDir front = u < u0 ? LocalDir.MINUS_U : u > u1 ? LocalDir.PLUS_U : v < v0 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
-				put(Role.BUILDING_ROOF, u, roofY - 1, v, front, b.plinth());
-			}
-		}
-	}
-
-	/**
-	 * Southend's roof (ap03, ap04): light metal sheeting that rises in half-block steps from the thin eave on both long sides to
-	 * {@link #PITCH_RISE} blocks at the clerestory, so the terminal reads as a shallow pitched roof over glass and not as a flat
-	 * slab; the gable ends show the same stepped profile. The clerestory's glass stands on the ridge.
-	 */
-	void terminalPitchedRoof() {
-		final int roofY = terminalRoofY();
-		final int u0 = air.terminalU0() - 2;
-		final int u1 = air.terminalU1() + 3;
-		final int v0 = air.terminalV0() - 2;
-		final int v1 = air.terminalV1() + 2;
-		final int c = (air.terminalU0() + air.terminalU1()) / 2;
-		final int landSpan = Math.max(1, c - CLERESTORY_HALF - u0);
-		final int airSpan = Math.max(1, u1 - (c + CLERESTORY_HALF));
-		for (int u = u0; u <= u1; u++) {
-			// half-blocks above the deck: 0 at the eave, PITCH_RISE * 2 at the clerestory's walls and over the ridge between them
-			final int half = u <= c ? Math.min(2 * PITCH_RISE, 2 * PITCH_RISE * (u - u0) / landSpan)
-					: Math.min(2 * PITCH_RISE, 2 * PITCH_RISE * (u1 - u) / airSpan);
-			if (half == 0) {
-				continue;
-			}
-			final LocalDir front = u <= c ? LocalDir.MINUS_U : LocalDir.PLUS_U;
-			for (int v = v0; v <= v1; v++) {
-				if (insideClerestory(u, v)) {
-					continue;
-				}
-				if (overSkylight(u, v)) {
-					// a raised glazed rooflight band over each of the deck's skylight strips, so daylight still reaches the hall
-					for (int y = roofY + 1; y <= roofY + (half + 1) / 2; y++) {
-						put(Role.WINDOW, u, y, v, front, ROOF_LIGHT);
-					}
-					continue;
-				}
-				for (int y = roofY + 1; y <= roofY + half / 2; y++) {
-					put(Role.BUILDING_ROOF, u, y, v, front, ROOF_SHEET);
-				}
-				if (half % 2 == 1) {
-					put(Role.BUILDING_ROOF, u, roofY + 1 + half / 2, v, front, ROOF_SHEET_STEP, "type=bottom");
-				}
-			}
-		}
-	}
-
-	/**
-	 * Southend's struts (ap03, ap04): from every airside mullion a 45-degree steel brace rises out to the overhang's rim, so the
-	 * three-deep roof edge over the apron is visibly carried instead of floating over a flat glass wall.
-	 */
-	void terminalAirsideStruts() {
-		final int roofY = terminalRoofY();
-		final int u1 = air.terminalU1();
-		// up to three steps, ending under the soffit; a compact terminal's low wall gets a shorter strut that keeps door headroom
-		final int steps = Math.min(3, roofY - 1 - (StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT));
-		for (int v = air.terminalV0() + AIRSIDE_BAY; v < air.terminalV1(); v += AIRSIDE_BAY) {
-			for (int k = 1; k <= steps; k++) {
-				put(Role.RIB, u1 + k, roofY - 2 - steps + k, v, LocalDir.PLUS_U, VIADUCT_BRACE, "kind=diagonal");
-			}
-			// and one in the wall's plane, from the strut's foot up along the glass to the soffit, so the front reads as ap03's
-			// row of raked struts and not as plain mullions
-			for (int k = 1; k <= steps; k++) {
-				put(Role.RIB, u1 + 1, roofY - 2 - steps + k, v + k, LocalDir.PLUS_V, VIADUCT_BRACE, "kind=diagonal");
-			}
-		}
-	}
-
-	/** True at a forecourt canopy column's cap, which the terminal's roof soffit leaves for the column below it. */
-	private boolean forecourtCap(int u, int y, int v) {
-		return y == StationGeometry.WALK_Y + 5 && forecourtColumn(u, v);
-	}
 
 	/** True at one of the forecourt canopy's two columns, from its foot to its cap. */
-	private boolean forecourtColumn(int u, int v) {
+	boolean forecourtColumn(int u, int v) {
 		if (!spec.airport().forecourt() || u != air.roadU1() - 1) {
 			return false;
 		}
 		final int side = air.dims().entrance() / 2 + 6;
 		return v == entranceV() - side || v == entranceV() + side;
-	}
-
-	/**
-	 * A raised strip along the roof's ridge, two blocks of glass standing on the pitched roof, with a trim edge overhanging it by a
-	 * block: the terminal's roof lifts over glass as at Southend (ap03, ap04). The skylights underneath stay inside it.
-	 */
-	void terminalClerestory() {
-		if (!hasClerestory()) {
-			return;
-		}
-		final StylePalette.Building b = palette.building();
-		final int deck = terminalRoofY() + 1 + PITCH_RISE;
-		final int c = (air.terminalU0() + air.terminalU1()) / 2;
-		final int half = CLERESTORY_HALF;
-		final int v0 = air.terminalV0() + 4;
-		final int v1 = air.terminalV1() - 4;
-		for (int v = v0; v <= v1; v++) {
-			for (int u = c - half; u <= c + half; u++) {
-				final boolean side = u == c - half || u == c + half;
-				final boolean end = v == v0 || v == v1;
-				if (side || end) {
-					final LocalDir out = side ? (u < c ? LocalDir.MINUS_U : LocalDir.PLUS_U) : (v == v0 ? LocalDir.MINUS_V : LocalDir.PLUS_V);
-					final boolean post = side && (end || Math.floorMod(v - v0, 6) == 0);
-					for (int y = deck; y <= deck + 1; y++) {
-						put(post ? Role.WALL : Role.WINDOW, u, y, v, out, post ? b.trim() : b.window());
-					}
-				}
-				put(Role.BUILDING_ROOF, u, deck + 2, v, LocalDir.PLUS_V, b.roof());
-			}
-			put(Role.BUILDING_ROOF, c - half - 1, deck + 2, v, LocalDir.MINUS_U, b.trim());
-			put(Role.BUILDING_ROOF, c + half + 1, deck + 2, v, LocalDir.PLUS_U, b.trim());
-		}
-	}
-
-	/** True when the terminal is big enough for the clerestory: eight rows long inside its ends, and wide enough beside it. */
-	private boolean hasClerestory() {
-		return air.terminalV1() - air.terminalV0() - 8 >= 8 && air.terminalU1() - air.terminalU0() >= 2 * CLERESTORY_HALF + 8;
-	}
-
-	/** True over one of the deck's glazed skylight strips (see {@link #terminal}): every 16 rows, clear of the long walls. */
-	private boolean overSkylight(int u, int v) {
-		return u > air.terminalU0() + 5 && u < air.terminalU1() - 5 && v > air.terminalV0() && v < air.terminalV1()
-				&& Math.floorMod(v - air.terminalV0(), 16) < 2;
-	}
-
-	/** True inside the clerestory's glass walls. */
-	private boolean insideClerestory(int u, int v) {
-		final int c = (air.terminalU0() + air.terminalU1()) / 2;
-		return hasClerestory() && Math.abs(u - c) < CLERESTORY_HALF && v > air.terminalV0() + 4 && v < air.terminalV1() - 4;
-	}
-
-	/** A row of framed glass skylights on the roof's centre line, every 24 rows, wherever the deck is free. */
-	void terminalSkylights() {
-		final StylePalette.Building b = palette.building();
-		final int deck = terminalRoofY() + 1;
-		final int c = (air.terminalU0() + air.terminalU1()) / 2;
-		final int v1 = air.terminalV1();
-		for (int v = air.terminalV0() + 8; v + 5 <= v1 - 4; v += 24) {
-			if (!roofFree(c - 2, c + 2, deck, deck, v, v + 5)) {
-				continue;
-			}
-			for (int u = c - 2; u <= c + 2; u++) {
-				for (int w = v; w <= v + 5; w++) {
-					final boolean frame = u == c - 2 || u == c + 2 || w == v || w == v + 5;
-					put(Role.BUILDING_ROOF, u, deck, w, LocalDir.PLUS_V, frame ? b.trim() : TOWER_GLASS);
-				}
-			}
-		}
-	}
-
-	/**
-	 * The landside canopy, Southend's deep roof lip: a glazed deck along the whole front, so the terminal is not a flat box under
-	 * its roof slab. It reaches five cells over the kerb and footway on the regional and real layouts, three on the compact one,
-	 * closed by a two-block metal fascia, with a slim 45-degree steel brace every eight rows carrying it from the glass wall at
-	 * door-head height. The braces stay over the footway and kerb, so no support stands in the carriageway.
-	 */
-	void terminalLandsideCanopy() {
-		final StylePalette.Building b = palette.building();
-		final int u0 = air.terminalU0();
-		final int door = entranceV();
-		final int reach = air.dims() == AirportGeometry.COMPACT ? 3 : 5;
-		final int deckY = landsideCanopyY();
-		final int outer = u0 - reach;
-		final int v0 = air.terminalV0() + 2;
-		final int v1 = air.terminalV1() - 2;
-		for (int v = v0; v <= v1; v++) {
-			// on a compact terminal the deck is at
-			// the forecourt column's cap level, so leave it the cell it needs to reach its own canopy
-			for (int u = u0 - 1; u > outer; u--) {
-				if (deckY <= StationGeometry.WALK_Y + 5 && forecourtColumn(u, v)) {
-					continue;
-				}
-				put(Role.BUILDING_ROOF, u, deckY, v, LocalDir.MINUS_U, b.window());
-			}
-			// a two-block metal fascia closes the outer row, its upper block standing on the deck's edge, not on its corner
-			put(Role.BUILDING_ROOF, outer, deckY, v, LocalDir.MINUS_U, b.trim());
-			put(Role.BUILDING_ROOF, outer, deckY + 1, v, LocalDir.MINUS_U, b.trim());
-		}
-		// a 45-degree brace from the wall at door-head height to the deck a third in from its outer edge; the phase keeps the
-		// braced rows clear of the forecourt canopy's two columns
-		for (int v = v0; v <= v1; v++) {
-			if (Math.floorMod(v - door - 4, 8) != 0) {
-				continue;
-			}
-			for (int u = u0 - 1, y = StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT; u > outer; u--, y++) {
-				put(Role.RIB, u, y, v, LocalDir.MINUS_U, VIADUCT_BRACE, "kind=diagonal");
-			}
-		}
-	}
-
-	/** True when every cell of the box (u0..u1, y0..y1, v0..v1) is free: a roof unit only goes where the deck is bare. */
-	private boolean roofFree(int u0, int u1, int y0, int y1, int v0, int v1) {
-		for (int u = u0; u <= u1; u++) {
-			for (int v = v0; v <= v1; v++) {
-				if (!freeColumn(u, y0, y1, v)) {
-					return false;
-				}
-			}
-		}
-		return true;
 	}
 
 	/**

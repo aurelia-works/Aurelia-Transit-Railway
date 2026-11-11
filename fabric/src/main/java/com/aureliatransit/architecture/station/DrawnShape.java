@@ -37,7 +37,7 @@ public record DrawnShape(Kind kind, List<DrawnTrack.Point> points, boolean open,
 		TAXIWAY,
 		/** An airport's black runway, with white edge lines and white edge lights. */
 		RUNWAY,
-		/** An airport terminal: glass walls, a doorway and a flat roof with light panels. */
+		/** An airport terminal: the planned hall, with a plinth, a glazed band, an entrance canopy and a roof. */
 		TERMINAL;
 
 		/** The word the shape is written with. */
