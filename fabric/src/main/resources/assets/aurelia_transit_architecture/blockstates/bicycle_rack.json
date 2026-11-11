@@ -1,18 +1,33 @@
 {
   "variants": {
-    "facing=north": {
+    "bike=true,facing=north": {
       "model": "aurelia_transit_architecture:block/bicycle_rack"
     },
-    "facing=east": {
+    "bike=false,facing=north": {
+      "model": "aurelia_transit_architecture:block/bicycle_rack_empty"
+    },
+    "bike=true,facing=east": {
       "model": "aurelia_transit_architecture:block/bicycle_rack",
       "y": 90
     },
-    "facing=south": {
+    "bike=false,facing=east": {
+      "model": "aurelia_transit_architecture:block/bicycle_rack_empty",
+      "y": 90
+    },
+    "bike=true,facing=south": {
       "model": "aurelia_transit_architecture:block/bicycle_rack",
       "y": 180
     },
-    "facing=west": {
+    "bike=false,facing=south": {
+      "model": "aurelia_transit_architecture:block/bicycle_rack_empty",
+      "y": 180
+    },
+    "bike=true,facing=west": {
       "model": "aurelia_transit_architecture:block/bicycle_rack",
+      "y": 270
+    },
+    "bike=false,facing=west": {
+      "model": "aurelia_transit_architecture:block/bicycle_rack_empty",
       "y": 270
     }
   }

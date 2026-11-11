@@ -39,7 +39,7 @@ public final class RoadVehicleRenderer extends EntityRenderer<RoadVehicleEntity>
 			matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-MathHelper.lerpAngleDegrees(tickDelta, entity.prevYaw, entity.getYaw())));
 			matrices.scale(scale / 16, scale / 16, scale / 16);
 			final float spin = MathHelper.lerp(tickDelta, entity.prevWheelSpin, entity.wheelSpin);
-			model.render(matrices, vertexConsumers, getTexture(entity), light, OverlayTexture.DEFAULT_UV, RoadVehicles.settings(true).colour(), -entity.steer(), spin);
+			model.render(matrices, vertexConsumers, getTexture(entity), light, OverlayTexture.DEFAULT_UV, RoadVehicles.settings(true).colour(entity.kind()), -entity.steer(), spin);
 			matrices.pop();
 		}
 		super.render(entity, yaw, tickDelta, matrices, vertexConsumers, light);

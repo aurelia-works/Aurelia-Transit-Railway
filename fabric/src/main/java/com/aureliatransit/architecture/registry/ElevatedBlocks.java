@@ -6,6 +6,7 @@ import com.aureliatransit.architecture.block.FacingShapedBlock;
 import com.aureliatransit.architecture.block.ShapedBlock;
 import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.block.TextLayout;
+import com.aureliatransit.architecture.block.elevated.BicycleRackBlock;
 import com.aureliatransit.architecture.block.elevated.CardReaderBlock;
 import com.aureliatransit.architecture.block.elevated.CheckInLaneBlock;
 import com.aureliatransit.architecture.block.elevated.CctvCameraBlock;
@@ -142,9 +143,9 @@ public final class ElevatedBlocks {
 	/** A galvanised mesh panel on its front edge with a post and a top rail: the fence along a railway's boundary. */
 	public static final Block LINESIDE_FENCE = ModBlocks.register("lineside_fence", BlockFamily.ELEVATED, RenderKind.CUTOUT,
 			new FacingShapedBlock(ModBlocks.metal(), Placement.TOWARD_PLAYER, box(0, 0, 0, 16, 16, 1)));
-	/** A Dutch bike rack with a bike in it: a galvanised rail and a hoop round the front wheel, rows of them back to back. */
+	/** A Dutch bike rack, a bike in it until one is hired: a galvanised rail and a hoop round the front wheel, rows of them back to back. */
 	public static final Block BICYCLE_RACK = ModBlocks.register("bicycle_rack", BlockFamily.FURNITURE, RenderKind.CUTOUT,
-			new FacingShapedBlock(ModBlocks.metal(), Placement.TOWARD_PLAYER, box(5.5, 0, 0, 10.5, 11, 16)));
+			new BicycleRackBlock(ModBlocks.metal(), Placement.TOWARD_PLAYER, box(5.5, 0, 0, 10.5, 11, 16)));
 
 	/** A tubular overhead line cantilever from a mast to the hanger over the track: root, span and tip pieces. */
 	public static final Block CATENARY_ARM = ModBlocks.register("catenary_arm", BlockFamily.CATENARY, RenderKind.CUTOUT,

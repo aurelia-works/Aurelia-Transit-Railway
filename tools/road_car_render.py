@@ -51,11 +51,22 @@ def to_blender(point):
 	return (point[0], point[2], point[1])
 
 
-def out_dir():
-	argv = sys.argv
-	if "--" in argv:
-		return os.path.abspath(argv[argv.index("--") + 1])
-	return os.path.join(ROOT, "build/road-car")
+def args():
+	"""-- <output folder> [model name]: the folder, and which road_vehicle model (hatchback by default)."""
+	argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+	folder = os.path.abspath(argv[0]) if argv else os.path.join(ROOT, "build/road-car")
+	return folder, argv[1] if len(argv) > 1 else "hatchback"
+
+
+def use_model(name):
+	global MODEL, TEXTURE, ATLAS
+	MODEL = os.path.join(ROOT, "fabric/src/main/resources/assets/mtr/models/road_vehicle/%s.bbmodel" % name)
+	TEXTURE = os.path.join(ROOT, "fabric/src/main/resources/assets/mtr/textures/entity/road_vehicle/%s.png" % name)
+	# The hatchback's atlas layout is known here; any other model is painted by group only, as the game does.
+	ATLAS = name == "hatchback"
+
+
+ATLAS = True
 
 
 def load():
@@ -84,7 +95,10 @@ def buckets(document):
 		group = groups.get(element["uuid"], "")
 		for face, spec in element["faces"].items():
 			uv = spec["uv"]
-			key = (group if group in ("glass", "mirror") else "body" if _paint(uv, width, height) and group == "body" else face_key(uv))
+			if not ATLAS:
+				key = "body" if group == "body" or group.startswith("body_") else "trim"
+			else:
+				key = (group if group in ("glass", "mirror") else "body" if _paint(uv, width, height) and group == "body" else face_key(uv))
 			quads = out.setdefault(key, [])
 			corners = []
 			uvs = ((uv[0] / width, uv[1] / height), (uv[2] / width, uv[1] / height), (uv[2] / width, uv[3] / height), (uv[0] / width, uv[3] / height))
@@ -231,7 +245,8 @@ def render_view(scene, obj, path):
 
 
 def main():
-	folder = out_dir()
+	folder, name = args()
+	use_model(name)
 	os.makedirs(folder, exist_ok=True)
 	bpy.ops.wm.read_factory_settings(use_empty=True)
 	document = load()
@@ -304,11 +319,13 @@ def main():
 		scene.cycles.use_denoising = True
 
 	target = (cx, cy, zmin + span_z * 0.42)
-	side_scale = max(span_y, span_z) * 1.28
-	front_scale = max(span_x, span_z) * 1.55
+	# Ortho scale is the frame's width; the frame is 1.6 times wider than tall, so a tall thing needs the height term.
+	side_scale = max(span_y * 1.28, span_z * 2.1)
+	front_scale = max(span_x * 1.55, span_z * 2.1)
 	# Nose is +Y. Left side of the car (driver) is +X.
 	views = {
 		"side": camera("side", (cx + span_x + 40, cy, target[2]), True, side_scale),
+		"side-right": camera("side_right", (cx - span_x - 40, cy, target[2]), True, side_scale),
 		"front": camera("front", (cx, cy + span_y + 40, target[2]), True, front_scale),
 		"rear": camera("rear", (cx, cy - span_y - 40, target[2]), True, front_scale),
 		"three-quarter": camera("three", (cx + span_x, cy + span_y, zmin + span_z * 0.85), False, 0),

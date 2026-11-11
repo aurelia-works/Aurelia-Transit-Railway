@@ -109,18 +109,22 @@ def px_m(metres):
 	return metres * PX
 
 
-def uid(name):
-	return str(uuid.uuid5(uuid.NAMESPACE_URL, "atr/road_car/" + name))
+def uid(name, space="road_car"):
+	return str(uuid.uuid5(uuid.NAMESPACE_URL, "atr/" + space + "/" + name))
 
 
 class Model:
-	def __init__(self):
+	"""Cubes in named groups. Other vehicle scripts pass their own texture regions and uuid space."""
+
+	def __init__(self, regions=None, space="road_car"):
 		self.elements = []
 		self.groups = {}
 		self._n = 0
+		self.regions = REGIONS if regions is None else regions
+		self.space = space
 
 	def group(self, name, origin):
-		self.groups[name] = {"uuid": uid("group/" + name), "name": name, "origin": list(origin), "children": []}
+		self.groups[name] = {"uuid": uid("group/" + name, self.space), "name": name, "origin": list(origin), "children": []}
 
 	def add(self, group, name, frm, to, material, rotation=(0, 0, 0), origin=None, skip=(), flip_u=False, face_material=None):
 		self._n += 1
@@ -141,11 +145,11 @@ class Model:
 			region = face_material.get(face, material) if face_material else material
 			if region is None:
 				continue
-			x, y, w, h = REGIONS[region]
+			x, y, w, h = self.regions[region]
 			uv = [x + w, y, x, y + h] if flip_u else [x, y, x + w, y + h]
 			faces[face] = {"uv": uv, "texture": 0}
 		element = {
-			"name": name, "type": "cube", "uuid": uid(name),
+			"name": name, "type": "cube", "uuid": uid(name, self.space),
 			"from": frm, "to": to, "origin": origin, "rotation": [round(v, 4) for v in rotation],
 			"faces": faces,
 		}
@@ -621,7 +625,7 @@ def item_icon():
 	return image
 
 
-def write_bbmodel(model, texture_png):
+def write_bbmodel(model, texture_png, model_path=MODEL_PATH, title="hatchback", tex=TEX):
 	encoded = base64.b64encode(texture_png).decode()
 	outliner = []
 	for name, group in model.groups.items():
@@ -631,20 +635,20 @@ def write_bbmodel(model, texture_png):
 		})
 	document = {
 		"meta": {"format_version": "4.10", "model_format": "free", "box_uv": False},
-		"name": "hatchback", "model_identifier": "", "visible_box": [1, 1, 0],
-		"resolution": {"width": TEX, "height": TEX},
+		"name": title, "model_identifier": "", "visible_box": [1, 1, 0],
+		"resolution": {"width": tex, "height": tex},
 		"elements": model.elements,
 		"groups": [],
 		"outliner": outliner,
 		"textures": [{
-			"path": "", "name": "hatchback", "folder": "", "namespace": "", "id": "0",
-			"width": TEX, "height": TEX, "uv_width": TEX, "uv_height": TEX,
+			"path": "", "name": title, "folder": "", "namespace": "", "id": "0",
+			"width": tex, "height": tex, "uv_width": tex, "uv_height": tex,
 			"particle": False, "use_as_default": True, "visible": True, "internal": True,
-			"saved": False, "uuid": uid("texture"),
+			"saved": False, "uuid": uid("texture", model.space),
 			"source": "data:image/png;base64," + encoded,
 		}],
 	}
-	path = os.path.join(ROOT, MODEL_PATH)
+	path = os.path.join(ROOT, model_path)
 	os.makedirs(os.path.dirname(path), exist_ok=True)
 	with open(path, "w") as handle:
 		json.dump(document, handle, separators=(",", ":"))
