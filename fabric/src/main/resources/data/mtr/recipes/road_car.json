@@ -1,0 +1,25 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		"IGI",
+		"IPI",
+		"C C"
+	],
+	"key": {
+		"I": {
+			"item": "minecraft:iron_ingot"
+		},
+		"G": {
+			"item": "minecraft:glass_pane"
+		},
+		"P": {
+			"item": "minecraft:piston"
+		},
+		"C": {
+			"item": "minecraft:coal_block"
+		}
+	},
+	"result": {
+		"item": "mtr:road_car"
+	}
+}

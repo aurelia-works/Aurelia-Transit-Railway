@@ -42,6 +42,9 @@ import org.mtr.aurelia.route.RouteControlSettings;
 import org.mtr.aurelia.sound.SoundProfile;
 import org.mtr.aurelia.sound.SoundProfileRegistry;
 import org.mtr.aurelia.sound.SoundProfileStore;
+import org.mtr.aurelia.vehicle.RoadVehicleSettings;
+import org.mtr.aurelia.vehicle.RoadVehicles;
+import org.mtr.aurelia.vehicle.client.RoadVehicleClient;
 import org.mtr.mod.InitClient;
 import org.mtr.mod.Items;
 import org.mtr.mod.config.Client;
@@ -76,11 +79,12 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen {
 
-	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS, MAP}
+	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS, MAP, VEHICLES}
 
 	private static final int BUTTON_WIDTH = 200;
 	private static final int VALUE_WIDTH = 80;
 	private static final int ROW = 24;
+	private static final int VEHICLE_SWATCH = 20;
 	/** The Tools grid packs its rows closer, so two columns of tools fit on a 240 high screen. */
 	private static final int TOOL_ROW = 22;
 	/** The bar along the top: the panel's name and the ATR menu button. */
@@ -102,7 +106,7 @@ public final class AureliaPanelScreen extends Screen {
 	private static final int HOVER = 0x28FFFFFF;
 	/** Riding and driving, then the network, then building, then this client's look and speed. */
 	private static final Tab[][] GROUPS = {
-			{Tab.RIDING, Tab.DRIVING, Tab.PANTOGRAPH, Tab.TRAIN_SOUND, Tab.SOUND},
+			{Tab.RIDING, Tab.DRIVING, Tab.VEHICLES, Tab.PANTOGRAPH, Tab.TRAIN_SOUND, Tab.SOUND},
 			{Tab.ROUTES, Tab.TOOLS, Tab.PASSENGERS, Tab.ZIP, Tab.MAP},
 			{Tab.ARCHITECTURE, Tab.BUILD, Tab.BUILDER},
 			{Tab.RENDERING, Tab.LOOK, Tab.PACKS}
@@ -228,6 +232,7 @@ public final class AureliaPanelScreen extends Screen {
 			case DRIVING -> initDriving();
 			case PACKS -> initPacks();
 			case MAP -> initMap();
+			case VEHICLES -> initVehicles();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions(contentRight - 100, height - 24, 100, 20).build());
 	}
@@ -543,6 +548,40 @@ public final class AureliaPanelScreen extends Screen {
 			final ZipSettings current = ZipClient.settings();
 			ZipClient.request(new ZipSettings(current.enabled(), current.speed(), current.brake(), sag));
 		}, sag -> Text.translatable("gui.aurelia.zip.sag", String.format("%.0f", sag * 100)))).active = operator;
+	}
+
+	/**
+	 * Road vehicles: on/off, the body colour (a picker, with a swatch beside the switch), size and top speed.
+	 * The server owns these, so speed, size and the switch apply to everyone. Operators and the single player host only.
+	 */
+	private void initVehicles() {
+		final int left = columnLeft();
+		final boolean mayEdit = RoadVehicleClient.mayEdit(client);
+		addDrawableChild(ButtonWidget.builder(vehiclesEnabledLabel(), b -> {
+			RoadVehicleClient.request(RoadVehicles.settings(true).withEnabled(!RoadVehicles.settings(true).enabled()));
+			b.setMessage(vehiclesEnabledLabel());
+		}).dimensions(left, top, BUTTON_WIDTH - VEHICLE_SWATCH - 4, 20).build()).active = mayEdit;
+		addDrawableChild(new ColourPickerWidget(left + 1, top + ROW + 1, BUTTON_WIDTH - 2, ROW * 3 - 6, RoadVehicles.settings(true).colour(),
+				colour -> RoadVehicles.setClientSettings(RoadVehicles.settings(true).withColour(colour)),
+				colour -> RoadVehicleClient.request(RoadVehicles.settings(true).withColour(colour)))).active = mayEdit;
+		addDrawableChild(new RangeSlider(left, top + ROW * 4, RoadVehicleSettings.SIZE_MIN, RoadVehicleSettings.SIZE_MAX, 5, () -> RoadVehicles.settings(true).sizePercent(),
+				value -> RoadVehicleClient.request(RoadVehicles.settings(true).withSize((int) value)), value -> Text.translatable("gui.aurelia.vehicles.size", value.intValue()))).active = mayEdit;
+		addDrawableChild(new RangeSlider(left, top + ROW * 5, RoadVehicleSettings.SPEED_MIN, RoadVehicleSettings.SPEED_MAX, 5, () -> RoadVehicles.settings(true).maxSpeedKmh(),
+				value -> RoadVehicleClient.request(RoadVehicles.settings(true).withSpeed((int) value)), value -> Text.translatable("gui.aurelia.vehicles.speed", value.intValue()))).active = mayEdit;
+	}
+
+	private static Text vehiclesEnabledLabel() {
+		return Text.translatable("gui.aurelia.vehicles.enabled", ScreenTexts.onOrOff(RoadVehicles.settings(true).enabled()));
+	}
+
+	/** The colour swatch at the end of the switch row, with its hex code under the tab name. */
+	private void renderVehicles(DrawContext context) {
+		final int x = columnLeft() + BUTTON_WIDTH - VEHICLE_SWATCH;
+		final int colour = RoadVehicles.settings(true).colour();
+		context.fill(x, top, x + VEHICLE_SWATCH, top + 20, 0xFFFFFFFF);
+		context.fill(x + 1, top + 1, x + VEHICLE_SWATCH - 1, top + 19, 0xFF000000 | colour);
+		final Text status = RoadVehicleClient.mayEdit(client) ? Text.translatable("gui.aurelia.vehicles.colour", String.format("#%06X", colour)) : Text.translatable("gui.aurelia.vehicles.operators");
+		context.drawCenteredTextWithShadow(textRenderer, status, centerX(), top - 12, RoadVehicleClient.mayEdit(client) ? 0xAAAAAA : 0xFF5555);
 	}
 
 	/** One switch per restyled screen. Off returns that screen to MTR's widgets. */
@@ -1152,6 +1191,8 @@ public final class AureliaPanelScreen extends Screen {
 			}
 		} else if (tab == Tab.BUILD && client.player != null && !client.player.hasPermissionLevel(2)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), centerX(), top - 12, 0xFF5555);
+		} else if (tab == Tab.VEHICLES) {
+			renderVehicles(context);
 		} else if (tab == Tab.ZIP && client.player != null && !client.player.hasPermissionLevel(2)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.TRAIN_SOUND) {
