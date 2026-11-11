@@ -54,6 +54,7 @@ public final class RoadVehicles {
 
 	public static void register() {
 		ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(CAR_ITEM));
+		BikeShare.register();
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> serverSettings = RoadVehicleSettings.load(FabricLoader.getInstance().getConfigDir()));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> send(handler.player));
 		ServerPlayNetworking.registerGlobalReceiver(SET, (server, player, handler, buf, response) -> {

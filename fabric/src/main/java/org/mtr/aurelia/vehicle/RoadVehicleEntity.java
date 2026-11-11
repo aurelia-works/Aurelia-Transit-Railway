@@ -14,6 +14,7 @@ import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
@@ -28,7 +29,8 @@ import javax.annotation.Nullable;
 /**
  * A free-driving road vehicle with real steering: the heading turns by {@code speed * tan(steer) / wheelbase}, like a
  * car's front wheels, not on the spot like a boat. The server runs the physics from the driver's keys; clients only
- * follow it. Saved with the world: vanilla entity data plus the {@code AtrRoad*} keys.
+ * follow it. Saved with the world: vanilla entity data plus the {@code AtrRoad*} keys. A hired bike also keeps the rack
+ * it came from ({@link BikeShare}).
  */
 public class RoadVehicleEntity extends Entity {
 
@@ -40,6 +42,7 @@ public class RoadVehicleEntity extends Entity {
 	private static final String KEY_KIND = "AtrRoadKind";
 	private static final String KEY_SPEED = "AtrRoadSpeed";
 	private static final String KEY_STEER = "AtrRoadSteer";
+	private static final String KEY_HOME = "AtrRoadHome";
 	/** Keys count for this many ticks after the last input packet, so a lost connection does not leave the throttle on. */
 	private static final int INPUT_TICKS = 10;
 	private static final double GRAVITY = 0.08;
@@ -48,6 +51,9 @@ public class RoadVehicleEntity extends Entity {
 	private static final double COAST = 0.6;
 	private static final double AIR = 0.0012;
 
+	/** The rack a hired bike came from; null for a car or a bike that was not hired. */
+	@Nullable
+	private BlockPos home;
 	private int input;
 	private int inputTicks;
 	private double lastScale;
@@ -82,6 +88,15 @@ public class RoadVehicleEntity extends Entity {
 		dataTracker.set(KIND, kind.id);
 	}
 
+	@Override
+	public void onTrackedDataSet(TrackedData<?> data) {
+		super.onTrackedDataSet(data);
+		// A bike and a car differ in size: refit the hitbox when the kind is set, loaded or synced to the client.
+		if (KIND.equals(data)) {
+			calculateDimensions();
+		}
+	}
+
 	public float speed() {
 		return dataTracker.get(SPEED);
 	}
@@ -97,6 +112,15 @@ public class RoadVehicleEntity extends Entity {
 	@Nullable
 	public PlayerEntity driver() {
 		return getFirstPassenger() instanceof PlayerEntity player ? player : null;
+	}
+
+	/** Marks a bike as hired from {@code rack}: it goes back to a rack instead of dropping as an item. */
+	public void hireFrom(BlockPos rack) {
+		home = rack.toImmutable();
+	}
+
+	public boolean hired() {
+		return home != null;
 	}
 
 	public void setInput(int flags) {
@@ -140,7 +164,7 @@ public class RoadVehicleEntity extends Entity {
 
 		// Speed in m/tick; an acceleration in m/s² adds a/400 m/tick every tick.
 		double speed = speed();
-		final double top = settings.maxSpeedKmh() / 72D;
+		final double top = Math.min(settings.maxSpeedKmh(), kind.maxKmh) / 72D;
 		final double reverse = kind.reverseKmh / 72D;
 		final double accelerate = kind.acceleration / 400;
 		final double brakeStep = kind.braking / 400;
@@ -236,6 +260,14 @@ public class RoadVehicleEntity extends Entity {
 	}
 
 	@Override
+	protected void removePassenger(Entity passenger) {
+		super.removePassenger(passenger);
+		if (!getWorld().isClient() && hired() && !isRemoved() && !hasPassengers()) {
+			BikeShare.dock(this, passenger);
+		}
+	}
+
+	@Override
 	protected boolean canAddPassenger(Entity passenger) {
 		return getPassengerList().size() < kind().seats.length;
 	}
@@ -298,6 +330,10 @@ public class RoadVehicleEntity extends Entity {
 		if (isInvulnerableTo(source) || !(source.getAttacker() instanceof PlayerEntity player) || player.getVehicle() == this) {
 			return false;
 		}
+		if (hired()) {
+			BikeShare.recall(this, home);
+			return true;
+		}
 		if (!player.getAbilities().creativeMode && getWorld().getGameRules().getBoolean(GameRules.DO_ENTITY_DROPS)) {
 			dropStack(getPickBlockStack());
 		}
@@ -307,7 +343,12 @@ public class RoadVehicleEntity extends Entity {
 
 	@Override
 	public ItemStack getPickBlockStack() {
-		return new ItemStack(RoadVehicles.CAR_ITEM);
+		return kind() == RoadVehicleKind.CAR ? new ItemStack(RoadVehicles.CAR_ITEM) : ItemStack.EMPTY;
+	}
+
+	@Override
+	protected Text getDefaultName() {
+		return kind() == RoadVehicleKind.CAR ? super.getDefaultName() : Text.translatable("entity.mtr.road_vehicle." + kind().id);
 	}
 
 	@Override
@@ -332,6 +373,7 @@ public class RoadVehicleEntity extends Entity {
 		}
 		dataTracker.set(SPEED, nbt.getFloat(KEY_SPEED));
 		dataTracker.set(STEER, nbt.getFloat(KEY_STEER));
+		home = nbt.contains(KEY_HOME) ? BlockPos.fromLong(nbt.getLong(KEY_HOME)) : null;
 	}
 
 	@Override
@@ -339,5 +381,8 @@ public class RoadVehicleEntity extends Entity {
 		nbt.putString(KEY_KIND, kind().id);
 		nbt.putFloat(KEY_SPEED, speed());
 		nbt.putFloat(KEY_STEER, steer());
+		if (home != null) {
+			nbt.putLong(KEY_HOME, home.asLong());
+		}
 	}
 }
