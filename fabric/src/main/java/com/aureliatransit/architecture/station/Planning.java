@@ -1031,6 +1031,9 @@ final class Planning extends PlanAirport {
 			supports.addAll(railHoles.isEmpty() || !overRail(box) ? List.of(box) : without(List.of(box), railHoles));
 		}
 		supports.addAll(railSupports);
+		// under and over the shapes drawn in the editor
+		supports.addAll(extraSupport);
+		headroom.addAll(extraHeadroom);
 		return new StationPlan(spec, layout, swapped(blocks), railEnvelopes, headroom, supports, spec.options().swapped("minecraft:stone_bricks"),
 				skipped, skippedByBlock);
 	}
