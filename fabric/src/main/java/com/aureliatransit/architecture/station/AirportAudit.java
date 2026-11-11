@@ -40,7 +40,7 @@ final class AirportAudit {
 		private final List<Check> checks = new ArrayList<>();
 		/** Runway pavement, one set of cells per connected area. */
 		private List<Set<Long>> runwayAreas;
-		/** Cells of runways drawn in the editor: the player's own, so the checks of the asked-for runways leave them out. */
+		/** Ground cells of runways drawn in the editor. A runway area wholly inside them is the player's own, not one the description asked for. */
 		private final Set<Long> drawnRunways = new HashSet<>();
 
 		Audit(StationPlan plan) {
@@ -49,7 +49,9 @@ final class AirportAudit {
 			this.air = AirportGeometry.of(airport);
 			for (final DrawnShape shape : plan.spec().options().shapes()) {
 				if (shape.kind() == DrawnShape.Kind.RUNWAY) {
-					drawnRunways.addAll(shape.cells());
+					for (final long key : shape.cells()) {
+						drawnRunways.add(StationAudit.key(DrawnShape.u(key), StationGeometry.PLATFORM_Y, DrawnShape.v(key)));
+					}
 				}
 			}
 			for (final PlannedBlock block : plan.blocks()) {
@@ -74,7 +76,7 @@ final class AirportAudit {
 		private Set<Long> ground(Set<String> ids) {
 			final Set<Long> out = new HashSet<>();
 			for (final PlannedBlock block : plan.blocks()) {
-				if (block.y() == StationGeometry.PLATFORM_Y && ids.contains(block.blockId()) && !drawnRunways.contains(DrawnShape.key(block.u(), block.v()))) {
+				if (block.y() == StationGeometry.PLATFORM_Y && ids.contains(block.blockId())) {
 					out.add(StationAudit.key(block.u(), block.y(), block.v()));
 				}
 			}
@@ -130,7 +132,11 @@ final class AirportAudit {
 					PlanAirport.THRESHOLD_LIGHT)));
 			runwayAreas = new ArrayList<>();
 			for (final Set<Long> area : all) {
-				// white lines alone (the stands') are not a runway: it has pavement
+				// white lines alone (the stands') are not a runway: it has pavement. A runway drawn on its own in the editor is
+				// not one the description asked for; one drawn onto the planned runway is part of it.
+				if (drawnRunways.containsAll(area)) {
+					continue;
+				}
 				if (area.stream().filter(key -> is(uOf(key), 0, vOf(key), PlanAirport.RUNWAY_SURFACE)).count() >= MIN_PAVEMENT) {
 					runwayAreas.add(area);
 				}
