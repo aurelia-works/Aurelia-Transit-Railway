@@ -40,11 +40,18 @@ final class AirportAudit {
 		private final List<Check> checks = new ArrayList<>();
 		/** Runway pavement, one set of cells per connected area. */
 		private List<Set<Long>> runwayAreas;
+		/** Cells of runways drawn in the editor: the player's own, so the checks of the asked-for runways leave them out. */
+		private final Set<Long> drawnRunways = new HashSet<>();
 
 		Audit(StationPlan plan) {
 			this.plan = plan;
 			this.airport = plan.spec().airport();
 			this.air = AirportGeometry.of(airport);
+			for (final DrawnShape shape : plan.spec().options().shapes()) {
+				if (shape.kind() == DrawnShape.Kind.RUNWAY) {
+					drawnRunways.addAll(shape.cells());
+				}
+			}
 			for (final PlannedBlock block : plan.blocks()) {
 				cells.putIfAbsent(StationAudit.key(block.u(), block.y(), block.v()), block);
 			}
@@ -67,7 +74,7 @@ final class AirportAudit {
 		private Set<Long> ground(Set<String> ids) {
 			final Set<Long> out = new HashSet<>();
 			for (final PlannedBlock block : plan.blocks()) {
-				if (block.y() == StationGeometry.PLATFORM_Y && ids.contains(block.blockId())) {
+				if (block.y() == StationGeometry.PLATFORM_Y && ids.contains(block.blockId()) && !drawnRunways.contains(DrawnShape.key(block.u(), block.v()))) {
 					out.add(StationAudit.key(block.u(), block.y(), block.v()));
 				}
 			}
