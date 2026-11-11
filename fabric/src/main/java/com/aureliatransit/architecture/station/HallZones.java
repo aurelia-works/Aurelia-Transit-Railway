@@ -14,7 +14,8 @@ import com.aureliatransit.architecture.station.ConcourseFit.Spot;
  * along the walls) with the gates just before the stairs; a British one has the ticket office and machines by the door and
  * the gate line a third of the way in; a German one has no barrier hall at all, the Reisezentrum, a bakery and an info pillar
  * in the open hall and the validators at the platform access; a Japanese one has its gates in the middle, a long bank of
- * machines beside the ticket office and shops inside the paid side. Pure logic: the plan builds what it returns.
+ * machines beside the ticket office and shops inside the paid side. The planner keeps this walk clear and opens the ceiling
+ * over the street end of it, so the concourse is a hall. Pure logic: the plan builds what it returns.
  */
 final class HallZones {
 

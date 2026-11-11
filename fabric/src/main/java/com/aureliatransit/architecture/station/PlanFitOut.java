@@ -197,8 +197,9 @@ abstract class PlanFitOut extends PlanLandmark {
 
 	/**
 	 * Every street entrance, the side building's and the terminus head's: a portal of trim round the doorway (posts either
-	 * side up to the canopy, a lintel over the doors), a canopy over the ramps with lights in it and an edge along its front,
-	 * the station's name in big letters on the wall over the canopy, and an entrance pylon with the name beside the ramps.
+	 * side up to the canopy, a glass transom and a lintel over the doors), a canopy over the ramps with posts under its
+	 * outer corners, a fascia, rails beside the ramps, the station's name in big letters on the wall over the canopy, and
+	 * an entrance pylon with the name beside the ramps. The side building's concourse is opened into a hall afterwards.
 	 */
 	void entrances() {
 		if (spec.options().underground()) {
@@ -206,6 +207,7 @@ abstract class PlanFitOut extends PlanLandmark {
 		}
 		if (site.building() && spec.sideBuilding()) {
 			entrance(sideFront(), 0, entranceHalf());
+			sideHall();
 		}
 		if (layout.terminus()) {
 			final Front front = headFront();
@@ -218,11 +220,12 @@ abstract class PlanFitOut extends PlanLandmark {
 		final StylePalette.Building b = palette.building();
 		final LocalDir out = f.dir(PlanLandmark.Dir.OUT);
 		final int door = StationGeometry.DOOR_HEIGHT;
-		// the portal: posts either side of the doorway, a lintel over it, on the wall
+		// the portal: posts either side of the doorway, a glass transom over the opening, a lintel above that
 		for (int x = x0 - half - 1; x <= x0 + half + 1; x++) {
 			final boolean post = Math.abs(x - x0) == half + 1;
 			for (int y = post ? 1 : door + 1; y <= CANOPY_Y; y++) {
-				face(f.u(x, 0), y, f.v(x, 0), out, b.trim());
+				final boolean transom = !post && y == door + 1;
+				face(f.u(x, 0), y, f.v(x, 0), out, transom ? Role.WINDOW : Role.WALL, transom ? b.window() : b.trim());
 			}
 		}
 		// the canopy over the ramps, its lights down the middle and an edge along the front
@@ -232,6 +235,7 @@ abstract class PlanFitOut extends PlanLandmark {
 				put(Role.BUILDING_ROOF, f.u(x, z), CANOPY_Y, f.v(x, z), out, block);
 			}
 		}
+		porch(f, x0, half, b, out);
 		// the name, over the canopy
 		if (!spec.name().isEmpty()) {
 			for (int x = x0 - half; x <= x0 + half; x++) {
@@ -269,11 +273,262 @@ abstract class PlanFitOut extends PlanLandmark {
 		return true;
 	}
 
-	/** Re-faces a wall cell of the street front: only a wall or window, never a doorway or a sign. */
-	private void face(int u, int y, int v, LocalDir out, String blockId) {
+	/** Re-faces a wall cell of the street front: only a wall or window, never a doorway or a sign. The transom stays glass. */
+	private void face(int u, int y, int v, LocalDir out, Role role, String blockId) {
 		final PlannedBlock block = at(u, y, v);
 		if (block != null && (block.role() == Role.WALL || block.role() == Role.WINDOW)) {
-			cells.put(new Cell(u, y, v), new PlannedBlock(u, y, v, Role.WALL, blockId, out, "", ""));
+			cells.put(new Cell(u, y, v), new PlannedBlock(u, y, v, role, blockId, out, "", ""));
 		}
+	}
+
+	/**
+	 * Posts under the canopy's outer corners, a fascia on them, a rail beside each ramp, jambs just inside the door and a
+	 * plinth threshold. The opening itself stays air, so a passenger still walks through and a fare gate still sees them.
+	 */
+	private void porch(Front f, int x0, int half, StylePalette.Building b, LocalDir out) {
+		final int front = -CANOPY_DEPTH;
+		final boolean left = canopyPost(f, x0 - half - 1, front, b, out);
+		final boolean right = canopyPost(f, x0 + half + 1, front, b, out);
+		if (left && right) {
+			fascia(f, x0, half, front, b, out);
+		}
+		cheek(f, x0, x0 - half - 1, b, out);
+		cheek(f, x0, x0 + half + 1, b, out);
+		doorReturn(f, x0 - half - 1, b);
+		doorReturn(f, x0 + half + 1, b);
+		for (int x = x0 - half; x <= x0 + half; x++) {
+			retile(f.u(x, 1), f.v(x, 1), b.plinth());
+		}
+	}
+
+	/** A trim post on a plinth under the canopy, or false when the cell is off the site, a ramp, or already built on. */
+	private boolean canopyPost(Front f, int x, int z, StylePalette.Building b, LocalDir out) {
+		if (!inside(f, x, z)) {
+			return false;
+		}
+		final int u = f.u(x, z);
+		final int v = f.v(x, z);
+		final PlannedBlock ground = at(u, StationGeometry.PLATFORM_Y, v);
+		if (ground == null) {
+			if (taken(u, StationGeometry.PLATFORM_Y, v) || !put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, out, b.plinth())) {
+				return false;
+			}
+		} else if (ground.role() != Role.FLOOR && !ground.role().platformFloor()) {
+			return false;
+		}
+		final PlannedBlock roof = at(u, CANOPY_Y, v);
+		if (roof == null || !roof.role().covers()) {
+			return false;
+		}
+		return pierUp(u, v, out, b.trim());
+	}
+
+	/** Trim under the canopy edge, between the two posts, clear of the ramps' headroom. */
+	private void fascia(Front f, int x0, int half, int z, StylePalette.Building b, LocalDir out) {
+		final int y = CANOPY_Y - 1;
+		if (y - StationGeometry.WALK_Y < StationGeometry.HEADROOM) {
+			return;
+		}
+		for (int x = x0 - half; x <= x0 + half; x++) {
+			if (!inside(f, x, z) || taken(f.u(x, z), y, f.v(x, z))) {
+				return;
+			}
+		}
+		for (int x = x0 - half; x <= x0 + half; x++) {
+			put(Role.WALL, f.u(x, z), y, f.v(x, z), out, b.trim());
+		}
+	}
+
+	/** A rail at the side of the ramp, facing the doorway, on a plinth when the apron is bare there. */
+	private void cheek(Front f, int x0, int x, StylePalette.Building b, LocalDir out) {
+		final int z = -1;
+		if (!inside(f, x, z)) {
+			return;
+		}
+		final int u = f.u(x, z);
+		final int v = f.v(x, z);
+		final PlannedBlock ground = at(u, StationGeometry.PLATFORM_Y, v);
+		if (ground == null) {
+			if (taken(u, StationGeometry.PLATFORM_Y, v) || !put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, out, b.plinth())) {
+				return;
+			}
+		} else if (ground.role() != Role.FLOOR && !ground.role().platformFloor()) {
+			return;
+		}
+		if (taken(u, StationGeometry.WALK_Y, v)) {
+			return;
+		}
+		final LocalDir face = x > x0 ? f.dir(PlanLandmark.Dir.LEFT) : f.dir(PlanLandmark.Dir.RIGHT);
+		put(Role.RAILING, u, StationGeometry.WALK_Y, v, face);
+	}
+
+	/** A pier just inside the jamb, or a short trim wall when the pier will not fit. The doorway stays open. */
+	private void doorReturn(Front f, int x, StylePalette.Building b) {
+		final int z = 1;
+		if (!inside(f, x, z)) {
+			return;
+		}
+		final int u = f.u(x, z);
+		final int v = f.v(x, z);
+		if (pierUp(u, v, f.dir(PlanLandmark.Dir.IN), b.trim())) {
+			return;
+		}
+		final PlannedBlock ground = at(u, StationGeometry.PLATFORM_Y, v);
+		if (ground == null || ground.role() != Role.FLOOR && !ground.role().platformFloor()) {
+			return;
+		}
+		for (int y = 1; y <= StationGeometry.DOOR_HEIGHT; y++) {
+			if (taken(u, y, v)) {
+				return;
+			}
+		}
+		final LocalDir out = f.dir(PlanLandmark.Dir.OUT);
+		for (int y = 1; y <= StationGeometry.DOOR_HEIGHT; y++) {
+			put(Role.WALL, u, y, v, out, b.trim());
+		}
+	}
+
+	/** True when the frame cell is inside the station's footprint. */
+	private boolean inside(Front f, int x, int z) {
+		final int u = f.u(x, z);
+		final int v = f.v(x, z);
+		return u >= 0 && u < layout.width() && v >= layout.vMin() && v <= layout.vMax();
+	}
+
+	/**
+	 * The side building's concourse: a plinth aisle in from the door, the upper floor opened over the street end of that
+	 * aisle with a glass rail around the hole, and piers down the hall clear of the door and the gates.
+	 */
+	void sideHall() {
+		if (!site.building()) {
+			return;
+		}
+		final StylePalette.Building b = palette.building();
+		final int uS = streetWall();
+		final int uP = site.platformWall(layout);
+		final int vS = site.vStart();
+		final int vE = site.vEnd();
+		final int vEntr = site.entranceV();
+		final int half = entranceHalf();
+		int gateU = uS + 4;
+		for (final PlannedBlock block : cells.values()) {
+			if (block.role() == Role.GATE && block.y() == StationGeometry.WALK_Y && block.u() > uS && block.u() < uP) {
+				gateU = block.u();
+				break;
+			}
+		}
+		for (int u = uS + 1; u < uP; u++) {
+			for (int v = vEntr - half; v <= vEntr + half; v++) {
+				retile(u, v, b.plinth());
+			}
+		}
+		openVoid(uS + 1, Math.min(uS + 4, gateU - 2), vEntr - half, vEntr + half);
+		final int uA = uS + 2;
+		final int uB = uP - 2;
+		if (uB - uA < 2 || uA <= uS || uB >= uP) {
+			return;
+		}
+		final Set<ConcourseFit.Spot> keep = HallZones.keptClear(hall(uS, uP, vS, vE, vEntr, half), gateU);
+		for (int v = vS + 3; v <= vE - 3; v += StationGeometry.BAY) {
+			if (Math.abs(v - vEntr) <= half + 1) {
+				continue;
+			}
+			final boolean clearA = Math.abs(uA - gateU) > 1 && !keep.contains(new ConcourseFit.Spot(uA, v));
+			final boolean clearB = Math.abs(uB - gateU) > 1 && !keep.contains(new ConcourseFit.Spot(uB, v));
+			if (clearA && clearB) {
+				nave(uA, uB, v, LocalDir.PLUS_U, b.trim());
+			} else if (clearA) {
+				pierUp(uA, v, LocalDir.PLUS_U, b.trim());
+			} else if (clearB) {
+				pierUp(uB, v, LocalDir.PLUS_U, b.trim());
+			}
+		}
+	}
+
+	/** Takes the upper slab off the street end of the aisle, rails the floor that remains, and lights one cell of the ceiling. */
+	private void openVoid(int u0, int u1, int v0, int v1) {
+		if (u0 > u1 || v0 > v1) {
+			return;
+		}
+		final Set<Long> holes = new HashSet<>();
+		int lightU = Integer.MAX_VALUE;
+		int lightV = 0;
+		int lightD = Integer.MAX_VALUE;
+		final int mid = (v0 + v1) / 2;
+		for (int u = u0; u <= u1; u++) {
+			for (int v = v0; v <= v1; v++) {
+				if (!openSlab(u, v)) {
+					continue;
+				}
+				holes.add(((long) u << 32) ^ (v & 0xffffffffL));
+				final int d = Math.abs(v - mid);
+				if (u < lightU || u == lightU && d < lightD) {
+					lightU = u;
+					lightV = v;
+					lightD = d;
+				}
+			}
+		}
+		for (final long hole : holes) {
+			final int u = (int) (hole >> 32);
+			final int v = (int) hole;
+			railBeside(u + 1, v, LocalDir.MINUS_U);
+			railBeside(u - 1, v, LocalDir.PLUS_U);
+			railBeside(u, v + 1, LocalDir.MINUS_V);
+			railBeside(u, v - 1, LocalDir.PLUS_V);
+		}
+		if (lightU != Integer.MAX_VALUE) {
+			skylight(lightU, lightV);
+		}
+	}
+
+	/** Removes one upper-floor cell when the shaft above it is a simple ceiling and nothing is standing on it. */
+	private boolean openSlab(int u, int v) {
+		final PlannedBlock slab = at(u, StationGeometry.UPPER_FLOOR_Y, v);
+		if (slab == null || slab.role() != Role.FLOOR && slab.role() != Role.LIGHT_PANEL) {
+			return false;
+		}
+		if (taken(u, StationGeometry.UPPER_WALK_Y, v) || taken(u, StationGeometry.UPPER_WALK_Y + 1, v)) {
+			return false;
+		}
+		for (int y = StationGeometry.WALK_Y; y < StationGeometry.UPPER_FLOOR_Y; y++) {
+			final PlannedBlock below = at(u, y, v);
+			if (below != null && (below.role() == Role.COLUMN || below.role() == Role.COLUMN_CAP || below.role() == Role.WALL)) {
+				return false;
+			}
+		}
+		if (coverClear(u, StationGeometry.UPPER_FLOOR_Y, v) < 0) {
+			return false;
+		}
+		cells.remove(new Cell(u, StationGeometry.UPPER_FLOOR_Y, v));
+		keepClear(u, StationGeometry.UPPER_WALK_Y, v);
+		keepClear(u, StationGeometry.UPPER_WALK_Y + 1, v);
+		return true;
+	}
+
+	/** Glass on the remaining upper floor, facing the hole, so the opened slab is not a drop. */
+	private void railBeside(int u, int v, LocalDir towardHole) {
+		final PlannedBlock slab = at(u, StationGeometry.UPPER_FLOOR_Y, v);
+		if (slab == null || !slab.role().flatFloor() || taken(u, StationGeometry.UPPER_WALK_Y, v)) {
+			return;
+		}
+		put(Role.BARRIER, u, StationGeometry.UPPER_WALK_Y, v, towardHole);
+	}
+
+	/** One cell of the ceiling over the void becomes a light, when that cell is a plain floor or roof. */
+	private void skylight(int u, int v) {
+		final int cover = coverClear(u, StationGeometry.UPPER_FLOOR_Y, v);
+		if (cover < 0) {
+			return;
+		}
+		final PlannedBlock block = at(u, cover, v);
+		if (block == null || block.role() != Role.FLOOR && block.role() != Role.BUILDING_ROOF) {
+			return;
+		}
+		if (block.blockId().contains("light") || block.blockId().contains("stair")) {
+			return;
+		}
+		cells.put(new Cell(u, cover, v), new PlannedBlock(u, cover, v, Role.LIGHT_PANEL, palette.building().light(),
+				block.front(), block.text(), block.state()));
 	}
 }
