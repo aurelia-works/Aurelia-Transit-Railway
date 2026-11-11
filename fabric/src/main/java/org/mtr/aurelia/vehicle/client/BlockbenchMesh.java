@@ -29,8 +29,9 @@ import java.util.Optional;
 
 /**
  * A Blockbench {@code .bbmodel} (cubes and meshes in groups) read straight from the resource pack and drawn as quads in
- * Blockbench units (16 to a block). Group names give the parts their job: {@code body} takes the paint colour,
- * {@code glass} draws translucent, {@code wheel_f*} steer and every {@code wheel_*} rolls about its pivot.
+ * Blockbench units (16 to a block). Group names give the parts their job: {@code body} (and {@code body_*}) takes the paint
+ * colour, {@code glass} draws translucent, {@code wheel_f*} and {@code *steer} (a bicycle's fork and bars) turn with the
+ * steering about their pivot, and every {@code wheel_*} rolls about its pivot.
  */
 final class BlockbenchMesh {
 
@@ -232,7 +233,7 @@ final class BlockbenchMesh {
 		matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(part.rotation[2]));
 		matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(part.rotation[1]));
 		matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(part.rotation[0]));
-		if (part.name.startsWith("wheel_f")) {
+		if (part.name.startsWith("wheel_f") || part.name.endsWith("steer")) {
 			matrices.multiply(RotationAxis.POSITIVE_Y.rotation(steer));
 		}
 		if (part.name.startsWith("wheel_")) {
@@ -284,11 +285,10 @@ final class BlockbenchMesh {
 		BODY, GLASS, SOLID;
 
 		static Role of(String groupName) {
-			return switch (groupName) {
-				case "body" -> BODY;
-				case "glass" -> GLASS;
-				default -> SOLID;
-			};
+			if (groupName.equals("body") || groupName.startsWith("body_")) {
+				return BODY;
+			}
+			return groupName.equals("glass") ? GLASS : SOLID;
 		}
 	}
 
