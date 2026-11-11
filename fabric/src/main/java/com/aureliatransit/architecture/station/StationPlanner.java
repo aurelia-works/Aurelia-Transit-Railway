@@ -71,6 +71,8 @@ public final class StationPlanner {
 		if (spec.isAirport()) {
 			// an airport has no tracks, platforms or station building: its own layer plans it all
 			planning.airport();
+			// its aprons, taxiways, runways and terminals drawn in the editor: last, into the cells the airport left free
+			PlanFreehand.plan(planning);
 			return planning.finish();
 		}
 		planning.underpass();

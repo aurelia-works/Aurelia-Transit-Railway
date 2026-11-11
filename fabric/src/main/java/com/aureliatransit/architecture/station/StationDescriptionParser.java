@@ -382,6 +382,7 @@ public final class StationDescriptionParser {
 			if (AirportWords.mentioned(text, tokens)) {
 				return airport();
 			}
+			keepShapes(false);
 			for (int i = 0; i < tokens.length; i++) {
 				if (!used[i]) {
 					scan(i);
@@ -411,12 +412,7 @@ public final class StationDescriptionParser {
 			}
 			defaulted.addAll(reading.defaulted());
 			reading.warnings().forEach(this::warn);
-			// drawn shapes are a railway station's platform and building layer; an airport has its own layout, so say so
-			// instead of silently dropping them (the shapes also stop excusing out-of-bounds airport blocks)
-			if (!options.shapes().isEmpty()) {
-				warn("drawn shapes do not apply to airports; the airport's own words lay out its runways, gates and terminal");
-				options = options.withShapes(List.of());
-			}
+			keepShapes(true);
 			if (seed != 0) {
 				understood.add(new Note(Integer.MAX_VALUE, "seed " + seedText + ": an airport does not vary with it yet"));
 			}
@@ -561,15 +557,36 @@ public final class StationDescriptionParser {
 			return DrawnTrack.strip(text);
 		}
 
-		/** Platforms and buildings drawn in the station editor ("platform shape 2/4 12/4 12/40"), planned by {@link PlanFreehand}. */
+		/** Shapes drawn in the station editor ("platform shape 2/4 12/4 12/40", "runway shape ..."), planned by {@link PlanFreehand}; {@link #keepShapes} drops the kinds that do not fit the plan. */
 		private String extractShapes(String text) {
 			final List<DrawnShape> shapes = DrawnShape.parse(text);
 			if (shapes.isEmpty()) {
 				return text;
 			}
 			options = options.withShapes(shapes);
-			understood.add(new Note(-1, shapes.size() == 1 ? "1 drawn shape" : shapes.size() + " drawn shapes"));
 			return DrawnShape.strip(text);
+		}
+
+		/**
+		 * Keeps the drawn shapes that fit what is being planned: an airport's aprons, taxiways, runways and terminals, or a
+		 * station's platforms and buildings. The others are dropped with a warning, not silently (and so they stop excusing
+		 * out-of-bounds blocks).
+		 */
+		private void keepShapes(boolean airport) {
+			final List<DrawnShape> kept = new ArrayList<>();
+			for (final DrawnShape shape : options.shapes()) {
+				if (shape.kind().airport() == airport) {
+					kept.add(shape);
+				}
+			}
+			if (kept.size() < options.shapes().size()) {
+				warn(airport ? "drawn platforms and buildings do not apply to airports; draw aprons, taxiways, runways and terminals instead"
+						: "drawn aprons, taxiways, runways and terminals are for airports; say \"airport\" to build them");
+				options = options.withShapes(kept);
+			}
+			if (!kept.isEmpty()) {
+				understood.add(new Note(-1, kept.size() == 1 ? "1 drawn shape" : kept.size() + " drawn shapes"));
+			}
 		}
 
 		/** Takes out the block swaps ({@link #SWAPS}), so their block words do not also pick a look or a material. */

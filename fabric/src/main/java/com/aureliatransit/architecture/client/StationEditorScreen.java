@@ -5,6 +5,7 @@ import com.aureliatransit.architecture.network.ModPackets;
 import com.aureliatransit.architecture.station.DrawnShape;
 import com.aureliatransit.architecture.station.DrawnTrack;
 import com.aureliatransit.architecture.station.PlanTopView;
+import com.aureliatransit.architecture.station.StationDescriptionParser;
 import com.aureliatransit.architecture.station.StationRecipe;
 import com.aureliatransit.architecture.station.StationSpec;
 import com.aureliatransit.architecture.station.studio.StationFiles;
@@ -64,20 +65,33 @@ public final class StationEditorScreen extends Screen {
 	private boolean textureLive;
 	/** What clicks on the plan draw: points go into {@link #path}; right-click finishes a track or closes a shape. */
 	private enum DrawMode {
-		OFF, TRACK, PLATFORM, BUILDING;
+		OFF, TRACK, PLATFORM, BUILDING, APRON, TAXIWAY, RUNWAY, TERMINAL;
 
-		DrawMode next() {
-			return values()[(ordinal() + 1) % values().length];
+		/** The next mode that fits what is being planned: a station's shapes, or an airport's. */
+		DrawMode next(boolean airport) {
+			DrawMode next = this;
+			do {
+				next = values()[(next.ordinal() + 1) % values().length];
+			} while (!next.fits(airport));
+			return next;
+		}
+
+		boolean fits(boolean airport) {
+			return !shape() || kind().airport() == airport;
 		}
 
 		boolean shape() {
-			return this == PLATFORM || this == BUILDING;
+			return this != OFF && this != TRACK;
 		}
 
+		/** The kind of shape this mode draws; only for {@link #shape()} modes. */
 		DrawnShape.Kind kind() {
-			return this == BUILDING ? DrawnShape.Kind.BUILDING : DrawnShape.Kind.PLATFORM;
+			return DrawnShape.Kind.valueOf(name());
 		}
 	}
+
+	/** Whether the form plans an airport, so the draw button offers an airport's shapes. Read on every layout. */
+	private boolean airport;
 
 	private DrawMode mode = DrawMode.OFF;
 	/** For the next shape drawn: a platform's canopy (lamp posts when off) and a building's wall height. */
@@ -177,18 +191,23 @@ public final class StationEditorScreen extends Screen {
 		final int clearWidth = textRenderer.getWidth(clearLabel) + 12;
 		final ButtonWidget clear = addDrawableChild(ButtonWidget.builder(clearLabel, b -> clearDrawn())
 				.dimensions(planBox[2] - roofWidth - 4 - clearWidth, 4, clearWidth, 16).tooltip(Tooltip.of(Text.translatable(KEY + "clear.tip"))).build());
-		clear.active = !path.isEmpty() || (mode != DrawMode.PLATFORM && mode != DrawMode.BUILDING && !drawn().isEmpty())
+		clear.active = !path.isEmpty() || (!mode.shape() && !drawn().isEmpty())
 				|| (mode != DrawMode.TRACK && shapes().stream().anyMatch(shape -> mode == DrawMode.OFF || shape.kind() == mode.kind()));
+		airport = StationDescriptionParser.parse(description()).spec().isAirport();
+		if (!mode.fits(airport)) {
+			mode = DrawMode.OFF;
+			path.clear();
+		}
 		final Text drawLabel = Text.translatable(KEY + "draw", Text.translatable(KEY + "draw." + mode.name().toLowerCase(java.util.Locale.ROOT)));
 		final int drawWidth = textRenderer.getWidth(drawLabel) + 12;
 		final int drawX = planBox[2] - roofWidth - 4 - clearWidth - 4 - drawWidth;
 		final Text drawTip = switch (mode) {
-			case OFF -> Text.translatable(KEY + "draw.off.tip");
+			case OFF -> Text.translatable(KEY + (airport ? "draw.off.airport_tip" : "draw.off.tip"));
 			case TRACK -> Text.translatable(KEY + "draw.tip", DrawnTrack.LEAD);
-			case PLATFORM, BUILDING -> Text.translatable(KEY + "draw.shape.tip", Text.translatable(KEY + "draw." + mode.name().toLowerCase(java.util.Locale.ROOT)));
+			case PLATFORM, BUILDING, APRON, TAXIWAY, RUNWAY, TERMINAL -> Text.translatable(KEY + "draw.shape.tip", Text.translatable(KEY + "draw." + mode.name().toLowerCase(java.util.Locale.ROOT)));
 		};
 		addDrawableChild(ButtonWidget.builder(drawLabel, b -> {
-			mode = mode.next();
+			mode = mode.next(airport);
 			path.clear();
 			if (mode == DrawMode.TRACK) {
 				say(Text.translatable(KEY + "draw.start").getString(), false);
@@ -207,7 +226,7 @@ public final class StationEditorScreen extends Screen {
 				shapeCanopy = !shapeCanopy;
 				clearAndInit();
 			}).dimensions(headerLeft, 4, w, 16).tooltip(Tooltip.of(Text.translatable(KEY + "canopy.tip"))).build());
-		} else if (mode == DrawMode.BUILDING) {
+		} else if (mode.shape() && mode.kind().walled()) {
 			final Text label = Text.translatable(KEY + "height", shapeHeight);
 			final int w = textRenderer.getWidth(Text.translatable(KEY + "height", DrawnShape.MAX_HEIGHT)) + 12;
 			headerLeft = drawX - 4 - w;
@@ -667,7 +686,13 @@ public final class StationEditorScreen extends Screen {
 	/** The drawn shapes (green platforms, orange buildings, red when they cannot be built) and the one being drawn (yellow). */
 	private void drawShapes(DrawContext context, PlanTopView top) {
 		for (final DrawnShape shape : shapes()) {
-			final int colour = shape.check(top.station()) != null ? 0xFFEF5350 : shape.kind() == DrawnShape.Kind.BUILDING ? 0xFFFFB74D : 0xFF81C784;
+			final int colour = shape.check(top.station()) != null ? 0xFFEF5350 : switch (shape.kind()) {
+				case BUILDING, TERMINAL -> 0xFFFFB74D;
+				case PLATFORM -> 0xFF81C784;
+				case APRON -> 0xFFB0BEC5;
+				case TAXIWAY -> 0xFF4FC3F7;
+				case RUNWAY -> 0xFFF5F5F5;
+			};
 			final List<DrawnTrack.Point> closed = new java.util.ArrayList<>(shape.points());
 			closed.add(shape.points().get(0));
 			line(context, top, closed, colour);

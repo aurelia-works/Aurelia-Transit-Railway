@@ -15,6 +15,11 @@ import com.aureliatransit.architecture.station.StationPlanner.Cell;
  * <p>A platform gets its floor, a yellow edge where it meets a track, a canopy on columns (or lamp posts when open) with lights
  * under it, and benches. A building gets a floor, walls with windows and a doorway facing the station, and a flat roof with
  * light panels. Less detail than a planned platform, by design.
+ *
+ * <p>An airport's shapes use the airport's own blocks ({@link PlanAirport}): an apron is concrete slabs with floodlight masts, a
+ * taxiway is asphalt with a yellow centreline and blue edge lights, a runway is black with white edges, edge lights, a dashed
+ * centreline and threshold stripes at both ends, and a terminal is a glass-walled building. A station only plans a station's
+ * shapes and an airport only an airport's (the parser drops the others with a warning).
  */
 final class PlanFreehand {
 
@@ -26,6 +31,21 @@ final class PlanFreehand {
 	static final int BENCH_GRID = 12;
 	/** A light panel in a building's roof every this many blocks each way. */
 	static final int PANEL_GRID = 4;
+	/** A drawn apron's concrete slabs, and its floodlight masts on a coarser grid. */
+	static final int SLAB = 12;
+	static final int MAST_GRID = 48;
+	static final int MAST_HEIGHT = 12;
+	/** A drawn taxiway's blue edge lights, and a drawn runway's white ones, every this many cells along the edge. */
+	static final int TAXI_LIGHT_EVERY = 8;
+	static final int RUNWAY_LIGHT_EVERY = 6;
+	/** A drawn runway's centreline: painted, then bare. */
+	static final int DASH = 8;
+	static final int DASH_GAP = 6;
+	/** A drawn runway's threshold stripes: how far in from each end they start, and how long they are. */
+	static final int THRESHOLD_INSET = 2;
+	static final int THRESHOLD_LENGTH = 8;
+	/** A drawn terminal's glass is broken by a steel mullion every this many cells. */
+	static final int MULLION_EVERY = 6;
 
 	private final PlanState s;
 	/** The cells the station planned before the shapes: what a shape must stay within reach of. */
@@ -39,24 +59,32 @@ final class PlanFreehand {
 	/** Plans every drawn shape of the station that passes {@link DrawnShape#check}, in the order drawn. */
 	static void plan(PlanState s) {
 		final List<DrawnShape> shapes = s.spec.options().shapes();
-		if (shapes.isEmpty() || s.spec.isAirport()) {
+		if (shapes.isEmpty()) {
 			return;
 		}
 		final PlanFreehand freehand = new PlanFreehand(s);
 		for (final DrawnShape shape : shapes) {
-			if (shape.check(freehand.station) != null) {
+			if (shape.kind().airport() != s.spec.isAirport() || shape.check(freehand.station) != null) {
 				continue;
 			}
 			final Set<Long> cells = freehand.free(shape.cells());
 			if (cells.isEmpty()) {
 				continue;
 			}
-			if (shape.kind() == DrawnShape.Kind.PLATFORM) {
-				freehand.platform(cells, shape.open());
-			} else {
-				freehand.building(cells, shape.height());
+			switch (shape.kind()) {
+				case PLATFORM -> freehand.platform(cells, shape.open());
+				case BUILDING -> freehand.building(cells, shape.height(), false);
+				case TERMINAL -> freehand.building(cells, shape.height(), true);
+				case APRON -> freehand.apron(cells);
+				case TAXIWAY -> freehand.taxiway(cells);
+				case RUNWAY -> freehand.runway(cells);
 			}
-			freehand.ground(cells, shape.kind() == DrawnShape.Kind.PLATFORM ? StationGeometry.HEADROOM : shape.height());
+			freehand.ground(cells, switch (shape.kind()) {
+				case PLATFORM -> StationGeometry.HEADROOM;
+				case BUILDING, TERMINAL -> shape.height();
+				case APRON -> MAST_HEIGHT + 1;
+				case TAXIWAY, RUNWAY -> AirportGeometry.OPEN_CLEARANCE;
+			});
 		}
 	}
 
@@ -300,7 +328,7 @@ final class PlanFreehand {
 	private static final int[][] SIDES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 	private static final LocalDir[] SIDE_DIRS = {LocalDir.PLUS_U, LocalDir.MINUS_U, LocalDir.PLUS_V, LocalDir.MINUS_V};
 
-	private void building(Set<Long> cells, int height) {
+	private void building(Set<Long> cells, int height, boolean terminal) {
 		final int roofY = StationGeometry.WALK_Y + height;
 		// the outline: cells with a side open to the outside, and which way it faces
 		final List<long[]> outline = new ArrayList<>();
@@ -321,7 +349,11 @@ final class PlanFreehand {
 		}
 		final Set<Long> door = doorway(outline);
 		for (final long key : cells) {
-			s.put(Role.FLOOR, DrawnShape.u(key), StationGeometry.PLATFORM_Y, DrawnShape.v(key), LocalDir.PLUS_V);
+			if (terminal) {
+				s.put(Role.FLOOR, DrawnShape.u(key), StationGeometry.PLATFORM_Y, DrawnShape.v(key), LocalDir.PLUS_V, PlanAirport.TERMINAL_FLOOR);
+			} else {
+				s.put(Role.FLOOR, DrawnShape.u(key), StationGeometry.PLATFORM_Y, DrawnShape.v(key), LocalDir.PLUS_V);
+			}
 		}
 		for (final long[] cell : outline) {
 			final int u = (int) cell[0];
@@ -331,6 +363,16 @@ final class PlanFreehand {
 			for (int y = StationGeometry.WALK_Y; y < roofY; y++) {
 				if (door.contains(DrawnShape.key(u, v)) && y < StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT) {
 					s.air.add(new Cell(u, y, v));
+					continue;
+				}
+				if (terminal) {
+					// a terminal is glass from the floor to under the roof, between mullions
+					final boolean mullion = corner || Math.floorMod(u + v, MULLION_EVERY) == 0 || y == roofY - 1;
+					if (mullion) {
+						s.put(Role.WALL, u, y, v, front);
+					} else {
+						s.put(Role.WINDOW, u, y, v, front, PlanAirport.TOWER_GLASS);
+					}
 					continue;
 				}
 				final int row = (y - StationGeometry.WALK_Y) % StationGeometry.STOREY;
@@ -344,7 +386,139 @@ final class PlanFreehand {
 			final boolean inner = cells.contains(DrawnShape.key(u - 1, v)) && cells.contains(DrawnShape.key(u + 1, v))
 					&& cells.contains(DrawnShape.key(u, v - 1)) && cells.contains(DrawnShape.key(u, v + 1));
 			final boolean panel = inner && Math.floorMod(u, PANEL_GRID) == PANEL_GRID / 2 && Math.floorMod(v, PANEL_GRID) == PANEL_GRID / 2;
-			s.put(panel ? Role.LIGHT_PANEL : Role.BUILDING_ROOF, u, roofY, v, LocalDir.PLUS_V);
+			if (terminal && panel) {
+				s.put(Role.LIGHT_PANEL, u, roofY, v, LocalDir.PLUS_V, PlanAirport.ROOF_LIGHT);
+			} else {
+				s.put(panel ? Role.LIGHT_PANEL : Role.BUILDING_ROOF, u, roofY, v, LocalDir.PLUS_V);
+			}
+		}
+	}
+
+	// ---- an airport's shapes --------------------------------------------------------------------------------------------
+
+	/** Paints the ground cell (u, v) with block {@code id}, as the airport paints its own pavement. */
+	private void paint(int u, int v, String id) {
+		s.put(Role.PLATFORM_SURFACE, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V, id);
+	}
+
+	private void groundLight(int u, int v, String id) {
+		s.put(Role.LIGHT_PANEL, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V, id);
+	}
+
+	/** True when (u, v) has a side open to the outside of {@code cells}. */
+	private static boolean edge(Set<Long> cells, int u, int v) {
+		for (final int[] side : SIDES) {
+			if (!cells.contains(DrawnShape.key(u + side[0], v + side[1]))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Concrete slabs with a darker joint every {@link #SLAB} blocks, whole along the edge; floodlight masts on a coarse grid. */
+	private void apron(Set<Long> cells) {
+		for (final long key : cells) {
+			final int u = DrawnShape.u(key);
+			final int v = DrawnShape.v(key);
+			final boolean joint = !edge(cells, u, v) && (Math.floorMod(u, SLAB) == 0 || Math.floorMod(v, SLAB) == 0);
+			paint(u, v, joint ? PlanAirport.APRON_JOINT : PlanAirport.APRON_SURFACE);
+			if (Math.floorMod(u, MAST_GRID) == MAST_GRID / 2 && Math.floorMod(v, MAST_GRID) == MAST_GRID / 2 && !edge(cells, u, v)) {
+				for (int y = StationGeometry.WALK_Y; y < MAST_HEIGHT; y++) {
+					s.put(Role.FIXTURE, u, y, v, LocalDir.PLUS_V, StationPlanner.LAMP_POLE);
+				}
+				s.put(Role.LAMP, u, MAST_HEIGHT, v, LocalDir.PLUS_V, PlanAirport.MAST_LAMP);
+			}
+		}
+	}
+
+	/** Asphalt with a yellow centreline and a blue edge light every {@link #TAXI_LIGHT_EVERY} cells of its edge. */
+	private void taxiway(Set<Long> cells) {
+		for (final long key : cells) {
+			final int u = DrawnShape.u(key);
+			final int v = DrawnShape.v(key);
+			if (edge(cells, u, v)) {
+				if (Math.floorMod(u + v, TAXI_LIGHT_EVERY) == 0) {
+					groundLight(u, v, PlanAirport.TAXI_LIGHT);
+				} else {
+					paint(u, v, PlanAirport.TAXI_SURFACE);
+				}
+			} else {
+				paint(u, v, Run.of(cells, u, v).centre(u, v) ? PlanAirport.PAINT_YELLOW : PlanAirport.TAXI_SURFACE);
+			}
+		}
+	}
+
+	/**
+	 * Black pavement with white edges and an edge light every {@link #RUNWAY_LIGHT_EVERY} cells of them, a dashed white centreline
+	 * along its length, and threshold stripes across both ends.
+	 */
+	private void runway(Set<Long> cells) {
+		for (final long key : cells) {
+			final int u = DrawnShape.u(key);
+			final int v = DrawnShape.v(key);
+			if (edge(cells, u, v)) {
+				if (Math.floorMod(u + v, RUNWAY_LIGHT_EVERY) == 0) {
+					groundLight(u, v, PlanAirport.EDGE_LIGHT);
+				} else {
+					paint(u, v, PlanAirport.PAINT_WHITE);
+				}
+				continue;
+			}
+			final Run run = Run.of(cells, u, v);
+			final int fromEnd = run.fromEnd(u, v);
+			final boolean stripe = fromEnd >= THRESHOLD_INSET && fromEnd < THRESHOLD_INSET + THRESHOLD_LENGTH && run.acrossStripe(u, v);
+			final boolean dash = run.centre(u, v) && fromEnd >= THRESHOLD_INSET + THRESHOLD_LENGTH + 2
+					&& Math.floorMod(run.along(u, v), DASH + DASH_GAP) < DASH;
+			paint(u, v, stripe || dash ? PlanAirport.PAINT_WHITE : PlanAirport.RUNWAY_SURFACE);
+		}
+	}
+
+	/**
+	 * The straight runs of cells through (u, v) across u and along v. The longer one is the way the shape runs (its length), the
+	 * shorter one its width; markings are laid out from them, so a drawn runway or taxiway may run either way across the plan.
+	 */
+	private record Run(boolean alongV, int start, int end, int across0, int across1) {
+
+		static Run of(Set<Long> cells, int u, int v) {
+			int u0 = u;
+			while (cells.contains(DrawnShape.key(u0 - 1, v))) {
+				u0--;
+			}
+			int u1 = u;
+			while (cells.contains(DrawnShape.key(u1 + 1, v))) {
+				u1++;
+			}
+			int v0 = v;
+			while (cells.contains(DrawnShape.key(u, v0 - 1))) {
+				v0--;
+			}
+			int v1 = v;
+			while (cells.contains(DrawnShape.key(u, v1 + 1))) {
+				v1++;
+			}
+			return v1 - v0 >= u1 - u0 ? new Run(true, v0, v1, u0, u1) : new Run(false, u0, u1, v0, v1);
+		}
+
+		/** True on the middle cell of the width. */
+		boolean centre(int u, int v) {
+			return (alongV ? u : v) == (across0 + across1) / 2;
+		}
+
+		/** Cells from the nearer end of the length. */
+		int fromEnd(int u, int v) {
+			final int at = alongV ? v : u;
+			return Math.min(at - start, end - at);
+		}
+
+		/** Cells from the start of the length. */
+		int along(int u, int v) {
+			return (alongV ? v : u) - start;
+		}
+
+		/** True on a threshold stripe: two painted cells, one bare, across the width, clear of the centre and the edges. */
+		boolean acrossStripe(int u, int v) {
+			final int at = (alongV ? u : v) - across0;
+			return !centre(u, v) && Math.floorMod(at, 3) != 0;
 		}
 	}
 
