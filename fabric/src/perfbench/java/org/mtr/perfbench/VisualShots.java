@@ -29,7 +29,7 @@ import java.util.UUID;
  * rail level; yaw 0 looks down the station's length), {@code shaders on|off}, {@code hud on|off}, {@code view <chunks>}
  * (render distance), {@code settle <ticks>} (wait after each later tp, tpst or shader switch; 60 by default),
  * {@code tpblock <block id part> <n> <dx> <dy> <dz> <yaw> <pitch>} (stands dx/dy/dz blocks from the n-th planned block whose id
- * contains the text, in world axes), {@code shot <name>} (saves {@code screenshots/vis-<name>.png}), {@code fov <degrees>}, {@code window <width> <height>} (window size in screen points), {@code guiscale <n>} (0 is automatic), {@code screen panel <tab>|wrench|menu [tab]|close}, {@code mouse <x> <y>} (cursor, in window points), {@code click <x> <y>} (GUI-scaled), {@code quit}. Lines starting with {@code #} are comments. Writes visualshots.txt with each step and its result, so the same views can be re-shot after
+ * contains the text, in world axes), {@code shot <name>} (saves {@code screenshots/vis-<name>.png}), {@code fov <degrees>}, {@code window <width> <height>} (window size in screen points), {@code guiscale <n>} (0 is automatic), {@code key forward|back|left|right|sneak on|off} (hold a key), {@code use} (one right click at the crosshair), {@code screen panel <tab>|wrench|menu [tab]|close}, {@code mouse <x> <y>} (cursor, in window points), {@code click <x> <y>} (GUI-scaled), {@code quit}. Lines starting with {@code #} are comments. Writes visualshots.txt with each step and its result, so the same views can be re-shot after
  * every change.
  * <p>
  * With {@code -Datr.visualshots.watch=<folder>} the client stays open after the script: every {@code .txt} script dropped
@@ -150,6 +150,23 @@ public final class VisualShots implements ClientModInitializer {
 					} catch (ReflectiveOperationException e) {
 						LOGGER.warn("Could not move the game's cursor", e);
 					}
+				}
+				case "key" -> {
+					// hold or let go of a movement key, as a player at the keyboard would: key forward on, key forward off
+					final String[] words = arg.strip().split("\\s+");
+					final net.minecraft.client.option.KeyBinding key = switch (words[0]) {
+						case "forward" -> client.options.forwardKey;
+						case "back" -> client.options.backKey;
+						case "left" -> client.options.leftKey;
+						case "right" -> client.options.rightKey;
+						case "sneak" -> client.options.sneakKey;
+						default -> throw new IllegalArgumentException("unknown key " + words[0]);
+					};
+					key.setPressed(words[1].equals("on"));
+				}
+				case "use" -> {
+					// one right click at the crosshair, as the use key would make it
+					net.minecraft.client.option.KeyBinding.onKeyPressed(net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.getBoundKeyOf(client.options.useKey));
 				}
 				case "guiscale" -> {
 					client.options.getGuiScale().setValue(Integer.parseInt(arg.strip()));
