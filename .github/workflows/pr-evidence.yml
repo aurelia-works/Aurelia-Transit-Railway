@@ -1,0 +1,27 @@
+name: PR evidence
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = (context.payload.pull_request.body || "").replace(/<!--[\s\S]*?-->/g, "");
+            const required = ["What changed", "Testing", "Risk", "How to revert"];
+            const missing = [];
+            for (const name of required) {
+              const re = new RegExp(`^#+\\s*${name}\\b[^\\n]*\\n([\\s\\S]*?)(?=^#+\\s|$)`, "im");
+              const match = body.match(re);
+              if (!match || match[1].replace(/\s/g, "").length < 10) missing.push(name);
+            }
+            if (missing.length) {
+              core.setFailed(`PR body is missing evidence for: ${missing.join(", ")}. Fill the template in, including what you did not test.`);
+            }
