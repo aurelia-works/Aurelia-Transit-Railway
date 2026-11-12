@@ -37,6 +37,11 @@ public final class JetBridgeRenderer implements BlockEntityRenderer<JetBridgeBlo
 	/** The apron's top, below the bridge floor. */
 	static final float APRON = -3f;
 	private static final float CAB = 3f;
+	private static final float TYRE_RADIUS = 0.42f;
+	private static final float TYRE_WIDTH = 0.26f;
+	/** Each tyre's inner x: a pair at the beam's near end, a pair at its far end, a small gap between the two of a pair. */
+	private static final float[] TYRES = {-0.5f, -0.2f, WIDTH - 0.06f, WIDTH + 0.24f};
+	private static final int TYRE_SIDES = 12;
 	private static final Identifier PANEL = new Identifier("minecraft", "textures/block/light_gray_concrete.png");
 	private static final Identifier TRIM = new Identifier("minecraft", "textures/block/gray_concrete.png");
 	private static final Identifier RUBBER = new Identifier("minecraft", "textures/block/black_concrete.png");
@@ -108,7 +113,8 @@ public final class JetBridgeRenderer implements BlockEntityRenderer<JetBridgeBlo
 		}
 		box(matrices, buffer, -0.8f, 2.2f, cabFront, WIDTH + 1f, 2.9f, cabFront + 0.3f, lit);
 		box(matrices, buffer, WIDTH, 2.2f, cabFront + 0.3f, WIDTH + 1f, 2.9f, front, lit);
-		box(matrices, buffer, 0f, APRON + 0.35f, legZ - 0.6f, WIDTH, APRON + 0.6f, legZ + 0.6f, lit);
+		box(matrices, buffer, -0.45f, APRON + 0.3f, legZ - 0.25f, WIDTH + 0.45f, APRON + 0.55f, legZ + 0.25f, lit);
+		box(matrices, buffer, 0.2f, APRON + 0.55f, legZ - 0.6f, WIDTH - 0.2f, APRON + 0.8f, legZ + 0.6f, lit);
 
 		// the door opening on the plane's side, framed in rubber: the canopy that closes onto the fuselage once docked; the wheels
 		buffer = vertexConsumers.getBuffer(RenderLayer.getEntitySolid(RUBBER));
@@ -116,12 +122,17 @@ public final class JetBridgeRenderer implements BlockEntityRenderer<JetBridgeBlo
 		box(matrices, buffer, out, 2.0f, front - 2.7f, -0.8f, 2.2f, front - 0.3f, lit);
 		box(matrices, buffer, out, -0.1f, front - 2.9f, -0.8f, 2.2f, front - 2.7f, lit);
 		box(matrices, buffer, out, -0.1f, front - 0.3f, -0.8f, 2.2f, front - 0.1f, lit);
-		box(matrices, buffer, -0.2f, APRON, legZ - 0.4f, 0.2f, APRON + 0.8f, legZ + 0.4f, lit);
-		box(matrices, buffer, WIDTH - 0.2f, APRON, legZ - 0.4f, WIDTH + 0.2f, APRON + 0.8f, legZ + 0.4f, lit);
+		// twin tyres at each end of the axle beam, as on an apron-drive bridge's wheel bogie
+		for (final float x : TYRES) {
+			cylinderX(matrices, buffer, x, x + TYRE_WIDTH, APRON + TYRE_RADIUS, legZ, TYRE_RADIUS, lit);
+		}
 
 		// the drive leg down to the bogie
 		buffer = vertexConsumers.getBuffer(RenderLayer.getEntitySolid(STEEL));
 		box(matrices, buffer, WIDTH / 2 - 0.3f, APRON + 0.6f, legZ - 0.3f, WIDTH / 2 + 0.3f, -1f, legZ + 0.3f, lit);
+		// the hubs, on the outer face of each pair
+		cylinderX(matrices, buffer, TYRES[0] - 0.03f, TYRES[0], APRON + TYRE_RADIUS, legZ, TYRE_RADIUS * 0.5f, lit);
+		cylinderX(matrices, buffer, TYRES[3] + TYRE_WIDTH, TYRES[3] + TYRE_WIDTH + 0.03f, APRON + TYRE_RADIUS, legZ, TYRE_RADIUS * 0.5f, lit);
 
 		// glass last: the window band along the cab's far side and across its front
 		buffer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(GLASS));
@@ -143,6 +154,35 @@ public final class JetBridgeRenderer implements BlockEntityRenderer<JetBridgeBlo
 		// -x, +x
 		tiles(buffer, position, normal, light, z0, y0, z1, y1, (a, b) -> new float[]{x0, b, a}, -1, 0, 0);
 		tiles(buffer, position, normal, light, z1, y0, z0, y1, (a, b) -> new float[]{x1, b, a}, 1, 0, 0);
+	}
+
+	/** A round wheel with its axle along x, from x0 to x1, centred at (cy, cz): {@link #TYRE_SIDES} tread faces and two flat sides. */
+	private static void cylinderX(MatrixStack matrices, VertexConsumer buffer, float x0, float x1, float cy, float cz, float radius, int light) {
+		final Matrix4f position = matrices.peek().getPositionMatrix();
+		final Matrix3f normal = matrices.peek().getNormalMatrix();
+		for (int k = 0; k < TYRE_SIDES; k++) {
+			final double a0 = 2 * Math.PI * k / TYRE_SIDES;
+			final double a1 = 2 * Math.PI * (k + 1) / TYRE_SIDES;
+			final float y0 = cy + (float) (radius * Math.cos(a0));
+			final float z0 = cz + (float) (radius * Math.sin(a0));
+			final float y1 = cy + (float) (radius * Math.cos(a1));
+			final float z1 = cz + (float) (radius * Math.sin(a1));
+			final float ny = (float) Math.cos((a0 + a1) / 2);
+			final float nz = (float) Math.sin((a0 + a1) / 2);
+			// counter-clockwise from outside: the tread, then the two side wedges (a quad with its last corner doubled)
+			vertex(buffer, position, normal, new float[]{x0, y0, z0}, 0, 0, 0, ny, nz, light);
+			vertex(buffer, position, normal, new float[]{x0, y1, z1}, 1, 0, 0, ny, nz, light);
+			vertex(buffer, position, normal, new float[]{x1, y1, z1}, 1, 1, 0, ny, nz, light);
+			vertex(buffer, position, normal, new float[]{x1, y0, z0}, 0, 1, 0, ny, nz, light);
+			vertex(buffer, position, normal, new float[]{x0, cy, cz}, 0.5f, 0.5f, -1, 0, 0, light);
+			vertex(buffer, position, normal, new float[]{x0, y1, z1}, 1, 0, -1, 0, 0, light);
+			vertex(buffer, position, normal, new float[]{x0, y0, z0}, 0, 0, -1, 0, 0, light);
+			vertex(buffer, position, normal, new float[]{x0, y0, z0}, 0, 0, -1, 0, 0, light);
+			vertex(buffer, position, normal, new float[]{x1, cy, cz}, 0.5f, 0.5f, 1, 0, 0, light);
+			vertex(buffer, position, normal, new float[]{x1, y0, z0}, 0, 0, 1, 0, 0, light);
+			vertex(buffer, position, normal, new float[]{x1, y1, z1}, 1, 0, 1, 0, 0, light);
+			vertex(buffer, position, normal, new float[]{x1, y1, z1}, 1, 0, 1, 0, 0, light);
+		}
 	}
 
 	private interface Plane {
