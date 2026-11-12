@@ -832,7 +832,7 @@ abstract class PlanFurniture extends PlanRoofs {
 				for (int k = 0; k <= 2; k++) {
 					final int u = back + step * k;
 					if (u < band.uMin() || u > band.uMax() || u + step < band.uMin() || u + step > band.uMax()
-							|| isEdge(band, u) || taken(u, StationGeometry.WALK_Y, v) || taken(u, StationGeometry.WALK_Y + 1, v)
+							|| isEdge(band, u) || isEdge(band, u + step) || taken(u, StationGeometry.WALK_Y, v) || taken(u, StationGeometry.WALK_Y + 1, v)
 							|| taken(u, StationGeometry.WALK_Y + 2, v) || taken(u + step, StationGeometry.WALK_Y + 2, v)) {
 						continue;
 					}
