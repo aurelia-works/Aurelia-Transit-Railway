@@ -208,7 +208,9 @@ abstract class PlanFurniture extends PlanRoofs {
 			}
 			final boolean left = band.trackLeft() && band.uMin() - StationGeometry.EDGE_OFFSET == track.u();
 			final int u = left ? band.uMin() + 1 : band.uMax() - 1;
-			if (u < band.uMin() || u > band.uMax() || isEdge(band, u)) {
+			if (u < band.uMin() || u > band.uMax() || isEdge(band, u)
+					|| isEdge(band, u - 1) && isEdge(band, u + 1)) {
+				// a three-wide island: its one middle row is the walkway, the benches and the signs; the doors go unmarked
 				continue;
 			}
 			final java.util.TreeSet<Integer> doors = doorRows(band, layout.buffered(track));
