@@ -832,6 +832,72 @@ final class Planning extends PlanAirport {
 		}
 	}
 
+	/** The handrails a stair's rail is laid in, and the sloped rail each becomes there (see {@link #stairRails}). */
+	static final Map<String, String> STAIR_RAILS = Map.of("aurelia_transit_architecture:handrail", "aurelia_transit_architecture:stair_handrail",
+			"aurelia_transit_architecture:ns_handrail", "aurelia_transit_architecture:ns_stair_handrail");
+	/** The fewest handrails, landing included, that make a climb: a stair, not a rail that only steps up once. */
+	private static final int CLIMB = 3;
+
+	/**
+	 * Turns the handrails that climb a stair, one block up for each block along, into one sloped rail (the stepped rail read
+	 * as a saw). A climb is a run of handrails, none with another stacked on it, each one up and one along from the last;
+	 * every one but the top slopes, facing up the stair: the foot with a newel post, the last running on level into the top
+	 * one, which stays the landing's level rail. Planned before {@link #edgeRailings}, on the rails as the stairs laid them.
+	 */
+	void stairRails() {
+		final List<PlannedBlock> sloped = new ArrayList<>();
+		for (final PlannedBlock block : cells.values()) {
+			if (climbRail(block.u(), block.y(), block.v()) == null) {
+				continue;
+			}
+			for (final LocalDir up : LocalDir.values()) {
+				final int below = climbLength(block, up, -1);
+				final int above = climbLength(block, up, 1);
+				if (above == 0 || below + above + 1 < CLIMB) {
+					continue;
+				}
+				final String part = above == 1 ? "top" : below == 0 ? "bottom" : "middle";
+				sloped.add(new PlannedBlock(block.u(), block.y(), block.v(), block.role(), STAIR_RAILS.get(block.blockId()), up, block.text(),
+						"kind=" + part + ",edge=" + stairRailEdge(block, up)));
+				break;
+			}
+		}
+		for (final PlannedBlock block : sloped) {
+			cells.put(new Cell(block.u(), block.y(), block.v()), block);
+		}
+	}
+
+	/**
+	 * The side of its block a climb rail stands on, as {@link #edgeRailings} will stand the landing's rail: over the drop to
+	 * one side of the stair (left or right, looking up it), or in the middle for a railing that never moves to an edge.
+	 */
+	private String stairRailEdge(PlannedBlock block, LocalDir up) {
+		final LocalDir right = RailEdges.clockwise(up);
+		if (EDGE_RAILINGS.contains(block.blockId()) && drop(block, right) != drop(block, right.opposite())) {
+			return drop(block, right) ? "right" : "left";
+		}
+		return "none";
+	}
+
+	/** How many climb rails follow {@code block} up the stair rising toward {@code up} ({@code rise} 1), or down it ({@code rise} -1). */
+	private int climbLength(PlannedBlock block, LocalDir up, int rise) {
+		int n = 0;
+		while (climbRail(block.u() + rise * (n + 1) * du(up), block.y() + rise * (n + 1), block.v() + rise * (n + 1) * dv(up)) != null) {
+			n++;
+		}
+		return n;
+	}
+
+	/** The handrail at a cell when it can be part of a climb: a stair-rail handrail with no handrail stacked on it. */
+	private PlannedBlock climbRail(int u, int y, int v) {
+		final PlannedBlock block = cells.get(new Cell(u, y, v));
+		if (block == null || !STAIR_RAILS.containsKey(block.blockId())) {
+			return null;
+		}
+		final PlannedBlock over = cells.get(new Cell(u, y + 1, v));
+		return over != null && STAIR_RAILS.containsKey(over.blockId()) ? null : block;
+	}
+
 	/** The railings that stand on the side of their block over a drop (see {@link #edgeRailings}). */
 	static final Set<String> EDGE_RAILINGS = Set.of("aurelia_transit_architecture:handrail", "aurelia_transit_architecture:station_fence");
 	static final String GLASS_BARRIER = "aurelia_transit_architecture:glass_barrier";
@@ -935,7 +1001,9 @@ final class Planning extends PlanAirport {
 			return false;
 		}
 		final PlannedBlock below = cells.get(new Cell(u, block.y() - 1, v));
+		// a stair's sloped rail below runs up into this side: it is the guard there, not a drop
 		return below == null || !(below.role().flatFloor() || below.role() == Role.STAIR || below.role() == Role.ESCALATOR
+				|| STAIR_RAILS.containsValue(below.blockId())
 				|| below.role() == Role.RAMP_LOWER || below.role() == Role.RAMP_UPPER || below.role() == Role.WALL || below.role() == Role.BUILDING_ROOF);
 	}
 

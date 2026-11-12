@@ -16,6 +16,7 @@ import com.aureliatransit.architecture.block.mtr.MtrPlatformContract;
 import com.aureliatransit.architecture.block.elevated.FareGateBlock;
 import com.aureliatransit.architecture.block.elevated.GirderBlock;
 import com.aureliatransit.architecture.block.elevated.HandrailBlock;
+import com.aureliatransit.architecture.block.elevated.StairHandrailBlock;
 import com.aureliatransit.architecture.block.elevated.LiftStatusPanelBlock;
 import com.aureliatransit.architecture.block.elevated.CatenaryArmBlock;
 import com.aureliatransit.architecture.block.elevated.ContactWireBlock;
@@ -81,6 +82,9 @@ public final class ElevatedBlocks {
 
 	public static final Block HANDRAIL = ModBlocks.register("handrail", BlockFamily.ACCESSIBILITY, RenderKind.TRANSLUCENT,
 			new HandrailBlock(ModBlocks.metal()), TIP_STYLE, TIP_JOINS_RAIL);
+	/** The handrail up a stair, sloped with the steps (the generator lays it on every flight's cheek wall). */
+	public static final Block STAIR_HANDRAIL = ModBlocks.register("stair_handrail", BlockFamily.ACCESSIBILITY, RenderKind.TRANSLUCENT,
+			new StairHandrailBlock(ModBlocks.metal()), TIP_STYLE);
 	public static final Block TACTILE_JUNCTION = ModBlocks.register("tactile_junction", BlockFamily.ACCESSIBILITY, RenderKind.SOLID,
 			new TactileJunctionBlock(ModBlocks.paving(MapColor.YELLOW)), TIP_STYLE);
 
