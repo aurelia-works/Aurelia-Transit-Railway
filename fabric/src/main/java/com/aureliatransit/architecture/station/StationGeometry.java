@@ -132,9 +132,35 @@ public final class StationGeometry {
 	/** A terminus's forecourt asked for with "parking": a drop-off lay-by off the street, cycle stands and trees. */
 	public static final int TERMINUS_FORECOURT_DEPTH = 12;
 
-	/** Rows of forecourt past a terminus's head building: a hub's, a terminus's when it asked for parking, else none. */
+	/**
+	 * Rows of forecourt past a terminus's head building: a hub's (its own bus interchange), else a bus station's band and a
+	 * terminus's parking forecourt past it, each when asked for.
+	 */
 	public static int forecourtDepth(StationSpec spec) {
-		return !spec.terminus() ? 0 : spec.hub() ? FORECOURT_DEPTH : spec.parking() ? TERMINUS_FORECOURT_DEPTH : 0;
+		return !spec.terminus() ? 0 : spec.hub() ? FORECOURT_DEPTH : busStationDepth(spec) + (spec.parking() ? TERMINUS_FORECOURT_DEPTH : 0);
+	}
+
+	/**
+	 * A bus station's band in front of the entrance (the "bus station" words), across it from the street wall: a passenger
+	 * platform with the shelters (3), the bus kerb (1), the bay lane (3), its dashed edge line (1) and the running lane (3).
+	 */
+	public static final int BUS_STATION_DEPTH = 11;
+
+	/**
+	 * Columns (a side building) or rows (a terminus head) of a bus station: {@link #BUS_STATION_DEPTH} when asked for and the
+	 * station has a street front to put it at, else 0. A hub's forecourt has its own bus interchange.
+	 */
+	public static int busStationDepth(StationSpec spec) {
+		return spec.options().busStation() && !spec.options().underground() && spec.hasBuilding() && !spec.hub()
+				? BUS_STATION_DEPTH : 0;
+	}
+
+	/** Columns before a side building's apron: a bus station next to it, then a car park out at the street edge. */
+	static int lotDepth(StationSpec spec) {
+		if (!spec.sideBuilding()) {
+			return 0;
+		}
+		return (spec.parking() ? PARKING_DEPTH : 0) + busStationDepth(spec);
 	}
 	/** Entrance ramps and the forecourt outside a terminus head building's street wall. */
 	public static final int HEAD_APRON = RAMP_LENGTH + ENTRANCE_FORECOURT;
@@ -317,7 +343,7 @@ public final class StationGeometry {
 		}
 		final int railWidth = previousTrack ? previousU + ENVELOPE_HALF_WIDTH + 1 + cessRight : previousU + 1;
 		final StationScale scale = spec.buildingScale();
-		final int parking = spec.parking() && spec.sideBuilding() ? PARKING_DEPTH : 0;
+		final int parking = lotDepth(spec);
 		// an underground station's box: a wall column each side, and two rows past each platform end for its end walls (its
 		// platforms never ramp down onto the tracks)
 		final int box = boxMargin(spec);
@@ -348,7 +374,7 @@ public final class StationGeometry {
 
 	/** Columns before the first band: an underground box's wall, a car park, a side building with its apron, or a street. */
 	static int sideShift(StationSpec spec) {
-		final int parking = spec.parking() && spec.sideBuilding() ? PARKING_DEPTH : 0;
+		final int parking = lotDepth(spec);
 		return boxMargin(spec) + parking + (spec.sideBuilding() ? APRON + buildingDepth(spec.buildingScale())
 				: streetEntrance(spec) ? squareDepth(spec) + streetWidth(spec) : 0);
 	}

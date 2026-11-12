@@ -1,0 +1,4 @@
+{
+  "parent": "aurelia_transit_architecture:block/stair_handrail_middle",
+  "display": {"gui": {"rotation": [30, 135, 0], "translation": [0, -3, 0], "scale": [0.5, 0.5, 0.5]}}
+}

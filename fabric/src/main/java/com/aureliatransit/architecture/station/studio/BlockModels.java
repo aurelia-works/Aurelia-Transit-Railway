@@ -364,6 +364,10 @@ public final class BlockModels {
 		if (elements == null) {
 			// a model drawn in code (or one this reader cannot follow): a full cube with its particle texture
 			final String particle = texture("#particle", textures);
+			if (particle != null && particle.startsWith("minecraft/item/")) {
+				// an item sprite for a particle marks a block the game never draws (light, barrier, structure void)
+				return out.append("]}").toString();
+			}
 			out.append("{\"from\":[0,0,0],\"to\":[16,16,16],\"faces\":{");
 			for (int i = 0; i < FACES.length; i++) {
 				out.append(i == 0 ? "" : ",").append('"').append(FACES[i]).append("\":{\"t\":").append(particle == null ? "null" : Json.quote(particle)).append('}');
