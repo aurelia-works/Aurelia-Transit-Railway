@@ -51,8 +51,9 @@ abstract class PlanLifts extends PlanBuilding {
 		}
 		final StationLayout.Lift hall = site.buildingLift(layout);
 		if (hall != null) {
-			// the building's own platform wall closes the shaft's far side, and its roof covers it
-			shaft(hall, b.interiorWall(), false, null, false);
+			// the building's own platform wall closes the shaft's far side, and its roof covers it; glazed like the footbridge's
+			// lift towers, so the car shows in the hall instead of a blank box (11-11)
+			shaft(hall, b.bridgeWall(), false, null, false);
 		}
 	}
 
