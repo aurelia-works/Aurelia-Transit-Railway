@@ -268,11 +268,10 @@ abstract class PlanBuilding extends PlanPlatforms {
 			final int v = site.innerStairV(y);
 			for (int u = uA; u <= uB; u++) {
 				put(Role.STAIR, u, y, v, site.innerStairFront(), b.stair());
-				// a stringer under each step too low to stand under, so nobody walks in under the flight's low end
-				if (y <= StationGeometry.HEADROOM) {
-					for (int below = StationGeometry.WALK_Y; below < y; below++) {
-						put(Role.WALL, u, below, v, site.innerStairFront(), b.interiorWall());
-					}
+				// the space under the flight is closed in to its soffit, as a hall's stair is: nobody walks in under its low end,
+				// and the steps' dark undersides don't hang over a dead-end pocket at its high end
+				for (int below = StationGeometry.WALK_Y; below < y; below++) {
+					put(Role.WALL, u, below, v, site.innerStairFront(), b.interiorWall());
 				}
 			}
 		}
