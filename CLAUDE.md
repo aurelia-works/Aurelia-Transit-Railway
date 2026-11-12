@@ -1,35 +1,38 @@
 # Aurelia Transit Railway
 
-A fork of Minecraft Transit Railway 4.0.5 for Fabric 1.20.1. The mod id stays `mtr`, so MTR add-ons and worlds must keep working.
+A fork of Minecraft Transit Railway 4.0.5 for Fabric 1.20.1. The mod id stays `mtr`, so MTR add-ons and worlds must keep working. The plan and what is open: `PLAN.md`.
 
+## Commands
 - Build: `./gradlew setupFiles build -x test`. The jar lands in `build/release/`.
-- Unit tests: `./gradlew setupFiles :fabric:test -x runGameTest`.
-- `DropInSignaturesTest` guards the MTR 4.0.5 methods add-ons hook. Do not rename or reshape those methods, and do not add lambdas to classes it checks, because that renumbers the existing ones.
-- Old worlds and old configs must load unchanged. New saved data goes under new keys or in new files.
+- Compile only (use this while working): `./gradlew setupFiles :fabric:compileJava --offline`.
+- MTR unit tests: `./gradlew setupFiles :fabric:test -x runGameTest`.
+- Generator tests (ATA): `./gradlew setupFiles :fabric:ataTest --offline --tests '*ClassName'`.
+- Game tests run in CI only. Locally they run out of memory.
+
+## Compatibility
+- `DropInSignaturesTest` guards the MTR 4.0.5 methods add-ons hook. Do not rename or reshape those methods, and do not add lambdas to the classes it checks, because that renumbers the existing ones.
+- Old worlds, saved data and configs must load unchanged. New saved data goes under new keys or in new files.
+- Block and item ids never change. Old items that were replaced stay registered.
 
 ## Rule 1: tests
-
-From David Andre's video (13:05): most tests an agent writes are written only so they pass. They bloat the code, slow CI down and test nothing.
-
-- Do not write new tests. Never write a test just to get a green run, and never invent coverage for code you just wrote.
-- If a test looks truly needed (the same bug happened before, or an add-on/saved-world guard), do not write it — ask the orchestrator or Jah first. One approved test at most, never a suite.
-- No tests for one-off edge cases that will never happen in a real game.
-- No slow tests: no real-time waits and no long sweeps. If a test needs minutes, it needs a reason.
+- A new test is allowed when it guards a real failure: a bug that came back, or add-on or saved-world compatibility. It also has to be worth its CI time: no real-time waits and no long sweeps without a reason.
+- Never write a test only to get a green run or to cover code you just wrote.
 - Never skip, disable or weaken a test to make CI pass. Fix the code.
+- Run the affected test classes once when the change is done. CI runs the full suites.
 
 ## Rule 2: subagents
+- One agent per bug, feature or refactor: those have surprises and need one agent that sees the whole thing.
+- Subagents fit only work that is the same shape for every chunk, with the input, steps and output known up front. The `verify-pr` reviewer is the standing exception.
+- Agents in parallel spend the usage limit several times faster, so the default is one.
 
-From the same video (22:33): subagents only make sense for work that is clear, parallel, and split into chunks that are all the same.
-
-- Use subagents only when the input, the steps and the output format are known up front and identical for every chunk, such as reading many files of the same kind.
-- Do not use them for bug fixes, new features, refactors, or anything done here for the first time. Those have surprises and need one agent that sees the whole thing.
-- If it is not clear that subagents fit, the answer is no.
-- This account is on the $20 plan. Running agents in parallel spends the limit several times faster to finish slightly sooner, so the default is a single agent.
+## CI
+- A pull request that changes only Markdown, `docs/` or `archive/` skips the build and test jobs. Anything else runs everything.
+- `ci-ok` is the one check that says a run is good. It fails when a job failed, was cancelled, or was skipped on a code change.
+- `evidence` wants four headings in the PR body: What changed, Testing, Risk, How to revert.
 
 ## How to work
-
-- One session, one task: one bug, one feature, or one question.
+- One session, one task. One phase or fix per branch and PR; merge commits, never squash.
 - Bugs: reproduce first (a failing test that already exists, a game test, or exact steps), then fix.
-- Review findings: rate each by how often it happens and how bad it is. Fix what is both likely and harmful. Skip rare, made-up scenarios. For each finding, ask "is this a real must-fix, or overthinking?"
-- Do not run the same review over and over. A reviewer told to find bugs will always find something.
+- Anything visible is judged from same-camera before and after shots, not from passing tests. Station Studio (offline) is the quick way to get them.
+- Review findings: fix what is both likely and harmful. Skip rare, made-up scenarios, and do not run the same review again and again.
 - Keep changes small and in the style of the code around them.
