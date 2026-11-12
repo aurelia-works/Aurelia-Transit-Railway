@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The airplane route of an airport: per gate, a loop of siding, taxiway, runway and stand, as pure geometry. */
+/** The airplane route of an airport: per gate, the legs from remote stand to runway to gate and back out, as pure geometry. */
 class AirportRouteTest {
 
 	/** A full-size airport (REAL dimensions): 30 wide, 1500 long, five gates, a terminal. */
@@ -36,13 +36,13 @@ class AirportRouteTest {
 		assertEquals("", route.problem());
 		assertEquals(5, route.gates().size());
 		for (final Gate gate : route.gates()) {
-			assertEquals(10, gate.legs().size(), "gate " + gate.index());
+			assertEquals(12, gate.legs().size(), "gate " + gate.index());
 			assertFalse(gate.platform().isEmpty());
 		}
 	}
 
 	@Test
-	void theLoopIsConnectedExceptTheFlight() {
+	void theLegsAreConnectedExceptTheFlightAndThePushBacks() {
 		for (final Gate gate : AirportRoute.of(REAL).gates()) {
 			final List<Leg> legs = gate.legs();
 			for (final Leg leg : legs) {
@@ -56,22 +56,35 @@ class AirportRouteTest {
 				if (before.kind() == Kind.TAKE_OFF && after.kind() == Kind.LANDING) {
 					continue; // the flight: the plane leaves the far end and lands at the threshold, off the grid
 				}
+				if (before.kind() == Kind.PUSH_BACK || after.kind() == Kind.PUSH_BACK) {
+					continue; // the plane reverses: pushed back from the stand's end, then pulled forward from the push-back's far end
+				}
 				assertTrue(last(before).adjacent(first(after)), "gate " + gate.index() + " joins " + before.kind() + " to " + after.kind());
 			}
-			assertEquals(first(legs.get(0)), last(legs.get(legs.size() - 1)), "the loop closes");
 		}
 	}
 
+	/** Jah 11-12: the push-back should be real. A plane is pushed tail-first out of a stand and round onto the taxiway, then taxis forward. */
 	@Test
-	void theLoopStartsAndEndsAtTheSiding() {
+	void eachStandIsLeftByAPushBackOntoTheTaxiway() {
+		final int tc = REAL.taxiCentre();
 		for (final Gate gate : AirportRoute.of(REAL).gates()) {
-			final Leg siding = gate.legs().get(0);
-			assertEquals(Kind.SIDING, siding.kind());
-			final Leg turn = gate.legs().get(gate.legs().size() - 1);
-			assertEquals(Kind.TURN, turn.kind());
-			assertEquals(first(siding), last(turn), "the loop closes on the siding's deep end");
-			assertEquals(REAL.stopU(), first(siding).u(), "the siding's deep end is by the nose");
-			assertEquals(gate.sidingRow(), first(siding).v());
+			final List<Leg> legs = gate.legs();
+			for (final int stand : new int[]{1, 9}) {
+				final Leg in = legs.get(stand);
+				final Leg push = legs.get(stand + 1);
+				final Leg out = legs.get(stand + 2);
+				assertEquals(REAL.stopU(), last(in).u(), "the nose stops at the stop line");
+				assertEquals(Kind.PUSH_BACK, push.kind());
+				assertEquals(new Cell(tc, last(in).v() + 1), first(push), "pushed round the stand's corner onto the taxiway");
+				assertTrue(last(push).v() > first(push).v(), "pushed tail-first, against the way it taxis");
+				assertTrue(push.cells().size() > AirportRoute.PLANE_LENGTH, "pushed until the whole plane is straight on the taxiway");
+				assertEquals(Kind.TAXI, out.kind());
+				assertEquals(first(push), first(out), "taxis forward from where the push-back began");
+			}
+			assertEquals(Kind.SIDING, legs.get(1).kind());
+			assertEquals(Kind.GATE, legs.get(9).kind());
+			assertEquals(gate.sidingRow(), legs.get(1).cells().get(0).v());
 		}
 	}
 
@@ -90,7 +103,7 @@ class AirportRouteTest {
 	@Test
 	void theSidingHoldsAPlane() {
 		for (final Gate gate : AirportRoute.of(REAL).gates()) {
-			final Leg siding = gate.legs().get(0);
+			final Leg siding = gate.legs().get(1);
 			assertTrue(siding.cells().size() >= AirportRoute.PLANE_LENGTH, "siding of gate " + gate.index());
 		}
 	}
@@ -104,8 +117,8 @@ class AirportRouteTest {
 		final int exitRow = (farLink[0] + farLink[1]) / 2;
 		for (final Gate gate : route.gates()) {
 			final List<Leg> legs = gate.legs();
-			final Leg takeOffLink = legs.get(3);
-			final Leg exitLink = legs.get(6);
+			final Leg takeOffLink = legs.get(4);
+			final Leg exitLink = legs.get(7);
 			assertEquals(Kind.LINK, takeOffLink.kind());
 			assertEquals(Kind.LINK, exitLink.kind());
 			final int reach = TaxiwayCurve.radius(REAL);
@@ -126,8 +139,8 @@ class AirportRouteTest {
 				}
 			}
 			assertTrue(exitOnRow, "the exit link still crosses on the link row");
-			final Leg takeOff = legs.get(4);
-			final Leg landing = legs.get(5);
+			final Leg takeOff = legs.get(5);
+			final Leg landing = legs.get(6);
 			assertEquals(new Cell(REAL.runwayCentre(0), REAL.runwayV1()), last(takeOff), "the take-off roll ends at the far end");
 			assertEquals(new Cell(REAL.runwayCentre(0), REAL.runwayV0()), first(landing), "the landing roll starts at the threshold");
 		}
@@ -138,8 +151,8 @@ class AirportRouteTest {
 	void takeOffAndLandingUseNearlyTheWholeRunway() {
 		final int runway = REAL.spec().runwayLength();
 		for (final Gate gate : AirportRoute.of(REAL).gates()) {
-			assertTrue(gate.legs().get(4).cells().size() >= runway * 9 / 10, "take-off roll of gate " + gate.index());
-			assertTrue(gate.legs().get(5).cells().size() >= runway * 9 / 10, "landing roll of gate " + gate.index());
+			assertTrue(gate.legs().get(5).cells().size() >= runway * 9 / 10, "take-off roll of gate " + gate.index());
+			assertTrue(gate.legs().get(6).cells().size() >= runway * 9 / 10, "landing roll of gate " + gate.index());
 		}
 	}
 

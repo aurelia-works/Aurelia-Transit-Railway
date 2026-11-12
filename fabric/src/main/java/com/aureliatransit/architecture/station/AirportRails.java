@@ -59,7 +59,10 @@ public final class AirportRails {
 	private record Chunk(List<Cell> cells, List<Kind> kinds) {
 	}
 
-	/** The loop starts at its landing leg, so the siding's deep end (where the loop closes) sits inside one chunk, and the only break is the flight. */
+	/**
+	 * Runs of touching legs, from the landing leg on (wrapping round), so landing, exit, taxi and gate are one run. A run breaks at the
+	 * flight and where a plane reverses: each push-back stretch, and the taxiing that starts again from its join, is its own run.
+	 */
 	private static List<Chunk> chunks(AirportRoute.Gate gate) {
 		final List<Chunk> out = new ArrayList<>();
 		final List<Leg> legs = gate.legs();
@@ -150,10 +153,10 @@ public final class AirportRails {
 				cut = end - 1 > start && nextEnd > end + 1;
 			}
 			if (cut) {
-				// a corner is a connector, never a stand or a siding: a GATE run's corner takes the kind of the run after it, so only the
-				// stand is a platform; any other corner takes the kind of the step into its corner cell, so the siding's corner onto the
-				// taxiway is the PUSH_BACK and the siding is its straight alone
-				final Kind bend = kind == Kind.GATE ? ks.get(runs.get(r + 1)[0]) : ks.get(end - 1);
+				// a corner is a connector, never a stand: the turn off the taxiway into a gate or a remote stand is the LEAD_IN, which a
+				// plane rolls in on and is pushed back out on; any other corner takes the kind of the step into its corner cell
+				final Kind next = ks.get(runs.get(r + 1)[0]);
+				final Kind bend = next == Kind.GATE || next == Kind.SIDING ? Kind.LEAD_IN : ks.get(end - 1);
 				straight(kind, gate, frame, y, cs.get(start), cs.get(end - 1), out);
 				curve(bend, gate, frame, y, cs.get(end - 1), cs.get(end), cs.get(end + 1), out);
 				start = end + 1;
