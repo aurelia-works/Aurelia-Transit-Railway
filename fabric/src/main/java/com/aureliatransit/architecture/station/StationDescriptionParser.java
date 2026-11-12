@@ -1180,6 +1180,12 @@ public final class StationDescriptionParser {
 						|| (word.equals("bike") || word.equals("cycle") || word.equals("bicycle")) && at(j + 1).equals("parking")) {
 					features = features.withSquare(false);
 					note(i, "no station square");
+				} else if (word.equals("markers") || word.equals("door") && at(j + 1).equals("markers")) {
+					features = features.withDoorMarkers(false);
+					note(i, "no door markers on the platforms");
+					if (word.equals("door")) {
+						j++;
+					}
 				} else if (word.equals("lines") || word.equals("line") && at(j + 1).equals("lines")) {
 					features = features.withEdgeLines(false);
 					note(i, "no white platform edge lines");
