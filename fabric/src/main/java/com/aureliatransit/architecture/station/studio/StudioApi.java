@@ -317,6 +317,9 @@ public final class StudioApi {
 		if (!features.square()) {
 			text = (text.isEmpty() ? "" : text + ", ") + "no square";
 		}
+		if (!features.doorMarkers()) {
+			text = (text.isEmpty() ? "" : text + ", ") + "no door markers";
+		}
 		if ("1".equals(q.get("busstation"))) {
 			text = (text.isEmpty() ? "" : text + ", ") + "bus station";
 		}
@@ -348,6 +351,7 @@ public final class StudioApi {
 		features = features.withOverheadLine(!"0".equals(q.get("overheadline")));
 		features = features.withFence(!"0".equals(q.get("fence")));
 		features = features.withSquare(!"0".equals(q.get("square")));
+		features = features.withDoorMarkers(!"0".equals(q.get("doormarkers")));
 		return features.withHeight(StationFeatures.PlatformHeight.of(q.get("height")));
 	}
 
