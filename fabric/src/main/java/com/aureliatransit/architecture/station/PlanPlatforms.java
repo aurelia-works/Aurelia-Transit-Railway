@@ -569,6 +569,29 @@ abstract class PlanPlatforms extends PlanState {
 		}
 	}
 
+	/** How far out onto the platform the way from a building doorway is kept clear. */
+	static final int DOOR_APPROACH = 2;
+
+	/**
+	 * The platform in front of each building doorway, one cell past it either side and {@link #DOOR_APPROACH} out, kept clear
+	 * of benches, bins, name boards and screens, so the way from the building onto the platform is open (Jah, 11-11: the name
+	 * board and a bench stood across it). Planned after the columns, which already stand clear of the doorways.
+	 */
+	void doorFeet() {
+		final int uP = site.platformWall(layout);
+		for (final int door : doorV) {
+			for (int v = door - 1; v <= door + 1; v++) {
+				for (int u = uP + 1; u <= uP + DOOR_APPROACH; u++) {
+					for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 2; y++) {
+						if (!taken(u, y, v)) {
+							keepClear(u, y, v);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	/**
 	 * Planned last, on cells nothing else wanted. The ballast shoulder beside an open outer track is raised half a block, level
 	 * with the sleeper tops, like a real ballast profile; the open side along a street entrance gets its shoulder and cess

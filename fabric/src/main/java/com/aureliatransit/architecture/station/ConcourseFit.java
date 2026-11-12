@@ -62,6 +62,16 @@ final class ConcourseFit {
 	/** A floor smaller than this (a plain footbridge) gets nothing. */
 	static final int MIN_FLOOR = 600;
 
+	/**
+	 * How full a floor is fitted: none under {@code minFloor} cells, a unit along the walls for each {@code cellsPerUnit} and
+	 * an island of seats for each {@code cellsPerIsland}. A concourse is a floor people cross; a waiting room is one they sit
+	 * in, so it is fitted closer.
+	 */
+	record Density(int minFloor, int cellsPerUnit, int cellsPerIsland) {
+		static final Density CONCOURSE = new Density(MIN_FLOOR, CELLS_PER_UNIT, CELLS_PER_ISLAND);
+		static final Density WAITING_ROOM = new Density(120, 150, 60);
+	}
+
 	enum Kind { BOARD, SHOP, KIOSK, SEATS }
 
 	record Spot(int u, int v) {
@@ -96,15 +106,19 @@ final class ConcourseFit {
 	 * @param keep  cells of {@code floor} no unit may stand on (a stair's headroom, under a hanging sign)
 	 */
 	static List<Unit> fit(Set<Spot> floor, Set<Spot> doors, Set<Spot> walls, Set<Spot> keep) {
+		return fit(floor, doors, walls, keep, Density.CONCOURSE);
+	}
+
+	static List<Unit> fit(Set<Spot> floor, Set<Spot> doors, Set<Spot> walls, Set<Spot> keep, Density density) {
 		final List<Unit> units = new ArrayList<>();
-		if (floor.size() < MIN_FLOOR || doors.isEmpty()) {
+		if (floor.size() < density.minFloor() || doors.isEmpty()) {
 			return units;
 		}
 		final Set<Spot> clear = keptClear(floor, doors);
 		clear.addAll(keep);
 		final Set<Spot> taken = new HashSet<>();
-		alongWalls(floor, walls, clear, taken, units);
-		islands(floor, clear, taken, units);
+		alongWalls(floor, walls, clear, taken, units, density);
+		islands(floor, clear, taken, units, density);
 		// drop the latest unit until every door still reaches every other
 		while (!units.isEmpty() && !connected(floor, doors, units)) {
 			units.remove(units.size() - 1);
@@ -192,9 +206,9 @@ final class ConcourseFit {
 	 * Boards first, then shops and kiosks (two shops to a kiosk), with their backs on the walls and a gap between neighbours;
 	 * corner by corner across the floor, so they line both sides of a hall as they go.
 	 */
-	private static void alongWalls(Set<Spot> floor, Set<Spot> walls, Set<Spot> clear, Set<Spot> taken, List<Unit> units) {
+	private static void alongWalls(Set<Spot> floor, Set<Spot> walls, Set<Spot> clear, Set<Spot> taken, List<Unit> units, Density density) {
 		final int boards = Math.max(1, floor.size() / CELLS_PER_BOARD);
-		final int shops = Math.min(MAX_UNITS, floor.size() / CELLS_PER_UNIT);
+		final int shops = Math.min(MAX_UNITS, floor.size() / density.cellsPerUnit());
 		final List<Spot> sorted = new ArrayList<>(floor);
 		sorted.sort(Comparator.comparingInt(Spot::u).thenComparingInt(Spot::v));
 		int boarded = 0;
@@ -275,8 +289,8 @@ final class ConcourseFit {
 	}
 
 	/** Islands of seats along u in the open floor, each with a free cell all round, spread over the floor. */
-	private static void islands(Set<Spot> floor, Set<Spot> clear, Set<Spot> taken, List<Unit> units) {
-		final int most = Math.min(MAX_ISLANDS, floor.size() / CELLS_PER_ISLAND);
+	private static void islands(Set<Spot> floor, Set<Spot> clear, Set<Spot> taken, List<Unit> units, Density density) {
+		final int most = Math.min(MAX_ISLANDS, floor.size() / density.cellsPerIsland());
 		final List<Spot> sorted = new ArrayList<>(floor);
 		// every third row and fourth column first, so the islands spread before they fill
 		sorted.sort(Comparator.comparingInt((Spot s) -> Math.floorMod(s.v(), 7) == 0 && Math.floorMod(s.u(), 9) == 0 ? 0 : 1)

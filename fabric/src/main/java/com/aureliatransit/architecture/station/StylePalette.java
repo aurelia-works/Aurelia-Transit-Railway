@@ -54,11 +54,14 @@ public final class StylePalette {
 
 		public static Building of(BuildingStyle style) {
 			return switch (style) {
-				case NONE, MODERN -> new Building(ata("metro_pale_concrete"), ata("metro_steel_cladding"), ata("metro_steel_cladding"),
-						ata("metro_steel_cladding"), ata("curtain_wall_glass"), ata("utrecht_light_grey_floor_tile"), ata("utrecht_light_grey_floor_tile"),
-						ata("metro_pale_concrete"), ata("metro_recessed_light"), ata("station_stair"), ata("utrecht_light_grey_floor_tile"),
+				// white render walls and roof, not the tie-hole concrete: at block scale its holes read as a car park; quiet white
+				// trim on a plain plinth under a dark steel cornice, not ribbed cladding (Jah, 11-11). Glazed fronts get dark
+				// frames of their own (PlanFitOut.FRAME).
+				case NONE, MODERN -> new Building(ata("uk_white_render"), "minecraft:smooth_quartz", ata("uk_white_render"),
+						ata("steel_panel_dark"), ata("curtain_wall_glass"), ata("utrecht_light_grey_floor_tile"), ata("utrecht_light_grey_floor_tile"),
+						ata("uk_white_render"), ata("metro_recessed_light"), ata("station_stair"), ata("utrecht_light_grey_floor_tile"),
 						ata("clear_float_glass"), ata("canopy_flat"), ata("canopy_light"), ata("steel_column_square"), ata("steel_bench"),
-						ata("metro_pale_concrete"));
+						ata("uk_white_render"));
 				case AMSTERDAM -> new Building(ata("amsterdam_red_brick"), ata("amsterdam_brick_sandstone_band"), ata("amsterdam_brick_sandstone_band"),
 						ata("amsterdam_stone_cornice"), ata("amsterdam_arched_window"), ata("utrecht_light_grey_floor_tile"),
 						ata("rotterdam_black_stone_floor"), ata("amsterdam_red_brick"), ata("metro_recessed_light"), ata("station_stair"),
