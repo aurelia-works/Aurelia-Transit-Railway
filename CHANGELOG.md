@@ -13,6 +13,8 @@
 - Passengers now show as solid people standing on the platform, with size, colour and outline switches on the panel, and people on a platform with no route no longer disappear.
 
 ### Changed
+- A station entrance is a porch: canopy posts, a fascia under the canopy edge, rails beside the ramps and a glass transom over the opening. Inside, the concourse is a hall, with a plinth aisle, a double-height void just inside a side-building door and piers down the room. Fare gates are unchanged.
+- The wings of a city or grand station are waiting rooms: a departure board, a shop or kiosk against the walls and islands of seats with a bin and a planter, with the walks between the platform doors kept clear.
 - Stations and airports build anywhere the player confirms: `replace_terrain` and the approval step are gone (`confirm replace_terrain` still works as an alias). Every build saves the previous block states and block entity data in its own file under `data/ata_station_undo/`, so undo restores the ground block for block even after a server restart. Builds rise layer by layer, paced by a blocks-per-tick slider on the Architecture tab of the Aurelia panel and `/ata_station pace`.
 - Station preset realism pass: Teddington is 6 blocks wide with lifts, Modern is named and has escalators, Frankford and 69th Street no longer promise escalators they did not build, Rosenthaler Platz has escalators, and West Kowloon has a glass hall roof. Station Studio presets no longer inherit stale controls, locks or the previous planner seed. See `docs/STATION_PRESETS.md`.
 

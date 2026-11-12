@@ -131,6 +131,7 @@ abstract class PlanConcourse extends PlanHead {
 		if (spec.furniture()) {
 			concourseSeats(u0 + clearOfGallery + 1, u1 - clearOfGallery - 1, door, vL, gateV, b);
 		}
+		concourseHall(u0, u1, vL, vE, door, gateV, b);
 		// no MTR name board over the door (the entrance's own lettering names it) and no MTR tactile map, which plays music
 		// to anyone near it (Jah, 10-22)
 	}
@@ -452,5 +453,130 @@ abstract class PlanConcourse extends PlanHead {
 				}
 			}
 		}
+	}
+
+	/**
+	 * The paid side of a terminus concourse, as a hall: a pair of piers stands either side of the walk in from the platforms, with a lintel between them where the span is one a beam can cross.
+	 */
+	void concourseHall(int u0, int u1, int vL, int vE, int door, int gateV, StylePalette.Building b) {
+		final int half = headEntranceHalf();
+		final int flank = half + 2;
+		final int left = door - flank;
+		final int right = door + flank;
+		if (left <= u0 + 1 || right >= u1 - 1) {
+			return;
+		}
+		for (int v = vL + 4; v <= gateV - 3; v += StationGeometry.BAY) {
+			nave(left, right, v, LocalDir.PLUS_V, b.trim());
+		}
+	}
+
+	/**
+	 * Two piers and, when both stand and the cells between them are free, a trim lintel under the ceiling. One pier still
+	 * goes up when the other cannot.
+	 */
+	void nave(int u0, int u1, int v, LocalDir front, String blockId) {
+		if (u0 > u1) {
+			final int swap = u0;
+			u0 = u1;
+			u1 = swap;
+		}
+		final int cover = standingCover(u0, v);
+		final int other = standingCover(u1, v);
+		final int top = cover - 1;
+		final boolean span = cover >= 0 && cover == other && top - StationGeometry.WALK_Y >= StationGeometry.HEADROOM
+				&& u1 - u0 <= StationGeometry.MAX_BEAM_SPAN && shaftFree(u0, top, v) && shaftFree(u1, top, v)
+				&& lintelFree(u0 + 1, u1 - 1, top, v);
+		if (span) {
+			raisePier(u0, top, v, front, blockId);
+			raisePier(u1, top, v, front, blockId);
+			for (int u = u0 + 1; u < u1; u++) {
+				put(Role.WALL, u, top, v, front, blockId);
+			}
+			return;
+		}
+		pierUp(u0, v, front, blockId);
+		pierUp(u1, v, front, blockId);
+	}
+
+	/** True when every cell of a lintel under a ceiling is free, and the ceiling is still there to land on. */
+	boolean lintelFree(int u0, int u1, int y, int v) {
+		if (u0 > u1 || y - StationGeometry.WALK_Y < StationGeometry.HEADROOM) {
+			return false;
+		}
+		for (int u = u0; u <= u1; u++) {
+			if (taken(u, y, v)) {
+				return false;
+			}
+			final PlannedBlock over = at(u, y + 1, v);
+			if (over == null || !over.role().covers()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** A trim pier from the walk up to the ceiling, on a floor. False when the shaft is blocked or too low. */
+	boolean pierUp(int u, int v, LocalDir front, String blockId) {
+		final int cover = standingCover(u, v);
+		if (cover < 0) {
+			return false;
+		}
+		final int top = cover - 1;
+		if (top < StationGeometry.WALK_Y || top - StationGeometry.WALK_Y < StationGeometry.HEADROOM || !shaftFree(u, top, v)) {
+			return false;
+		}
+		raisePier(u, top, v, front, blockId);
+		return true;
+	}
+
+	/** Walls from the walk up to {@code top}. The caller has checked the shaft. */
+	void raisePier(int u, int top, int v, LocalDir front, String blockId) {
+		for (int y = StationGeometry.WALK_Y; y <= top; y++) {
+			put(Role.WALL, u, y, v, front, blockId);
+		}
+	}
+
+	/** True when the walk up to {@code top} is empty. */
+	boolean shaftFree(int u, int top, int v) {
+		return freeColumn(u, StationGeometry.WALK_Y, top, v);
+	}
+
+	/** The y of the first ceiling over a floor at (u, v), or -1 when the cell is not a floor or the shaft is blocked. */
+	int standingCover(int u, int v) {
+		final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, v);
+		if (floor == null || floor.role() != Role.FLOOR && !floor.role().platformFloor()) {
+			return -1;
+		}
+		return coverClear(u, StationGeometry.PLATFORM_Y, v);
+	}
+
+	/**
+	 * The y of the first block that covers (u, v) above {@code y}, when every cell between is empty and not kept clear.
+	 * -1 when a kept-clear cell, a non-covering block or the drop limit comes first. Unlike {@link #ceilingAbove}, air kept
+	 * clear for a stair counts as blocked, so a void does not look through a stair's headroom.
+	 */
+	int coverClear(int u, int y, int v) {
+		for (int h = y + 1; h <= y + MAX_DROP; h++) {
+			if (cleared(u, h, v)) {
+				return -1;
+			}
+			final PlannedBlock block = at(u, h, v);
+			if (block != null) {
+				return block.role().covers() ? h : -1;
+			}
+		}
+		return -1;
+	}
+
+	/** Swaps a plain floor tile for {@code blockId}. Stripes, ramps and plinth edges stay as they are. */
+	void retile(int u, int v, String blockId) {
+		final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, v);
+		if (floor == null || floor.role() != Role.FLOOR || !floor.blockId().equals(palette.building().floor())
+				|| floor.blockId().equals(blockId)) {
+			return;
+		}
+		cells.put(new Cell(u, StationGeometry.PLATFORM_Y, v), new PlannedBlock(u, StationGeometry.PLATFORM_Y, v, Role.FLOOR,
+				blockId, floor.front(), floor.text(), floor.state()));
 	}
 }

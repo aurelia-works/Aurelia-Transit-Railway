@@ -95,7 +95,9 @@ public final class StationPlanner {
 		planning.canopyRoofs();
 		planning.hallRoof();
 		planning.stairFeet();
+		// markers first: a door spot in front of a building doorway keeps its marker, and doorFeet only keeps free cells clear
 		planning.doorMarkers();
+		planning.doorFeet();
 		planning.canopyLamps();
 		planning.numberSigns();
 		planning.lamps();
@@ -117,6 +119,7 @@ public final class StationPlanner {
 		planning.liftButtons();
 		planning.entrances();
 		planning.concourseFit();
+		planning.wingRooms();
 		planning.endFences();
 		planning.pitEndFences();
 		planning.cornerPosts();
