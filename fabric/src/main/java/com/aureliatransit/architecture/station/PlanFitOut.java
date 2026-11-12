@@ -598,7 +598,7 @@ abstract class PlanFitOut extends PlanLandmark {
 		cells.remove(new Cell(u, StationGeometry.UPPER_FLOOR_Y, v));
 		// and the hall's hung ceiling under it
 		final PlannedBlock hung = at(u, StationGeometry.UPPER_FLOOR_Y - 1, v);
-		if (hung != null && (hung.role() == Role.BUILDING_ROOF || hung.role() == Role.ROOF_LIGHT)) {
+		if (hung != null && (hung.role() == Role.BUILDING_ROOF || hung.role() == Role.LIGHT_PANEL)) {
 			cells.remove(new Cell(u, StationGeometry.UPPER_FLOOR_Y - 1, v));
 		}
 		keepClear(u, StationGeometry.UPPER_WALK_Y, v);

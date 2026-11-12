@@ -487,7 +487,7 @@ abstract class PlanFurniture extends PlanRoofs {
 					continue;
 				}
 				if (PlanBuilding.ceilingLight(u - uOrigin, v - vOrigin)) {
-					put(Role.ROOF_LIGHT, u, y, v, LocalDir.PLUS_V, light);
+					put(Role.LIGHT_PANEL, u, y, v, LocalDir.PLUS_V, light);
 				} else {
 					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, HALL_CEILING);
 				}
