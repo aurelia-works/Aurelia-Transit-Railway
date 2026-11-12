@@ -120,6 +120,7 @@ public final class StationPlanner {
 		planning.pitEndFences();
 		planning.cornerPosts();
 		planning.parking();
+		planning.busStation();
 		planning.underground();
 		planning.shoulders();
 		planning.stationSquare();

@@ -976,7 +976,7 @@ public final class StationDescriptionParser {
 
 		private void scan(int i) {
 			final String token = tokens[i];
-			if (negation(i) || entranceWords(i) || deepWords(i) || number(i) || gateWords(i) || openFareLine(i) || phrase(i)) {
+			if (negation(i) || entranceWords(i) || deepWords(i) || number(i) || gateWords(i) || openFareLine(i) || busStation(i) || phrase(i)) {
 				return;
 			}
 			keyword(i, token);
@@ -1128,6 +1128,22 @@ public final class StationDescriptionParser {
 			options = options.withGates(style);
 			note(i, style == StationOptions.GateStyle.MTR ? "MTR's own ticket barriers in the gate lines (entry and exit lanes)"
 					: "ATA's two-way fare gates in the gate lines");
+			return true;
+		}
+
+		/** "bus station", "bus interchange", "bus bays", "busstation": bus bays with shelters in front of the entrance. */
+		private boolean busStation(int i) {
+			final int j;
+			if (tokens[i].equals("busstation")) {
+				j = i;
+			} else if (tokens[i].equals("bus") && (at(i + 1).equals("station") || at(i + 1).equals("interchange") || at(i + 1).equals("bays"))) {
+				j = i + 1;
+			} else {
+				return false;
+			}
+			use(i, j);
+			options = options.withBusStation(true);
+			note(i, "a bus station: lettered bays with shelters and departure boards in front of the entrance");
 			return true;
 		}
 
