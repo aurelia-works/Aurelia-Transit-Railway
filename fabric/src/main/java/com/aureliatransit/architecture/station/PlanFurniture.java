@@ -184,6 +184,74 @@ abstract class PlanFurniture extends PlanRoofs {
 		return true;
 	}
 
+	/** Rows from a car's front to the middle of each of its doors: two doors a side, at the quarter points. */
+	static final int[] CAR_DOORS = {StationGeometry.CAR_LENGTH / 4, StationGeometry.CAR_LENGTH * 3 / 4};
+	/** How many rows a door marker covers: a door is about two blocks wide. */
+	static final int DOOR_MARKER_WIDTH = 2;
+	static final String BOARDING_MARKER = "aurelia_transit_architecture:boarding_marker";
+
+	/**
+	 * Door markers on the platform floor, one row in from the edge, where the doors of the longest train the platform takes
+	 * stop (Jah, 11-11: DM). MTR stops a train with its front at the end of the platform, so the doors are counted from each
+	 * end a train can arrive at, or only the far end where the track runs on to a buffer stop; on a platform a whole number of
+	 * cars long both counts fall on the same rows. The door nearest the middle of the platform is the accessible boarding
+	 * point. Planned before the benches and signs, so the door spots stay clear.
+	 */
+	void doorMarkers() {
+		if (!spec.furniture() || !spec.features().doorMarkers()) {
+			return;
+		}
+		for (final TrackLayout.Track track : layout.tracks()) {
+			final TrackLayout.PlatformBand band = layout.platformOf(track);
+			if (band == null) {
+				continue;
+			}
+			final boolean left = band.trackLeft() && band.uMin() - StationGeometry.EDGE_OFFSET == track.u();
+			final int u = left ? band.uMin() + 1 : band.uMax() - 1;
+			if (u < band.uMin() || u > band.uMax() || isEdge(band, u)) {
+				continue;
+			}
+			final java.util.TreeSet<Integer> doors = doorRows(band, layout.buffered(track));
+			final int middle = (band.vFrom() + band.vTo()) / 2;
+			if (doors.isEmpty()) {
+				continue;
+			}
+			int accessible = doors.first();
+			for (final int v : doors) {
+				if (Math.abs(v - middle) < Math.abs(accessible - middle)) {
+					accessible = v;
+				}
+			}
+			final LocalDir toTrack = left ? LocalDir.MINUS_U : LocalDir.PLUS_U;
+			for (final int v : doors) {
+				final String state = "marker=" + (v == accessible ? "accessible" : "door");
+				for (int w = v - DOOR_MARKER_WIDTH / 2; w < v - DOOR_MARKER_WIDTH / 2 + DOOR_MARKER_WIDTH; w++) {
+					final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, w);
+					if (band.runs(w) && floor != null && floor.role().platformFloor() && !taken(u, StationGeometry.WALK_Y, w)) {
+						put(Role.FIXTURE, u, StationGeometry.WALK_Y, w, toTrack, BOARDING_MARKER, state);
+					}
+				}
+			}
+		}
+	}
+
+	/** The rows of the door middles of a train as long as whole cars allow, counted from the end it stops at. */
+	static java.util.TreeSet<Integer> doorRows(TrackLayout.PlatformBand band, boolean buffered) {
+		final int cars = Math.max(1, band.length() / StationGeometry.CAR_LENGTH);
+		final java.util.TreeSet<Integer> doors = new java.util.TreeSet<>();
+		for (int car = 0; car < cars; car++) {
+			for (final int door : CAR_DOORS) {
+				// arriving towards +v, its front at the platform's last row
+				doors.add(band.vTo() - car * StationGeometry.CAR_LENGTH - door);
+				if (!buffered) {
+					// arriving towards -v, its front at the first row
+					doors.add(band.vFrom() + car * StationGeometry.CAR_LENGTH + door);
+				}
+			}
+		}
+		return new java.util.TreeSet<>(doors.subSet(band.vFrom(), true, band.vTo(), true));
+	}
+
 	void benchesAndBins() {
 		if (!spec.furniture()) {
 			return;
