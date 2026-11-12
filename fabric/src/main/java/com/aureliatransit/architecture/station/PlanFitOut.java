@@ -208,7 +208,7 @@ abstract class PlanFitOut extends PlanLandmark {
 
 	/**
 	 * Every street entrance, the side building's and the terminus head's: the street front glazed from the plinth to the
-	 * roof, a glass bay over the doorway between trim posts, a canopy out over the ramps and the paved forecourt with posts
+	 * roof, a glass bay over the doorway between trim posts, a canopy out over the ramps and the forecourt with posts
 	 * under its outer corners, rails beside the ramps, bollards along the kerb, the station's name on the wall over the
 	 * canopy and again under its front edge, and an entrance pylon beside the ramps. A real station's own front (its landmark
 	 * sheet) keeps its walls. The side building's concourse is opened into a hall afterwards.
@@ -236,7 +236,6 @@ abstract class PlanFitOut extends PlanLandmark {
 		final LocalDir out = f.dir(PlanLandmark.Dir.OUT);
 		final int door = StationGeometry.DOOR_HEIGHT;
 		final int wide = half + 1 + Math.max(CANOPY_WING, half);
-		forecourt(f, x0, wide, out);
 		if (!sheet) {
 			glassBay(f, x0, half, wide, b, out);
 			shopfront(f, x0, half, b, out);
@@ -266,6 +265,7 @@ abstract class PlanFitOut extends PlanLandmark {
 			}
 		}
 		porch(f, x0, half, wide, b, out);
+		forecourt(f, x0, wide, out);
 		// the name, over the canopy
 		if (!spec.name().isEmpty()) {
 			for (int x = x0 - half; x <= x0 + half; x++) {
@@ -310,7 +310,7 @@ abstract class PlanFitOut extends PlanLandmark {
 		}
 	}
 
-	/** How far either side of the doorway the forecourt is paved, past the canopy posts. */
+	/** How far either side of the doorway the forecourt has bollards, past the canopy posts. */
 	static final int FORECOURT_REACH = 6;
 	/** Cells between the forecourt's bollards. */
 	static final int BOLLARD_PITCH = 3;
@@ -318,45 +318,26 @@ abstract class PlanFitOut extends PlanLandmark {
 	static final int CANOPY_WING = 2;
 
 	/**
-	 * The paved forecourt past the ramps (z = -RAMP_LENGTH-1 .. -APRON, at grade): light paving with a dark kerb row at the
-	 * street edge and bollards along that edge beside the canopy.
+	 * The forecourt past the ramps (z = -RAMP_LENGTH-1 .. -APRON): the street's own ground, left as it is (paving it would dig
+	 * up the player's ground), with bollards along its street edge beside the canopy. Placed after the porch, so the canopy
+	 * posts keep their plinths.
 	 */
 	private void forecourt(Front f, int x0, int wide, LocalDir out) {
-		final int near = -StationGeometry.RAMP_LENGTH - 1;
 		final int far = -StationGeometry.APRON;
 		final int reach = wide + FORECOURT_REACH;
 		for (int x = x0 - reach; x <= x0 + reach; x++) {
-			for (int z = near; z >= far; z--) {
-				if (!inside(f, x, z) || !taken(f.u(x, 0), 1, f.v(x, 0)) && Math.abs(x - x0) > wide) {
-					// off the site, or past the end of the building's front
-					continue;
-				}
-				final int u = f.u(x, z);
-				final int v = f.v(x, z);
-				if (taken(u, StationGeometry.PLATFORM_Y, v)) {
-					continue;
-				}
-				put(Role.FLOOR, u, StationGeometry.PLATFORM_Y - 1, v, out, z == far ? Planning.LOT_MARK : Planning.LOT_PAVING);
+			// bollards along the kerb beside the canopy, the way in under it left open
+			if (Math.abs(x - x0) <= wide || Math.floorMod(x - x0, BOLLARD_PITCH) != 0 || !inside(f, x, far)
+					|| !taken(f.u(x, 0), 1, f.v(x, 0))) {
+				// the way in, between bollards, off the site, or past the end of the building's front
+				continue;
 			}
-			if (Math.abs(x - x0) > wide && Math.floorMod(x - x0, BOLLARD_PITCH) == 0) {
-				// bollards along the kerb beside the canopy, the way in under it left open
-				stand(f, x, far, out, Planning.LOT_BOLLARD, Role.FIXTURE);
+			final int u = f.u(x, far);
+			final int v = f.v(x, far);
+			if (!taken(u, StationGeometry.PLATFORM_Y, v) && !taken(u, StationGeometry.WALK_Y, v)) {
+				put(Role.FIXTURE, u, StationGeometry.PLATFORM_Y, v, out, Planning.LOT_BOLLARD);
 			}
 		}
-	}
-
-	/** One forecourt fitting on the paving, when the cell and the two over it are free. */
-	private void stand(Front f, int x, int z, LocalDir out, String blockId, Role role) {
-		if (!inside(f, x, z)) {
-			return;
-		}
-		final int u = f.u(x, z);
-		final int v = f.v(x, z);
-		final PlannedBlock ground = at(u, StationGeometry.PLATFORM_Y - 1, v);
-		if (ground == null || ground.role() != Role.FLOOR || taken(u, StationGeometry.PLATFORM_Y, v) || taken(u, StationGeometry.WALK_Y, v)) {
-			return;
-		}
-		put(role, u, StationGeometry.PLATFORM_Y, v, out, blockId);
 	}
 
 	/**

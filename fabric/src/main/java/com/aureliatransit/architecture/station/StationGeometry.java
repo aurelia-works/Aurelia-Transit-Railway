@@ -83,7 +83,7 @@ public final class StationGeometry {
 	/** Ramp cells beyond each platform end for step-free access (lower half, upper half). */
 	public static final int RAMP_LENGTH = 2;
 
-	/** A paved forecourt in front of a station entrance's ramps, under the street canopy. */
+	/** A forecourt in front of a station entrance's ramps, under the street canopy. */
 	public static final int ENTRANCE_FORECOURT = 3;
 	/** Station building: entrance apron (the entrance ramp's two cells and the forecourt past them) on the street side ... */
 	public static final int APRON = RAMP_LENGTH + ENTRANCE_FORECOURT;
@@ -133,7 +133,7 @@ public final class StationGeometry {
 	public static int forecourtDepth(StationSpec spec) {
 		return !spec.terminus() ? 0 : spec.hub() ? FORECOURT_DEPTH : spec.parking() ? TERMINUS_FORECOURT_DEPTH : 0;
 	}
-	/** Entrance ramps and the paved forecourt outside a terminus head building's street wall. */
+	/** Entrance ramps and the forecourt outside a terminus head building's street wall. */
 	public static final int HEAD_APRON = RAMP_LENGTH + ENTRANCE_FORECOURT;
 	/** Narrowest island with a two-column stair and room for a lift beside the walkway. */
 	public static final int MIN_LIFT_ISLAND_WIDTH = 6;
