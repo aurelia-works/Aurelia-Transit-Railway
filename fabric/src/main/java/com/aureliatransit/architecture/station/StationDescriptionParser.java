@@ -976,7 +976,7 @@ public final class StationDescriptionParser {
 
 		private void scan(int i) {
 			final String token = tokens[i];
-			if (negation(i) || entranceWords(i) || deepWords(i) || number(i) || gateWords(i) || openFareLine(i) || phrase(i)) {
+			if (negation(i) || entranceWords(i) || deepWords(i) || number(i) || gateWords(i) || openFareLine(i) || busStation(i) || phrase(i)) {
 				return;
 			}
 			keyword(i, token);
@@ -1131,6 +1131,22 @@ public final class StationDescriptionParser {
 			return true;
 		}
 
+		/** "bus station", "bus interchange", "bus bays", "busstation": bus bays with shelters in front of the entrance. */
+		private boolean busStation(int i) {
+			final int j;
+			if (tokens[i].equals("busstation")) {
+				j = i;
+			} else if (tokens[i].equals("bus") && (at(i + 1).equals("station") || at(i + 1).equals("interchange") || at(i + 1).equals("bays"))) {
+				j = i + 1;
+			} else {
+				return false;
+			}
+			use(i, j);
+			options = options.withBusStation(true);
+			note(i, "a bus station: lettered bays with shelters and departure boards in front of the entrance");
+			return true;
+		}
+
 		/** "open fare line", "open check-in": the check-in poles stand without lanes, so anyone walks past them. */
 		private boolean openFareLine(int i) {
 			if (!tokens[i].equals("open")) {
@@ -1180,6 +1196,12 @@ public final class StationDescriptionParser {
 						|| (word.equals("bike") || word.equals("cycle") || word.equals("bicycle")) && at(j + 1).equals("parking")) {
 					features = features.withSquare(false);
 					note(i, "no station square");
+				} else if (word.equals("markers") || word.equals("door") && at(j + 1).equals("markers")) {
+					features = features.withDoorMarkers(false);
+					note(i, "no door markers on the platforms");
+					if (word.equals("door")) {
+						j++;
+					}
 				} else if (word.equals("lines") || word.equals("line") && at(j + 1).equals("lines")) {
 					features = features.withEdgeLines(false);
 					note(i, "no white platform edge lines");

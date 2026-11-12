@@ -53,6 +53,8 @@
 		q.overheadLine = $("overheadLine").checked ? "1" : "0";
 		q.fence = $("fence").checked ? "1" : "0";
 		q.square = $("square").checked ? "1" : "0";
+		q.doorMarkers = $("doorMarkers").checked ? "1" : "0";
+		q.busStation = $("busStation").checked ? "1" : "0";
 		// fields from a station file this page has no control for (the game editor's drawn tracks) go along unchanged
 		for (const [k, v] of Object.entries(carried)) {
 			if (q[k] === undefined) {
@@ -116,6 +118,12 @@
 		}
 		if (saved.square !== undefined) {
 			$("square").checked = saved.square !== "0";
+		}
+		if (saved.doorMarkers !== undefined) {
+			$("doorMarkers").checked = saved.doorMarkers !== "0";
+		}
+		if (saved.busStation !== undefined) {
+			$("busStation").checked = saved.busStation === "1";
 		}
 		carried = Object.assign({}, saved.carried);
 		for (const f of saved.touched || (saved.pinned || "").split(",")) {
@@ -1075,6 +1083,10 @@
 				changed();
 			});
 		}
+		// a dev-panel switch re-plans at once, like any other control
+		for (const s of SWITCHES) {
+			$(s).addEventListener("change", changed);
+		}
 		$("copyCmd").addEventListener("click", () => {
 			if (!current) {
 				return;
@@ -1096,7 +1108,7 @@
 
 	// ---- station files (shared with the game's station editor) -----------------------------------------------------------
 
-	const SWITCHES = ["cctv", "edgeLines", "overheadLine", "fence", "square"];
+	const SWITCHES = ["cctv", "edgeLines", "overheadLine", "fence", "square", "doorMarkers", "busStation"];
 	const OWN = new Set(fields.concat(SWITCHES, ["pinned", "rolled", "seed", "page"]).map((f) => f.toLowerCase()));
 
 	// A station file's form (field names lower case, as the server reads them) in the shape remember() keeps, for restore().
@@ -1720,7 +1732,11 @@
 				let elementTurn = null;
 				if (el.rot) {
 					const o = el.rot.origin.length === 3 ? el.rot.origin : [8, 8, 8];
+					// "rescale" stretches the two axes across the rotation by 1 / cos(angle), as the game does, so a 45-degree
+					// panel still spans the block corner to corner (MTR's escalator underside)
+					const s = el.rot.rescale ? 1 / Math.cos(el.rot.angle * Math.PI / 180) : 1;
 					elementTurn = new THREE.Matrix4().makeTranslation(o[0], o[1], o[2])
+						.multiply(new THREE.Matrix4().makeScale(el.rot.axis === "x" ? 1 : s, el.rot.axis === "y" ? 1 : s, el.rot.axis === "z" ? 1 : s))
 						.multiply(new THREE.Matrix4().makeRotationAxis(AXES[el.rot.axis] || AXES.y, el.rot.angle * Math.PI / 180))
 						.multiply(new THREE.Matrix4().makeTranslation(-o[0], -o[1], -o[2]));
 				}
