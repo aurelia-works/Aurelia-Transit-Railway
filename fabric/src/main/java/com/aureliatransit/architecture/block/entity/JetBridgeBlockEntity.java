@@ -7,6 +7,7 @@ import com.aureliatransit.architecture.registry.ModBlockEntities;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 
 import java.util.List;
 
@@ -17,6 +18,8 @@ import java.util.List;
 public class JetBridgeBlockEntity extends BlockEntity {
 
 	private float extension;
+	/** How far the cab runs out at full extension; kept while it pulls back, so it retracts along the same path. */
+	private float travel;
 	private long lastAdvance = Long.MIN_VALUE;
 
 	public JetBridgeBlockEntity(BlockPos pos, BlockState state) {
@@ -25,6 +28,11 @@ public class JetBridgeBlockEntity extends BlockEntity {
 
 	public float extension() {
 		return extension;
+	}
+
+	/** Blocks the cab has run out of the block's face now. */
+	public float reach() {
+		return extension * travel;
 	}
 
 	/**
@@ -45,6 +53,11 @@ public class JetBridgeBlockEntity extends BlockEntity {
 	/** One step toward the airplanes in {@code samples}. Game tests call this without a client. */
 	public void drive(List<AircraftSample> samples) {
 		final BlockPos at = getPos();
-		extension = JetBridgeMotion.step(extension, JetBridgeMotion.wants(at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5, samples));
+		final Direction facing = getCachedState().contains(JetBridgeBlock.FACING) ? getCachedState().get(JetBridgeBlock.FACING) : Direction.NORTH;
+		final double target = JetBridgeMotion.travel(at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5, facing.getOffsetX(), facing.getOffsetZ(), samples);
+		if (target >= 0) {
+			travel = (float) target;
+		}
+		extension = JetBridgeMotion.step(extension, target >= 0);
 	}
 }

@@ -39,9 +39,13 @@ public final class AirportRails {
 	public record AirRail(Kind kind, int gate, Pos from, Pos via, Pos to, Dir startDir, Dir endDir) {
 	}
 
-	/** The rails of every gate's loop at the frame's ground level. */
+	/**
+	 * The rails of every gate's loop on top of the pavement. MTR stands a plane's wheels on its rail, so a rail in the pavement
+	 * block (the old {@code PLATFORM_Y}) sank every plane a block into the apron; MTR draws airplane rails only while a rail
+	 * tool is held, so nothing shows on the pavement.
+	 */
 	public static List<AirRail> of(AirportRoute route, LocalFrame frame) {
-		final int y = frame.y(StationGeometry.PLATFORM_Y);
+		final int y = frame.y(StationGeometry.WALK_Y);
 		final List<AirRail> rails = new ArrayList<>();
 		for (final AirportRoute.Gate gate : route.gates()) {
 			for (final Chunk chunk : chunks(gate)) {

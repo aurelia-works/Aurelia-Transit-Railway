@@ -21,20 +21,38 @@ public final class JetBridgeMotion {
 	private JetBridgeMotion() {
 	}
 
-	public static boolean wants(double x, double y, double z, List<AircraftSample> aircraft) {
+	/** Blocks from a plane's head (MTR's car front) back to the middle of its forward door: MTR's A320 model, 19 pixels. */
+	public static final double DOOR_BEHIND_HEAD = 1.2;
+	/** The cab's depth: three blocks, so its middle is 1.5 past where it leaves the bridge block's face. */
+	public static final double CAB_DEPTH = 3;
+	/** The furthest the telescoping section runs out. */
+	public static final double MAX_TRAVEL = 12;
+
+	/**
+	 * How far the cab must run out of the bridge block (centre at x, y, z) along its facing (fx, fz, a unit step) to stop beside
+	 * the forward door of the nearest stopped plane with open doors, or a negative number when no plane is docking. The plane
+	 * points its nose at the terminal, against the facing, so its door is {@link #DOOR_BEHIND_HEAD} further out than its head.
+	 */
+	public static double travel(double x, double y, double z, int fx, int fz, List<AircraftSample> aircraft) {
 		if (aircraft == null) {
-			return false;
+			return -1;
 		}
+		double best = -1;
+		double nearest = Double.MAX_VALUE;
 		for (final AircraftSample sample : aircraft) {
 			if (!sample.airplane() || sample.moving() || sample.doorValue() <= 0) {
 				continue;
 			}
 			final double distance = Math.max(Math.abs(sample.x() - x), Math.max(Math.abs(sample.y() - y), Math.abs(sample.z() - z)));
-			if (distance <= REACH) {
-				return true;
+			if (distance > REACH || distance >= nearest) {
+				continue;
 			}
+			nearest = distance;
+			final double door = (sample.x() - x) * fx + (sample.z() - z) * fz + DOOR_BEHIND_HEAD;
+			// the block's face is half a block out from its centre; the cab's middle is half its depth past that
+			best = Math.max(0, Math.min(MAX_TRAVEL, door - 0.5 - CAB_DEPTH / 2));
 		}
-		return false;
+		return best;
 	}
 
 	/** Moves {@code current} one step toward 1 when {@code extend} is set, and toward 0 otherwise. Both ends clamp. */
