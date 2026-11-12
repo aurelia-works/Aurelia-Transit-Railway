@@ -27,15 +27,14 @@ class WayfindingSignsTest {
 		for (final String words : new String[]{"4 tracks island, 96 long, station building, footbridge", "3 tracks, 80 long, city class",
 				"2 tracks side platforms, 64 long, footbridge", "6 tracks island, 120 long, grand class"}) {
 			final StationPlan plan = plan(words);
-			// the corridor's signs, not the hall's "Trains" signs over its gate line, which use the same plate
-			final List<PlannedBlock> signs = plan.blocks().stream()
-					.filter(b -> b.blockId().equals(SIGN) && b.y() == StationGeometry.BUILDING_ROOF_Y - 1).toList();
+			final List<PlannedBlock> signs = plan.blocks().stream().filter(b -> b.blockId().equals(SIGN)).toList();
 			assertTrue(!signs.isEmpty(), words);
 			// one sign per platform on each bridge (a long station has a second one at the far end)
 			final Set<String> texts = signs.stream().map(b -> b.v() + " " + b.text()).collect(Collectors.toSet());
 			assertEquals(signs.size(), texts.size(), words + ": one sign per platform and bridge");
 			for (final PlannedBlock sign : signs) {
 				assertTrue(sign.text().matches("DOWN:Platforms? \\d+(–\\d+)?"), words + ": " + sign.text());
+				assertEquals(StationGeometry.BUILDING_ROOF_Y - 1, sign.y(), words + ": hung at the top of the corridor");
 				// the walkway under it keeps its headroom
 				for (int y = StationGeometry.UPPER_WALK_Y; y < sign.y(); y++) {
 					final int h = y;

@@ -408,7 +408,7 @@ abstract class PlanFurniture extends PlanRoofs {
 			seatRow(uGate, uP, vS, vE, vEntr, b);
 		}
 		if (spec.furniture()) {
-			hallDressing(uS, uP, vS, vE, vEntr, h, uGate, b);
+			hallDressing(uS, uP, vS, vE, vEntr, uGate, b);
 		}
 		// clock above the entrance, facing into the hall
 		put(Role.FIXTURE, uS + 1, 4, vEntr, LocalDir.PLUS_U, "aurelia_transit_architecture:wall_digital_clock");
@@ -429,11 +429,10 @@ abstract class PlanFurniture extends PlanRoofs {
 	/**
 	 * What a real hall has past its counters and gates (Utrecht and Rotterdam Centraal): a timber slat ceiling hung under the
 	 * slab with lines of light in it, poster cases at eye height along the solid walls, and "Trains" departure boards hung
-	 * over the walk from the door, and "Trains" signs over the gate line either side of its boards.
+	 * over the walk from the door.
 	 */
-	void hallDressing(int uS, int uP, int vS, int vE, int vEntr, int h, int uGate, StylePalette.Building b) {
+	void hallDressing(int uS, int uP, int vS, int vE, int vEntr, int uGate, StylePalette.Building b) {
 		hallCeiling(uS + 1, uP - 1, vS + 1, vE - 1, uS, vS);
-		// signs over the walk in, and over the gate line clear of the boards
 		final int sign = StationGeometry.UPPER_FLOOR_Y - 2;
 		// a bank of departure boards hung over the walk, facing the door (Utrecht Centraal's hall). The street end of the walk
 		// is opened to the double height afterwards (`sideHall`), which takes the ceiling over it: the bank hangs past that
@@ -448,11 +447,6 @@ abstract class PlanFurniture extends PlanRoofs {
 		for (int v = vEntr - 1; v <= vEntr + 1 && hung; v++) {
 			put(Role.FIXTURE, boardU, sign, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
 			put(Role.FIXTURE, boardU, sign - 1, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
-		}
-		for (final int v : new int[]{vEntr - h - 3, vEntr + h + 3}) {
-			if (v > vS && v < vE && taken(uGate, sign + 1, v)) {
-				putText(Role.FIXTURE, uGate, sign, v, LocalDir.MINUS_U, HANGING_SIGN, "UP:Trains");
-			}
 		}
 		// poster cases on the solid walls, not beside a doorway or a window
 		final int y = StationGeometry.WALK_Y + 1;
