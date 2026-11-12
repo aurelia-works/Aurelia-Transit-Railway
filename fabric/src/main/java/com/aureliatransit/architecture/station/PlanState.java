@@ -303,6 +303,15 @@ abstract class PlanState {
 		return true;
 	}
 
+	/** Relays a floor cell that is already laid in another finish (a guidance line, a threshold): same cell, new block. */
+	void refloor(int u, int y, int v, LocalDir front, String blockId) {
+		final Cell cell = new Cell(u, y, v);
+		final PlannedBlock old = cells.get(cell);
+		if (old != null && old.role() == Role.FLOOR) {
+			cells.put(cell, new PlannedBlock(u, y, v, Role.FLOOR, blockId, front, old.text(), ""));
+		}
+	}
+
 	/** Records a rule's block losing its cell to an earlier rule. */
 	void skip(Role role, String blockId, Cell cell) {
 		skippedByBlock.merge(blockId, 1, Integer::sum);

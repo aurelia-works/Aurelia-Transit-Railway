@@ -371,6 +371,16 @@ abstract class PlanFurniture extends PlanRoofs {
 				}
 			}
 		}
+		// a dark header across the hall over the gate line, the boards in its middle: the line reads as a threshold, not a row
+		// of cabinets in an open floor
+		for (int v = vS + 1; v <= vE - 1; v++) {
+			put(Role.WALL, uGate, StationGeometry.UPPER_FLOOR_Y - 1, v, LocalDir.MINUS_U, b.cornice());
+		}
+		// a guidance line in the floor from the street door to the wide gate, a warning tile where it meets the gate
+		for (int u = uS + 1; u < uGate - 1; u++) {
+			refloor(u, StationGeometry.PLATFORM_Y, vEntr, LocalDir.PLUS_U, "aurelia_transit_architecture:tactile_guidance_paving");
+		}
+		refloor(uGate - 1, StationGeometry.PLATFORM_Y, vEntr, LocalDir.PLUS_U, "aurelia_transit_architecture:tactile_warning_paving");
 		int shop = 0;
 		for (final HallZones.Unit unit : zones.units()) {
 			final int y = StationGeometry.WALK_Y;

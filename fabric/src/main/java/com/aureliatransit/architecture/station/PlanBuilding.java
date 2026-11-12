@@ -38,6 +38,17 @@ abstract class PlanBuilding extends PlanPlatforms {
 		return scale == StationScale.GRAND && wingBays >= 2 && pavilionCap(spec.building()) != null;
 	}
 
+	/** The dark course round a hall's floor. */
+	static final String FLOOR_BORDER = "aurelia_transit_architecture:metro_granite_floor";
+
+	/**
+	 * Whether a hall ceiling cell, counted from the building's street corner, is a light: lines of light along the hall every
+	 * fourth row, broken at each bay line, rather than single panels dotted over the whole ceiling.
+	 */
+	static boolean ceilingLight(int du, int dv) {
+		return du % 4 == 2 && dv % StationGeometry.BAY != 0;
+	}
+
 	/**
 	 * The station building shell beside the tracks: floor, entrance ramps, perimeter walls with pilasters and windows,
 	 * the band and upper slab with lights, the flat roof with a cornice parapet, the street entrance and platform
@@ -123,7 +134,9 @@ abstract class PlanBuilding extends PlanPlatforms {
 			for (int v = vS; v <= vE; v++) {
 				// the plinth under the walls, so the patterned floor does not show as a band along the base
 				final boolean edge = u == uS || u == uP || v == vS || v == vE;
-				put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V, edge ? b.plinth() : b.floor());
+				// a dark course round the hall, one cell in from its walls, as a stone floor has at its edge
+				final boolean border = !edge && (u == uS + 1 || u == uP - 1 || v == vS + 1 || v == vE - 1);
+				put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V, edge ? b.plinth() : border ? FLOOR_BORDER : b.floor());
 			}
 		}
 		// the ramps against the wall; the forecourt past them is paved in entrances()
@@ -207,7 +220,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 		final Set<Cell> moved = new HashSet<>();
 		for (int u = uA; u <= uB; u++) {
 			for (int v = wellMin; v <= wellMax; v++) {
-				if ((u + v) % 4 != 0) {
+				if (!ceilingLight(u - uS, v - vS)) {
 					continue;
 				}
 				for (final int[] c : new int[][]{{uA - 1, v}, {uB + 1, v}, {u, wellMin - 1}, {u, wellMax + 1}}) {
@@ -224,7 +237,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 				if (u >= uA && u <= uB && v >= wellMin && v <= wellMax) {
 					continue;
 				}
-				if ((u + v) % 4 == 0 || moved.contains(new Cell(u, StationGeometry.UPPER_FLOOR_Y, v))) {
+				if (ceilingLight(u - uS, v - vS) || moved.contains(new Cell(u, StationGeometry.UPPER_FLOOR_Y, v))) {
 					put(Role.LIGHT_PANEL, u, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.PLUS_V, b.light());
 				} else {
 					put(Role.FLOOR, u, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.PLUS_V, b.upperFloor());
