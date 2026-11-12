@@ -83,8 +83,11 @@ public final class StationGeometry {
 	/** Ramp cells beyond each platform end for step-free access (lower half, upper half). */
 	public static final int RAMP_LENGTH = 2;
 
-	/** A forecourt in front of a station entrance's ramps, under the street canopy. */
-	public static final int ENTRANCE_FORECOURT = 3;
+	/**
+	 * A forecourt in front of a station entrance's ramps, under the street canopy. 0 for now: inside the footprint it has to
+	 * be paved, and paving one block down replaces the player's ground (a site issue on any flat site).
+	 */
+	public static final int ENTRANCE_FORECOURT = 0;
 	/** Station building: entrance apron (the entrance ramp's two cells and the forecourt past them) on the street side ... */
 	public static final int APRON = RAMP_LENGTH + ENTRANCE_FORECOURT;
 	/** A car park in front of a station building's street wall: its depth across u (a kerb, two runs of bays and a central aisle). */

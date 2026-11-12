@@ -279,11 +279,11 @@ abstract class PlanFitOut extends PlanLandmark {
 			// the pylon right beside the canopy's end, its faces to the street, on a paved footing (Jah, 10-22: it stood a
 			// cell further off and turned along the wall)
 			final int x = x0 + wide + 1;
-			final int z = -StationGeometry.RAMP_LENGTH - 1;
+			final int z = -Math.min(StationGeometry.APRON, StationGeometry.RAMP_LENGTH + 1);
 			final int u = f.u(x, z);
 			final int v = f.v(x, z);
 			if (inside(f, x, z) && !taken(u, StationGeometry.PLATFORM_Y, v) && !taken(u, 1, v) && !taken(u, 2, v)) {
-				put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, out, b.plinth());
+				footing(u, v, out, b);
 				putText(Role.FIXTURE, u, 1, v, out, PlanUnderground.PYLON, "NONE:" + spec.name());
 				put(Role.FIXTURE, u, 2, v, out, PlanUnderground.PYLON, "half=upper");
 			}
@@ -335,7 +335,9 @@ abstract class PlanFitOut extends PlanLandmark {
 			final int u = f.u(x, far);
 			final int v = f.v(x, far);
 			if (!taken(u, StationGeometry.PLATFORM_Y, v) && !taken(u, StationGeometry.WALK_Y, v)) {
-				put(Role.FIXTURE, u, StationGeometry.PLATFORM_Y, v, out, Planning.LOT_BOLLARD);
+				if (put(Role.FIXTURE, u, StationGeometry.PLATFORM_Y, v, out, Planning.LOT_BOLLARD)) {
+					extraSupport.add(new Box(u, -1, v, u, -1, v));
+				}
 			}
 		}
 	}
@@ -430,6 +432,18 @@ abstract class PlanFitOut extends PlanLandmark {
 		}
 	}
 
+	/**
+	 * A plinth on the street's ground for something standing out past the building's own footing (a canopy post, a ramp rail,
+	 * the pylon), with its cell of support so the build grounds it; false when the cell is taken.
+	 */
+	private boolean footing(int u, int v, LocalDir out, StylePalette.Building b) {
+		if (taken(u, StationGeometry.PLATFORM_Y, v) || !put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, out, b.plinth())) {
+			return false;
+		}
+		extraSupport.add(new Box(u, -1, v, u, -1, v));
+		return true;
+	}
+
 	/** A frame post on a plinth under the canopy, or false when the cell is off the site, a ramp, or already built on. */
 	private boolean canopyPost(Front f, int x, int z, StylePalette.Building b, LocalDir out) {
 		if (!inside(f, x, z)) {
@@ -439,7 +453,7 @@ abstract class PlanFitOut extends PlanLandmark {
 		final int v = f.v(x, z);
 		final PlannedBlock ground = at(u, StationGeometry.PLATFORM_Y, v);
 		if (ground == null) {
-			if (taken(u, StationGeometry.PLATFORM_Y, v) || !put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, out, b.plinth())) {
+			if (!footing(u, v, out, b)) {
 				return false;
 			}
 		} else if (ground.role() != Role.FLOOR && !ground.role().platformFloor()) {
@@ -467,7 +481,7 @@ abstract class PlanFitOut extends PlanLandmark {
 		final int v = f.v(x, z);
 		final PlannedBlock ground = at(u, StationGeometry.PLATFORM_Y, v);
 		if (ground == null) {
-			if (taken(u, StationGeometry.PLATFORM_Y, v) || !put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, out, b.plinth())) {
+			if (!footing(u, v, out, b)) {
 				return;
 			}
 		} else if (ground.role() != Role.FLOOR && !ground.role().platformFloor()) {
