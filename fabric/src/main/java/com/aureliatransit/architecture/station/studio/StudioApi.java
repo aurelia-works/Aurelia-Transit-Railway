@@ -345,7 +345,7 @@ public final class StudioApi {
 		features = features.withOverheadLine(!"0".equals(q.get("overheadLine")));
 		features = features.withFence(!"0".equals(q.get("fence")));
 		features = features.withSquare(!"0".equals(q.get("square")));
-		features = features.withDoorMarkers(!"0".equals(q.get("doorMarkers")));
+		features = features.withDoorMarkers(!"0".equals(q.get("doormarkers")));
 		return features.withHeight(StationFeatures.PlatformHeight.of(q.get("height")));
 	}
 
