@@ -43,7 +43,7 @@ Current as of 2026-11-12. The full brief for the run to V1 is `ATR-GOAL.md`. Old
 | V1 to V4 | Viaduct that follows the rail, overhead-line masts, suspension span, tunnel portal | not started. Jah approved this order on 2026-11-12 |
 | AR | Airport train station, one walk from platform to check-in | not started |
 | SC | Station size classes: halt, local, hub, terminal | not started |
-| JB | Jet bridges from the gates to the parked planes | not started |
+| JB | Jet bridges from the gates to the parked planes | a pier cab that extends to a stopped plane exists (#26). Jah asked on 2026-11-11 for a bridge at every contact stand; not checked against that yet |
 | AF | Airport passenger flow: check-in, security, shops, gates, baggage reclaim | not started |
 | SR | Staff rooms behind locked doors | not started |
 | BG | Bike garage under the station square | not started |
