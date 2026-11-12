@@ -18,7 +18,7 @@ jobs:
             const required = ["What changed", "Testing", "Risk", "How to revert"];
             const missing = [];
             for (const name of required) {
-              const re = new RegExp(`^#+\\s*${name}\\b[^\\n]*\\n([\\s\\S]*?)(?=^#+\\s|$)`, "im");
+              const re = new RegExp(`^#+\\s*${name}\\b[^\\n]*\\n([\\s\\S]*?)(?=^#+\\s|(?![\\s\\S]))`, "im");
               const match = body.match(re);
               if (!match || match[1].replace(/\s/g, "").length < 10) missing.push(name);
             }
