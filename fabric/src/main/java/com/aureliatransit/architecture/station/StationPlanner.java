@@ -121,12 +121,14 @@ public final class StationPlanner {
 		planning.pitEndFences();
 		planning.cornerPosts();
 		planning.parking();
+		planning.busStation();
 		planning.underground();
 		planning.shoulders();
 		planning.stationSquare();
 		planning.streetEntranceFittings();
 		planning.overheadLine();
 		planning.linesideFence();
+		planning.stairRails();
 		planning.edgeRailings();
 		// drawn in the station editor: last, into the cells the station left free
 		PlanFreehand.plan(planning);

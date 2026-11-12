@@ -320,6 +320,9 @@ public final class StudioApi {
 		if (!features.doorMarkers()) {
 			text = (text.isEmpty() ? "" : text + ", ") + "no door markers";
 		}
+		if ("1".equals(q.get("busstation"))) {
+			text = (text.isEmpty() ? "" : text + ", ") + "bus station";
+		}
 		if (features.height() != StationFeatures.PlatformHeight.AUTO) {
 			text = (text.isEmpty() ? "" : text + ", ") + features.height().key() + " platforms";
 		}
@@ -337,12 +340,15 @@ public final class StudioApi {
 		return StationSeed.valid(seed) ? text + ", seed " + seed : text;
 	}
 
-	/** The visible-fitting switches a request carries; anything missing or unreadable keeps the default (on). */
+	/**
+	 * The visible-fitting switches a request carries; anything missing or unreadable keeps the default (on). Keys are lower case:
+	 * the server and station files lower-case every field name.
+	 */
 	public static StationFeatures features(Map<String, String> q) {
 		StationFeatures features = StationFeatures.DEFAULTS;
 		features = features.withCctv(!"0".equals(q.get("cctv")));
-		features = features.withEdgeLines(!"0".equals(q.get("edgeLines")));
-		features = features.withOverheadLine(!"0".equals(q.get("overheadLine")));
+		features = features.withEdgeLines(!"0".equals(q.get("edgelines")));
+		features = features.withOverheadLine(!"0".equals(q.get("overheadline")));
 		features = features.withFence(!"0".equals(q.get("fence")));
 		features = features.withSquare(!"0".equals(q.get("square")));
 		features = features.withDoorMarkers(!"0".equals(q.get("doormarkers")));
