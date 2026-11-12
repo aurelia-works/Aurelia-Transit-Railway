@@ -515,7 +515,7 @@ abstract class PlanFitOut extends PlanLandmark {
 				break;
 			}
 		}
-		openVoid(uS + 1, Math.min(uS + 4, gateU - 2), vEntr - half, vEntr + half);
+		openVoid(uS + 1, Math.min(uS + HALL_OPEN_DEPTH, gateU - 2), vEntr - half, vEntr + half);
 		stairPosters(uP - 3);
 	}
 

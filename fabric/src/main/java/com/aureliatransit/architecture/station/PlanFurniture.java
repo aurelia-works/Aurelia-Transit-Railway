@@ -423,6 +423,9 @@ abstract class PlanFurniture extends PlanRoofs {
 	/** Cells between poster cases along a hall wall. */
 	static final int HALL_POSTER_PITCH = 4;
 
+	/** Cells the hall's upper slab is opened over the walk in from the street door (see {@code sideHall}). */
+	static final int HALL_OPEN_DEPTH = 4;
+
 	/**
 	 * What a real hall has past its counters and gates (Utrecht and Rotterdam Centraal): a timber slat ceiling hung under the
 	 * slab with lines of light in it, poster cases at eye height along the solid walls, and "Trains" departure boards hung
@@ -432,15 +435,19 @@ abstract class PlanFurniture extends PlanRoofs {
 		hallCeiling(uS + 1, uP - 1, vS + 1, vE - 1, uS, vS);
 		// signs over the walk in, and over the gate line clear of the boards
 		final int sign = StationGeometry.UPPER_FLOOR_Y - 2;
+		// a bank of departure boards hung over the walk, facing the door (Utrecht Centraal's hall). The street end of the walk
+		// is opened to the double height afterwards (`sideHall`), which takes the ceiling over it: the bank hangs past that
+		// opening, at the midpoint where the hall is deep enough and otherwise halfway along the rest of the walk to the gates.
+		final int open = Math.min(uS + HALL_OPEN_DEPTH, uGate - 2);
 		final int mid = (uS + uGate) / 2;
-		// a bank of departure boards hung over the walk halfway to the gates, facing the door (Utrecht Centraal's hall)
-		boolean hung = mid > uS + 1;
+		final int boardU = mid > open ? mid : (open + uGate) / 2;
+		boolean hung = boardU > uS + 1;
 		for (int v = vEntr - 1; v <= vEntr + 1 && hung; v++) {
-			hung = taken(mid, sign + 1, v) && !taken(mid, sign, v) && !taken(mid, sign - 1, v);
+			hung = taken(boardU, sign + 1, v) && !taken(boardU, sign, v) && !taken(boardU, sign - 1, v);
 		}
 		for (int v = vEntr - 1; v <= vEntr + 1 && hung; v++) {
-			put(Role.FIXTURE, mid, sign, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
-			put(Role.FIXTURE, mid, sign - 1, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
+			put(Role.FIXTURE, boardU, sign, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
+			put(Role.FIXTURE, boardU, sign - 1, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
 		}
 		for (final int v : new int[]{vEntr - h - 3, vEntr + h + 3}) {
 			if (v > vS && v < vE && taken(uGate, sign + 1, v)) {
