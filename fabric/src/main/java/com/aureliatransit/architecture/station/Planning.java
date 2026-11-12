@@ -344,7 +344,7 @@ final class Planning extends PlanAirport {
 
 	/** u of the building's entrance apron (its two ramp cells on the street side): past a car park band when there is one. */
 	int apronU() {
-		return spec.parking() && spec.sideBuilding() ? StationGeometry.PARKING_DEPTH : 0;
+		return StationGeometry.lotDepth(spec);
 	}
 
 	/** u of the building's street wall: a car park stands in front of it (see {@link StationGeometry#PARKING_DEPTH}). */
@@ -433,7 +433,9 @@ final class Planning extends PlanAirport {
 			return;
 		}
 		if (!spec.hub()) {
-			terminusForecourt();
+			if (spec.parking()) {
+				terminusForecourt();
+			}
 			return;
 		}
 		final int u0 = layout.headFrom();
@@ -530,7 +532,8 @@ final class Planning extends PlanAirport {
 		final int u0 = layout.headFrom();
 		final int u1 = layout.headTo();
 		final int door = headDoor();
-		final int f0 = layout.forecourtFrom();
+		// past a bus station's band when there is one
+		final int f0 = layout.forecourtFrom() + StationGeometry.busStationDepth(spec);
 		final int f1 = layout.vMax();
 		final int layBy = f1 - TERMINUS_LAY_BY;
 		for (int u = u0; u <= u1; u++) {
@@ -629,6 +632,137 @@ final class Planning extends PlanAirport {
 			}
 		}
 	}
+
+	/** Cells along the kerb per bus bay: a 12 m bus and a cell to the next one. */
+	static final int BUS_BAY = 13;
+	/** Bus station columns out from the building's apron (see {@link StationGeometry#BUS_STATION_DEPTH}). */
+	private static final int BUS_PLATFORM = 3;
+	private static final int BUS_KERB = BUS_PLATFORM;
+	private static final int BUS_LANE = BUS_KERB + 1;
+	/** The dashed line between the bay lane and the running lane. */
+	private static final int BUS_CENTRE = BUS_LANE + 3;
+	/** A bus station shelter's length: longer than a stop's on the street. */
+	private static final int BUS_SHELTER = 5;
+	/** Half the width of a zebra away from the doorway. */
+	private static final int BUS_ZEBRA_HALF = 2;
+
+	/** The bays of a bus station: more for a bigger station building. */
+	private int busBays() {
+		return switch (spec.buildingScale()) {
+			case COMPACT -> 2;
+			case CITY -> 4;
+			case GRAND -> 6;
+		};
+	}
+
+	/**
+	 * A bus station in front of the entrance (the "bus station" words), in the band the layout leaves past the apron: from the
+	 * building out, a paved passenger platform, the bus kerb, the bay lane with each bay marked off, a dashed centre line and the
+	 * through lane. Each bay, lettered from A, has a shelter (glass back to the building, seat facing the buses) and at its head
+	 * a stop pole with the e-paper departure board at eye height and the lettered stop flag on top. In front of the doorway the
+	 * kerb drops and a zebra crosses the carriageway, so the way in from the street stays straight.
+	 */
+	void busStation() {
+		final int depth = StationGeometry.busStationDepth(spec);
+		if (depth == 0) {
+			return;
+		}
+		final boolean head = layout.terminus();
+		final Front f = head ? headFront() : sideFront();
+		final int apron = head ? StationGeometry.HEAD_APRON : StationGeometry.APRON;
+		final int doorHalf = head ? headEntranceHalf() : entranceHalf();
+		// x along the street wall, over the station's whole front
+		final int xLo = head ? f.cu() - layout.headTo() : f.cv() - layout.vMax();
+		final int xHi = head ? f.cu() - layout.headFrom() : f.cv() - layout.vMin();
+		final int door = head ? f.cu() - headDoor() : 0;
+		// the zebra crosses in front of the doorway, or at a terminus head's end when that leaves room for more bays
+		final int besideDoor = (xHi - (door + doorHalf + 2) + 1) / BUS_BAY + (door - doorHalf - 2 - xLo + 1) / BUS_BAY;
+		final int atEnd = (xHi - (xLo + 2 * BUS_ZEBRA_HALF + 2) + 1) / BUS_BAY;
+		final boolean endZebra = head && atEnd > besideDoor;
+		// the zebra at the doorway is as wide as it, so the way in stays straight; one at the end is a plain 5-wide crossing
+		final int half = endZebra ? BUS_ZEBRA_HALF : doorHalf;
+		final int x0 = endZebra ? xLo + half : door;
+		final LocalDir out = f.dir(PlanLandmark.Dir.OUT);
+		final LocalDir in = f.dir(PlanLandmark.Dir.IN);
+		final int floorY = StationGeometry.PLATFORM_Y - 1;
+		final int y = StationGeometry.PLATFORM_Y;
+		// the bays, alternately past each side of the crossing, as many as fit
+		final List<Integer> bays = new ArrayList<>();
+		int right = x0 + half + 2;
+		int left = x0 - half - 2 - BUS_BAY + 1;
+		for (int i = 0; bays.size() < busBays() && i < 2 * busBays(); i++) {
+			if (i % 2 == 0 && right + BUS_BAY - 1 <= xHi) {
+				bays.add(right);
+				right += BUS_BAY;
+			} else if (i % 2 == 1 && left >= xLo) {
+				bays.add(left);
+				left -= BUS_BAY;
+			}
+		}
+		java.util.Collections.sort(bays);
+		for (int x = xLo; x <= xHi; x++) {
+			final boolean crossing = Math.abs(x - x0) <= half;
+			for (int k = 0; k < depth; k++) {
+				final int z = -apron - 1 - k;
+				final int u = f.u(x, z);
+				final int v = f.v(x, z);
+				if (taken(u, floorY, v)) {
+					continue;
+				}
+				String block;
+				if (k < BUS_KERB) {
+					block = LOT_PAVING;
+				} else if (k == BUS_KERB) {
+					block = crossing ? LOT_PAVING : LOT_KERB;
+				} else if (crossing) {
+					// the zebra: white bars along the way across, a road's width apart
+					block = Math.floorMod(x - x0, 2) == 0 ? SQUARE_ROAD_MARK : SQUARE_ROAD;
+				} else if (k < BUS_CENTRE) {
+					// the bay lane: a white line across it at each end of a bay, one line where two bays meet
+					boolean end = false;
+					for (final int bay : bays) {
+						end |= x == bay || x == bay + BUS_BAY - 1 && !bays.contains(bay + BUS_BAY);
+					}
+					block = end ? SQUARE_ROAD_MARK : SQUARE_ROAD;
+				} else if (k == BUS_CENTRE) {
+					block = Math.floorMod(x - xLo, 6) < 2 ? SQUARE_ROAD_MARK : SQUARE_ROAD;
+				} else {
+					block = SQUARE_ROAD;
+				}
+				put(Role.FLOOR, u, floorY, v, out, block);
+			}
+		}
+		for (int i = 0; i < bays.size(); i++) {
+			final int bay = bays.get(i);
+			final String letter = String.valueOf((char) ('A' + i));
+			// the shelter in the middle of the bay, or at its end away from the doorway so the way out stays clear
+			int s0 = bay + (BUS_BAY - BUS_SHELTER) / 2;
+			if (s0 <= door + doorHalf + 1 && s0 + BUS_SHELTER - 1 >= door - doorHalf - 1) {
+				s0 = bay < door ? bay + 1 : bay + BUS_BAY - 1 - BUS_SHELTER;
+			}
+			for (int x = s0; x < s0 + BUS_SHELTER; x++) {
+				final int z = -apron - 1;
+				put(Role.FIXTURE, f.u(x, z), y, f.v(x, z), in, StationPlanner.SHELTER_GLASS);
+				put(Role.FIXTURE, f.u(x, z), y + 1, f.v(x, z), in, StationPlanner.SHELTER_GLASS);
+				put(Role.FIXTURE, f.u(x, z - 1), y, f.v(x, z - 1), in, StationPlanner.SHELTER_SEAT);
+				put(Role.FIXTURE, f.u(x, z), y + 2, f.v(x, z), in, StationPlanner.SHELTER_ROOF);
+				put(Role.FIXTURE, f.u(x, z - 1), y + 2, f.v(x, z - 1), in, StationPlanner.SHELTER_ROOF);
+			}
+			// the stop pole at the head of the bay, on the platform's edge row
+			final int px = bay + BUS_BAY - 2;
+			final int pz = -apron - BUS_PLATFORM;
+			final int u = f.u(px, pz);
+			final int v = f.v(px, pz);
+			if (!taken(u, y, v) && !taken(u, y + 1, v) && !taken(u, y + 2, v)) {
+				put(Role.FIXTURE, u, y, v, out, StationPlanner.LAMP_POLE);
+				put(Role.FIXTURE, u, y + 1, v, in, BUS_DEPARTURES);
+				putText(Role.FIXTURE, u, y + 2, v, out, FORECOURT_STOP_SIGN, "NONE:" + letter);
+			}
+		}
+	}
+
+	/** The e-paper departure board on a bus stop's pole. */
+	static final String BUS_DEPARTURES = "aurelia_transit_architecture:bus_epaper_board";
 
 	/** The street past a Dutch station square: asphalt, its centre line and zebra crossings in white. */
 	static final String SQUARE_ROAD = "minecraft:gray_concrete";
