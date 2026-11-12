@@ -469,6 +469,14 @@ abstract class PlanFurniture extends PlanRoofs {
 				}
 			}
 		}
+		// over each doorway out to the platform, the platform's number on the wall above the door head
+		final String beyond = layout.platforms().stream().filter(band -> band.uMin() == layout.buildingWidth()).findFirst()
+				.map(layout::platformNumbers).filter(numbers -> !numbers.isEmpty()).map(TrackLayout::platformsText).orElse("");
+		for (final int door : doorV) {
+			if (!beyond.isEmpty() && door > vS && door < vE && doorV.contains(door - 1) && doorV.contains(door + 1)) {
+				putText(Role.FIXTURE, uP - 1, StationGeometry.WALK_Y + 3, door, LocalDir.MINUS_U, PlanFitOut.SHOP_SIGN, "NONE:" + beyond);
+			}
+		}
 	}
 
 	/** A hall's hung ceiling, Rotterdam Centraal's timber slats; swap it in Studio's block swaps for a plain one. */
