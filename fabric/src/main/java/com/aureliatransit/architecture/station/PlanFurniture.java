@@ -243,8 +243,9 @@ abstract class PlanFurniture extends PlanRoofs {
 		final java.util.TreeSet<Integer> doors = new java.util.TreeSet<>();
 		for (int car = 0; car < cars; car++) {
 			for (final int door : CAR_DOORS) {
-				// arriving towards +v, its front at the platform's last row
-				doors.add(band.vTo() - car * StationGeometry.CAR_LENGTH - door);
+				// arriving towards +v, its front at the far side of the platform's last row; a door's middle is the line between
+				// two rows, and its marker is the row either side of it, as from the other end
+				doors.add(band.vTo() + 1 - car * StationGeometry.CAR_LENGTH - door);
 				if (!buffered) {
 					// arriving towards -v, its front at the first row
 					doors.add(band.vFrom() + car * StationGeometry.CAR_LENGTH + door);
