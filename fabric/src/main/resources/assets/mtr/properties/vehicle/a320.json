@@ -115,7 +115,7 @@
 				"main"
 			],
 			"renderStage": "EXTERIOR",
-			"doorXMultiplier": 6,
+			"doorXMultiplier": -4,
 			"doorZMultiplier": 16,
 			"doorAnimationType": "PLUG_SLOW"
 		},
@@ -127,7 +127,7 @@
 				"main"
 			],
 			"renderStage": "EXTERIOR",
-			"doorXMultiplier": -6,
+			"doorXMultiplier": 4,
 			"doorZMultiplier": 16,
 			"doorAnimationType": "PLUG_SLOW"
 		},
@@ -139,7 +139,7 @@
 				"main"
 			],
 			"renderStage": "INTERIOR",
-			"doorXMultiplier": 6,
+			"doorXMultiplier": -4,
 			"doorZMultiplier": 16,
 			"doorAnimationType": "PLUG_SLOW"
 		},
@@ -151,7 +151,7 @@
 				"main"
 			],
 			"renderStage": "INTERIOR",
-			"doorXMultiplier": -6,
+			"doorXMultiplier": 4,
 			"doorZMultiplier": 16,
 			"doorAnimationType": "PLUG_SLOW"
 		},

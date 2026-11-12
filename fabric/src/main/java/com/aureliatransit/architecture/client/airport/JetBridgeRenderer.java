@@ -149,7 +149,7 @@ public final class JetBridgeRenderer implements BlockEntityRenderer<JetBridgeBlo
 
 	/**
 	 * One face from (a0, b0) to (a1, b1) in its own two axes, cut into block-sized tiles. a may run either way; the corner order
-	 * a0 then a1 is what makes the face point along its normal.
+	 * a0 then a1 is what makes the face point along its normal (emitted in reverse, so it is counter-clockwise from outside).
 	 */
 	private static void tiles(VertexConsumer buffer, Matrix4f position, Matrix3f normal, int light, float a0, float b0, float a1, float b1,
 			Plane plane, float nx, float ny, float nz) {
@@ -169,10 +169,11 @@ public final class JetBridgeRenderer implements BlockEntityRenderer<JetBridgeBlo
 				final float[] p1 = plane.at(ta + stepA, tb);
 				final float[] p2 = plane.at(ta + stepA, tb + stepB);
 				final float[] p3 = plane.at(ta, tb + stepB);
-				vertex(buffer, position, normal, p0, 0, texB, nx, ny, nz, light);
-				vertex(buffer, position, normal, p1, texA, texB, nx, ny, nz, light);
-				vertex(buffer, position, normal, p2, texA, 0, nx, ny, nz, light);
+				// counter-clockwise seen from outside, so the face survives back-face culling
 				vertex(buffer, position, normal, p3, 0, 0, nx, ny, nz, light);
+				vertex(buffer, position, normal, p2, texA, 0, nx, ny, nz, light);
+				vertex(buffer, position, normal, p1, texA, texB, nx, ny, nz, light);
+				vertex(buffer, position, normal, p0, 0, texB, nx, ny, nz, light);
 			}
 		}
 	}
