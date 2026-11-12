@@ -126,6 +126,30 @@ public final class ElevatedKinds {
 		}
 	}
 
+	/** Which piece of a sloped stair rail: the foot with its newel post, a run piece, or the top one that runs on level into the landing rail. */
+	public enum StairRailPart implements StringIdentifiable {
+		BOTTOM,
+		MIDDLE,
+		TOP;
+
+		@Override
+		public String asString() {
+			return id(this);
+		}
+	}
+
+	/** Where a sloped stair rail stands across its block, seen looking up the stair: on the middle, or on the left or right side. */
+	public enum StairRailEdge implements StringIdentifiable {
+		NONE,
+		LEFT,
+		RIGHT;
+
+		@Override
+		public String asString() {
+			return id(this);
+		}
+	}
+
 	/** Plan shape of a platform edge piece for curved or angled track (platform on the south-west side). */
 	public enum CurveKind implements StringIdentifiable {
 		/** Straight 45 degree edge across the block. */

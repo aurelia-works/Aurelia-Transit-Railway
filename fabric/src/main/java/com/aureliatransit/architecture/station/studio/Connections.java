@@ -46,7 +46,8 @@ public final class Connections {
 			ATA + "underground_station_sign", ATA + "national_rail_station_sign", ATA + "sbahn_station_sign", ATA + "sbb_station_sign", ATA + "jr_station_sign", ATA + "station_lettering");
 	/** Blocks of {@code JoiningSeatBlock}: a row of the same bench facing one way joins like the signs. */
 	private static final Set<String> BENCHES = Set.of(ATA + "steel_bench", ATA + "wooden_bench");
-	private static final Set<String> RAILINGS = Set.of(ATA + "handrail", ATA + "station_fence");
+	/** Blocks of {@code RailingBlock}: they join each other and full faces, whatever their style. */
+	private static final Set<String> RAILINGS = Set.of(ATA + "handrail", ATA + "ns_handrail", ATA + "station_fence");
 	private static final String GIRDER = ATA + "station_girder";
 	/** Blocks of {@code GirderBlock}: the girder and the roof truss join each other as one family. */
 	private static final Set<String> GIRDERS = Set.of(GIRDER, ATA + "roof_truss");

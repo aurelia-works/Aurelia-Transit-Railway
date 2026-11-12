@@ -6,6 +6,7 @@ import com.aureliatransit.architecture.block.GlassFacingBlock;
 import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.block.ShapedBlock;
 import com.aureliatransit.architecture.block.elevated.HandrailBlock;
+import com.aureliatransit.architecture.block.elevated.StairHandrailBlock;
 import com.aureliatransit.architecture.block.TextLayout;
 import com.aureliatransit.architecture.block.NameSignBlock;
 import com.aureliatransit.architecture.block.TextSignBlock;
@@ -150,6 +151,9 @@ public final class StationBlocksNlBe {
 	/** NS stairs, ramps and platform ends carry red handrails; it joins every other railing like the steel one. */
 	public static final Block NS_HANDRAIL = ModBlocks.register("ns_handrail", BlockFamily.STATIONS_NL_BE, RenderKind.TRANSLUCENT,
 			new HandrailBlock(ModBlocks.metal()));
+	/** The red handrail up an NS stair, sloped with the steps. */
+	public static final Block NS_STAIR_HANDRAIL = ModBlocks.register("ns_stair_handrail", BlockFamily.STATIONS_NL_BE, RenderKind.TRANSLUCENT,
+			new StairHandrailBlock(ModBlocks.metal()));
 
 	public static void init() {
 		// Class loading registers everything above.
