@@ -10,7 +10,7 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 # The suites are split over jobs that run side by side, so the run takes as long as the slowest job: ATR's build and tests,
-# ATA's unit tests in 4 shards, ATA's four slowest unit test classes one per job, and ATA's game tests in 3 servers (the airport rebuild test
+# ATA's unit tests in 6 shards, ATA's four slowest unit test classes one per job (StationPlannerTest over two), and ATA's game tests in 3 servers (the airport rebuild test
 # and the plane-leaves-a-gate test, each real-time MTR waits over 3 minutes, alone in one each; everything else in the third).
 jobs:
   build:
@@ -41,7 +41,7 @@ jobs:
           name: ATR-fabric-1.20.1
           path: build/release/*.jar
           retention-days: 7
-  # ATA's unit tests over 4 jobs, balanced by each class's time on CI (-Pata.tests.shard, fabric/build.gradle,
+  # ATA's unit tests over 6 jobs, balanced by each class's time on CI (-Pata.tests.shard, fabric/build.gradle,
   # fabric/ata-test-times.properties)
   ata-unit:
     runs-on: ubuntu-latest
@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ['1/4', '2/4', '3/4', '4/4']
+        shard: ['1/6', '2/6', '3/6', '4/6', '5/6', '6/6']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -68,14 +68,28 @@ jobs:
           path: fabric/build/test-results/ataTest/*.xml
           retention-days: 7
           if-no-files-found: ignore
-  # The four slowest ATA unit test classes, one job each (StationAuditTest's plan sweep alone takes 150 s)
+  # The four slowest ATA unit test classes, one job each (StationAuditTest's plan sweep alone takes 150 s), StationPlannerTest over two
   ata-slow-unit:
+    name: ata-slow-unit (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        class: ['*StationPlannerTest', '*RealCitiesATest', '*CityLandmarksTest', '*StationAuditTest']
+        # tests: comma-separated --tests patterns; skip: patterns left out. StationPlannerTest's two sweeps (shed matrix and
+        # every width and length, ~65 s of its ~115 s) run in a job of their own.
+        include:
+          - name: '*StationPlannerTest sweeps'
+            tests: '*StationPlannerTest.shedMatrix*,*StationPlannerTest.everyWidthAndLength*'
+          - name: '*StationPlannerTest'
+            tests: '*StationPlannerTest'
+            skip: '*StationPlannerTest.shedMatrix*,*StationPlannerTest.everyWidthAndLength*'
+          - name: '*RealCitiesATest'
+            tests: '*RealCitiesATest'
+          - name: '*CityLandmarksTest'
+            tests: '*CityLandmarksTest'
+          - name: '*StationAuditTest'
+            tests: '*StationAuditTest'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -83,8 +97,16 @@ jobs:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      - name: ${{ matrix.class }}
-        run: ./gradlew setupFiles :fabric:ataTest --tests '${{ matrix.class }}'
+      - name: ${{ matrix.name }}
+        env:
+          TESTS: ${{ matrix.tests }}
+          SKIP: ${{ matrix.skip }}
+        run: |
+          args=()
+          IFS=',' read -ra patterns <<< "$TESTS"
+          for p in "${patterns[@]}"; do args+=(--tests "$p"); done
+          if [ -n "$SKIP" ]; then args+=("-Pata.tests.exclude=$SKIP"); fi
+          ./gradlew setupFiles :fabric:ataTest "${args[@]}"
   ata-gametest:
     runs-on: ubuntu-latest
     timeout-minutes: 45
