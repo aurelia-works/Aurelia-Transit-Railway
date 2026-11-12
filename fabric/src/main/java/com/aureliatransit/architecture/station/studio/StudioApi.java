@@ -623,7 +623,8 @@ public final class StudioApi {
 						.append(frame.x(block.u() + du, block.v() + dv) - x).append(',').append(frame.z(block.u() + du, block.v() + dv) - z);
 			}
 			final Heading heading = frame.heading(block.front());
-			final String state = Connections.state(block, at, full, frame);
+			// the finished shapes: an escalator draws its slope and landings, not a flight of default landing blocks
+			final String state = Connections.finishedState(block, at, full, frame);
 			final String key = BlockModels.key(block.blockId(), heading, state);
 			final int model = modelIndex.computeIfAbsent(key, k -> {
 				modelJson.add("{\"id\":" + Json.quote(block.blockId()) + ",\"state\":" + Json.quote(state) + ",\"model\":" + models.describe(block.blockId(), heading, state) + "}");
