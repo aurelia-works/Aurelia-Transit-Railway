@@ -130,7 +130,7 @@ public final class Connections {
 
 	/**
 	 * The state the finished station holds, for a schematic: {@link #state} plus the shapes MTR's own blocks take from their
-	 * neighbours once the station stands (the preview does not draw these, so its models are unchanged):
+	 * neighbours once the station stands (the Studio preview draws these too):
 	 * <ul>
 	 *     <li>an escalator step or side takes its {@code orientation} from the flight round it, by MTR's rule
 	 *     ({@code BlockEscalatorBase.getOrientation}): with a same block ahead and behind it is flat; a block one up ahead and one down

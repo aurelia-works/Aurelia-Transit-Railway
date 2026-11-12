@@ -317,6 +317,9 @@ public final class StudioApi {
 		if (!features.square()) {
 			text = (text.isEmpty() ? "" : text + ", ") + "no square";
 		}
+		if (!features.doorMarkers()) {
+			text = (text.isEmpty() ? "" : text + ", ") + "no door markers";
+		}
 		if ("1".equals(q.get("busstation"))) {
 			text = (text.isEmpty() ? "" : text + ", ") + "bus station";
 		}
@@ -348,6 +351,7 @@ public final class StudioApi {
 		features = features.withOverheadLine(!"0".equals(q.get("overheadline")));
 		features = features.withFence(!"0".equals(q.get("fence")));
 		features = features.withSquare(!"0".equals(q.get("square")));
+		features = features.withDoorMarkers(!"0".equals(q.get("doormarkers")));
 		return features.withHeight(StationFeatures.PlatformHeight.of(q.get("height")));
 	}
 
@@ -619,7 +623,8 @@ public final class StudioApi {
 						.append(frame.x(block.u() + du, block.v() + dv) - x).append(',').append(frame.z(block.u() + du, block.v() + dv) - z);
 			}
 			final Heading heading = frame.heading(block.front());
-			final String state = Connections.state(block, at, full, frame);
+			// the finished shapes: an escalator draws its slope and landings, not a flight of default landing blocks
+			final String state = Connections.finishedState(block, at, full, frame);
 			final String key = BlockModels.key(block.blockId(), heading, state);
 			final int model = modelIndex.computeIfAbsent(key, k -> {
 				modelJson.add("{\"id\":" + Json.quote(block.blockId()) + ",\"state\":" + Json.quote(state) + ",\"model\":" + models.describe(block.blockId(), heading, state) + "}");
