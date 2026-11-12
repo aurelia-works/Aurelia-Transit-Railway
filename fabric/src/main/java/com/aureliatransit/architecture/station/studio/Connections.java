@@ -46,7 +46,8 @@ public final class Connections {
 			ATA + "underground_station_sign", ATA + "national_rail_station_sign", ATA + "sbahn_station_sign", ATA + "sbb_station_sign", ATA + "jr_station_sign", ATA + "station_lettering");
 	/** Blocks of {@code JoiningSeatBlock}: a row of the same bench facing one way joins like the signs. */
 	private static final Set<String> BENCHES = Set.of(ATA + "steel_bench", ATA + "wooden_bench");
-	private static final Set<String> RAILINGS = Set.of(ATA + "handrail", ATA + "station_fence");
+	/** Blocks of {@code RailingBlock}: they join each other and full faces, whatever their style. */
+	private static final Set<String> RAILINGS = Set.of(ATA + "handrail", ATA + "ns_handrail", ATA + "station_fence");
 	private static final String GIRDER = ATA + "station_girder";
 	/** Blocks of {@code GirderBlock}: the girder and the roof truss join each other as one family. */
 	private static final Set<String> GIRDERS = Set.of(GIRDER, ATA + "roof_truss");
@@ -129,7 +130,7 @@ public final class Connections {
 
 	/**
 	 * The state the finished station holds, for a schematic: {@link #state} plus the shapes MTR's own blocks take from their
-	 * neighbours once the station stands (the preview does not draw these, so its models are unchanged):
+	 * neighbours once the station stands (the Studio preview draws these too):
 	 * <ul>
 	 *     <li>an escalator step or side takes its {@code orientation} from the flight round it, by MTR's rule
 	 *     ({@code BlockEscalatorBase.getOrientation}): with a same block ahead and behind it is flat; a block one up ahead and one down

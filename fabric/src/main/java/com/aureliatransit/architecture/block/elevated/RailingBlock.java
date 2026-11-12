@@ -61,7 +61,8 @@ public abstract class RailingBlock<K extends Enum<K> & StringIdentifiable> exten
 		}
 	}
 	/** Pixels: railings stop players like a fence, whatever their drawn height. */
-	private static final double COLLISION_HEIGHT = 24;
+	/** A railing's collision: a block and a half, so nobody jumps over it (a jump clears about 1.25). */
+	static final double COLLISION_HEIGHT = 24;
 	/** A rail along the north side, as drawn (post and rails within 3 px of the face), and as it stops players. */
 	private static final Map<Direction, VoxelShape> EDGE_OUTLINES = Shapes.horizontalMap(Shapes.box(0, 0, 0, 16, 15, 3));
 	private static final Map<Direction, VoxelShape> EDGE_COLLISIONS = Shapes.horizontalMap(Shapes.box(0, 0, 0, 16, COLLISION_HEIGHT, 2));

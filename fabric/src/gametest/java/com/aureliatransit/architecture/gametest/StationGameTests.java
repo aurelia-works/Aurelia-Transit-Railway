@@ -1105,6 +1105,8 @@ public class StationGameTests implements FabricGameTest {
 		check(StationSessions.pending(id) == null, "a non-operator got a pending plan");
 
 		check(commands.executeWithPrefix(op, "/ata_station plan " + SMALL + ", replace terrain") == 1, "plan failed");
+		// the survey has a tick's wall-clock budget: on a slow server it carries on next tick, and the plan is not there yet
+		finishSiteTask(id);
 		final StationSessions.Pending pending = StationSessions.pending(id);
 		check(pending != null && pending.spec().name().equals("Test") && pending.spec().platformLength() == 16, "greedy description not parsed: "
 				+ (pending == null ? "no plan" : pending.spec()));
@@ -1127,6 +1129,7 @@ public class StationGameTests implements FabricGameTest {
 
 				// the old word after confirm is only an alias: it builds the same way
 				check(commands.executeWithPrefix(op, "/ata_station plan " + SMALL) == 1, "the alias plan failed");
+				finishSiteTask(id);
 				final StationSessions.Pending second = StationSessions.pending(id);
 				check(second != null && second.report().count(SiteIssue.Kind.OCCUPIED) == 1,
 						"the alias plan did not see the stone: " + (second == null ? "no plan" : second.report().counts()));

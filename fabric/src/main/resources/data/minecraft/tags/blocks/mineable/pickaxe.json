@@ -479,6 +479,8 @@
 		"aurelia_transit_architecture:ns_platform_guidance",
 		"aurelia_transit_architecture:ns_lift_post",
 		"aurelia_transit_architecture:ns_handrail",
+		"aurelia_transit_architecture:ns_stair_handrail",
+		"aurelia_transit_architecture:stair_handrail",
 		"aurelia_transit_architecture:lineside_fence",
 		"aurelia_transit_architecture:bicycle_rack"
 	]

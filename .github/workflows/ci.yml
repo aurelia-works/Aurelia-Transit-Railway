@@ -10,10 +10,46 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 # The suites are split over jobs that run side by side, so the run takes as long as the slowest job: ATR's build and tests,
-# ATA's unit tests in 4 shards, ATA's four slowest unit test classes one per job, and ATA's game tests in 3 servers (the airport rebuild test
-# and the plane-leaves-a-gate test, each real-time MTR waits over 3 minutes, alone in one each; everything else in the third).
+# ATA's unit tests in 6 shards, ATA's four slowest unit test classes one per job (StationPlannerTest over two), and ATA's game
+# tests in 3 servers (the airport rebuild test and the plane-leaves-a-gate test, each real-time MTR waits over 3 minutes, alone
+# in one each; everything else in the third).
+# A pull request that only changes docs skips them all (job "changes"). Job "ci-ok" is the one check to require: it fails when
+# any job failed, and when a job was skipped without "changes" having said docs only.
 jobs:
+  # Docs only? Only when every changed file is Markdown or under docs/ or archive/. Anything else, a push to master, or any
+  # doubt (the file list could not be read, or is empty) runs everything.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - id: detect
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let code = true;
+            try {
+              if (context.eventName === "pull_request") {
+                const files = await github.paginate(github.rest.pulls.listFiles, {
+                  owner: context.repo.owner, repo: context.repo.repo, pull_number: context.payload.pull_request.number, per_page: 100,
+                });
+                const docs = (name) => /\.md$/i.test(name) || name.startsWith("docs/") || name.startsWith("archive/");
+                // a rename counts with both of its names
+                const names = files.flatMap((f) => [f.filename, f.previous_filename].filter(Boolean));
+                code = names.length === 0 || !names.every(docs);
+                core.info(`${names.length} changed paths, code: ${code}`);
+              }
+            } catch (e) {
+              core.warning(`could not read the changed files, running everything: ${e.message}`);
+              code = true;
+            }
+            core.setOutput("code", code ? "true" : "false");
   build:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -22,7 +58,8 @@ jobs:
         with:
           distribution: zulu
           java-version: 21
-      # Loom's Minecraft download and remap takes ~18 min cold; cache it on every run
+      # Loom's Minecraft download and remap takes ~18 min cold; this job saves the Gradle cache on every run, the test jobs
+      # only read it (twelve jobs saving the same cache cost 16 to 36 s each on master)
       - uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
@@ -41,15 +78,17 @@ jobs:
           name: ATR-fabric-1.20.1
           path: build/release/*.jar
           retention-days: 7
-  # ATA's unit tests over 4 jobs, balanced by each class's time on CI (-Pata.tests.shard, fabric/build.gradle,
+  # ATA's unit tests over 6 jobs, balanced by each class's time on CI (-Pata.tests.shard, fabric/build.gradle,
   # fabric/ata-test-times.properties)
   ata-unit:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        shard: ['1/4', '2/4', '3/4', '4/4']
+        shard: ['1/6', '2/6', '3/6', '4/6', '5/6', '6/6']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -57,6 +96,8 @@ jobs:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
       - name: ATA unit tests, shard ${{ matrix.shard }}
         run: ./gradlew setupFiles :fabric:ataTest -Pata.tests.exclude="$SLOW_UNIT_TESTS" -Pata.tests.shard=${{ matrix.shard }}
       # Per-class times, for rebalancing the shards (tools/ci/ata_test_times.py)
@@ -68,14 +109,30 @@ jobs:
           path: fabric/build/test-results/ataTest/*.xml
           retention-days: 7
           if-no-files-found: ignore
-  # The four slowest ATA unit test classes, one job each (StationAuditTest's plan sweep alone takes 150 s)
+  # The four slowest ATA unit test classes, one job each (StationAuditTest's plan sweep alone takes 150 s), StationPlannerTest over two
   ata-slow-unit:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    name: ata-slow-unit (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        class: ['*StationPlannerTest', '*RealCitiesATest', '*CityLandmarksTest', '*StationAuditTest']
+        # tests: comma-separated --tests patterns; skip: patterns left out. StationPlannerTest's two sweeps (shed matrix and
+        # every width and length, ~65 s of its ~115 s) run in a job of their own.
+        include:
+          - name: '*StationPlannerTest sweeps'
+            tests: '*StationPlannerTest.shedMatrix*,*StationPlannerTest.everyWidthAndLength*'
+          - name: '*StationPlannerTest'
+            tests: '*StationPlannerTest'
+            skip: '*StationPlannerTest.shedMatrix*,*StationPlannerTest.everyWidthAndLength*'
+          - name: '*RealCitiesATest'
+            tests: '*RealCitiesATest'
+          - name: '*CityLandmarksTest'
+            tests: '*CityLandmarksTest'
+          - name: '*StationAuditTest'
+            tests: '*StationAuditTest'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -83,9 +140,21 @@ jobs:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      - name: ${{ matrix.class }}
-        run: ./gradlew setupFiles :fabric:ataTest --tests '${{ matrix.class }}'
+        with:
+          cache-read-only: true
+      - name: ${{ matrix.name }}
+        env:
+          TESTS: ${{ matrix.tests }}
+          SKIP: ${{ matrix.skip }}
+        run: |
+          args=()
+          IFS=',' read -ra patterns <<< "$TESTS"
+          for p in "${patterns[@]}"; do args+=(--tests "$p"); done
+          if [ -n "$SKIP" ]; then args+=("-Pata.tests.exclude=$SKIP"); fi
+          ./gradlew setupFiles :fabric:ataTest "${args[@]}"
   ata-gametest:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -100,5 +169,37 @@ jobs:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
       - name: Game tests ${{ matrix.classes }}
         run: ./gradlew setupFiles :fabric:runGameTest '-Pata.gametests=${{ matrix.classes }}' --stacktrace
+  # The one check to require. A skipped job passes only when "changes" said docs only; a failed or cancelled job never does.
+  ci-ok:
+    if: always()
+    needs: [changes, build, ata-unit, ata-slow-unit, ata-gametest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job passed, or was skipped for a docs-only change
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          needs = json.loads(os.environ["NEEDS"])
+          changes = needs.pop("changes")
+          code = changes.get("outputs", {}).get("code")
+          bad = []
+          if changes["result"] != "success" or code not in ("true", "false"):
+              bad.append(f"changes: {changes['result']}, code={code!r}")
+          for name, job in needs.items():
+              result = job["result"]
+              if result == "success" or (result == "skipped" and code == "false"):
+                  continue
+              bad.append(f"{name}: {result}")
+          for name, job in needs.items():
+              print(f"{name}: {job['result']}")
+          print(f"docs only: {code == 'false'}")
+          if bad:
+              sys.exit("not green: " + "; ".join(bad))
+          PY

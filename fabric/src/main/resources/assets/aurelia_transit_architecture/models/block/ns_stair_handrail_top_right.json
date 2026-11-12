@@ -1,0 +1,4 @@
+{
+  "parent": "aurelia_transit_architecture:block/stair_handrail_top_right",
+  "textures": {"particle": "aurelia_transit_architecture:block/ns_rail_red", "rail": "aurelia_transit_architecture:block/ns_rail_red"}
+}
