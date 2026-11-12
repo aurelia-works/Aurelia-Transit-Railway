@@ -72,11 +72,12 @@ public record StationOptions(GateStyle gates, int entranceWidth, Map<String, Str
 		return new StationOptions(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, value, openFareLine, drawn, shapes, busStation);
 	}
 
-	/** These options with the check-in poles left without lanes ({@code value}) or with them. */
+	/** These options with a bus station in front of the entrance ({@code value}) or without one. */
 	public StationOptions withBusStation(boolean value) {
 		return new StationOptions(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, airport, openFareLine, drawn, shapes, value);
 	}
 
+	/** These options with the check-in poles left without lanes ({@code value}) or with them. */
 	public StationOptions withOpenFareLine(boolean value) {
 		return new StationOptions(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, airport, value, drawn, shapes, busStation);
 	}
