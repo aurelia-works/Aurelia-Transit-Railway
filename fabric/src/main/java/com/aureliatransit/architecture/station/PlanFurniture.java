@@ -407,12 +407,114 @@ abstract class PlanFurniture extends PlanRoofs {
 		if (spec.furniture() && (fitOut || waitingRoom(b) == null)) {
 			seatRow(uGate, uP, vS, vE, vEntr, b);
 		}
+		if (spec.furniture()) {
+			hallDressing(uS, uP, vS, vE, vEntr, h, uGate, b);
+		}
 		// clock above the entrance, facing into the hall
 		put(Role.FIXTURE, uS + 1, 4, vEntr, LocalDir.PLUS_U, "aurelia_transit_architecture:wall_digital_clock");
 		// no MTR name board over the door (the entrance's own lettering names it) and no MTR tactile map, which plays music
 		// to anyone near it (Jah, 10-22)
 		put(Role.FIXTURE, (uS + uP) / 2, StationGeometry.UPPER_WALK_Y + 1, vS + 1, LocalDir.PLUS_V,
 				"aurelia_transit_architecture:concourse_board");
+	}
+
+	static final String CONCOURSE_BOARD = "aurelia_transit_architecture:concourse_board";
+
+	/** Cells between poster cases along a hall wall. */
+	static final int HALL_POSTER_PITCH = 4;
+
+	/**
+	 * What a real hall has past its counters and gates (Utrecht and Rotterdam Centraal): a timber slat ceiling hung under the
+	 * slab with lines of light in it, poster cases at eye height along the solid walls, and "Trains" departure boards hung
+	 * over the walk from the door, and "Trains" signs over the gate line either side of its boards.
+	 */
+	void hallDressing(int uS, int uP, int vS, int vE, int vEntr, int h, int uGate, StylePalette.Building b) {
+		hallCeiling(uS + 1, uP - 1, vS + 1, vE - 1, uS, vS);
+		// signs over the walk in, and over the gate line clear of the boards
+		final int sign = StationGeometry.UPPER_FLOOR_Y - 2;
+		final int mid = (uS + uGate) / 2;
+		// a bank of departure boards hung over the walk halfway to the gates, facing the door (Utrecht Centraal's hall)
+		boolean hung = mid > uS + 1;
+		for (int v = vEntr - 1; v <= vEntr + 1 && hung; v++) {
+			hung = taken(mid, sign + 1, v) && !taken(mid, sign, v) && !taken(mid, sign - 1, v);
+		}
+		for (int v = vEntr - 1; v <= vEntr + 1 && hung; v++) {
+			put(Role.FIXTURE, mid, sign, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
+			put(Role.FIXTURE, mid, sign - 1, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
+		}
+		for (final int v : new int[]{vEntr - h - 3, vEntr + h + 3}) {
+			if (v > vS && v < vE && taken(uGate, sign + 1, v)) {
+				putText(Role.FIXTURE, uGate, sign, v, LocalDir.MINUS_U, HANGING_SIGN, "UP:Trains");
+			}
+		}
+		// poster cases on the solid walls, not beside a doorway or a window
+		final int y = StationGeometry.WALK_Y + 1;
+		for (int u = uS + 1; u <= uP - 1; u++) {
+			for (int v = vS + 1; v <= vE - 1; v++) {
+				for (final LocalDir dir : LocalDir.values()) {
+					final int wu = u + ConcourseFit.du(dir);
+					final int wv = v + ConcourseFit.dv(dir);
+					final boolean alongV = dir == LocalDir.PLUS_U || dir == LocalDir.MINUS_U;
+					if (Math.floorMod(alongV ? v - vS : u - uS, HALL_POSTER_PITCH) != 2 || !solidWall(wu, wv)
+							|| !solidWall(wu + (alongV ? 0 : 1), wv + (alongV ? 1 : 0))
+							|| !solidWall(wu - (alongV ? 0 : 1), wv - (alongV ? 1 : 0))) {
+						continue;
+					}
+					final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, v);
+					if (floor != null && floor.role().flatFloor() && !taken(u, StationGeometry.WALK_Y, v) && !taken(u, y, v)
+							&& !cleared(u, StationGeometry.WALK_Y, v)) {
+						put(Role.FIXTURE, u, y, v, dir.opposite(), PlanFitOut.INFO_CASE);
+					}
+				}
+			}
+		}
+	}
+
+	/** A hall's hung ceiling, Rotterdam Centraal's timber slats; swap it in Studio's block swaps for a plain one. */
+	static final String HALL_CEILING = "aurelia_transit_architecture:rotterdam_timber_slat_ceiling";
+
+	/**
+	 * A ceiling hung a cell under the upper slab over {@code u0..u1, v0..v1}, its lights in lines ({@link #ceilingLight},
+	 * counted from {@code uOrigin, vOrigin}). Left out over a stair, a lift, a board or anything else reaching that high.
+	 */
+	void hallCeiling(int u0, int u1, int v0, int v1, int uOrigin, int vOrigin) {
+		final int y = StationGeometry.UPPER_FLOOR_Y - 1;
+		final String light = palette.building().light();
+		for (int u = u0; u <= u1; u++) {
+			for (int v = v0; v <= v1; v++) {
+				final PlannedBlock slab = at(u, StationGeometry.UPPER_FLOOR_Y, v);
+				if (slab == null || slab.role() != Role.FLOOR && slab.role() != Role.LIGHT_PANEL || taken(u, y - 1, v) || !clearOfFlights(u, v, y)) {
+					continue;
+				}
+				if (PlanBuilding.ceilingLight(u - uOrigin, v - vOrigin)) {
+					put(Role.ROOF_LIGHT, u, y, v, LocalDir.PLUS_V, light);
+				} else {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, HALL_CEILING);
+				}
+			}
+		}
+	}
+
+	/** True when no stair, escalator or lift stands in the column under a ceiling cell, where a head would meet it. */
+	private boolean clearOfFlights(int u, int v, int top) {
+		for (int y = StationGeometry.PLATFORM_Y; y < top; y++) {
+			final PlannedBlock block = at(u, y, v);
+			if (block != null && (block.role() == Role.STAIR || block.role() == Role.ESCALATOR || block.role() == Role.LIFT)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** A wall cell of the hall's shell, solid from the floor to over the poster's height. */
+	private boolean solidWall(int u, int v) {
+		for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 2; y++) {
+			final PlannedBlock wall = at(u, y, v);
+			if (wall == null || wall.role() != Role.WALL) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/** The hall {@link #interior} lays out: what is already built inside it, and where its walls are open. */

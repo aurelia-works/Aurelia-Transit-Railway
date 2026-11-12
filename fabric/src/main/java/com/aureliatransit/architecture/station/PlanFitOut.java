@@ -34,8 +34,6 @@ abstract class PlanFitOut extends PlanLandmark {
 
 	static final String SHOP_SIGN = "aurelia_transit_architecture:wall_wayfinding_sign";
 
-	static final String CONCOURSE_BOARD = "aurelia_transit_architecture:concourse_board";
-
 	/**
 	 * Fits the upper concourse out (see {@link ConcourseFit}): departure boards, shops and kiosks along its walls and islands
 	 * of seats, wherever the walks between its stairs, lifts, gates and ways out leave room. Only big floors (a mezzanine, a
@@ -459,8 +457,11 @@ abstract class PlanFitOut extends PlanLandmark {
 			return;
 		}
 		final LocalDir face = x > x0 ? f.dir(PlanLandmark.Dir.LEFT) : f.dir(PlanLandmark.Dir.RIGHT);
-		put(Role.RAILING, u, StationGeometry.WALK_Y, v, face);
+		// brushed steel, not the platform rails' livery colour: a ramp rail at a street door is plain stainless
+		put(Role.RAILING, u, StationGeometry.WALK_Y, v, face, RAMP_RAIL);
 	}
+
+	static final String RAMP_RAIL = "aurelia_transit_architecture:handrail";
 
 	/** A pier just inside the jamb, or a short frame wall when the pier will not fit. The doorway stays open. */
 	private void doorReturn(Front f, int x, StylePalette.Building b) {
@@ -595,6 +596,11 @@ abstract class PlanFitOut extends PlanLandmark {
 			return false;
 		}
 		cells.remove(new Cell(u, StationGeometry.UPPER_FLOOR_Y, v));
+		// and the hall's hung ceiling under it
+		final PlannedBlock hung = at(u, StationGeometry.UPPER_FLOOR_Y - 1, v);
+		if (hung != null && (hung.role() == Role.BUILDING_ROOF || hung.role() == Role.ROOF_LIGHT)) {
+			cells.remove(new Cell(u, StationGeometry.UPPER_FLOOR_Y - 1, v));
+		}
 		keepClear(u, StationGeometry.UPPER_WALK_Y, v);
 		keepClear(u, StationGeometry.UPPER_WALK_Y + 1, v);
 		return true;
@@ -656,6 +662,7 @@ abstract class PlanFitOut extends PlanLandmark {
 				}
 			}
 			fitFloor(floor, keep, StationGeometry.PLATFORM_Y, y, ConcourseFit.Density.WAITING_ROOM);
+			hallCeiling(uS + 1, uP - 1, Math.min(inner, end) + 1, Math.max(inner, end) - 1, uS, Math.min(inner, end));
 		}
 	}
 
