@@ -5,6 +5,8 @@ import com.aureliatransit.architecture.block.JetBridgeBlock;
 import com.aureliatransit.architecture.registry.ModBlockEntities;
 import com.aureliatransit.architecture.transit.StationAssociation;
 import com.aureliatransit.architecture.transit.StationData;
+import com.aureliatransit.architecture.network.ModPackets;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 
 /**
@@ -18,6 +20,11 @@ public final class AirportClient {
 
 	public static void init() {
 		JetBridgeBlock.samples = JetBridgeScanner::samples;
+		JetBridgeBlock.docked = (pos, reach) -> {
+			if (ClientPlayNetworking.canSend(ModPackets.JET_BRIDGE_DOCK)) {
+				ClientPlayNetworking.send(ModPackets.JET_BRIDGE_DOCK, ModPackets.writeJetBridgeDock(pos, reach));
+			}
+		};
 		DeparturesBoardBlock.snapshot = (pos, withServices) -> StationData.provider().resolve(pos, StationAssociation.AUTO, withServices);
 		BlockEntityRendererFactories.register(ModBlockEntities.JET_BRIDGE, JetBridgeRenderer::new);
 		BlockEntityRendererFactories.register(ModBlockEntities.DEPARTURES_BOARD, DeparturesBoardRenderer::new);

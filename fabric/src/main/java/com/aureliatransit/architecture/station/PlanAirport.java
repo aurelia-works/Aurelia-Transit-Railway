@@ -1,5 +1,7 @@
 package com.aureliatransit.architecture.station;
 
+import com.aureliatransit.architecture.airport.JetBridgeMotion;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -1599,9 +1601,10 @@ abstract class PlanAirport extends PlanFitOut {
 
 	/**
 	 * A boarding bridge from every gate door in the terminal's airside wall out over the apron, beside the plane on its left: a
-	 * rotunda against the wall, stairs up to aircraft-door height, a glazed tube with metal bands on columns, and at its end the
-	 * jet bridge block. The block draws the moving part: a telescoping section and a cab that run out to the plane's forward door
-	 * while it is stopped with its doors open, and back when they shut.
+	 * rotunda against the wall, stairs up to aircraft-door height, and a glazed tube with metal bands on columns, open at its end. The
+	 * jet bridge block sits in the roof over that end, on the side nearest the plane. It draws the moving part: a telescoping section
+	 * and a cab that run out to the plane's forward door while it is stopped with its doors open, and back when they shut; while
+	 * docked it lays a deck under them, so you walk from the gate onto the plane.
 	 */
 	void boardingBridges() {
 		final StylePalette.Building b = palette.building();
@@ -1661,13 +1664,8 @@ abstract class PlanAirport extends PlanFitOut {
 					}
 				}
 				if (u == to) {
-					// the end wall: the jet bridge block at the side nearest the plane, where the moving section leaves; glass beside it
-					for (int y = floorY + 1; y <= floorY + 2; y++) {
-						for (int v = c - half; v <= c + half; v++) {
-							final boolean cab = v == c + half && y == floorY + 1;
-							put(cab ? Role.FIXTURE : Role.WALL, u, y, v, LocalDir.PLUS_U, cab ? JET_BRIDGE : BRIDGE_BAND);
-						}
-					}
+					// the end stays open for the moving section; its head is in the roof over the side nearest the plane
+					put(Role.FIXTURE, u, floorY + 1 + JetBridgeMotion.ROOF_ABOVE_WALK, c + half, LocalDir.PLUS_U, JET_BRIDGE);
 				}
 				for (int v = c - wide - 1; v <= c + wide + 1; v++) {
 					put(Role.BUILDING_ROOF, u, floorY + 3, v, LocalDir.PLUS_V, b.roof());

@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.client.airport;
 
+import com.aureliatransit.architecture.airport.JetBridgeMotion;
 import com.aureliatransit.architecture.block.JetBridgeBlock;
 import com.aureliatransit.architecture.block.entity.JetBridgeBlockEntity;
 import com.aureliatransit.architecture.util.Shapes;
@@ -20,7 +21,8 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 /**
- * The moving end of a boarding bridge. The block sits in the fixed tube's end wall, at the side nearest the plane; this draws a
+ * The moving end of a boarding bridge. The block sits in the fixed tube's roof over its open end, on the side nearest the plane
+ * ({@link JetBridgeMotion#ROOF_ABOVE_WALK} over the floor, and model y = 0 is put back on the floor); this draws a
  * telescoping section out of its north face (turned to the block's facing), a cab three blocks deep at the section's end with
  * a glazed front, a black canopy that closes onto the fuselage, and the drive leg with its wheels under the cab. The plane is
  * on the model's west (-x) side: the planner puts the bridge on the plane's left, and +v is left of +u in every local frame.
@@ -67,11 +69,11 @@ public final class JetBridgeRenderer implements BlockEntityRenderer<JetBridgeBlo
 		final float reach = entity.reach();
 		// the block itself is solid, so its own light is dark: light the moving part from the air where the cab is
 		final int lit = entity.getWorld() == null ? light
-				: WorldRenderer.getLightmapCoordinates(entity.getWorld(), entity.getPos().offset(facing, MathHelper.ceil(reach) + 2));
+				: WorldRenderer.getLightmapCoordinates(entity.getWorld(), entity.getPos().offset(facing, MathHelper.ceil(reach) + 2).down(JetBridgeMotion.ROOF_ABOVE_WALK));
 		final float docked = MathHelper.clamp((entity.extension() - 0.85f) / 0.15f, 0f, 1f);
 
 		matrices.push();
-		matrices.translate(0.5, 0, 0.5);
+		matrices.translate(0.5, -JetBridgeMotion.ROOF_ABOVE_WALK, 0.5);
 		matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-90F * Shapes.quarterTurns(facing)));
 		matrices.translate(-0.5, 0, -0.5);
 

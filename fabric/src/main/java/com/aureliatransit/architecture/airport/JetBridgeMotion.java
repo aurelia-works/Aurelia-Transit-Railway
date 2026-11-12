@@ -6,9 +6,9 @@ import java.util.List;
  * Whether a jet bridge is docking, and how far it has travelled. Pure: the block entity and the tests both call this,
  * and nothing here reads the world.
  *
- * <p>A bridge extends only for an airplane that is stopped and whose doors are opening. Doors open because a platform
- * block is beside the doorway ({@code RenderVehicleHelper}); the apron platform is that block at a stand. A moving
- * airplane, or one whose doors have shut, retracts the bridge. The reach is short of the next stand (28 blocks on a
+ * <p>A bridge extends only for an airplane that is stopped at its stand with its doors open (MTR's door value, which runs through
+ * the dwell whether or not the doors are drawn open). A moving airplane, or one whose doors have shut, retracts the bridge. The
+ * door is drawn open once the docked bridge has laid its deck, whose blocks are MTR platform blocks. The reach is short of the next stand (28 blocks on a
  * compact airport, 66 on a real one) and short of the taxiway.
  */
 public final class JetBridgeMotion {
@@ -25,6 +25,8 @@ public final class JetBridgeMotion {
 	public static final double DOOR_BEHIND_HEAD = 1.2;
 	/** The cab's depth: three blocks, so its middle is 1.5 past where it leaves the bridge block's face. */
 	public static final double CAB_DEPTH = 3;
+	/** The bridge block sits in the fixed tube's roof, this many blocks over the walking level, so the tube's end stays open. */
+	public static final int ROOF_ABOVE_WALK = 2;
 	/** The furthest the telescoping section runs out. */
 	public static final double MAX_TRAVEL = 12;
 

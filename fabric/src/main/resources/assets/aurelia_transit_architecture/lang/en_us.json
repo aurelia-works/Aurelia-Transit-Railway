@@ -932,6 +932,7 @@
   "block.aurelia_transit_architecture.luggage_trolley": "Luggage Trolley",
   "block.aurelia_transit_architecture.airport_seat": "Airport Seating",
   "block.aurelia_transit_architecture.jet_bridge": "Jet Bridge",
+  "block.aurelia_transit_architecture.jet_bridge_deck": "Jet Bridge Deck",
   "tooltip.aurelia_transit_architecture.apron_platform": "Apron paving that opens a plane's doors beside the stand",
   "tooltip.aurelia_transit_architecture.jet_bridge": "Extends to the aircraft door while the plane is stopped at the stand, and retracts when it leaves",
   "tooltip.aurelia_transit_architecture.departures_board": "Upcoming flights at this airport",
