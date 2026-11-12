@@ -53,6 +53,7 @@
 		q.overheadLine = $("overheadLine").checked ? "1" : "0";
 		q.fence = $("fence").checked ? "1" : "0";
 		q.square = $("square").checked ? "1" : "0";
+		q.busStation = $("busStation").checked ? "1" : "0";
 		// fields from a station file this page has no control for (the game editor's drawn tracks) go along unchanged
 		for (const [k, v] of Object.entries(carried)) {
 			if (q[k] === undefined) {
@@ -116,6 +117,9 @@
 		}
 		if (saved.square !== undefined) {
 			$("square").checked = saved.square !== "0";
+		}
+		if (saved.busStation !== undefined) {
+			$("busStation").checked = saved.busStation === "1";
 		}
 		carried = Object.assign({}, saved.carried);
 		for (const f of saved.touched || (saved.pinned || "").split(",")) {
@@ -1075,6 +1079,10 @@
 				changed();
 			});
 		}
+		// a dev-panel switch re-plans at once, like any other control
+		for (const s of SWITCHES) {
+			$(s).addEventListener("change", changed);
+		}
 		$("copyCmd").addEventListener("click", () => {
 			if (!current) {
 				return;
@@ -1096,7 +1104,7 @@
 
 	// ---- station files (shared with the game's station editor) -----------------------------------------------------------
 
-	const SWITCHES = ["cctv", "edgeLines", "overheadLine", "fence", "square"];
+	const SWITCHES = ["cctv", "edgeLines", "overheadLine", "fence", "square", "busStation"];
 	const OWN = new Set(fields.concat(SWITCHES, ["pinned", "rolled", "seed", "page"]).map((f) => f.toLowerCase()));
 
 	// A station file's form (field names lower case, as the server reads them) in the shape remember() keeps, for restore().
