@@ -59,39 +59,7 @@ abstract class PlanFitOut extends PlanLandmark {
 				}
 			}
 		}
-		final Set<ConcourseFit.Spot> doors = new HashSet<>();
-		final Set<ConcourseFit.Spot> walls = new HashSet<>();
-		for (final ConcourseFit.Spot spot : floor) {
-			for (final LocalDir dir : LocalDir.values()) {
-				final ConcourseFit.Spot next = spot.step(dir);
-				if (floor.contains(next)) {
-					continue;
-				}
-				final PlannedBlock walk = at(next.u(), y, next.v());
-				final PlannedBlock head = at(next.u(), y + 1, next.v());
-				final PlannedBlock deck = at(next.u(), floorY, next.v());
-				final PlannedBlock below = at(next.u(), floorY - 1, next.v());
-				if (walk != null && (walk.role() == Role.GATE || walk.role() == Role.LIFT || sloped(walk.role()))
-						|| walk == null && deck != null && sloped(deck.role())
-						|| walk == null && deck == null && below != null && sloped(below.role())) {
-					doors.add(spot);
-				} else if (walk != null && head != null && wallLike(walk.role()) && wallLike(head.role())) {
-					walls.add(next);
-				}
-			}
-		}
-		final StylePalette.Building b = palette.building();
-		int shop = 0;
-		for (final ConcourseFit.Unit unit : ConcourseFit.fit(floor, doors, walls, keep)) {
-			switch (unit.kind()) {
-				case BOARD -> board(unit, y, b);
-				case SEATS -> seats(unit, y, b);
-				default -> {
-					final boolean kiosk = unit.kind() == ConcourseFit.Kind.KIOSK;
-					shopUnit(unit, y, kiosk ? KIOSK_SHOP : SHOPS.get(shop++ % SHOPS.size()), kiosk, b);
-				}
-			}
-		}
+		fitFloor(floor, keep, floorY, y, ConcourseFit.Density.CONCOURSE);
 	}
 
 	private static boolean sloped(Role role) {
@@ -656,5 +624,80 @@ abstract class PlanFitOut extends PlanLandmark {
 		}
 		cells.put(new Cell(u, cover, v), new PlannedBlock(u, cover, v, Role.LIGHT_PANEL, palette.building().light(),
 				block.front(), block.text(), block.state()));
+	}
+
+	/**
+	 * A wing's ground floor is a waiting room, not an empty hall (11-12: two rooms of twenty by twenty cells held a row of
+	 * benches each): the same fit-out as an upper concourse, a departure board, shop units and a kiosk against its walls and
+	 * islands of seats in the open, with the walks between its platform doorways and the way to the hall kept clear.
+	 */
+	void wingRooms() {
+		if (!spec.furniture() || wingBays == 0) {
+			return;
+		}
+		final int uS = streetWall();
+		final int uP = site.platformWall(layout);
+		final int y = StationGeometry.WALK_Y;
+		for (final int side : new int[]{-1, 1}) {
+			final int inner = side < 0 ? site.vStart() : site.vEnd();
+			final int end = inner + side * wingBays * StationGeometry.BAY;
+			final Set<ConcourseFit.Spot> floor = new HashSet<>();
+			final Set<ConcourseFit.Spot> keep = new HashSet<>();
+			for (int u = uS + 1; u <= uP - 1; u++) {
+				for (int v = Math.min(inner, end) + 1; v <= Math.max(inner, end) - 1; v++) {
+					final PlannedBlock deck = at(u, StationGeometry.PLATFORM_Y, v);
+					if (deck != null && deck.role().flatFloor() && at(u, y, v) == null && at(u, y + 1, v) == null && at(u, y + 2, v) == null) {
+						final ConcourseFit.Spot spot = new ConcourseFit.Spot(u, v);
+						floor.add(spot);
+						if (cleared(u, y, v) || taken(u, y + 3, v)) {
+							keep.add(spot);
+						}
+					}
+				}
+			}
+			fitFloor(floor, keep, StationGeometry.PLATFORM_Y, y, ConcourseFit.Density.WAITING_ROOM);
+		}
+	}
+
+	/**
+	 * Builds what {@link ConcourseFit} fits on one floor. A door is a floor cell beside a gate, a lift or a flight; in a
+	 * waiting room, also one beside an open doorway in the walls round the floor (the room's ways out).
+	 */
+	private void fitFloor(Set<ConcourseFit.Spot> floor, Set<ConcourseFit.Spot> keep, int floorY, int y, ConcourseFit.Density density) {
+		final boolean openings = density == ConcourseFit.Density.WAITING_ROOM;
+		final Set<ConcourseFit.Spot> doors = new HashSet<>();
+		final Set<ConcourseFit.Spot> walls = new HashSet<>();
+		for (final ConcourseFit.Spot spot : floor) {
+			for (final LocalDir dir : LocalDir.values()) {
+				final ConcourseFit.Spot next = spot.step(dir);
+				if (floor.contains(next)) {
+					continue;
+				}
+				final PlannedBlock walk = at(next.u(), y, next.v());
+				final PlannedBlock head = at(next.u(), y + 1, next.v());
+				final PlannedBlock deck = at(next.u(), floorY, next.v());
+				final PlannedBlock below = at(next.u(), floorY - 1, next.v());
+				if (walk != null && (walk.role() == Role.GATE || walk.role() == Role.LIFT || sloped(walk.role()))
+						|| walk == null && deck != null && sloped(deck.role())
+						|| walk == null && deck == null && below != null && sloped(below.role())
+						|| openings && walk == null && head == null && deck != null && deck.role().flatFloor()) {
+					doors.add(spot);
+				} else if (walk != null && head != null && wallLike(walk.role()) && wallLike(head.role())) {
+					walls.add(next);
+				}
+			}
+		}
+		final StylePalette.Building b = palette.building();
+		int shop = 0;
+		for (final ConcourseFit.Unit unit : ConcourseFit.fit(floor, doors, walls, keep, density)) {
+			switch (unit.kind()) {
+				case BOARD -> board(unit, y, b);
+				case SEATS -> seats(unit, y, b);
+				default -> {
+					final boolean kiosk = unit.kind() == ConcourseFit.Kind.KIOSK;
+					shopUnit(unit, y, kiosk ? KIOSK_SHOP : SHOPS.get(shop++ % SHOPS.size()), kiosk, b);
+				}
+			}
+		}
 	}
 }

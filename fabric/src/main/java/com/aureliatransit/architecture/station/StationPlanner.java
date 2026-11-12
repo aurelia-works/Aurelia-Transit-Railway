@@ -119,6 +119,7 @@ public final class StationPlanner {
 		planning.liftButtons();
 		planning.entrances();
 		planning.concourseFit();
+		planning.wingRooms();
 		planning.endFences();
 		planning.pitEndFences();
 		planning.cornerPosts();
