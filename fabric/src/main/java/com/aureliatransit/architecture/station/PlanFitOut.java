@@ -228,7 +228,10 @@ abstract class PlanFitOut extends PlanLandmark {
 	}
 
 	/** One entrance in {@code f}'s frame (z = 0 the street wall, out at z < 0), its doorway {@code half} either side of {@code x0}. */
-	void entrance(Front f, int x0, int half, boolean sheet) {
+	void entrance(Front f, int x0, int half, boolean landmarkSheet) {
+		// a heritage front (brick towers, arched glass, a sculpted attic) keeps its walls like a landmark sheet: only the
+		// modern glass look is glazed from the plinth to the roof
+		final boolean sheet = landmarkSheet || spec.building().facade() != BuildingStyle.Facade.GLASS_MODERN;
 		final StylePalette.Building b = palette.building();
 		final LocalDir out = f.dir(PlanLandmark.Dir.OUT);
 		final int door = StationGeometry.DOOR_HEIGHT;
@@ -255,6 +258,9 @@ abstract class PlanFitOut extends PlanLandmark {
 		// the canopy over the ramps and the forecourt, its lights down the middle and an edge along the front
 		for (int z = -1; z >= -CANOPY_DEPTH; z--) {
 			for (int x = x0 - wide; x <= x0 + wide; x++) {
+				if (!inside(f, x, z)) {
+					continue;
+				}
 				final String block = z == -CANOPY_DEPTH ? CANOPY_EDGE : Math.floorMod(x - x0, 2) == 0 ? CANOPY_LIGHT : CANOPY;
 				put(Role.BUILDING_ROOF, f.u(x, z), CANOPY_Y, f.v(x, z), out, block);
 			}
@@ -528,13 +534,12 @@ abstract class PlanFitOut extends PlanLandmark {
 
 	/**
 	 * The side building's concourse: the upper floor opened over the way in from the door, with a glass rail around the
-	 * hole, and benches along the glass upstairs.
+	 * hole, and poster cases on the stair's solid side.
 	 */
 	void sideHall() {
 		if (!site.building()) {
 			return;
 		}
-		final StylePalette.Building b = palette.building();
 		final int uS = streetWall();
 		final int uP = site.platformWall(layout);
 		final int vEntr = site.entranceV();
@@ -547,7 +552,6 @@ abstract class PlanFitOut extends PlanLandmark {
 			}
 		}
 		openVoid(uS + 1, Math.min(uS + 4, gateU - 2), vEntr - half, vEntr + half);
-		windowSeats(uS, site.vStart(), site.vEnd(), vEntr, half, b);
 		stairPosters(uP - 3);
 	}
 
@@ -569,25 +573,6 @@ abstract class PlanFitOut extends PlanLandmark {
 				continue;
 			}
 			put(Role.FIXTURE, uWall - 1, y, v, LocalDir.MINUS_U, INFO_CASE);
-		}
-	}
-
-	/**
-	 * Benches along the glass of the upper floor, facing out over the street, in pairs with a gap, clear of the opened slab
-	 * over the door: the glazed front shows a used floor, not an empty one.
-	 */
-	private void windowSeats(int uS, int vS, int vE, int vEntr, int half, StylePalette.Building b) {
-		final int u = uS + 1;
-		final int y = StationGeometry.UPPER_WALK_Y;
-		for (int v = vS + 2; v <= vE - 2; v++) {
-			if (Math.abs(v - vEntr) <= half + 1 || Math.floorMod(v - vS, 3) == 1) {
-				continue;
-			}
-			final PlannedBlock slab = at(u, StationGeometry.UPPER_FLOOR_Y, v);
-			if (slab == null || !slab.role().flatFloor() || taken(u, y, v) || taken(u, y + 1, v) || taken(u + 1, y, v)) {
-				continue;
-			}
-			put(Role.BENCH, u, y, v, LocalDir.MINUS_U, b.bench());
 		}
 	}
 
