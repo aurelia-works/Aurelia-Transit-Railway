@@ -18,10 +18,18 @@ abstract class PlanHead extends PlanLifts {
 		return (layout.headFrom() + layout.headTo() + 1) / 2;
 	}
 
-	/** How far the head building's doorway reaches either side of {@link #headDoor}: as asked, inside the side walls with room for the tactile map. */
+	/** A head building's front is this many times as wide as its doorway, unless a width was asked for. */
+	static final int HEAD_DOOR_SHARE = 4;
+
+	/**
+	 * How far the head building's doorway reaches either side of {@link #headDoor}: as asked, else in scale with the front (a
+	 * terminus is entered through a wide portal, not a side door), inside the side walls with room for the tactile map.
+	 */
 	int headEntranceHalf() {
 		final int door = headDoor();
-		return Math.max(1, Math.min(entranceHalf(), Math.min(layout.headTo() - door - 2, door - layout.headFrom() - 1)));
+		final int front = layout.headTo() - layout.headFrom() + 1;
+		final int want = spec.options().entranceWidth() > 0 ? entranceHalf() : Math.max(entranceHalf(), front / HEAD_DOOR_SHARE / 2);
+		return Math.max(1, Math.min(want, Math.min(layout.headTo() - door - 2, door - layout.headFrom() - 1)));
 	}
 
 	/**

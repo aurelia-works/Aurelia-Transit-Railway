@@ -126,12 +126,14 @@ abstract class PlanBuilding extends PlanPlatforms {
 				put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V, edge ? b.plinth() : b.floor());
 			}
 		}
+		// the ramps against the wall; the forecourt past them is paved in entrances()
+		final int uRamp = uS - StationGeometry.RAMP_LENGTH;
 		for (int v = vEntr - door; v <= vEntr + door; v++) {
-			put(Role.RAMP_LOWER, apronU(), StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U);
-			put(Role.RAMP_UPPER, apronU() + 1, StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U);
+			put(Role.RAMP_LOWER, uRamp, StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U);
+			put(Role.RAMP_UPPER, uRamp + 1, StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U);
 			for (int y = 1; y <= 3; y++) {
-				keepClear(apronU(), y, v);
-				keepClear(apronU() + 1, y, v);
+				keepClear(uRamp, y, v);
+				keepClear(uRamp + 1, y, v);
 			}
 		}
 		// perimeter walls, ground storey y=1..4

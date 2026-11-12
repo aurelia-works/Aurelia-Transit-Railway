@@ -456,16 +456,10 @@ abstract class PlanConcourse extends PlanHead {
 	}
 
 	/**
-	 * The paid side of a terminus concourse, as a hall: the walk in from the platforms is paved in the plinth, and a pair of
-	 * piers stands either side of it with a lintel between them where the span is one a beam can cross.
+	 * The paid side of a terminus concourse, as a hall: a pair of piers stands either side of the walk in from the platforms, with a lintel between them where the span is one a beam can cross.
 	 */
 	void concourseHall(int u0, int u1, int vL, int vE, int door, int gateV, StylePalette.Building b) {
 		final int half = headEntranceHalf();
-		for (int u = door - half; u <= door + half; u++) {
-			for (int v = vL + 1; v < vE; v++) {
-				retile(u, v, b.plinth());
-			}
-		}
 		final int flank = half + 2;
 		final int left = door - flank;
 		final int right = door + flank;
