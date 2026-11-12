@@ -1,6 +1,7 @@
 package com.aureliatransit.architecture.station;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -61,20 +62,46 @@ final class PlanFreehand {
 			return;
 		}
 		final PlanFreehand freehand = new PlanFreehand(s);
+		final List<Pending> pending = new ArrayList<>();
 		for (final DrawnShape shape : shapes) {
 			if (shape.kind().airport() != s.spec.isAirport() || shape.check(freehand.station) != null) {
 				continue;
 			}
 			final Set<Long> cells = freehand.free(shape.cells());
-			if (cells.isEmpty()) {
-				continue;
+			if (!cells.isEmpty()) {
+				pending.add(new Pending(shape, cells));
 			}
+		}
+		// the fillet has to be known before the taxiway is painted: put() will not cover a yellow line already laid to the corner
+		final List<Set<Long>> taxis = new ArrayList<>();
+		final List<Set<Long>> runways = new ArrayList<>();
+		for (final Pending item : pending) {
+			if (item.shape.kind() == DrawnShape.Kind.TAXIWAY) {
+				taxis.add(item.cells);
+			} else if (item.shape.kind() == DrawnShape.Kind.RUNWAY) {
+				runways.add(item.cells);
+			}
+		}
+		final List<TaxiwayCurve.DrawnJoin> joins = TaxiwayCurve.drawn(taxis, runways);
+		final Set<Long> arcs = new HashSet<>();
+		final Set<Long> suppress = new HashSet<>();
+		for (final TaxiwayCurve.DrawnJoin join : joins) {
+			for (final AirportRoute.Cell cell : join.arc()) {
+				arcs.add(DrawnShape.key(cell.u(), cell.v()));
+			}
+			for (final AirportRoute.Cell cell : join.suppress()) {
+				suppress.add(DrawnShape.key(cell.u(), cell.v()));
+			}
+		}
+		for (final Pending item : pending) {
+			final DrawnShape shape = item.shape;
+			final Set<Long> cells = item.cells;
 			switch (shape.kind()) {
 				case PLATFORM -> freehand.platform(cells, shape.open());
 				case BUILDING -> freehand.building(cells, shape.height());
 				case TERMINAL -> TerminalBuilding.drawn(s, cells, shape.height());
 				case APRON -> freehand.apron(cells);
-				case TAXIWAY -> freehand.taxiway(cells);
+				case TAXIWAY -> freehand.taxiway(cells, arcs, suppress);
 				case RUNWAY -> freehand.runway(cells);
 			}
 			freehand.ground(cells, switch (shape.kind()) {
@@ -85,6 +112,13 @@ final class PlanFreehand {
 				case TAXIWAY, RUNWAY -> AirportGeometry.OPEN_CLEARANCE;
 			});
 		}
+		for (final TaxiwayCurve.DrawnJoin join : joins) {
+			freehand.paintDrawnFillet(join);
+		}
+	}
+
+	/** A shape that passed the check, with the cells the station left free. */
+	private record Pending(DrawnShape shape, Set<Long> cells) {
 	}
 
 	/** {uMin, uMax, vMin, vMax} of what the station planned. */
@@ -413,7 +447,7 @@ final class PlanFreehand {
 	}
 
 	/** Asphalt with a yellow centreline and a blue edge light every {@link #TAXI_LIGHT_EVERY} cells of its edge. */
-	private void taxiway(Set<Long> cells) {
+	private void taxiway(Set<Long> cells, Set<Long> arc, Set<Long> suppress) {
 		for (final long key : cells) {
 			final int u = DrawnShape.u(key);
 			final int v = DrawnShape.v(key);
@@ -424,9 +458,30 @@ final class PlanFreehand {
 					paint(u, v, PlanAirport.TAXI_SURFACE);
 				}
 			} else {
-				paint(u, v, Run.of(cells, u, v).centre(u, v) ? PlanAirport.PAINT_YELLOW : PlanAirport.TAXI_SURFACE);
+				final boolean centre = Run.of(cells, u, v).centre(u, v);
+				final boolean yellow = arc.contains(key) || (centre && !suppress.contains(key));
+				paint(u, v, yellow ? PlanAirport.PAINT_YELLOW : PlanAirport.TAXI_SURFACE);
 			}
 		}
+	}
+
+	/** Pavement and the yellow arc for one drawn fillet. Runway cells are left to the runway's own white line. */
+	private void paintDrawnFillet(TaxiwayCurve.DrawnJoin join) {
+		final Set<Long> arc = new HashSet<>();
+		final Set<Long> extra = new HashSet<>();
+		for (final AirportRoute.Cell cell : join.arc()) {
+			arc.add(DrawnShape.key(cell.u(), cell.v()));
+		}
+		for (final AirportRoute.Cell cell : join.extra()) {
+			final long key = DrawnShape.key(cell.u(), cell.v());
+			extra.add(key);
+			if (arc.contains(key)) {
+				paint(cell.u(), cell.v(), PlanAirport.PAINT_YELLOW);
+			} else {
+				paint(cell.u(), cell.v(), PlanAirport.TAXI_SURFACE);
+			}
+		}
+		ground(extra, AirportGeometry.OPEN_CLEARANCE);
 	}
 
 	/**

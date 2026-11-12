@@ -461,6 +461,10 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 			out.add(turnPad(false));
 			out.add(turnPad(true));
 		}
+		// the grass the square link left outside the curve; before the grass fill, which would otherwise cover it
+		if (TaxiwayCurve.radius(this) >= 2) {
+			out.addAll(TaxiwayCurve.pavement(this));
+		}
 		// mown grass between the taxiway and the runway: the tone that makes the pavement read from the air (game scale only;
 		// a real-size gap would add hundreds of thousands of grass blocks for no screenshot a player sees)
 		if (dims != REAL && taxiU1 + 1 <= runwayU0.get(0) - 1) {
