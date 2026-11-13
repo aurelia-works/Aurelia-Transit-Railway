@@ -83,10 +83,9 @@ def main():
         if groups != {"a320_interior"}:
             continue
         p = verts[v]
-        near = [abs(h[0]) for h in hull if h[0] * p[0] > 0 and abs(h[2] - p[2]) < 0.6 and abs(h[1] - p[1]) < 0.2]
-        if not near:
+        skin = skin_at(hull, p)
+        if skin is None:
             continue
-        skin = max(near)
         if abs(p[0]) > skin - 0.04:
             p[0] = math.copysign(skin - 0.06, p[0])
             lines[v_line(lines, v)] = "v %.6f %.6f %.6f" % tuple(p)
@@ -103,6 +102,24 @@ def main():
     lines.insert(0, MARK)
     open(OBJ, "w").write("\n".join(lines))
     print(f"hull triangles cut: {len(replace)}, new vertices: {len(new_v)}, cabin vertices pulled in: {moved}")
+
+
+def skin_at(hull, p):
+    """The hull's half-width at p's height and station: the outermost skin just below and just above p, interpolated."""
+    rows = {}
+    for h in hull:
+        if h[0] * p[0] > 0 and abs(h[2] - p[2]) < 0.6 and abs(h[0]) > 0.3:
+            y = round(h[1], 2)
+            rows[y] = max(rows.get(y, 0), abs(h[0]))
+    below = [y for y in rows if y <= p[1]]
+    above = [y for y in rows if y >= p[1]]
+    if not below or not above:
+        return None
+    y0, y1 = max(below), min(above)
+    if y1 == y0:
+        return rows[y0]
+    t = (p[1] - y0) / (y1 - y0)
+    return rows[y0] + t * (rows[y1] - rows[y0])
 
 
 _v_lines = None
