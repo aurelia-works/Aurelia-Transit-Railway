@@ -7,7 +7,8 @@ A fork of Minecraft Transit Railway 4.0.5 for Fabric 1.20.1. The mod id stays `m
 - Compile only (use this while working): `./gradlew setupFiles :fabric:compileJava --offline`.
 - MTR unit tests: `./gradlew setupFiles :fabric:test -x runGameTest`.
 - Generator tests (ATA): `./gradlew setupFiles :fabric:ataTest --offline --tests '*ClassName'`.
-- Game tests run in CI only. Locally they run out of memory.
+- Game tests run in CI only. Locally they run out of memory, and `:fabric:test` starts them unless the command has `-x runGameTest`.
+- Dependency versions are pinned in `gradle.properties`. A newer Fabric Loader or Fabric API is a one-line change there.
 
 ## Compatibility
 - `DropInSignaturesTest` guards the MTR 4.0.5 methods add-ons hook. Do not rename or reshape those methods, and do not add lambdas to the classes it checks, because that renumbers the existing ones.
