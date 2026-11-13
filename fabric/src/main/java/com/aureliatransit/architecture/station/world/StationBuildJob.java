@@ -1,9 +1,13 @@
 package com.aureliatransit.architecture.station.world;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
+import com.aureliatransit.architecture.block.BridgeMemberBlock;
 import com.aureliatransit.architecture.block.TextSignBlock;
+import com.aureliatransit.architecture.block.entity.BridgeMemberBlockEntity;
 import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
+import com.aureliatransit.architecture.bridge.span.BridgeMember;
 import com.aureliatransit.architecture.station.CellKind;
+import com.aureliatransit.architecture.station.Heading;
 import com.aureliatransit.architecture.station.RebuildDiff;
 import com.aureliatransit.architecture.station.Role;
 import com.aureliatransit.architecture.station.StylePalette;
@@ -576,10 +580,33 @@ public final class StationBuildJob {
 			signCells.add(pos);
 			signTexts.add(op.text());
 		}
+		if (op.kind() == WorldOp.Kind.PLACE && !op.text().isEmpty() && after.getBlock() instanceof BridgeMemberBlock) {
+			loadMembers(world, pos, op);
+		}
 		if (op.kind() == WorldOp.Kind.PLACE && !op.text().isEmpty() && after.getBlock() instanceof com.aureliatransit.architecture.block.wayfinding.WayfindingPlateBlock) {
 			wayfindingTexts.put(pos, op.text());
 		}
 		return Step.DONE;
+	}
+
+	/**
+	 * A bridge member block's packed members (painted taxiway curves), turned from the plan's u and v to the world: the op faces
+	 * the plan's +v, and +u is to its right.
+	 */
+	private static void loadMembers(ServerWorld world, BlockPos pos, WorldOp op) {
+		if (!(world.getBlockEntity(pos) instanceof BridgeMemberBlockEntity entity)) {
+			return;
+		}
+		final Heading forward = op.facing();
+		final Heading right = forward.right();
+		final List<BridgeMember> members = new ArrayList<>();
+		for (final BridgeMember member : BridgeMember.unpack(op.text())) {
+			members.add(member.placed(right.dx(), right.dz(), forward.dx(), forward.dz()));
+		}
+		entity.readNbt(BridgeMemberBlockEntity.encode(
+				BridgeMember.skinOf(op.text()), members));
+		entity.markDirty();
+		world.updateListeners(pos, entity.getCachedState(), entity.getCachedState(), Block.NOTIFY_LISTENERS);
 	}
 
 	/** The block entity data a cell holds before a write, so undo can put it back with the block; null when it has none. */

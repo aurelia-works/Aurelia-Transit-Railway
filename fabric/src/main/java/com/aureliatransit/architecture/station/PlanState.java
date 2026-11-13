@@ -303,6 +303,22 @@ abstract class PlanState {
 		return true;
 	}
 
+	/** Like {@link #put}, with the planned block's text given: a bridge member block's packed members. */
+	boolean putWithText(Role role, int u, int y, int v, LocalDir front, String blockId, String text) {
+		final Cell cell = new Cell(u, y, v);
+		if (cells.containsKey(cell) || air.contains(cell)) {
+			skip(role, blockId, cell);
+			return false;
+		}
+		cells.put(cell, new PlannedBlock(u, y, v, role, blockId, front, text, ""));
+		return true;
+	}
+
+	/** The block already planned in a cell, or null. */
+	PlannedBlock plannedAt(int u, int y, int v) {
+		return cells.get(new Cell(u, y, v));
+	}
+
 	/** Relays a floor cell that is already laid in another finish (a guidance line, a threshold): same cell, new block. */
 	void refloor(int u, int y, int v, LocalDir front, String blockId) {
 		final Cell cell = new Cell(u, y, v);

@@ -3,6 +3,7 @@ package com.aureliatransit.architecture.client.bridge;
 import com.aureliatransit.architecture.block.entity.BridgeMemberBlockEntity;
 import com.aureliatransit.architecture.bridge.span.BridgeMember;
 import com.aureliatransit.architecture.bridge.world.BridgeStateCodec;
+import com.aureliatransit.architecture.client.WrenchSettings;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.LightmapTextureManager;
@@ -25,7 +26,7 @@ import java.util.Map;
 /**
  * Draws a bridge member block: the block it stands in for, then each member as a straight square beam between its two ends,
  * lit from the air at the beam's middle (the anchor itself is usually buried in a pylon or a chord). Warning lights are drawn
- * full bright.
+ * full bright. Paint is a flat strip on the ground, shown and sized from the wrench's airport page.
  */
 public final class BridgeMemberRenderer implements BlockEntityRenderer<BridgeMemberBlockEntity> {
 
@@ -39,6 +40,7 @@ public final class BridgeMemberRenderer implements BlockEntityRenderer<BridgeMem
 		TEXTURES.put(BridgeMember.Material.RED, new Identifier("minecraft", "textures/block/red_terracotta.png"));
 		TEXTURES.put(BridgeMember.Material.LIGHT, new Identifier("minecraft", "textures/block/red_concrete.png"));
 		TEXTURES.put(BridgeMember.Material.STONE, new Identifier("minecraft", "textures/block/stone_bricks.png"));
+		TEXTURES.put(BridgeMember.Material.PAINT, new Identifier("minecraft", "textures/block/yellow_concrete.png"));
 	}
 
 	private String skinText;
@@ -71,6 +73,9 @@ public final class BridgeMemberRenderer implements BlockEntityRenderer<BridgeMem
 		final BlockPos origin = entity.getPos();
 		// one texture at a time: a buffer from the provider is only good until the next getBuffer call
 		for (final BridgeMember.Material material : BridgeMember.Material.values()) {
+			if (material == BridgeMember.Material.PAINT && !WrenchSettings.curvePaint()) {
+				continue;
+			}
 			VertexConsumer buffer = null;
 			for (final BridgeMember member : entity.members()) {
 				if (member.material() != material) {
@@ -82,7 +87,11 @@ public final class BridgeMemberRenderer implements BlockEntityRenderer<BridgeMem
 				final int lit = material == BridgeMember.Material.LIGHT || entity.getWorld() == null ? LightmapTextureManager.MAX_LIGHT_COORDINATE
 						: WorldRenderer.getLightmapCoordinates(entity.getWorld(), BlockPos.ofFloored(
 						origin.getX() + (member.x0() + member.x1()) / 2, origin.getY() + (member.y0() + member.y1()) / 2, origin.getZ() + (member.z0() + member.z1()) / 2));
-				beam(matrices, buffer, member, lit);
+				if (material == BridgeMember.Material.PAINT) {
+					strip(matrices, buffer, member, member.thickness() * WrenchSettings.paintWidth() / 100f, lit);
+				} else {
+					beam(matrices, buffer, member, lit);
+				}
 			}
 		}
 	}
@@ -94,6 +103,30 @@ public final class BridgeMemberRenderer implements BlockEntityRenderer<BridgeMem
 			skinState = BridgeStateCodec.decode(text);
 		}
 		return skinState;
+	}
+
+	/** Seam cover at each end of a paint strip, so the outside of a bend has no gap between pieces. */
+	private static final float STRIP_OVERLAP = 0.03f;
+
+	/** A flat strip lying level from one end to the other, {@code width} across, facing up. */
+	private static void strip(MatrixStack matrices, VertexConsumer buffer, BridgeMember m, float width, int light) {
+		final float dx = m.x1() - m.x0();
+		final float dz = m.z1() - m.z0();
+		final float length = (float) Math.sqrt(dx * dx + dz * dz);
+		if (length < 1e-4f) {
+			return;
+		}
+		final float ux = dx / length;
+		final float uz = dz / length;
+		final float ax = -uz * width / 2;
+		final float az = ux * width / 2;
+		final float sx = m.x0() - ux * STRIP_OVERLAP;
+		final float sz = m.z0() - uz * STRIP_OVERLAP;
+		final float ex = m.x1() + ux * STRIP_OVERLAP;
+		final float ez = m.z1() + uz * STRIP_OVERLAP;
+		final float y = m.y0();
+		quad(buffer, matrices.peek().getPositionMatrix(), matrices.peek().getNormalMatrix(), new float[]{sx - ax, y, sz - az}, new float[]{sx + ax, y, sz + az},
+				new float[]{ex + ax, y, ez + az}, new float[]{ex - ax, y, ez - az}, 0, 1, 0, 1, light);
 	}
 
 	/** A square beam of the member's thickness from one end to the other, its sides square to the beam. */

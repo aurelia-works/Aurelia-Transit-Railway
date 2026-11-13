@@ -1,6 +1,7 @@
 package com.aureliatransit.architecture.station;
 
 import com.aureliatransit.architecture.airport.JetBridgeMotion;
+import com.aureliatransit.architecture.bridge.span.BridgeMember;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -611,7 +612,7 @@ abstract class PlanAirport extends PlanFitOut {
 				paintCurvedLink(link, greenEvery, gapFrom, gapTo, fillet);
 			}
 		}
-		if (fillet >= 2) {
+		if (fillet >= 2 && !TaxiwayPaint.drawsEdges(air)) {
 			for (final AirportRoute.Cell cell : TaxiwayCurve.boundary(air)) {
 				paint(cell.u(), cell.v(), PAINT_YELLOW);
 			}
@@ -666,26 +667,86 @@ abstract class PlanAirport extends PlanFitOut {
 			if (throat && spec.airport().taxiwayLights() && cell.u() < gapTo && cell.u() % greenEvery == 0) {
 				light(cell.u(), cell.v(), THRESHOLD_LIGHT);
 			}
-			paint(cell.u(), cell.v(), PAINT_YELLOW);
+			// the arcs are drawn as strips below; painted cells would step like a staircase
+			if (throat) {
+				paint(cell.u(), cell.v(), PAINT_YELLOW);
+			}
 		}
 		for (int u = gapFrom; u <= gapTo; u++) {
 			if (!extra.contains(TaxiwayCurve.key(u, link[0] - 1))) {
-				markLinkEdge(u, link[0]);
+				markLinkEdge(u, link[0], TaxiwayPaint.paintsLinkEdge(air, extra, u, link[0], -1));
 			}
 			if (!extra.contains(TaxiwayCurve.key(u, link[1] + 1))) {
-				markLinkEdge(u, link[1]);
+				markLinkEdge(u, link[1], TaxiwayPaint.paintsLinkEdge(air, extra, u, link[1], 1));
 			}
 		}
 		for (final AirportRoute.Cell cell : TaxiwayCurve.hold(air, link)) {
 			paint(cell.u(), cell.v(), PAINT_YELLOW);
 		}
+		curveStrips(link, throat0, throat1);
 	}
 
-	private void markLinkEdge(int u, int v) {
+	private void markLinkEdge(int u, int v, boolean paint) {
 		if (spec.airport().taxiwayLights() && u % air.dims().taxiLightEvery() == 0) {
 			light(u, v, TAXI_LIGHT);
 		}
-		paint(u, v, PAINT_YELLOW);
+		if (paint) {
+			paint(u, v, PAINT_YELLOW);
+		}
+	}
+
+	/** Paint strips stand this far over the pavement's top: clear of it at any distance, too thin to see from the side. */
+	static final float PAINT_LIFT = 1 / 32f;
+	/** The painted lines' width in blocks, the same as a painted cell. */
+	static final float PAINT_WIDTH = 1;
+	static final String BRIDGE_MEMBER = "aurelia_transit_architecture:bridge_member";
+
+	/**
+	 * One link's curved yellow lines ({@link TaxiwayPaint}), carried by a bridge member block in the link's pavement that draws
+	 * them flat on the ground. A piece that would lie over a light is left out, so the light shows.
+	 */
+	private void curveStrips(int[] link, int throat0, int throat1) {
+		final List<TaxiwayPaint.Strip> strips = new ArrayList<>(TaxiwayPaint.centreline(air, link));
+		strips.addAll(TaxiwayPaint.edges(air, link));
+		final int m = (link[0] + link[1]) / 2;
+		final int av = m + Math.max(1, (link[1] - m) / 2);
+		int au = Integer.MIN_VALUE;
+		final int mid = (throat0 + throat1) / 2;
+		for (int k = 0; k <= throat1 - throat0 && au == Integer.MIN_VALUE; k++) {
+			for (final int u : new int[]{mid + k, mid - k}) {
+				if (u >= throat0 && u <= throat1 && plannedAt(u, StationGeometry.PLATFORM_Y, av) == null) {
+					au = u;
+					break;
+				}
+			}
+		}
+		if (au == Integer.MIN_VALUE || strips.isEmpty()) {
+			return;
+		}
+		final float y = 1 + PAINT_LIFT;
+		final List<BridgeMember> members = new ArrayList<>();
+		for (final TaxiwayPaint.Strip strip : strips) {
+			if (overLight(strip) || members.size() >= BridgeMember.MAX_PACKED) {
+				continue;
+			}
+			members.add(new BridgeMember(BridgeMember.Material.PAINT, (float) (strip.u0() - au), y, (float) (strip.v0() - av),
+					(float) (strip.u1() - au), y, (float) (strip.v1() - av), PAINT_WIDTH));
+		}
+		putWithText(Role.PLATFORM_SURFACE, au, StationGeometry.PLATFORM_Y, av, LocalDir.PLUS_V, BRIDGE_MEMBER,
+				BridgeMember.pack(TAXI_SURFACE, members));
+	}
+
+	/** True when a strip's ends or middle fall on a planned light. */
+	private boolean overLight(TaxiwayPaint.Strip strip) {
+		for (final double t : new double[]{0, 0.5, 1}) {
+			final int u = (int) Math.round(strip.u0() + (strip.u1() - strip.u0()) * t);
+			final int v = (int) Math.round(strip.v0() + (strip.v1() - strip.v0()) * t);
+			final PlannedBlock there = plannedAt(u, StationGeometry.PLATFORM_Y, v);
+			if (there != null && there.role() == Role.LIGHT_PANEL) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** True when row {@code v} is inside a link's pavement, where the taxiway's edge line must break. */

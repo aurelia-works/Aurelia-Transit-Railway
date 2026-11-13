@@ -507,7 +507,7 @@ public class StationWrenchScreen extends Screen {
 	// ---- airport page ----------------------------------------------------------------------------------------------
 
 	private int airportHeight() {
-		return 12 + (more ? 46 : 0) + 30 + ROW + ROW + 26;
+		return 12 + (more ? 46 + ROW : 0) + 30 + ROW + ROW + 26;
 	}
 
 	private void initAirport() {
@@ -523,6 +523,19 @@ public class StationWrenchScreen extends Screen {
 						.tooltip(Tooltip.of(Text.literal(preset.description()))).build());
 			}
 			y += ((AirportPresets.ALL.size() + AIRPORT_COLUMNS - 1) / AIRPORT_COLUMNS) * AIRPORT_GRID_ROW + 6;
+			// looks of the smooth yellow lines round taxiway curves, kept in this client's wrench.json
+			addDrawableChild(ButtonWidget.builder(Text.translatable("screen.aurelia_transit_architecture.airport_wrench.curve_paint."
+							+ (WrenchSettings.curvePaint() ? "on" : "off")), b -> {
+						WrenchSettings.toggleCurvePaint();
+						clearAndInit();
+					}).dimensions(left, y, half, 20)
+					.tooltip(Tooltip.of(Text.translatable("screen.aurelia_transit_architecture.airport_wrench.curve_paint.tip"))).build());
+			addDrawableChild(ButtonWidget.builder(Text.translatable("screen.aurelia_transit_architecture.airport_wrench.paint_width", WrenchSettings.paintWidth()), b -> {
+						WrenchSettings.cyclePaintWidth();
+						clearAndInit();
+					}).dimensions(left + half + 4, y, half, 20)
+					.tooltip(Tooltip.of(Text.translatable("screen.aurelia_transit_architecture.airport_wrench.paint_width.tip"))).build());
+			y += ROW;
 		}
 		final TextFieldWidget field = new TextFieldWidget(textRenderer, left, y, column, 18,
 				Text.translatable("screen.aurelia_transit_architecture.airport_wrench.description"));
