@@ -336,7 +336,8 @@ public final class RailBridgePlanner {
 				clear(x, y, z);
 			}
 		}
-		if (a <= half + 0.5) {
+		// ballast to the foot of the wing walls in front of a portal, no turf left beside the track
+		if (a <= half + 0.5 || out > 0 && a < wall(out)) {
 			place(x, c.rail() - 1, z, BALLAST, false);
 		}
 	}
