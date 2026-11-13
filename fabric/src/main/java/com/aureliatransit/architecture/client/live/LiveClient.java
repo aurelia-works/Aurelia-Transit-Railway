@@ -181,10 +181,6 @@ public final class LiveClient {
 		return true;
 	}
 
-	public static boolean onboardBusy() {
-		return ONBOARD.busy(System.currentTimeMillis());
-	}
-
 	public static void stopOnboard() {
 		ONBOARD.stop();
 	}

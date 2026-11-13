@@ -252,16 +252,6 @@ public final class StationOverlapScreen extends Screen {
 		client.setScreen(parent);
 	}
 
-	/** For the dev self-test: the conflicts found, as (platform id, station ids in MTR order). */
-	public List<Zones.Conflict> conflictsForTest() {
-		return entries.stream().map(Entry::conflict).toList();
-	}
-
-	/** For the dev self-test: same as clicking the conflict row. */
-	public void selectConflictForTest(long platformId) {
-		reselect(platformId, null);
-	}
-
 	/** For the dev self-test: same as clicking the station row. */
 	public void selectStationForTest(long stationId) {
 		for (final SimpleListWidget.Row<Long> row : stationList.children()) {
@@ -270,15 +260,5 @@ public final class StationOverlapScreen extends Screen {
 				return;
 			}
 		}
-	}
-
-	/** For the dev self-test. */
-	public OverlapResolver.Plan planForTest() {
-		return plan;
-	}
-
-	/** For the dev self-test. */
-	public int mismatchesForTest() {
-		return mismatches;
 	}
 }

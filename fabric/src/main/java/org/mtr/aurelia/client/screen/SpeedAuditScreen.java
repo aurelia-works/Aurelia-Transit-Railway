@@ -134,14 +134,4 @@ public final class SpeedAuditScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test. */
-	public int railCountForTest() {
-		return railCount;
-	}
-
-	/** For the dev self-test. */
-	public List<SpeedAudit.Finding> findingsForTest() {
-		return findings;
-	}
 }

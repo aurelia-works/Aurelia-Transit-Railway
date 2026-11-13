@@ -230,15 +230,4 @@ public final class RouteStopsScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test. */
-	public DragListWidget stopListForTest() {
-		return stopList;
-	}
-
-	/** For the dev self-test: same as clicking the route in the list. */
-	public void selectRouteForTest(Route route) {
-		selectRoute(route);
-		refreshRoutes();
-	}
 }

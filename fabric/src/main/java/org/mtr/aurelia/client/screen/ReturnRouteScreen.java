@@ -232,24 +232,4 @@ public final class ReturnRouteScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test: same as clicking the route row. */
-	public void selectRouteForTest(Route route) {
-		for (final SimpleListWidget.Row<Route> row : routeList.children()) {
-			if (row.value() == route) {
-				routeList.setSelected(row);
-				return;
-			}
-		}
-	}
-
-	/** For the dev self-test. */
-	public List<ReturnRoute.Choice> planForTest() {
-		return plan;
-	}
-
-	/** For the dev self-test. */
-	public void setNameForTest(String name) {
-		nameField.setText(name);
-	}
 }

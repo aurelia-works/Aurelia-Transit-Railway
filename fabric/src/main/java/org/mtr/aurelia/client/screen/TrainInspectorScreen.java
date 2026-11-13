@@ -166,9 +166,4 @@ public final class TrainInspectorScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test. */
-	public List<TrainView> trainsForTest() {
-		return trains;
-	}
 }

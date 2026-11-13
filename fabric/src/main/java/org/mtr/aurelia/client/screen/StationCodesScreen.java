@@ -210,24 +210,4 @@ public final class StationCodesScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test: same as clicking the route row. */
-	public void selectRouteForTest(Route route) {
-		for (final SimpleListWidget.Row<Route> row : routeList.children()) {
-			if (row.value() == route) {
-				routeList.setSelected(row);
-				return;
-			}
-		}
-	}
-
-	/** For the dev self-test. */
-	public TextFieldWidget prefixFieldForTest() {
-		return prefixField;
-	}
-
-	/** For the dev self-test. */
-	public List<String> previewForTest() {
-		return List.copyOf(newNames);
-	}
 }

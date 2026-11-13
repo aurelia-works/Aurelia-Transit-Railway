@@ -80,10 +80,6 @@ public final class Landmark {
 	 */
 	public record Skin(String wall, String trim, String base, String glass, String roof, String roofStair, String cornice, String accent) {
 
-		public Skin withWall(String id) {
-			return new Skin(id, trim, base, glass, roof, roofStair, cornice, accent);
-		}
-
 		public Skin withTrim(String id) {
 			return new Skin(wall, id, base, glass, roof, roofStair, cornice, accent);
 		}
@@ -99,14 +95,6 @@ public final class Landmark {
 		public Skin withRoof(String full, String stair) {
 			return new Skin(wall, trim, base, glass, full, stair, cornice, accent);
 		}
-
-		public Skin withCornice(String stair) {
-			return new Skin(wall, trim, base, glass, roof, roofStair, stair, accent);
-		}
-
-		public Skin withAccent(String id) {
-			return new Skin(wall, trim, base, glass, roof, roofStair, cornice, id);
-		}
 	}
 
 	/**
@@ -117,28 +105,8 @@ public final class Landmark {
 	 */
 	public record Facade(Window window, int bay, int width, int storey, int sill, int height, int baseRows, int bandEvery, boolean relief) {
 
-		public Facade withWindow(Window kind, int w, int h) {
-			return new Facade(kind, bay, w, storey, sill, h, baseRows, bandEvery, relief);
-		}
-
-		public Facade withBay(int b) {
-			return new Facade(window, b, width, storey, sill, height, baseRows, bandEvery, relief);
-		}
-
-		public Facade withStorey(int s, int sillRow) {
-			return new Facade(window, bay, width, s, sillRow, height, baseRows, bandEvery, relief);
-		}
-
 		public Facade withBase(int rows) {
 			return new Facade(window, bay, width, storey, sill, height, rows, bandEvery, relief);
-		}
-
-		public Facade withBands(int every) {
-			return new Facade(window, bay, width, storey, sill, height, baseRows, every, relief);
-		}
-
-		public Facade withRelief(boolean r) {
-			return new Facade(window, bay, width, storey, sill, height, baseRows, bandEvery, r);
 		}
 	}
 

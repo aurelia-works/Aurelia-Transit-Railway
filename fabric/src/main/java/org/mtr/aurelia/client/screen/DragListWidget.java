@@ -8,7 +8,6 @@ import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
-import java.util.List;
 import java.util.function.IntFunction;
 
 /** A scrollable list whose rows can be dragged into a new order. Rows are labelled by their original index. */
@@ -40,10 +39,6 @@ public final class DragListWidget extends ClickableWidget {
 		scroll = 0;
 		dragging = false;
 		pressedRow = -1;
-	}
-
-	public int getSelected() {
-		return selected;
 	}
 
 	public void setSelected(int position) {
@@ -183,14 +178,5 @@ public final class DragListWidget extends ClickableWidget {
 
 	@Override
 	protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-	}
-
-	/** For tests and keyboard use: the labels in the current order. */
-	public List<Integer> currentOriginalIndices() {
-		final java.util.ArrayList<Integer> result = new java.util.ArrayList<>();
-		for (int i = 0; i < order.size(); i++) {
-			result.add(order.originalIndexAt(i));
-		}
-		return result;
 	}
 }
