@@ -570,7 +570,7 @@ public class StationWrenchScreen extends Screen {
 
 	/** The rail bridge builder's choices (style, sizes, masts, towers, portals) and undo; the saved-bridge tools under More. */
 	private int bridgeHeight() {
-		return 12 + 5 * ROW + (more ? 3 * ROW + 4 : 0) + 24;
+		return 12 + 5 * ROW + (more ? 4 * ROW + 4 : 0) + 24;
 	}
 
 	private static final int[] BRIDGE_PIERS = {12, 16, 20, 24, 30, 40};
@@ -625,6 +625,11 @@ public class StationWrenchScreen extends Screen {
 			y += ROW;
 			commandButton(left, y, half, "bridge.delete", "atr_bridge delete ");
 			runButton(left + half + 4, y, half, "bridge.help", "atr_bridge help");
+			y += ROW;
+			addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "bridge.lights." + WrenchSettings.towerLights()), b -> {
+				WrenchSettings.cycleTowerLights();
+				clearAndInit();
+			}).dimensions(left, y, column, 20).tooltip(Tooltip.of(Text.translatable(KEY + "bridge.lights.tip"))).build());
 		}
 		y = top(bridgeHeight()) + bridgeHeight() - 20;
 		addDrawableChild(ButtonWidget.builder(moreLabel(), b -> {

@@ -956,6 +956,10 @@
   "screen.aurelia_transit_architecture.station_wrench.bridge.mast_spacing.tip": "Blocks between masts on straight track.",
   "screen.aurelia_transit_architecture.station_wrench.bridge.towers": "Towers: %s%%",
   "screen.aurelia_transit_architecture.station_wrench.bridge.towers.tip": "Height of cable-stayed pylons and suspension towers.",
+  "screen.aurelia_transit_architecture.station_wrench.bridge.lights.0": "Tower lights: off",
+  "screen.aurelia_transit_architecture.station_wrench.bridge.lights.1": "Tower lights: steady",
+  "screen.aurelia_transit_architecture.station_wrench.bridge.lights.2": "Tower lights: flashing at night",
+  "screen.aurelia_transit_architecture.station_wrench.bridge.lights.tip": "The red warning lights on top of bridge towers and pylons. Only changes how this game draws them",
   "screen.aurelia_transit_architecture.station_wrench.bridge.portals.on": "Tunnels: on",
   "screen.aurelia_transit_architecture.station_wrench.bridge.portals.off": "Tunnels: off",
   "screen.aurelia_transit_architecture.station_wrench.bridge.portals.tip": "Through a hill: a lined tunnel with a portal and wing walls at each end. Off leaves hills as they are."

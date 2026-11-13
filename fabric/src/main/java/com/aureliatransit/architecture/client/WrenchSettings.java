@@ -23,6 +23,8 @@ public final class WrenchSettings {
 	/** The curved taxiway lines' width, in percent of a painted cell. */
 	private static int paintWidth = 100;
 	private static final int[] PAINT_WIDTHS = {50, 75, 100, 125};
+	/** The warning lights on bridge towers and pylons: 0 off, 1 steady, 2 flashing at night. */
+	private static int towerLights = 2;
 
 	private WrenchSettings() {
 	}
@@ -70,6 +72,10 @@ public final class WrenchSettings {
 			if (curve != null && curve.isJsonPrimitive() && curve.getAsJsonPrimitive().isBoolean()) {
 				curvePaint = curve.getAsBoolean();
 			}
+			final JsonElement lights = json.get("towerLights");
+			if (lights != null && lights.isJsonPrimitive() && lights.getAsJsonPrimitive().isNumber()) {
+				towerLights = Math.max(0, Math.min(2, lights.getAsInt()));
+			}
 			final JsonElement widthValue = json.get("paintWidth");
 			if (widthValue != null && widthValue.isJsonPrimitive() && widthValue.getAsJsonPrimitive().isNumber()) {
 				paintWidth = Math.max(25, Math.min(200, widthValue.getAsInt()));
@@ -89,6 +95,7 @@ public final class WrenchSettings {
 			json.addProperty("planRoof", planRoof);
 			json.addProperty("curvePaint", curvePaint);
 			json.addProperty("paintWidth", paintWidth);
+			json.addProperty("towerLights", towerLights);
 			Files.writeString(file, json.toString());
 		} catch (Exception e) {
 			LOGGER.error("[ATR] wrench.json could not be written", e);
@@ -112,6 +119,16 @@ public final class WrenchSettings {
 
 	public static void toggleCurvePaint() {
 		curvePaint = !curvePaint;
+		save();
+	}
+
+	/** 0 off, 1 steady, 2 flashing at night: the warning lights on top of bridge towers and pylons. */
+	public static int towerLights() {
+		return towerLights;
+	}
+
+	public static void cycleTowerLights() {
+		towerLights = (towerLights + 1) % 3;
 		save();
 	}
 
