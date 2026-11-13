@@ -9,7 +9,7 @@ How it was checked:
 - CI times: the last 40 runs of `ci.yml`.
 
 ## Summary
-- The Java code has little dead weight: 1119 top-level classes, 2 unreachable, 64 unused methods (34 of them `*ForTest` hooks). The weight is in files inherited from upstream that ATR never builds or links: 74.7 MiB of 220.9 MiB tracked (`git ls-tree -r -l`).
+- The Java code has little dead weight: 1119 top-level classes, 2 unreachable, 65 unused methods (35 of them `*ForTest` hooks). The weight is in files inherited from upstream that ATR never builds or links: 74.7 MiB of 220.9 MiB tracked (`git ls-tree -r -l`).
 - CI is already path-aware and quick (#102): about 4 minutes wall, 40 runner-minutes, 0.2 minutes for a docs-only PR.
 - No runtime speed-up is proposed. Nothing in the audit showed a hot spot, and a change without a bench number is not worth making.
 - Two things found on the way are bugs, not cleanup. Both are in "Needs Jah" below.
@@ -26,7 +26,7 @@ How it was checked:
 | `buildSrc/.../ModUpload.java` | 73 lines | Uploads seven-version MTR jars to upstream's Modrinth and CurseForge projects | No Gradle file calls it. Release pages are filled by hand (`release.yml`). |
 | `BuildTools.downloadTranslations`, the Gemini translation check, `getForgeVersion`, the Patreon fetch | about 190 lines | Upstream's release pipeline | `crowdinApiKey`, `geminiApiKey` and `patreonApiKey` are empty in `gradle.properties` and CI sets no secret, so these branches never run. The Patreon fetch reads upstream's campaign. `Patreon.java` is still generated (empty list), because the class is part of MTR 4.0.5. |
 | 30 unused methods | about 140 lines | Left over from builders and screens | List in "Unused methods" below. None is named on `feat/v1-bridges`, `feat/trailer-shots`, `review/o1`, `feat/e1-editor` or `feat/e2-drawn-tracks`. |
-| 34 of the 36 `*ForTest` hooks (32 on the Aurelia screens, `Announcer.historyForTest`, `ScriptingHandshake.publishedForTest`) | about 130 lines | Added with the panel in #8 for tests that were never written | No class in main refers to them, and no file in `fabric/src/test`, `ataTest`, `gametest`, `perfbench` or `camera` calls a `*ForTest` method, on master, `review/o1`, `feat/trailer-shots` or `feat/v1-bridges`. The two that stay are called from main. |
+| 35 of the 36 `*ForTest` hooks (33 on the Aurelia screens, `Announcer.historyForTest`, `ScriptingHandshake.publishedForTest`) | about 135 lines | Added with the panel in #8 for tests that were never written | No class in main refers to them, and no file in `fabric/src/test`, `ataTest`, `gametest`, `perfbench` or `camera` calls a `*ForTest` method, on master, `review/o1`, `feat/trailer-shots` or `feat/v1-bridges`. The one that stays, `StationOverlapScreen.selectStationForTest`, is called from main (line 108). |
 
 Unused methods: `AirportSpec.with*` (11: ApproachLights, ApronLanes, ApronMarkings, ControlTower, Forecourt, LandTransit, Perimeter, SupportBuildings, TaxiwayLights, TaxiwaySigns, TurnPads), `Landmark.Skin/Facade.with*` (8: Accent, Bands, Bay, Cornice, Relief, Storey, Wall, Window), `StylePalette.tactileId`, `AtrMenuScreen.openNamed`, `StationWrenchScreen.openStation/openBridge/openEarthworks`, `LiveClient.onboardBusy`, `DragListWidget.getSelected/currentOriginalIndices`, `PathSignals.metresToStop`, `BlockTrainCoupler.getMode/getKeep`.
 
