@@ -169,6 +169,9 @@ final class AirportMtr {
 			out.accept(Text.literal("Airport: MTR needs two gate platforms for a route; " + gates + " formed.").formatted(Formatting.YELLOW));
 			return;
 		}
+		// a repeating route must end where it starts: MTR jumps a plane from the last platform back to the first, so ending on the
+		// last gate made it vanish there and reappear at gate 1; ending on gate 1 it flies there
+		route.getRoutePlatforms().add(new RoutePlatformData(platformIds.get(0)));
 		final Depot depot = new Depot(TransportMode.AIRPLANE, new MinecraftClientData());
 		depot.setName("Airport");
 		depot.setCorners(new Position(minX - 20, -64, minZ - 20), new Position(maxX + 20, 320, maxZ + 20));
