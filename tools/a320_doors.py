@@ -5,17 +5,23 @@ lining quads beside the front doors stuck out where the fuselage curves in above
 triangle on a door's side against that door's rectangle (in y, z), so the dark door_void shows through the opening,
 and pulls any cabin vertex that reaches the hull back inside it.
 
-Run once from the repo root: python3 tools/a320_doors.py. It refuses to run twice.
+Run once per model from the repo root: python3 tools/a320_doors.py [a320|a350]. It refuses to run twice on a file.
 """
 import math
 import sys
 
-OBJ = "fabric/src/main/resources/assets/mtr/models/a320_200/a320.obj"
+MODELS = {
+    "a320": "fabric/src/main/resources/assets/mtr/models/a320_200/a320.obj",
+    "a350": "fabric/src/main/resources/assets/mtr/models/a350_900/a350.obj",
+}
 MARK = "# a320_doors.py: doorways cut"
-DOORS = ("a320_door_l1", "a320_door_r1", "a320_door_l2", "a320_door_r2")
 
 
 def main():
+    plane = sys.argv[1] if len(sys.argv) > 1 else "a320"
+    OBJ = MODELS[plane]
+    exterior = plane + "_exterior"
+    interior = plane + "_interior"
     lines = open(OBJ).read().split("\n")
     if any(line.startswith(MARK) for line in lines):
         sys.exit("already cut")
@@ -37,7 +43,7 @@ def main():
             faces.append((i, group, [tuple(int(p) for p in t.split("//")) for t in line.split()[1:]]))
 
     doors = []
-    for name in DOORS:
+    for name in sorted({g for _, g, _ in faces if g and g.startswith(plane + "_door_")}):
         ps = [verts[v] for _, g, f in faces if g == name for v, _ in f]
         side = 1 if sum(p[0] for p in ps) > 0 else -1
         doors.append((side, min(p[1] for p in ps), max(p[1] for p in ps), min(p[2] for p in ps), max(p[2] for p in ps)))
@@ -53,7 +59,7 @@ def main():
         return len(verts) - 1 + len(new_v), len(norms) - 1 + len(new_vn)
 
     for i, g, f in faces:
-        if g != "a320_exterior" or len(f) != 3:
+        if g != exterior or len(f) not in (3, 4):
             continue
         ps = [verts[v] for v, _ in f]
         for side, y0, y1, z0, z1 in doors:
@@ -73,14 +79,14 @@ def main():
             break
 
     # cabin vertices that reach the hull: pull them back in, a few centimetres short of the skin at that height
-    hull = [verts[v] for _, g, f in faces if g == "a320_exterior" for v, _ in f]
+    hull = [verts[v] for _, g, f in faces if g == exterior for v, _ in f]
     used = {}
     for _, g, f in faces:
         for v, _ in f:
             used.setdefault(v, set()).add(g)
     moved = 0
     for v, groups in used.items():
-        if groups != {"a320_interior"}:
+        if groups != {interior}:
             continue
         p = verts[v]
         skin = skin_at(hull, p)
@@ -133,8 +139,9 @@ def v_line(lines, v):
 
 
 def cut(ps, ns, y0, y1, z0, z1):
-    """The triangle minus the rectangle, as convex polygons of (point, normal); None when the triangle is not side-facing."""
-    a, b, c = ps
+    """The face (a triangle or a planar quad) minus the rectangle, as convex polygons of (point, normal); None when the face
+    is not side-facing. Positions and normals come from the face's first three corners."""
+    a, b, c = ps[:3]
     nx, ny, nz = cross(sub(b, a), sub(c, a))
     if abs(nx) < 0.3 * math.sqrt(nx * nx + ny * ny + nz * nz):
         return None
@@ -153,7 +160,7 @@ def cut(ps, ns, y0, y1, z0, z1):
             if len(poly) < 3:
                 break
         if len(poly) >= 3 and area(poly) > 1e-6:
-            out.append([lift(q, ps, ns) for q in poly])
+            out.append([lift(q, ps[:3], ns[:3]) for q in poly])
     return out
 
 
