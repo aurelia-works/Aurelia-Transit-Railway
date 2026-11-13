@@ -89,14 +89,15 @@ public final class JetBridgeRenderer implements BlockEntityRenderer<JetBridgeBlo
 		final boolean section = reach > 0.01f;
 		// one texture at a time: a buffer from the provider is only good until the next getBuffer call
 
-		// the telescoping section, a little inside the fixed tube's profile so it reads as sliding out of it; the cab's floor,
-		// roof with a lip, sides below the window band and front sill; the frame beside the door opening
+		// the telescoping section, a little inside the fixed tube's profile so it reads as sliding out of it, its floor flush with
+		// the deck you walk on; the cab's floor, roof with a lip, sides below the window band and front sill; the frame beside the
+		// door opening
 		VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayer.getEntitySolid(PANEL));
 		if (section) {
-			box(matrices, buffer, -0.85f, -0.85f, front, WIDTH + 0.85f, -0.6f, 0f, lit);
+			box(matrices, buffer, -0.85f, -0.85f, front, WIDTH + 0.85f, 0f, 0f, lit);
 			box(matrices, buffer, -0.85f, 2.6f, front, WIDTH + 0.85f, 2.85f, 0f, lit);
-			box(matrices, buffer, -0.85f, -0.6f, front, -0.6f, 2.0f, 0f, lit);
-			box(matrices, buffer, WIDTH + 0.6f, -0.6f, front, WIDTH + 0.85f, 2.0f, 0f, lit);
+			box(matrices, buffer, -0.85f, 0f, front, -0.6f, 2.0f, 0f, lit);
+			box(matrices, buffer, WIDTH + 0.6f, 0f, front, WIDTH + 0.85f, 2.0f, 0f, lit);
 		}
 		box(matrices, buffer, -1f, -1f, cabFront, WIDTH + 1f, 0f, front, lit);
 		box(matrices, buffer, -1.1f, 2.9f, cabFront - 0.1f, WIDTH + 1.1f, 3.1f, front, lit);
@@ -152,8 +153,8 @@ public final class JetBridgeRenderer implements BlockEntityRenderer<JetBridgeBlo
 		tiles(buffer, position, normal, light, x0, y0, x1, y1, (a, b) -> new float[]{a, b, z0}, 0, 0, -1);
 		tiles(buffer, position, normal, light, x1, y0, x0, y1, (a, b) -> new float[]{a, b, z1}, 0, 0, 1);
 		// -x, +x
-		tiles(buffer, position, normal, light, z0, y0, z1, y1, (a, b) -> new float[]{x0, b, a}, -1, 0, 0);
-		tiles(buffer, position, normal, light, z1, y0, z0, y1, (a, b) -> new float[]{x1, b, a}, 1, 0, 0);
+		tiles(buffer, position, normal, light, z1, y0, z0, y1, (a, b) -> new float[]{x0, b, a}, -1, 0, 0);
+		tiles(buffer, position, normal, light, z0, y0, z1, y1, (a, b) -> new float[]{x1, b, a}, 1, 0, 0);
 	}
 
 	/** A round wheel with its axle along x, from x0 to x1, centred at (cy, cz): {@link #TYRE_SIDES} tread faces and two flat sides. */

@@ -14,15 +14,18 @@ public record JetBridgeDeck(int x, int y, int d, boolean solid) {
 
 	/** The walkway's clear width, the moving section's: the block's column and two away from the plane. */
 	public static final int WIDTH = 3;
+	/** The depth of the cab's front sill, drawn inside the glass. */
+	private static final double FRONT_SILL = 0.3;
 
 	/**
 	 * The floor under the section and the cab, walls on both sides two blocks high, an end wall at the cab's front, and the door
 	 * opening on the plane's side: floor, and a passable cell at the walking level, where the cab's door frame stands (from 0.1 to
-	 * 2.9 blocks behind the cab's front, which is {@code reach} out).
+	 * 2.9 blocks behind the cab's front, which is {@code reach} out). The floor stops at the cell nearest the inside of the cab's
+	 * front sill, never more than 0.2 past the glass, so nobody walks out through the window onto floor that isn't drawn.
 	 */
 	public static List<JetBridgeDeck> cells(double reach) {
 		final List<JetBridgeDeck> out = new ArrayList<>();
-		final int end = (int) Math.ceil(reach + JetBridgeMotion.CAB_DEPTH - 0.001);
+		final int end = Math.max(1, (int) Math.round(reach + JetBridgeMotion.CAB_DEPTH - FRONT_SILL));
 		final int door0 = (int) Math.floor(reach + 0.1) + 1;
 		final int door1 = Math.min(end, (int) Math.ceil(reach + JetBridgeMotion.CAB_DEPTH - 0.1));
 		for (int d = 1; d <= end; d++) {
