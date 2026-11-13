@@ -21,8 +21,8 @@ public final class JetBridgeMotion {
 	private JetBridgeMotion() {
 	}
 
-	/** Blocks from a plane's head (MTR's car front) back to the middle of its forward door: MTR's A320 model, 19 pixels. */
-	public static final double DOOR_BEHIND_HEAD = 1.2;
+	/** Blocks from a plane's head (MTR's car front) back to the middle of its forward door: the airport's A320 OBJ, door l1. */
+	public static final double DOOR_BEHIND_HEAD = 0.7;
 	/** The cab's depth: three blocks, so its middle is 1.5 past where it leaves the bridge block's face. */
 	public static final double CAB_DEPTH = 3;
 	/** The bridge block sits in the fixed tube's roof, this many blocks over the walking level, so the tube's end stays open. */
