@@ -37,7 +37,8 @@ public class JetBridgeBlockEntity extends BlockEntity {
 	/** How far the cab runs out at full extension; kept while it pulls back, so it retracts along the same path. */
 	private float travel;
 	private long lastAdvance = Long.MIN_VALUE;
-	private long lastReport = Long.MIN_VALUE;
+	/** Not Long.MIN_VALUE: {@code time - lastReport} would overflow negative and the cab would never report. */
+	private long lastReport = -DOCK_REPORT_TICKS;
 	private final List<BlockPos> deck = new ArrayList<>();
 	private long deckUntil;
 	private int deckReach = -1;
