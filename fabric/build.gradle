@@ -7,7 +7,7 @@ plugins {
 	id "fabric-loom" version "1.10-SNAPSHOT"
 }
 
-final BuildTools buildTools = new BuildTools(minecraftVersion, "fabric", project)
+final BuildTools buildTools = new BuildTools(minecraftVersion, project)
 
 // Dev-only perf bench mod (src/perfbench): never part of the release jar. `./gradlew :fabric:runPerfbench` boots into
 // fabric/run/perf/saves/ATU Test (a copy of ATU's bench folder: NS pack, Iris, Complementary) and writes perfbench.txt there.
@@ -112,29 +112,23 @@ configurations {
 dependencies {
 	mtrBaseline "maven.modrinth:minecraft-transit-railway:FABRIC-4.0.5+1.20.1"
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
-	mappings "net.fabricmc:yarn:${buildTools.getYarnVersion()}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${buildTools.getFabricVersion()}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${buildTools.getFabricApiVersion()}"
-	modApi("com.terraformersmc:modmenu:${buildTools.getModMenuVersion()}") { exclude group: "net.fabricmc", module: "fabric-loader" }
+	mappings "net.fabricmc:yarn:${yarnVersion}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${fabricLoaderVersion}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
+	modApi("com.terraformersmc:modmenu:${modMenuVersion}") { exclude group: "net.fabricmc", module: "fabric-loader" }
 	shadowImplementation "org.mtr:Minecraft-Mappings-fabric-${minecraftVersion}:0.0.1-dev"
-	testImplementation "org.junit.jupiter:junit-jupiter-api:5.+"
-	testImplementation "org.junit.platform:junit-platform-launcher:1.+"
-	testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.+"
+	testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+	testImplementation "org.junit.platform:junit-platform-launcher:${junitPlatformVersion}"
+	testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
 	// ATA's unit tests (src/ataTest) create blocks, so they run inside Fabric Loader. Kept out of ATR's own tests: inside the
 	// loader, a classpath lookup of /fabric.mod.json finds another mod's file first
-	ataTestImplementation "org.junit.jupiter:junit-jupiter-api:5.+"
-	ataTestImplementation "org.junit.jupiter:junit-jupiter-params:5.+"
-	ataTestRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.+"
-	ataTestRuntimeOnly "org.junit.platform:junit-platform-launcher:1.+"
-	ataTestImplementation "net.fabricmc:fabric-loader-junit:${buildTools.getFabricVersion()}"
-
-	if (buildTools.hasJadeSupport()) {
-		modCompileOnly "maven.modrinth:jade:${buildTools.getJadeVersion()}"
-	}
-
-	if (buildTools.hasWthitSupport()) {
-		modCompileOnly "mcp.mobius.waila:wthit-api:${buildTools.getWthitVersion()}"
-	}
+	ataTestImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+	ataTestImplementation "org.junit.jupiter:junit-jupiter-params:${junitVersion}"
+	ataTestRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+	ataTestRuntimeOnly "org.junit.platform:junit-platform-launcher:${junitPlatformVersion}"
+	ataTestImplementation "net.fabricmc:fabric-loader-junit:${fabricLoaderVersion}"
+	modCompileOnly "maven.modrinth:jade:${jadeVersion}"
+	modCompileOnly "mcp.mobius.waila:wthit-api:${wthitVersion}"
 }
 
 repositories {
@@ -177,43 +171,33 @@ tasks.register("setupFiles") {
 		rename "(.+).template.json", "\$1.json"
 	}
 
-	if (buildTools.hasJadeSupport()) {
-		copy {
-			outputs.upToDateWhen { false }
-			from "src/main/JadeConfigTemplate.java"
-			into "src/main/java/org/mtr/init"
-			rename "(.+)Template.java", "\$1.java"
-		}
-	} else {
-		delete fileTree("src/main/java/org/mtr/init/JadeConfig.java")
+	copy {
+		outputs.upToDateWhen { false }
+		from "src/main/JadeConfigTemplate.java"
+		into "src/main/java/org/mtr/init"
+		rename "(.+)Template.java", "\$1.java"
 	}
 
-	if (buildTools.hasWthitSupport()) {
-		copy {
-			outputs.upToDateWhen { false }
-			from "src/main/WthitConfigTemplate.java"
-			into "src/main/java/org/mtr/init"
-			rename "(.+)Template.java", "\$1.java"
-		}
-
-		copy {
-			outputs.upToDateWhen { false }
-			from "src/main/wthit_plugins_template.json"
-			into "src/main/resources"
-			rename "(.+)_template.json", "\$1.json"
-		}
-	} else {
-		delete fileTree("src/main/java/org/mtr/init/WthitConfig.java")
-		delete fileTree("src/main/resources/wthit_plugins.json")
+	copy {
+		outputs.upToDateWhen { false }
+		from "src/main/WthitConfigTemplate.java"
+		into "src/main/java/org/mtr/init"
+		rename "(.+)Template.java", "\$1.java"
 	}
 
-	buildTools.downloadTranslations(crowdinApiKey, geminiApiKey)
+	copy {
+		outputs.upToDateWhen { false }
+		from "src/main/wthit_plugins_template.json"
+		into "src/main/resources"
+		rename "(.+)_template.json", "\$1.json"
+	}
+
 	buildTools.generateTranslations()
 	buildTools.copyLootTables("mtr")
 	buildTools.copyLootTables("mtrsteamloco")
 	buildTools.copyFontDefinition()
 	buildTools.copyVehicleTemplates()
-	buildTools.getPatreonList(patreonApiKey)
+	buildTools.writeEmptyPatreonList()
 	Generator.generateJava(project, "schema/config", "mod/generated/config", false, "mod.config")
 	Generator.generateJava(project, "schema/resource", "mod/generated/resource", false, "core.data", "mod.resource")
 	Generator.generateJava(project, "schema/legacy", "legacy/generated/resource", false)
