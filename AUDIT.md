@@ -9,7 +9,7 @@ How it was checked:
 - CI times: the last 40 runs of `ci.yml`.
 
 ## Summary
-- The Java code has little dead weight: 1119 top-level classes, 2 unreachable, 32 unused methods. The weight is in files inherited from upstream that ATR never builds or links: 76.7 MB of 248 MB tracked.
+- The Java code has little dead weight: 1119 top-level classes, 2 unreachable, 30 unused methods. The weight is in files inherited from upstream that ATR never builds or links: 74.7 MiB of 220.9 MiB tracked (`git ls-tree -r -l`).
 - CI is already path-aware and quick (#102): about 4 minutes wall, 40 runner-minutes, 0.2 minutes for a docs-only PR.
 - No runtime speed-up is proposed. Nothing in the audit showed a hot spot, and a change without a bench number is not worth making.
 - Two things found on the way are bugs, not cleanup. Both are in "Needs Jah" below.
@@ -19,15 +19,15 @@ How it was checked:
 | What | Size | Why it exists | Evidence that nothing breaks |
 |---|---|---|---|
 | `forge/` | 6 files | MTR's Forge build | `settings.gradle` includes only `fabric`. Last commit touching it is upstream's. ATR is Fabric 1.20.1 only (PLAN.md). |
-| 28 jars in `libs/` (mappings for 1.16.5 to 1.20.4, Forge mappings, the non-dev 1.20.1 jar) | 19.6 MB | MTR builds seven Minecraft versions | The build files name seven jars: mappings-common, mappings-fabric-1.20.1-dev, Shadow-Libraries net and util, Transport-Simulation-Core, its Build-Tools, Mod-API-Tools. The rest are never resolved. Proof: the jar builds without them. |
-| `images/` | 55 MB, 115 files | Pictures for upstream's wiki and README | No file in the repo mentions `images/`. CHANGELOG 1.0: "README no longer sends people to upstream images". |
+| 27 of the 34 jars in `libs/` (mappings for 1.16.5 to 1.20.4, Forge mappings, the non-dev 1.20.1 jar) | 19.1 MiB | MTR builds seven Minecraft versions | The build files name seven jars: mappings-common, mappings-fabric-1.20.1-dev, Shadow-Libraries net and util, Transport-Simulation-Core, its Build-Tools, Mod-API-Tools. The rest are never resolved. Proof: `:fabric:remapJar` without them gives a jar with the same 14,433 entries and the same CRC for each as master's CI jar. |
+| `images/` | 55.2 MiB, 116 files | Pictures for upstream's wiki and README | No file in the repo mentions `images/`. CHANGELOG 1.0: "README no longer sends people to upstream images". |
 | `examples/MTR Custom Resources.zip` | 276 KB | Upstream sample pack | No mention anywhere in the repo. |
 | `.github/workflows/crowdin.yml`, `crowdin.yml` | 2 files | Uploads strings to upstream's Crowdin project 455212 | Its own header says it must not run. ATR has no Crowdin project. |
 | `buildSrc/.../ModUpload.java` | 73 lines | Uploads seven-version MTR jars to upstream's Modrinth and CurseForge projects | No Gradle file calls it. Release pages are filled by hand (`release.yml`). |
 | `BuildTools.downloadTranslations`, the Gemini translation check, `getForgeVersion`, the Patreon fetch | about 190 lines | Upstream's release pipeline | `crowdinApiKey`, `geminiApiKey` and `patreonApiKey` are empty in `gradle.properties` and CI sets no secret, so these branches never run. The Patreon fetch reads upstream's campaign. `Patreon.java` is still generated (empty list), because the class is part of MTR 4.0.5. |
-| 32 unused methods | about 150 lines | Left over from builders and screens | List in "Unused methods" below. None is named on `feat/v1-bridges`, `feat/trailer-shots`, `review/o1`, `feat/e1-editor` or `feat/e2-drawn-tracks`. |
+| 30 unused methods | about 140 lines | Left over from builders and screens | List in "Unused methods" below. None is named on `feat/v1-bridges`, `feat/trailer-shots`, `review/o1`, `feat/e1-editor` or `feat/e2-drawn-tracks`. |
 
-Unused methods: `AirportSpec.with*` (11: ApproachLights, ApronLanes, ApronMarkings, ControlTower, Forecourt, LandTransit, Perimeter, SupportBuildings, TaxiwayLights, TaxiwaySigns, TurnPads), `Landmark.Skin/Facade.with*` (8: Accent, Bands, Bay, Cornice, Relief, Storey, Wall, Window), `StylePalette.tactileId`, `AtrMenuScreen.openNamed`, `StationWrenchScreen.openStation/openBridge/openEarthworks`, `LiveClient.onboardBusy`, `DragListWidget.getSelected/currentOriginalIndices`, `RouteControl.toEntries/fromEntries`, `PathSignals.metresToStop`, `BlockTrainCoupler.getMode/getKeep`.
+Unused methods: `AirportSpec.with*` (11: ApproachLights, ApronLanes, ApronMarkings, ControlTower, Forecourt, LandTransit, Perimeter, SupportBuildings, TaxiwayLights, TaxiwaySigns, TurnPads), `Landmark.Skin/Facade.with*` (8: Accent, Bands, Bay, Cornice, Relief, Storey, Wall, Window), `StylePalette.tactileId`, `AtrMenuScreen.openNamed`, `StationWrenchScreen.openStation/openBridge/openEarthworks`, `LiveClient.onboardBusy`, `DragListWidget.getSelected/currentOriginalIndices`, `PathSignals.metresToStop`, `BlockTrainCoupler.getMode/getKeep`.
 
 ## 2. Simpler once those are gone
 
@@ -43,6 +43,7 @@ Unused methods: `AirportSpec.with*` (11: ApproachLights, ApronLanes, ApronMarkin
 
 - Upstream MTR classes with no caller in ATR (`TrigCache`, `DebugKeys`, `TrainType`) and all `assets/mtr` files: add-ons and resource packs may use them.
 - `org/mtr/libraries` (20.4 MB, 4514 classes): byte-for-byte the same set as MTR 4.0.5, and add-ons link against it.
+- `RouteControl.toEntries/fromEntries`: no caller, but their comment says they are for the world save ("new keys only"), so they read as an unfinished part of route control, not a leftover.
 - `CallingPages` and `LiftGlassRegions`, and 70 methods used only by tests: removing them means removing tests.
 - 27 `*ForTest` hooks on the Aurelia screens: no test on master calls them, but the unmerged `review/o1` branch (UI screenshot tests) builds on that pattern.
 - The particle `StationPreview` next to the hologram: PLAN keeps it as the fallback for slow PCs.
@@ -57,7 +58,7 @@ Unused methods: `AirportSpec.with*` (11: ApproachLights, ApronLanes, ApronMarkin
 ## 4. Needs Jah (found on the way, not cleanup)
 
 1. **The Resource Pack Creator page is empty in every ATR jar.** MTR 4.0.5 carries the built website in `org/mtr/mod/generated/WebserverResources.class` (964,587 bytes). In ATR's v1.0.2 jar and in master's CI jar that class is 781 bytes: `get()` returns null for every path, so `http://localhost:<port>/creator/` serves nothing. Cause: nobody runs `ng build` in `website/` before Gradle, in CI or in `release.yml`. Choices: build the website in the release job (one Node step), or say the creator is not part of ATR and remove the item that opens it.
-2. **ATR ships English only for MTR's own strings.** MTR 4.0.5 has 43 files in `assets/mtr/lang`; ATR's jar has 2. The others came from Crowdin at build time and are git-ignored. Choice: commit the 4.0.5 language files (MIT) so the 42 other languages come back, with ATR's new strings in English.
+2. **ATR ships English only for MTR's own strings.** MTR 4.0.5 has 42 files in `assets/mtr/lang`; ATR's jar has 1 (`en_us.json`, the only one tracked). The others came from Crowdin at build time and are git-ignored. Choice: commit the 4.0.5 language files (MIT) so the 41 other languages come back, with ATR's new strings in English.
 3. **`.github/FUNDING.yml` points the repo's Sponsor button at upstream's Patreon** (`minecraft_transit_railway`). Keep as credit, or remove.
 4. **`ATR-GOAL.md` is not in the repo** though PLAN.md names it as the brief.
 
@@ -68,6 +69,6 @@ Unused methods: `AirportSpec.with*` (11: ApproachLights, ApronLanes, ApronMarkin
 | CI wall time, code PR | 3.2 to 7.8 min, typically 4 | last 40 runs of `ci.yml` |
 | CI wall time, docs-only PR | 0.2 min | runs 43251742511, 43251446145 |
 | CI runner time, code PR | 39.0 and 40.3 min over 17 jobs | runs 43290846812, 43292002766 |
-| Release jar | 93.3 MB (MTR 4.0.5: 80.9 MB) | master CI artifact |
-| Tracked files | 248 MB, 9796 files | `git ls-files` |
+| Release jar | 93,273,411 bytes (MTR 4.0.5: 80.9 MiB) | master CI artifact |
+| Tracked files | 220.9 MiB, 9796 files | `git ls-tree -r -l origin/master` |
 | Gradle configuration (`help --offline`) | 6.4 s, 5.2 s | two local runs |
