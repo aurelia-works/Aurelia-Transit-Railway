@@ -1,7 +1,6 @@
 package com.aureliatransit.architecture.registry;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
-import com.aureliatransit.architecture.block.BridgeMemberBlock;
 import com.aureliatransit.architecture.block.ClockBlock;
 import com.aureliatransit.architecture.block.DeparturesBoardBlock;
 import com.aureliatransit.architecture.block.InfoDisplayBlock;
@@ -66,7 +65,8 @@ public final class ModBlockEntities {
 	public static final BlockEntityType<BridgeMemberBlockEntity> BRIDGE_MEMBER = Registry.register(
 			Registries.BLOCK_ENTITY_TYPE,
 			AureliaTransitArchitecture.id("bridge_member"),
-			BlockEntityType.Builder.create(BridgeMemberBlockEntity::new, blocks(block -> block instanceof BridgeMemberBlock)).build(null)
+			// the block has no item, so it is not in ModBlocks.entries(): name it, or the type supports no block and nothing draws
+			BlockEntityType.Builder.create(BridgeMemberBlockEntity::new, ElevatedBlocks.BRIDGE_MEMBER).build(null)
 	);
 
 	private static Block[] blocks(Predicate<Block> filter) {
