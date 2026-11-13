@@ -142,20 +142,4 @@ public final class JumpScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test: select the first target whose label contains {@code text}. */
-	public boolean selectForTest(String text) {
-		for (final SimpleListWidget.Row<Target> row : list.children()) {
-			if (row.value().label().contains(text)) {
-				list.setSelected(row);
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/** For the dev self-test. */
-	public String selectedCommandForTest() {
-		return selected == null ? null : selected.command();
-	}
 }

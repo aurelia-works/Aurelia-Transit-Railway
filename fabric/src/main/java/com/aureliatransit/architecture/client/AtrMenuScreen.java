@@ -210,15 +210,4 @@ public final class AtrMenuScreen extends Screen {
 	public void close() {
 		MinecraftClient.getInstance().setScreen(parent);
 	}
-
-	/** Dev screenshot hook: open on a tab by name. */
-	public static boolean openNamed(String name) {
-		for (final Tab tab : Tab.values()) {
-			if (tab.name().equalsIgnoreCase(name)) {
-				open(MinecraftClient.getInstance().currentScreen, tab);
-				return true;
-			}
-		}
-		return false;
-	}
 }

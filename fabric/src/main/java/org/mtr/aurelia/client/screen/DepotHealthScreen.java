@@ -261,19 +261,4 @@ public final class DepotHealthScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test. */
-	public Map<Long, List<DepotHealth.Problem>> problemsForTest() {
-		return problems;
-	}
-
-	/** For the dev self-test: same as clicking the depot row. */
-	public void selectDepotForTest(long depotId) {
-		for (final SimpleListWidget.Row<DepotHealth.DepotInfo> row : depotList.children()) {
-			if (row.value().id() == depotId) {
-				depotList.setSelected(row);
-				return;
-			}
-		}
-	}
 }

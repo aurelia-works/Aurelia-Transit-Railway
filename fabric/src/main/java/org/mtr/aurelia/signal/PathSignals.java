@@ -194,12 +194,6 @@ public final class PathSignals {
 		return Utilities.getIndexFromConditionalList(vehicle.vehicleExtraData.immutablePath, vehicle.getRailProgress() - 1);
 	}
 
-	/** Distance from the front of the train to the next platform stop, or NaN when none is ahead. */
-	public static double metresToStop(VehicleExtension vehicle) {
-		final PathData pathData = stopPath(vehicle);
-		return pathData == null ? Double.NaN : pathData.getEndDistance() - vehicle.getRailProgress();
-	}
-
 	/** The next dwell path the front of the train will stop at, found the same way MTR finds its stopping point. */
 	@Nullable
 	public static PathData stopPath(VehicleExtension vehicle) {

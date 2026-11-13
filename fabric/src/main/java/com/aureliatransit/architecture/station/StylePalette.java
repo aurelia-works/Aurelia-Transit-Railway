@@ -384,26 +384,6 @@ public final class StylePalette {
 		};
 	}
 
-	/** The block a tactile strip one cell in from a platform edge is laid with: the style's own tactile paving, a full platform
-	 * surface so MTR doors still open over it. Yellow warning paving where the style has no paving of its own. */
-	public String tactileId() {
-		if (specBuildingStyle()) {
-			return switch (buildingStyle) {
-				case VICTORIAN, ART_DECO, MODERNIST -> ata("uk_platform_coping_tactile");
-				default -> switch (style) {
-					case GERMAN_SBAHN -> ata("sbahn_platform_edge_tactile");
-					case METRO -> ata("metro_tactile_edge");
-					default -> ata("tactile_warning_paving");
-				};
-			};
-		}
-		return switch (style) {
-			case GERMAN_SBAHN -> ata("sbahn_platform_edge_tactile");
-			case METRO -> ata("metro_tactile_edge");
-			default -> ata("tactile_warning_paving");
-		};
-	}
-
 	/** True when the station has a British building look whose platforms have their own coping. */
 	private boolean specBuildingStyle() {
 		return switch (buildingStyle) {

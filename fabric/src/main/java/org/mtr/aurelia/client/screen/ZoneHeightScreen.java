@@ -210,29 +210,4 @@ public final class ZoneHeightScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test: same as clicking the zone in the list. */
-	public void selectAreaForTest(AreaBase<?, ?> area) {
-		for (final SimpleListWidget.Row<AreaBase<?, ?>> row : areaList.children()) {
-			if (row.value() == area) {
-				areaList.setSelected(row);
-				return;
-			}
-		}
-	}
-
-	/** For the dev self-test. */
-	public TextFieldWidget bottomFieldForTest() {
-		return bottomField;
-	}
-
-	/** For the dev self-test. */
-	public TextFieldWidget topFieldForTest() {
-		return topField;
-	}
-
-	/** For the dev self-test: the preview lines as plain text. */
-	public List<String> previewForTest() {
-		return previewLines.stream().map(Text::getString).toList();
-	}
 }

@@ -451,29 +451,4 @@ public final class DepartureEditorScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test: same as clicking the depot row. */
-	public void selectDepotForTest(Depot depot) {
-		for (final SimpleListWidget.Row<Depot> row : depotList.children()) {
-			if (row.value() == depot) {
-				depotList.setSelected(row);
-				return;
-			}
-		}
-	}
-
-	/** For the dev self-test: same as clicking the tab. */
-	public void showTabForTest(String name) {
-		showTab(Tab.valueOf(name));
-	}
-
-	/** For the dev self-test. */
-	public List<Long> pendingForTest() {
-		return pending;
-	}
-
-	/** For the dev self-test: timed tab fields, then hourly, then loop. */
-	public List<TextFieldWidget> fieldsForTest() {
-		return List.of(firstField, lastField, gapField, travelField, restFromField, restToField, shiftField, hourFromField, hourToField, hourGapField, loopFirstField, trainsField, roundTripField);
-	}
 }

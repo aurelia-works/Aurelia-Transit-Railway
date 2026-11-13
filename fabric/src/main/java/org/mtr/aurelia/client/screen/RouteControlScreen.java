@@ -391,15 +391,4 @@ public final class RouteControlScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test: same as clicking the route in the list. */
-	public void selectRouteForTest(Route route) {
-		selectRoute(route);
-		refreshRoutes();
-	}
-
-	/** For the dev self-test. */
-	public RouteControl controlForTest() {
-		return control;
-	}
 }

@@ -114,14 +114,6 @@ public class BlockTrainCoupler extends BlockTrainSensorBase {
 			markDirty2();
 		}
 
-		public Mode getMode() {
-			return mode;
-		}
-
-		public int getKeep() {
-			return keep;
-		}
-
 		private MutableText message() {
 			if (mode == Mode.SPLIT) {
 				return TextHelper.translatable(keep <= 0 ? "gui.mtr.train_coupler.split_half" : "gui.mtr.train_coupler.split", keep);

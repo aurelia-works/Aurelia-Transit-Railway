@@ -137,20 +137,8 @@ public class StationWrenchScreen extends Screen {
 		open(hand);
 	}
 
-	public static void openStation(Hand hand) {
-		openMode(hand, WrenchMode.STATION);
-	}
-
 	public static void openAirport(Hand hand) {
 		openMode(hand, WrenchMode.AIRPORT);
-	}
-
-	public static void openBridge(Hand hand) {
-		openMode(hand, WrenchMode.BRIDGE);
-	}
-
-	public static void openEarthworks(Hand hand) {
-		openMode(hand, WrenchMode.EARTHWORKS);
 	}
 
 	@Override

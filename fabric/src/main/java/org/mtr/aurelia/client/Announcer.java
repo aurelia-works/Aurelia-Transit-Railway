@@ -28,7 +28,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
-import java.util.List;
 import java.util.Properties;
 
 /**
@@ -59,8 +58,6 @@ public final class Announcer {
 	private static final AnnouncerLogic LOGIC = new AnnouncerLogic();
 	private static final PlatformCalls PLATFORM = new PlatformCalls();
 	private static final ArrayDeque<String> CLIPS = new ArrayDeque<>();
-	/** The last announcements and clips, for the dev self-test. */
-	private static final ArrayDeque<String> HISTORY = new ArrayDeque<>();
 	private static boolean enabled = true;
 	private static boolean platformEnabled = true;
 	/** Action-bar line as well as chat. Saved in announcer.properties; missing means on. */
@@ -158,17 +155,6 @@ public final class Announcer {
 		return true;
 	}
 
-	public static List<String> historyForTest() {
-		return List.copyOf(HISTORY);
-	}
-
-	private static void remember(String entry) {
-		if (HISTORY.size() >= 30) {
-			HISTORY.poll();
-		}
-		HISTORY.add(entry);
-	}
-
 	private static void tick(MinecraftClient client) {
 		if (++ticks % CHECK_EVERY_TICKS != 0) {
 			return;
@@ -241,7 +227,6 @@ public final class Announcer {
 				client.player.sendMessage(Text.literal(bar), true);
 			}
 		}
-		remember(announcement.kind() + " " + lines + " " + (voice ? "voice" : announcement.clips()));
 	}
 
 	/** Plays the queued clips one after another. */
@@ -256,7 +241,6 @@ public final class Announcer {
 		while (!CLIPS.isEmpty()) {
 			final Identifier id = new Identifier("mtr", CLIP_PREFIX + CLIPS.poll());
 			if (client.getSoundManager().get(id) == null) {
-				remember("missing " + id);
 				if (!warnedNoClips) {
 					warnedNoClips = true;
 					AureliaClient.LOGGER.info("[ATR] Announcer: sound {} is not in any loaded resource pack; announcements without it are text only", id);
@@ -266,7 +250,6 @@ public final class Announcer {
 			playing = new PositionedSoundInstance(id, SoundCategory.VOICE, 1, 1, SoundInstance.createRandom(), false, 0, SoundInstance.AttenuationType.NONE, 0, 0, 0, true);
 			playingTicks = 0;
 			client.getSoundManager().play(playing);
-			remember("play " + id);
 			break;
 		}
 	}

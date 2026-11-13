@@ -232,34 +232,4 @@ public final class PlatformDwellScreen extends Screen {
 	public void close() {
 		client.setScreen(parent);
 	}
-
-	/** For the dev self-test: same as clicking the scope in the list. */
-	public void selectScopeForTest(Object source) {
-		for (final SimpleListWidget.Row<Scope> row : scopeList.children()) {
-			if (row.value().source() == source) {
-				scopeList.setSelected(row);
-				return;
-			}
-		}
-	}
-
-	/** For the dev self-test. */
-	public TextFieldWidget dwellFieldForTest() {
-		return dwellField;
-	}
-
-	/** For the dev self-test. */
-	public Set<Platform> tickedForTest() {
-		return ticked;
-	}
-
-	/** For the dev self-test: same as clicking that platform row. */
-	public void clickPlatformForTest(Platform platform) {
-		for (final SimpleListWidget.Row<Platform> row : platformList.children()) {
-			if (row.value() == platform) {
-				platformList.setSelected(row);
-				return;
-			}
-		}
-	}
 }

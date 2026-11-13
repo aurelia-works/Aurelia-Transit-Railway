@@ -8,8 +8,6 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import net.fabricmc.loader.api.FabricLoader;
@@ -28,7 +26,6 @@ public final class ScriptingHandshake {
 	private static boolean failed;
 	private static boolean melodies = true;
 	private static boolean announcerOn = true;
-	private static final List<Map<String, String>> PUBLISHED = new ArrayList<>();
 
 	private ScriptingHandshake() {
 	}
@@ -48,19 +45,10 @@ public final class ScriptingHandshake {
 		publish(announcerOn);
 	}
 
-	/** Every map handed to JCM (or that would have been, without JCM), oldest first; for the self-test. */
-	public static List<Map<String, String>> publishedForTest() {
-		return List.copyOf(PUBLISHED);
-	}
-
 	public static void publish(boolean announcer) {
 		announcerOn = announcer;
 		final String version = FabricLoader.getInstance().getModContainer("mtr").map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("unknown");
 		final Map<String, String> values = Handshake.values(version, announcer, melodies);
-		if (PUBLISHED.size() >= 50) {
-			PUBLISHED.remove(0);
-		}
-		PUBLISHED.add(values);
 		if (failed || !FabricLoader.getInstance().isModLoaded(JCM_MOD_ID)) {
 			return;
 		}
