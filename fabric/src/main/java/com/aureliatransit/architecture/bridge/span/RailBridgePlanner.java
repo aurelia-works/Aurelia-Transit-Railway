@@ -48,6 +48,7 @@ public final class RailBridgePlanner {
 	static final String BALLAST = "minecraft:gravel";
 	static final String TOWER = "minecraft:red_terracotta";
 	static final String FOOTING = "minecraft:stone";
+	static final String BEARING = "minecraft:gray_concrete";
 	static final String EARTH = "minecraft:dirt";
 	static final String TURF = "minecraft:grass_block";
 
@@ -336,7 +337,7 @@ public final class RailBridgePlanner {
 			}
 		}
 		if (a <= half + 0.5) {
-			place(x, c.rail() - 1, z, BALLAST, true);
+			place(x, c.rail() - 1, z, BALLAST, false);
 		}
 	}
 
@@ -350,6 +351,9 @@ public final class RailBridgePlanner {
 				// the portal: a headwall round the opening, a dressed ring next to it and a coping on top
 				if (opening) {
 					clear(x, y, z);
+				} else if (h == CLEARANCE - 1 && a <= half + 0.5 && a > 0.5) {
+					// the opening's top corners: upside-down stairs round it off into an arch
+					place(x, y, z, "minecraft:polished_andesite_stairs[facing=" + outward(c) + ",half=top,shape=straight,waterlogged=false]", false);
 				} else if (h == CLEARANCE + 4) {
 					place(x, y, z, "minecraft:stone_brick_slab[type=bottom,waterlogged=false]", false);
 				} else if (h >= 0 && a <= half + 1.5 && h <= CLEARANCE) {
@@ -369,6 +373,26 @@ public final class RailBridgePlanner {
 		}
 	}
 
+	/** A parapet one block high with a half-block coping, about the height of a real one. */
+	private void parapet(int x, int rail, int z, String body) {
+		place(x, rail, z, body, false);
+		place(x, rail + 1, z, body.equals(STONE) ? STONE_COPING : CONCRETE_COPING, false);
+	}
+
+	static final String CONCRETE_COPING = "minecraft:smooth_stone_slab[type=bottom,waterlogged=false]";
+	static final String STONE_COPING = "minecraft:stone_brick_slab[type=bottom,waterlogged=false]";
+
+	/** The compass side of the track that {@code c} lies on, away from the centre line. */
+	private String outward(Local c) {
+		final double[] t = tangent(path.at(c.s()));
+		final double dx = -t[1] * Math.signum(c.a());
+		final double dz = t[0] * Math.signum(c.a());
+		if (Math.abs(dx) > Math.abs(dz)) {
+			return dx > 0 ? "east" : "west";
+		}
+		return dz > 0 ? "south" : "north";
+	}
+
 	/**
 	 * Wing walls: retaining walls along both sides of the cutting in front of a tunnel mouth, flaring a little and stepping down
 	 * with the ground they hold back. Where the ground is lower than the rail there is nothing to hold and no wall.
@@ -386,6 +410,17 @@ public final class RailBridgePlanner {
 				place(x, y, z, STONE, false);
 			}
 		}
+	}
+
+	/** Blocks from {@code s} to the nearest tunnel along this rail, or infinity with none. */
+	private double tunnelDistance(double s) {
+		double best = Double.POSITIVE_INFINITY;
+		for (final Stretch tunnel : stretches) {
+			if (tunnel.kind() == Kind.TUNNEL) {
+				best = Math.min(best, s < tunnel.s0() ? tunnel.s0() - s : s > tunnel.s1() ? s - tunnel.s1() : 0);
+			}
+		}
+		return best;
 	}
 
 	/** Blocks from {@code s} out to the nearest tunnel mouth when it is in the wing walls' reach, else -1. */
@@ -425,7 +460,8 @@ public final class RailBridgePlanner {
 			if (a <= half + 1.5 && ground != NONE) {
 				final String body = stretch.style() == SpanStyle.ARCH || stretch.style() == SpanStyle.TRUSS ? STONE : CONCRETE;
 				for (int y = ground + 1; y < rail - 1; y++) {
-					place(x, y, z, body, false);
+					// the top course is the bearing shelf the deck sits on, darker so the joint reads
+					place(x, y, z, y == rail - 2 && end > 0.5 ? (body.equals(STONE) ? STONE_RING : BEARING) : body, false);
 				}
 			}
 		}
@@ -450,7 +486,7 @@ public final class RailBridgePlanner {
 			}
 		} else if (edge) {
 			place(x, rail - 1, z, CONCRETE, false);
-			place(x, rail, z, CONCRETE, false);
+			parapet(x, rail, z, CONCRETE);
 		}
 		final double pier = nearest(c.s(), stretch, Math.max(1, (int) Math.round(stretch.length() / settings.pierSpacing())));
 		final double d = Math.abs(c.s() - pier);
@@ -523,24 +559,32 @@ public final class RailBridgePlanner {
 			place(x, rail - 1, z, BALLAST, false);
 		} else {
 			place(x, rail - 1, z, STONE, false);
-			place(x, rail, z, STONE, false);
+			parapet(x, rail, z, STONE);
 		}
 		final int bottom = ground == NONE ? rail - SCAN_DOWN : ground + 1;
 		for (int y = rail - 2; y >= bottom; y--) {
 			final double h = y + 0.5 - rail;
-			final boolean open;
-			final double distance = Math.sqrt(du * du + (h - centre) * (h - centre));
-			if (h > centre) {
-				open = distance <= radius;
-			} else {
-				// below the springing the piers thicken a block in every ten
-				open = Math.abs(du) <= radius - (centre - h) / 10;
+			if (archOpen(du, h, centre, radius)) {
+				continue;
 			}
-			if (open) {
+			final double distance = Math.sqrt(du * du + (h - centre) * (h - centre));
+			if (h > centre && Math.abs(du) > radius * 0.35 && archOpen(du, h - 1, centre, radius)) {
+				// the arch's underside where it curves: an upside-down stair, its low side toward the pier, takes the step off
+				final double[] t = tangent(path.at(c.s()));
+				final String facing = Math.abs(t[0]) > Math.abs(t[1]) ? (t[0] * du > 0 ? "east" : "west") : (t[1] * du > 0 ? "south" : "north");
+				place(x, y, z, "minecraft:polished_andesite_stairs[facing=" + facing + ",half=top,shape=straight,waterlogged=false]", false);
 				continue;
 			}
 			place(x, y, z, h > centre - 0.5 && distance <= radius + 1 ? STONE_RING : STONE, false);
 		}
+	}
+
+	/** True inside an arch's opening: under the curve above the springing, and between the piers (a block wider every ten down) below it. */
+	private static boolean archOpen(double du, double h, double centre, double radius) {
+		if (h > centre) {
+			return Math.sqrt(du * du + (h - centre) * (h - centre)) <= radius;
+		}
+		return Math.abs(du) <= radius - (centre - h) / 10;
 	}
 
 	/** V4: a slim concrete deck hung from white A-frame pylons by a semi-fan of stays. */
@@ -553,15 +597,18 @@ public final class RailBridgePlanner {
 		} else if (edge) {
 			place(x, rail - 1, z, CONCRETE, false);
 			place(x, rail - 2, z, CONCRETE, false);
-			place(x, rail, z, CONCRETE, false);
+			parapet(x, rail, z, CONCRETE);
 		}
 		for (final double pylon : pylons(stretch)) {
 			final double d = Math.abs(c.s() - pylon);
+			final double leg = half + 2.5;
+			if (d <= PILE_CAP_REACH && a <= leg + PILE_CAP_REACH) {
+				pileCap(x, z, ground);
+			}
 			if (d > 1.0) {
 				continue;
 			}
 			final int height = pylonHeight(stretch);
-			final double leg = half + 2.5;
 			final int straight = CLEARANCE + 2;
 			if (Math.abs(a - leg) <= 1.0) {
 				pierDown(x, z, rail - 3, ground, WHITE);
@@ -600,12 +647,15 @@ public final class RailBridgePlanner {
 			place(x, rail - 1, z, STEEL, false);
 			place(x, rail - 2, z, STEEL, false);
 			if (edge) {
-				place(x, rail, z, CONCRETE, false);
+				parapet(x, rail, z, CONCRETE);
 			}
 		}
 		final int height = towerHeight(stretch);
 		final double leg = half + 2.5;
 		for (final double tower : towers(stretch)) {
+			if (Math.abs(c.s() - tower) <= PILE_CAP_REACH && a <= leg + PILE_CAP_REACH) {
+				pileCap(x, z, ground);
+			}
 			if (Math.abs(c.s() - tower) > 1.0) {
 				continue;
 			}
@@ -622,6 +672,23 @@ public final class RailBridgePlanner {
 					}
 				}
 			}
+		}
+	}
+
+	/** How far a pile cap reaches past the legs it carries, along and across the track. */
+	static final double PILE_CAP_REACH = 2.5;
+
+	/** A concrete cap from the river bed to a block over the water, where a pylon or tower stands in it; nothing on dry land. */
+	private void pileCap(int x, int z, int ground) {
+		if (ground == NONE) {
+			return;
+		}
+		int surface = ground;
+		while (surface - ground < SCAN_DOWN && site.kind(x, surface + 1, z) == CellKind.FLUID) {
+			surface++;
+		}
+		for (int y = ground + 1; surface > ground && y <= surface + 1; y++) {
+			place(x, y, z, CONCRETE, false);
 		}
 	}
 
@@ -669,7 +736,10 @@ public final class RailBridgePlanner {
 		switch (stretch.style()) {
 			case TRUSS -> trussMembers(stretch);
 			case CABLE_STAYED -> stays(stretch);
-			case SUSPENSION -> cables(stretch);
+			case SUSPENSION -> {
+				cables(stretch);
+				stiffeningTruss(stretch);
+			}
 			default -> {
 			}
 		}
@@ -723,6 +793,7 @@ public final class RailBridgePlanner {
 			for (final int side : new int[]{-1, 1}) {
 				head.add(BridgeMember.Material.WHITE, point(pylon, side * (half + 2.5), straight + 0.5), point(pylon, side * 1.0, height - 5), 2.0f);
 			}
+			head.add(BridgeMember.Material.LIGHT, point(pylon, 0, height + 1), point(pylon, 0, height + 1.4), 0.4f);
 			for (final int direction : new int[]{-1, 1}) {
 				final double limit = direction < 0 ? back : fore;
 				for (int k = 1; ; k++) {
@@ -730,11 +801,12 @@ public final class RailBridgePlanner {
 					if (direction < 0 ? s < limit : s > limit) {
 						break;
 					}
-					final double drop = Math.min(height * 0.35, k * 0.7);
+					// anchored up the head above where the legs join it, so no stay runs through a leg
+					final double drop = Math.min(STAY_BAND, k * 0.35);
 					for (final int side : new int[]{-1, 1}) {
 						final double[] top = point(pylon, side * 0.6, height - 1 - drop);
 						final double[] deck = point(s, side * (half + 1.0), 0.6);
-						head.add(BridgeMember.Material.WHITE, top, deck, 0.16f);
+						head.add(BridgeMember.Material.WHITE, top, deck, 0.09f);
 					}
 				}
 			}
@@ -781,6 +853,37 @@ public final class RailBridgePlanner {
 		}
 	}
 
+	/** How far down the pylon head the stays' anchors reach: the head above the legs is about this tall. */
+	static final double STAY_BAND = 3.2;
+
+	/** Blocks between the stiffening truss's top nodes, and its depth under the deck. */
+	static final double STIFFENER_PANEL = 4;
+	static final double STIFFENER_DEPTH = 3;
+
+	/**
+	 * A Warren truss under each edge of a suspension deck, as on real rail suspension bridges, which need it to keep the deck
+	 * from bending under a train: diagonals from the deck edge down to a bottom chord and back up.
+	 */
+	private void stiffeningTruss(Stretch stretch) {
+		final double from = stretch.s0() + 4;
+		final double to = stretch.s1() - 4;
+		final double top = -1.5;
+		final double bottom = top - STIFFENER_DEPTH;
+		for (final int side : new int[]{-1, 1}) {
+			final double a = side * (half + 2.0);
+			for (double s = from; s + STIFFENER_PANEL <= to; s += STIFFENER_PANEL) {
+				final double low = s + STIFFENER_PANEL / 2;
+				final AnchorBuilder node = anchor(STEEL, point(s, a, top));
+				node.add(BridgeMember.Material.STEEL, point(s, a, top), point(low, a, bottom), 0.25f);
+				node.add(BridgeMember.Material.STEEL, point(low, a, bottom), point(s + STIFFENER_PANEL, a, top), 0.25f);
+				final double next = Math.min(low + STIFFENER_PANEL, to - STIFFENER_PANEL / 2);
+				if (next > low) {
+					node.add(BridgeMember.Material.STEEL, point(low, a, bottom), point(next, a, bottom), 0.35f);
+				}
+			}
+		}
+	}
+
 	private static double sag(double s, double mid, double main, int height) {
 		final double f = (s - mid) / main;
 		return 2.5 + (height - 2) * f * f;
@@ -797,11 +900,6 @@ public final class RailBridgePlanner {
 		double s = 2;
 		while (s <= length - 1) {
 			final Stretch stretch = stretchAt(s);
-			if (stretch.kind() == Kind.TUNNEL) {
-				masts.add(null);
-				s = stretch.s1() + 3;
-				continue;
-			}
 			masts.add(mast(s, stretch));
 			double spacing = settings.mastSpacing();
 			while (spacing > 12 && sagitta(s, spacing) > 0.35) {
@@ -815,15 +913,73 @@ public final class RailBridgePlanner {
 			if (here == null || next == null) {
 				continue;
 			}
-			here.anchor().add(BridgeMember.Material.CABLE, here.wire(), next.wire(), 0.06f);
-			here.anchor().add(BridgeMember.Material.CABLE, here.messenger(), next.messenger(), 0.07f);
+			catenary(here, next);
+		}
+	}
+
+	/** Contact wire height in a tunnel: under the lining's roof at {@link #CLEARANCE}, clear of the arch's corner stairs. */
+	static final double TUNNEL_WIRE = 4.45;
+	/** Wire thickness up close, a few times a real wire's so it reads at all; far away the renderer keeps it a pixel wide. */
+	static final float WIRE_THICKNESS = 0.035f;
+	static final float MESSENGER_THICKNESS = 0.04f;
+	/** Blocks before a tunnel mouth over which the wires come down to {@link #TUNNEL_WIRE}. */
+	static final double WIRE_RAMP = 24;
+
+	/** Messenger sag at mid-span on a full-length span; shorter spans sag with the square of their length. */
+	static final double MESSENGER_SAG = 0.55;
+	/** Blocks between droppers, about what a real line uses scaled to the game. */
+	static final double DROPPER_PITCH = 5;
+
+	/**
+	 * The messenger hangs in a shallow curve from mast to mast, and droppers hold the contact wire level under it: drawn as
+	 * straight pieces with a dropper at each join.
+	 */
+	private void catenary(Mast here, Mast next) {
+		final double span = next.s() - here.s();
+		final int pieces = Math.max(2, (int) Math.round(span / DROPPER_PITCH));
+		final double ratio = span / settings.mastSpacing();
+		final double sag = MESSENGER_SAG * Math.min(1, ratio * ratio);
+		final double wire0 = here.wire()[1] - point(here.s(), 0, 0)[1];
+		final double wire1 = next.wire()[1] - point(next.s(), 0, 0)[1];
+		final double messenger0 = here.messenger()[1] - point(here.s(), 0, 0)[1];
+		final double messenger1 = next.messenger()[1] - point(next.s(), 0, 0)[1];
+		// a low system (in a tunnel) has room for little sag
+		final double room = Math.min(messenger0 - wire0, messenger1 - wire1);
+		final double dip = Math.min(sag, room * 0.6);
+		double[] previous = here.messenger();
+		double[] contact = here.wire();
+		for (int k = 1; k <= pieces; k++) {
+			final double f = (double) k / pieces;
+			final double s = here.s() + span * f;
+			final double[] at = k == pieces ? next.messenger() : point(s, 0, messenger0 + (messenger1 - messenger0) * f - dip * 4 * f * (1 - f));
+			final double[] below = k == pieces ? next.wire() : point(s, 0, wire0 + (wire1 - wire0) * f);
+			// short pieces, so the renderer can keep each one about a pixel wide at its own distance
+			here.anchor().add(BridgeMember.Material.CABLE, previous, at, MESSENGER_THICKNESS);
+			here.anchor().add(BridgeMember.Material.CABLE, contact, below, WIRE_THICKNESS);
+			if (k < pieces) {
+				here.anchor().add(BridgeMember.Material.CABLE, at, below, 0.02f);
+			}
+			previous = at;
+			contact = below;
 		}
 	}
 
 	private Mast mast(double s, Stretch stretch) {
-		final double wireHeight = 5.6;
+		if (stretch.kind() == Kind.TUNNEL) {
+			// hung from the lining's roof, lower and closer together, as real lines are in a tunnel
+			final double[] wire = point(s, 0, TUNNEL_WIRE);
+			final double[] messenger = point(s, 0, TUNNEL_WIRE + 0.35);
+			final AnchorBuilder anchor = anchor(CONCRETE, point(s, 0, CLEARANCE + 0.5));
+			anchor.add(BridgeMember.Material.STEEL, point(s, 0, CLEARANCE), messenger, 0.12f);
+			anchor.add(BridgeMember.Material.STEEL, point(s, -0.6, CLEARANCE), point(s, 0.6, CLEARANCE - 0.05), 0.1f);
+			return new Mast(s, anchor, wire, messenger);
+		}
+		// near a tunnel the wires come down so they enter it under the lining, not through the headwall
+		final double toTunnel = tunnelDistance(s);
+		final double wireHeight = toTunnel < WIRE_RAMP ? TUNNEL_WIRE + (5.6 - TUNNEL_WIRE) * toTunnel / WIRE_RAMP : 5.6;
+		final double system = toTunnel < WIRE_RAMP ? 0.35 + (0.9 - 0.35) * toTunnel / WIRE_RAMP : 0.9;
 		final double[] wire = point(s, 0, wireHeight);
-		final double[] messenger = point(s, 0, wireHeight + 0.9);
+		final double[] messenger = point(s, 0, wireHeight + system);
 		if (stretch.kind() == Kind.BRIDGE && stretch.style() == SpanStyle.TRUSS) {
 			// hung from the truss's top bracing: a drop to the wires, no mast
 			final AnchorBuilder anchor = anchor(STEEL, point(s, 0, TRUSS_HEIGHT + 0.5));
@@ -852,10 +1008,10 @@ public final class RailBridgePlanner {
 		}
 		final double[] top = point(s, a, 7.2);
 		anchor.add(BridgeMember.Material.STEEL, foot, top, 0.3f);
-		final double[] arm = point(s, a, wireHeight + 0.9);
+		final double[] arm = point(s, a, wireHeight + system);
 		anchor.add(BridgeMember.Material.STEEL, arm, point(s, 0.6, wireHeight + 0.9), 0.14f);
-		anchor.add(BridgeMember.Material.STEEL, point(s, a, wireHeight - 0.1), point(s, 0.2, wireHeight + 0.85), 0.1f);
-		anchor.add(BridgeMember.Material.STEEL, point(s, 0, wireHeight + 0.9), wire, 0.05f);
+		anchor.add(BridgeMember.Material.STEEL, point(s, a, wireHeight - 0.1), point(s, 0.2, wireHeight + system - 0.05), 0.1f);
+		anchor.add(BridgeMember.Material.STEEL, point(s, 0, wireHeight + system), wire, 0.05f);
 		return new Mast(s, anchor, wire, messenger);
 	}
 
