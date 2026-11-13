@@ -1,6 +1,6 @@
 # ATR plan to V1
 
-Current as of 2026-11-12. The full brief for the run to V1 is `ATR-GOAL.md`. Old plans and handoffs are in `archive/` and `docs/handoffs/`; the long per-phase notes of finished phases are in this file's git history.
+Current as of 2026-11-13. The brief for the run to V1 is Jah's `ATR-GOAL.md`, which is not in the repo. Old handoffs are in `docs/handoffs/`; the long per-phase notes of finished phases are in this file's git history.
 
 ## What ATR is
 - A drop-in replacement for MTR 4.0.5 on Minecraft 1.20.1 Fabric: mod id `mtr`, block and item ids, the save format and the 4.0.5 methods add-ons hook (`DropInSignaturesTest`) never change. 1.20.1 only.
@@ -34,11 +34,11 @@ Current as of 2026-11-12. The full brief for the run to V1 is `ATR-GOAL.md`. Old
 | AP2 | Airfield one block into the ground, A320 and A350 models | merged (#86) |
 | E1, E2, E3 | Editor screen, drawn tracks as MTR rails, drawn platforms and buildings | merged (#76, #78, #83). E1 and E2 have not been tested in game |
 | EW1, EW2 | Saved undo for every build, earthworks | merged (#66, #77) |
-| AE | Airports in the editor | merged (#92). Open: #95 terminal buildings, #97 curved taxiways |
+| AE | Airports in the editor | merged (#92, terminal buildings #95, curved taxiways #97) |
 | L1, L2, L3, L4 | Crew roles, drivable cars and bike share, journey planner, in-game map | merged (#79, #91, #93, #80, #81) |
 | DM | Train-door markers on platforms | merged (#98) |
 | BS | Bus station at the station front | merged (#99) |
-| E3+ | Street entrance, hall, gates and wing waiting rooms | open: #96, looks under 9 |
+| E3+ | Street entrance, hall, gates and wing waiting rooms | merged (#96) |
 | ES | Escalator look | Studio draws them right (#103). Three looks are on the check-in page; waiting for Jah's pick |
 | V1 to V4 | Viaduct that follows the rail, overhead-line masts, suspension span, tunnel portal | not started. Jah approved this order on 2026-11-12 |
 | AR | Airport train station, one walk from platform to check-in | not started |
