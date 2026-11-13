@@ -1,6 +1,6 @@
 plugins {
 	id "java"
-	id "com.github.johnrengelman.shadow" version "+" apply false
+	id "com.github.johnrengelman.shadow" version "8.1.1" apply false
 }
 
 group "org.mtr.mod"
@@ -20,8 +20,8 @@ subprojects {
 		shadowImplementation "org.mtr:Shadow-Libraries-util:0.0.1"
 		shadowImplementation "org.mtr:Minecraft-Mappings-common:0.0.1"
 		shadowImplementation "org.mtr:Transport-Simulation-Core:0.0.1"
-		shadowImplementation "com.logisticscraft:occlusionculling:+"
-		compileOnly "com.google.code.findbugs:jsr305:+"
+		shadowImplementation "com.logisticscraft:occlusionculling:0.0.9-SNAPSHOT"
+		compileOnly "com.google.code.findbugs:jsr305:3.0.2"
 	}
 
 	repositories {
@@ -37,7 +37,6 @@ subprojects {
 			exclude(dependency("org.mtr:Shadow-Libraries-net:.*"))
 			exclude(dependency("org.mtr:Minecraft-Mappings-common:.*"))
 			exclude(dependency("org.mtr:Minecraft-Mappings-fabric-${minecraftVersion}:.*"))
-			exclude(dependency("org.mtr:Minecraft-Mappings-forge-${minecraftVersion}:.*"))
 		}
 		relocate "com.logisticscraft", "org.mtr.libraries.com.logisticscraft"
 		relocate "de.javagl", "org.mtr.libraries.de.javagl"
