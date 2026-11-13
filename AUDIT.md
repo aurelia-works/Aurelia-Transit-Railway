@@ -37,7 +37,6 @@ Unused methods: `AirportSpec.with*` (11: ApproachLights, ApronLanes, ApronMarkin
 | Dependency versions | Fabric Loader, Fabric API, Mod Menu and Jade are looked up on the network every time Gradle configures; `occlusionculling:+` (shaded into the jar), the shadow plugin, foojay, JUnit and buildSrc's libraries float | Pinned to what resolves today: loader 0.20.1, Fabric API 0.92.12+1.20.1, Mod Menu 7.2.2, Jade 11.13.3+fabric, occlusionculling 0.0.9-SNAPSHOT | If `meta.fabricmc.net` or Modrinth is down, `getJson` returns `{}` after five tries and configuration throws. Two builds of one commit can ship different shaded classes. |
 | `BuildTools.java` | 455 lines, loader and version switches for seven versions and two loaders | Fabric 1.20.1 only | With Forge and the lookups gone, buildSrc drops the Crowdin client, httpmime and Mod-API-Tools. |
 | `DevScreenshots` | 158 lines in the release jar, switched on by `-Data.devScreenshots` | In the perf bench source set, which never ships | No Gradle task sets the flag. Two handoffs use it by hand (`docs/handoffs/HANDOFF-2026-11-09-PHASE-1.md:17`, `PHASE-2.md:11`); the second starts `runPerfbench`. After the move the flag works with `runPerfbench` and no longer with `runClient`. |
-| CI path filter | Docs-only PRs skip the suites | Also skip them for PRs that touch only `aureliamap/` or `tools/`, which have their own build or none | `aureliamap/` has its own workflow and is not in `settings.gradle`. Unsure still means run everything, and `ci-ok` stays. |
 | PLAN.md | Points to `archive/` (not in the repo) and to `ATR-GOAL.md` (untracked) | Says only what is in the repo | `ls archive` fails; `git ls-files ATR-GOAL.md` is empty. |
 
 ## 3. Looked at and left alone
@@ -50,6 +49,7 @@ Unused methods: `AirportSpec.with*` (11: ApproachLights, ApronLanes, ApronMarkin
 - Old `station_wrench` and `airport_wrench` items, and the word parser (14 callers: Studio, presets, wrench screens).
 - Nine settings classes that each read and write their own file (1185 lines): the files must stay as they are for old configs, and a shared helper would save about 200 lines for a lot of churn.
 - Threads: ATR adds seven executors (map saver, Studio's pool of two and its planner, the station planner, the preview, the hologram, the model loader). An idle thread costs no CPU. Merging them needs a measured reason.
+- The CI path filter: it could also skip the suites for PRs that touch only `aureliamap/` or `tools/`, but none of the last 60 merged PRs did (47 code, 6 code with `tools/`, 7 docs-only, which already skip). `ci-ok` is the required check on master.
 - `aureliamap/` (BlueMap fork, 998 files, own JDK 25 build): a shipped feature. Moving it to its own repo is a product call.
 - `website/` (60 files): see the first bug below.
 - `tools/*.py`: the scripts that made the A320, car and bike models. Not in the jar.
