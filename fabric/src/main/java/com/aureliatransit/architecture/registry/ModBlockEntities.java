@@ -1,11 +1,13 @@
 package com.aureliatransit.architecture.registry;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
+import com.aureliatransit.architecture.block.BridgeMemberBlock;
 import com.aureliatransit.architecture.block.ClockBlock;
 import com.aureliatransit.architecture.block.DeparturesBoardBlock;
 import com.aureliatransit.architecture.block.InfoDisplayBlock;
 import com.aureliatransit.architecture.block.JetBridgeBlock;
 import com.aureliatransit.architecture.block.TextSignBlock;
+import com.aureliatransit.architecture.block.entity.BridgeMemberBlockEntity;
 import com.aureliatransit.architecture.block.entity.ClockBlockEntity;
 import com.aureliatransit.architecture.block.entity.DeparturesBoardBlockEntity;
 import com.aureliatransit.architecture.block.entity.InfoDisplayBlockEntity;
@@ -60,6 +62,12 @@ public final class ModBlockEntities {
 
 	private ModBlockEntities() {
 	}
+
+	public static final BlockEntityType<BridgeMemberBlockEntity> BRIDGE_MEMBER = Registry.register(
+			Registries.BLOCK_ENTITY_TYPE,
+			AureliaTransitArchitecture.id("bridge_member"),
+			BlockEntityType.Builder.create(BridgeMemberBlockEntity::new, blocks(block -> block instanceof BridgeMemberBlock)).build(null)
+	);
 
 	private static Block[] blocks(Predicate<Block> filter) {
 		return ModBlocks.entries().stream().map(ModBlocks.Entry::block).filter(filter).toArray(Block[]::new);

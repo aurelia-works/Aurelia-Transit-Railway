@@ -1,6 +1,8 @@
 package com.aureliatransit.architecture.client;
 
 import com.aureliatransit.architecture.block.elevated.StyleCycle;
+import com.aureliatransit.architecture.bridge.span.SpanSettings;
+import com.aureliatransit.architecture.bridge.world.RailBridges;
 import com.aureliatransit.architecture.client.interactive.EditorWidgets;
 import com.aureliatransit.architecture.earthworks.EarthJob;
 import com.aureliatransit.architecture.earthworks.EarthLook;
@@ -553,21 +555,58 @@ public class StationWrenchScreen extends Screen {
 
 	// ---- bridge page -----------------------------------------------------------------------------------------------
 
-	/** Three steps in plain words (save one, lay it along a rail, undo); the rest under More. */
+	/** The rail bridge builder's choices (style, sizes, masts, towers, portals) and undo; the saved-bridge tools under More. */
 	private int bridgeHeight() {
-		return 12 + 3 * ROW + (more ? 4 * ROW + 4 : 0) + 24;
+		return 12 + 5 * ROW + (more ? 3 * ROW + 4 : 0) + 24;
 	}
+
+	private static final int[] BRIDGE_PIERS = {12, 16, 20, 24, 30, 40};
+	private static final int[] BRIDGE_MASTS = {20, 30, 40, 50};
+	private static final double[] BRIDGE_TOWERS = {0.75, 1, 1.25, 1.5};
 
 	private void initBridge() {
 		final int left = (width - column) / 2;
 		int y = top(bridgeHeight()) + 12;
-		commandButton(left, y, column, "bridge.capture", "atr_bridge capture ");
+		final SpanSettings span = span();
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "bridge.style", Text.literal(span.style().label()).formatted(Formatting.AQUA)),
+				b -> setSpan(span.withStyle(span.style().next()))).dimensions(left, y, column, 20).tooltip(Tooltip.of(Text.translatable(KEY + "bridge.style.tip"))).build());
 		y += ROW;
-		commandButton(left, y, column, "bridge.build", "atr_bridge build ");
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "bridge.width", span.halfWidth() * 2 + 1), b -> setSpan(new SpanSettings(span.style(),
+				span.halfWidth() >= 6 ? 1 : span.halfWidth() + 1, span.pierSpacing(), span.masts(), span.mastSpacing(), span.towerScale(), span.portals())))
+				.dimensions(left, y, half, 20).tooltip(Tooltip.of(Text.translatable(KEY + "bridge.width.tip"))).build());
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "bridge.piers", span.pierSpacing()), b -> setSpan(new SpanSettings(span.style(),
+				span.halfWidth(), next(BRIDGE_PIERS, span.pierSpacing()), span.masts(), span.mastSpacing(), span.towerScale(), span.portals())))
+				.dimensions(left + half + 4, y, half, 20).tooltip(Tooltip.of(Text.translatable(KEY + "bridge.piers.tip"))).build());
+		y += ROW;
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + (span.masts() ? "bridge.masts.on" : "bridge.masts.off")), b -> setSpan(new SpanSettings(span.style(),
+				span.halfWidth(), span.pierSpacing(), !span.masts(), span.mastSpacing(), span.towerScale(), span.portals())))
+				.dimensions(left, y, half, 20).tooltip(Tooltip.of(Text.translatable(KEY + "bridge.masts.tip"))).build());
+		final ButtonWidget mastSpacing = ButtonWidget.builder(Text.translatable(KEY + "bridge.mast_spacing", span.mastSpacing()), b -> setSpan(new SpanSettings(span.style(),
+				span.halfWidth(), span.pierSpacing(), span.masts(), next(BRIDGE_MASTS, span.mastSpacing()), span.towerScale(), span.portals())))
+				.dimensions(left + half + 4, y, half, 20).tooltip(Tooltip.of(Text.translatable(KEY + "bridge.mast_spacing.tip"))).build();
+		mastSpacing.active = span.masts();
+		addDrawableChild(mastSpacing);
+		y += ROW;
+		int tower = 0;
+		for (int i = 0; i < BRIDGE_TOWERS.length; i++) {
+			if (Math.abs(BRIDGE_TOWERS[i] - span.towerScale()) < 0.01) {
+				tower = i;
+			}
+		}
+		final double nextTower = BRIDGE_TOWERS[(tower + 1) % BRIDGE_TOWERS.length];
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "bridge.towers", Math.round(span.towerScale() * 100)), b -> setSpan(new SpanSettings(span.style(),
+				span.halfWidth(), span.pierSpacing(), span.masts(), span.mastSpacing(), nextTower, span.portals())))
+				.dimensions(left, y, half, 20).tooltip(Tooltip.of(Text.translatable(KEY + "bridge.towers.tip"))).build());
+		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + (span.portals() ? "bridge.portals.on" : "bridge.portals.off")), b -> setSpan(new SpanSettings(span.style(),
+				span.halfWidth(), span.pierSpacing(), span.masts(), span.mastSpacing(), span.towerScale(), !span.portals())))
+				.dimensions(left + half + 4, y, half, 20).tooltip(Tooltip.of(Text.translatable(KEY + "bridge.portals.tip"))).build());
 		y += ROW;
 		runButton(left, y, column, "bridge.undo", "atr_bridge undo");
 		if (more) {
 			y += ROW + 4;
+			commandButton(left, y, half, "bridge.capture", "atr_bridge capture ");
+			commandButton(left + half + 4, y, half, "bridge.build", "atr_bridge build ");
+			y += ROW;
 			commandButton(left, y, half, "bridge.preview", "atr_bridge preview ");
 			runButton(left + half + 4, y, half, "bridge.list", "atr_bridge list");
 			y += ROW;
@@ -579,6 +618,31 @@ public class StationWrenchScreen extends Screen {
 			more = !more;
 			clearAndInit();
 		}).dimensions(left, y, column, 20).build());
+	}
+
+	/** The bridge choices on the wrench in this screen's hand. */
+	private SpanSettings span() {
+		return client == null || client.player == null ? SpanSettings.DEFAULT : RailBridges.settings(client.player.getStackInHand(hand));
+	}
+
+	/** Saves bridge choices on the wrench here and on the server, then redraws the page. */
+	private void setSpan(SpanSettings settings) {
+		if (client != null && client.player != null) {
+			RailBridges.setSettings(client.player.getStackInHand(hand), settings);
+			if (ClientPlayNetworking.canSend(RailBridges.SETTINGS_PACKET)) {
+				ClientPlayNetworking.send(RailBridges.SETTINGS_PACKET, RailBridges.write(hand, settings));
+			}
+		}
+		clearAndInit();
+	}
+
+	private static int next(int[] values, int current) {
+		for (final int value : values) {
+			if (value > current) {
+				return value;
+			}
+		}
+		return values[0];
 	}
 
 	/** Puts a command in the chat box so the player can fill in its arguments. */

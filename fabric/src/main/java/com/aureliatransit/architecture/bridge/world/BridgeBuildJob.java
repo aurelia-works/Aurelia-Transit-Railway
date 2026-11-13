@@ -1,9 +1,13 @@
 package com.aureliatransit.architecture.bridge.world;
 
+import com.aureliatransit.architecture.block.BridgeMemberBlock;
 import com.aureliatransit.architecture.bridge.BridgeStampPlan;
 import com.aureliatransit.architecture.bridge.BridgeTemplate;
 import com.aureliatransit.architecture.station.StylePalette;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -12,7 +16,9 @@ import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * Stamps a {@link BridgeStampPlan} into the world in small time slices. It never overwrites an MTR rail node or a block
@@ -27,6 +33,8 @@ final class BridgeBuildJob implements BridgeTask {
 	private final UUID owner;
 	private final List<BridgeStampPlan.Placement> placements;
 	private final BlockState[] states;
+	private final Map<BlockPos, NbtCompound> entities;
+	private final Consumer<List<Entry>> done;
 	private final List<Entry> undo = new ArrayList<>();
 	private int index;
 	private int placed;
@@ -36,12 +44,24 @@ final class BridgeBuildJob implements BridgeTask {
 	private boolean finished;
 
 	BridgeBuildJob(ServerWorld world, UUID owner, BridgeStampPlan plan, BridgeTemplate template) {
+		this(world, owner, plan.placements(), template.palette(), Map.of(), entries -> {
+		});
+	}
+
+	/**
+	 * A build from placements and their palette, as the rail bridge builder plans them. {@code entities} is block entity data
+	 * written into the cells that get it; {@code done} receives the undo log when the build finishes.
+	 */
+	BridgeBuildJob(ServerWorld world, UUID owner, List<BridgeStampPlan.Placement> placements, List<String> palette, Map<BlockPos, NbtCompound> entities,
+			Consumer<List<Entry>> done) {
 		this.world = world;
 		this.owner = owner;
-		placements = plan.placements();
-		states = new BlockState[template.palette().size()];
+		this.placements = placements;
+		this.entities = entities;
+		this.done = done;
+		states = new BlockState[palette.size()];
 		for (int i = 0; i < states.length; i++) {
-			states[i] = BridgeStateCodec.decode(template.palette().get(i));
+			states[i] = BridgeStateCodec.decode(palette.get(i));
 		}
 	}
 
@@ -71,16 +91,27 @@ final class BridgeBuildJob implements BridgeTask {
 		final BlockState target = BridgeStateCodec.rotate(states[placement.palette()], placement.quarterTurns());
 		final BlockPos pos = new BlockPos(placement.x(), placement.y(), placement.z());
 		final BlockState current = world.getBlockState(pos);
-		if (current.equals(target)) {
+		final NbtCompound data = entities.get(pos);
+		if (current.equals(target) && data == null) {
 			return;
 		}
-		if (current.hasBlockEntity() || Registries.BLOCK.getId(current.getBlock()).toString().equals(StylePalette.MTR_RAIL_NODE)) {
+		// a bridge member block is ours to replace; any other block entity is not
+		if ((current.hasBlockEntity() && !(current.getBlock() instanceof BridgeMemberBlock))
+				|| Registries.BLOCK.getId(current.getBlock()).toString().equals(StylePalette.MTR_RAIL_NODE)) {
 			skipped++;
 			return;
 		}
-		if (!world.setBlockState(pos, target)) {
+		if (!current.equals(target) && !world.setBlockState(pos, target)) {
 			skipped++;
 			return;
+		}
+		if (data != null) {
+			final BlockEntity entity = world.getBlockEntity(pos);
+			if (entity != null) {
+				entity.readNbt(data);
+				entity.markDirty();
+				world.updateListeners(pos, target, target, Block.NOTIFY_LISTENERS);
+			}
 		}
 		undo.add(new Entry(pos, current, world.getBlockState(pos)));
 		placed++;
@@ -93,6 +124,7 @@ final class BridgeBuildJob implements BridgeTask {
 		}
 		finished = true;
 		BridgeSessions.rememberUndo(owner, world.getRegistryKey(), undo);
+		done.accept(List.copyOf(undo));
 		if (placed == 0 && skipped == 0 && missing == 0) {
 			tell("The bridge already matches the template; nothing changed.", false);
 		} else {
