@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.3 (4.0.5+atr.1.0.3), Minecraft 1.20.1, Fabric
+
 ### Added
 - Rail nodes can be placed at 11.25° steps. Texture packs keep working because the node marker reuses the existing 22.5° models; the rail itself uses the finer angle.
 - Metallic steel panels: plain, dark, perforated, galvanised and brushed.
@@ -11,6 +13,10 @@
 - Passenger demo: `/atr_passengers demo [count]` fills the nearest MTR platform with waiting passengers and `/atr_passenger_draw on` shows the figures in game. See `docs/PASSENGER_DEMO.md`.
 - Passengers are drawn as varied people: 24 painted passenger skins, different heights, phones, bags, suitcases and idle movement. The panel's Figures button switches between People, Solid boxes and Outlines. People walk to a train's real doors and through them when boarding and getting off; the panel sets how many walk per train.
 - Passengers now show as solid people standing on the platform, with size, colour and outline switches on the panel, and people on a platform with no route no longer disappear.
+- Platform door markers sit where the doors of the longest train stop (#98).
+- A bus station at the station front: lettered bays, shelters and departure poles (#99).
+- Stair rails climb as one sloped handrail (#101).
+- Airport terminal buildings: hall, glazed band and entrance canopy (#95).
 
 ### Changed
 - A station entrance is a porch: canopy posts, a fascia under the canopy edge, rails beside the ramps and a glass transom over the opening. Inside, the concourse is a hall, with a plinth aisle, a double-height void just inside a side-building door and piers down the room. Fare gates are unchanged.
@@ -21,6 +27,7 @@
 ### Fixed
 - The Aurelia panel's twelve tabs wrap into rows on narrow windows, so their labels stay readable (#43).
 - A taxiway meets a runway on a curve. The square link's corner is a quarter-circle a plane can follow, on the generated field and on a drawn taxiway that meets a drawn runway at a right angle.
+- Station Studio draws escalator slopes, steps and handrails (#103).
 
 ## 1.0.2 (4.0.5+atr.1.0.2), Minecraft 1.20.1, Fabric
 
