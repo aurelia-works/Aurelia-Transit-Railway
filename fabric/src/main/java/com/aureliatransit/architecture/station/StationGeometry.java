@@ -200,8 +200,8 @@ public final class StationGeometry {
 
 	/**
 	 * Depth of a station building beside the tracks at {@code scale}: the block's walls included, at
-	 * {@link #BLOCKS_PER_METRE} blocks a metre. {@link #BUILDING_DEPTH} is the compact block; a city or grand building is deeper, so a bigger station gets a
-	 * hall the depth of a real one rather than only more storeys over the same footprint.
+	 * {@link #BLOCKS_PER_METRE} blocks a metre. {@link #BUILDING_DEPTH} is the compact block; a city or grand building is
+	 * deeper, so a bigger station gets a hall the depth of a real one rather than only more storeys over the same footprint.
 	 */
 	public static int buildingDepth(StationScale scale) {
 		return switch (scale) {
