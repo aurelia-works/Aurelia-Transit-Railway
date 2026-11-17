@@ -607,12 +607,13 @@ class StationPlannerTest {
 		expected.put(Role.ROOF_LIGHT, 24);
 		expected.put(Role.BENCH, 12);
 		expected.put(Role.BIN, 6);
-		// per platform: two departure screens fixed to a column, two blocks wide on both faces of it (8), a help point and two
+		// per platform: one departure screen (one per 60 blocks of platform) fixed to a column, two blocks wide on both faces of it
+		// (4; two screens and 8 when they came every 30 blocks), a help point and two
 		// speakers (one every 32 blocks), plus a CCTV camera every 20 rows (2 a platform); and the under-canopy light
 		// (invisible level-15 lights, a thin batten a line per half, thin chains to the frame: 404); and door markers, two cells for each of the 4 doors of the 48-long train on each platform (16)
-		expected.put(Role.FIXTURE, 446);
+		expected.put(Role.FIXTURE, 438);
 		assertEquals(expected, counts);
-		assertEquals(1702, plan(spec).blocks().size()); // 1686 plus the 16 door marker cells
+		assertEquals(1694, plan(spec).blocks().size()); // 1686 plus the 16 door marker cells, less the 8 cells of the second screens
 	}
 
 	@Test
