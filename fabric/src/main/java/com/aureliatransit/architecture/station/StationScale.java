@@ -67,9 +67,10 @@ public enum StationScale {
 	}
 
 	/**
-	 * The scale a description gets when it names none, from its tracks as at 63 real UK and Dutch stations, counting their platformed tracks
-	 * (OpenStreetMap, 2026-11): a grand building from {@link #GRAND_BUILDING_TRACKS}, a city one from {@link #CITY_BUILDING_TRACKS}, else compact.
-	 * Platform length says little: a 250 m two-track platform usually has a 20-50 m building (Havant, Godalming, Royston).
+	 * The scale a description gets when it names none, from its tracks, as at 63 real UK and Dutch stations counted by
+	 * platformed tracks (OpenStreetMap, 2026-11): a grand building from {@link #GRAND_BUILDING_TRACKS}, a city one from
+	 * {@link #CITY_BUILDING_TRACKS}, else compact. Platform length says little: a 250 m two-track platform usually has a
+	 * 20-50 m building (Havant, Godalming, Royston).
 	 */
 	public static StationScale forSize(boolean building, int tracks) {
 		if (!building) {

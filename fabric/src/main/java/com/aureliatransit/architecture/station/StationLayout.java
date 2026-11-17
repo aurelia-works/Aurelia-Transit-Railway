@@ -201,7 +201,7 @@ public record StationLayout(boolean building, int bays, int vStart, int vEnd, in
 	 * Facade bays of a station building beside platforms this long: four on the shortest platforms, the fewest that keep the
 	 * stair up a storey on one side of the entrance and the lift on the other, then five, six and seven as the platforms
 	 * lengthen. Four bays make 17 m along the tracks, the least that fits the stair and lift; seven make 29 m, as real small
-	 * station buildings run 20 m and up (Havant 21 m, Royston 27, Godalming 36).
+	 * station buildings run 10 m and up, most 20 m or more (Havant 21 m, Royston 27, Godalming 36).
 	 */
 	private static int bays(int length) {
 		if (length >= 256) {
