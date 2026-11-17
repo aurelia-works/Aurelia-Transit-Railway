@@ -22,9 +22,10 @@ public enum StationScale {
 	 */
 	public static final int CITY_SPAN = 96;
 	/**
-	 * Longest a grand building and its wings run along the platform: 230 blocks, 153 m. A grand station's building fronts the
-	 * concourse, not the whole platform: Guildford 144 m on 311 m, Arnhem 145 m on 452 m; a train shed runs on past it.
-	 * Amersfoort's 355 m building is the outlier this leaves out.
+	 * Longest a generic grand building and its wings run along the platform: 230 blocks, 153 m, which whole bays round down to
+	 * about 149 m. A grand station's building fronts the concourse, not the whole platform: Guildford 144 m on 311 m, Arnhem
+	 * 145 m on 452 m; a train shed runs on past it. Amersfoort's 355 m building is the outlier this leaves out; a named
+	 * landmark is not held to it (see {@link #wingSpan(int, boolean)}).
 	 */
 	public static final int GRAND_SPAN = 230;
 	/** Tracks from which a building is grand: the big interchange stations (Arnhem, Amersfoort, Guildford). */
@@ -75,8 +76,8 @@ public enum StationScale {
 	}
 
 	/**
-	 * The scale a description gets when it names none, from its tracks, as at 63 real UK and Dutch stations counted by
-	 * platformed tracks (OpenStreetMap, 2026-11): a grand building from {@link #GRAND_BUILDING_TRACKS}, a city one from
+	 * The scale a description gets when it names none, from its tracks with a platform beside them, as at 63 real UK and
+	 * Dutch stations (OpenStreetMap, 2026-11): a grand building from {@link #GRAND_BUILDING_TRACKS}, a city one from
 	 * {@link #CITY_BUILDING_TRACKS}, else compact. Platform length says little: a 250 m two-track platform usually has a
 	 * 20-50 m building (Havant, Godalming, Royston).
 	 */

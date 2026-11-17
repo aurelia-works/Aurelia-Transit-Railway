@@ -535,6 +535,9 @@ class StationDescriptionParserTest {
 		assertEquals(StationScale.CITY, spec("2 tracks, 250 long, station building, named Surbiton").scale());
 		assertEquals(StationScale.CITY, spec("3 track real coventry station building, 100 long").scale());
 		assertEquals(StationScale.GRAND, spec("four track kuala lumpur station, 160 long, named Kuala Lumpur").scale());
+		// fast lines through the middle have no platform: Berrylands and Winchfield, four tracks and two side platforms, have
+		// 26-27 m buildings
+		assertEquals(StationScale.COMPACT, spec("4 tracks side, 200 long, station building").scale());
 		// a city-sized Berlin left its platforms with no way across the tracks: the real Hbf is a grand station
 		assertEquals(StationScale.GRAND, spec("4 track real berlin station building, 300 long").scale());
 		assertEquals(StationScale.COMPACT, spec("small station with station building").scale());

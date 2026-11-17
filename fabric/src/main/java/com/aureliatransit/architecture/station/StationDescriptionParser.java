@@ -2852,10 +2852,11 @@ public final class StationDescriptionParser {
 					note(scaleAt, scale.label() + " station building");
 				} else {
 					final StationScale own = Landmarks.ownScale(name, sheetName());
-					final StationScale auto = own != null ? own : StationScale.forSize(true, sized.trackCount());
+					final int platformed = StationGeometry.platformedTracks(sized);
+					final StationScale auto = own != null ? own : StationScale.forSize(true, platformed);
 					builder.scale(auto);
 					defaulted.add(auto.label() + " station building (" + (own != null ? "the real station's size"
-							: "default for " + sized.trackCount() + (sized.trackCount() == 1 ? " track" : " tracks")) + ")");
+							: "default for " + platformed + (platformed == 1 ? " track" : " tracks") + " at platforms") + ")");
 				}
 			}
 			// a bigger through station (a city or grand building) gives every platform wide enough two ways down from its footbridge, so

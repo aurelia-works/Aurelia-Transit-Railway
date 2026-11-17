@@ -93,7 +93,7 @@ public final class StationGeometry {
 	/** A car park in front of a station building's street wall: its depth across u (a kerb, two runs of bays and a central aisle). */
 	public static final int PARKING_DEPTH = 14;
 	/** ... then the building across u, walls included (street wall to platform wall); the compact depth ({@link #buildingDepth}):
-	 * 12 blocks, 8 m, as small real station buildings run 4-17 m deep, most about 10 (Godalming 10, Havant 10, Royston 14). */
+	 * 12 blocks, 8 m, near the low end of small real station buildings' 4-17 m, most about 10 (Godalming 10, Havant 10, Royston 14). */
 	public static final int BUILDING_DEPTH = 12;
 	/** A city building's depth (street wall to platform wall): the compact block grown to a real ticket hall, 15 blocks (10 m). */
 	public static final int CITY_BUILDING_DEPTH = 15;
@@ -548,6 +548,18 @@ public final class StationGeometry {
 			case CANOPY -> RoofType.CANOPY;
 			case OPEN -> RoofType.NONE;
 		};
+	}
+
+	/** How many tracks have a platform beside them: fast lines between two side platforms have none. */
+	public static int platformedTracks(StationSpec spec) {
+		final String bands = bandPattern(spec);
+		int count = 0;
+		for (int i = 0; i < bands.length(); i++) {
+			if (bands.charAt(i) == 'T' && (i > 0 && bands.charAt(i - 1) == 'P' || i + 1 < bands.length() && bands.charAt(i + 1) == 'P')) {
+				count++;
+			}
+		}
+		return count;
 	}
 
 	/** How many platforms the station has. */
