@@ -221,10 +221,12 @@ abstract class PlanFitOut extends PlanLandmark {
 				final boolean glass = !post && y < CANOPY_Y && (!heritageArch() || side < half && y == door + 1);
 				face(f.u(x, 0), y, f.v(x, 0), out, glass ? Role.WINDOW : Role.WALL, glass ? FRONT_GLASS : porchFrame());
 			}
-			if (heritageArch() && side == half && half > 1) {
-				// the arch's springing: a stucco stair in each top corner of the opening, its back to the jamb
-				put(Role.WALL, f.u(x, 0), door, f.v(x, 0), x < x0 ? f.dir(PlanLandmark.Dir.LEFT) : f.dir(PlanLandmark.Dir.RIGHT),
-						ARCH_STAIR, "half=top");
+			final PlannedBlock shoulder = at(f.u(x, 0), door + 1, f.v(x, 0));
+			if (heritageArch() && side == half && half > 1 && shoulder != null && shoulder.role() == Role.WALL) {
+				// the arch's shoulder over each side of the opening: a stucco stair, its back to the jamb, beside the fanlight
+				final LocalDir jamb = x < x0 ? f.dir(PlanLandmark.Dir.LEFT) : f.dir(PlanLandmark.Dir.RIGHT);
+				cells.put(new Cell(shoulder.u(), shoulder.y(), shoulder.v()),
+						new PlannedBlock(shoulder.u(), shoulder.y(), shoulder.v(), Role.WALL, ARCH_STAIR, jamb, "half=top", ""));
 			}
 		}
 		// the canopy over the ramps and the forecourt, its lights down the middle and an edge along the front
