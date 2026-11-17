@@ -531,6 +531,10 @@ class StationDescriptionParserTest {
 		assertEquals(StationScale.COMPACT, spec("1 track station with station building, 120 long").scale(), "a long platform alone is no big station");
 		assertEquals(StationScale.COMPACT, spec("2 track station with station building, 64 long").scale());
 		assertEquals(StationScale.COMPACT, spec("2 track station with station building, 32 long").scale());
+		// a real station keeps its own building's size whatever its tracks: Surbiton and Coventry are town blocks, KL a main station
+		assertEquals(StationScale.CITY, spec("2 tracks, 250 long, station building, named Surbiton").scale());
+		assertEquals(StationScale.CITY, spec("3 track real coventry station building, 100 long").scale());
+		assertEquals(StationScale.GRAND, spec("four track kuala lumpur station, 160 long, named Kuala Lumpur").scale());
 		assertEquals(StationScale.COMPACT, spec("small station with station building").scale());
 		assertEquals(StationScale.COMPACT, spec("6 tracks").buildingScale(), "no building, nothing to size");
 		assertEquals(StationScale.GRAND, spec("grand terminus").buildingScale(), "a head building has a size too");

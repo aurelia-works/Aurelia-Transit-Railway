@@ -92,9 +92,9 @@ public final class StationGeometry {
 	public static final int APRON = RAMP_LENGTH + ENTRANCE_FORECOURT;
 	/** A car park in front of a station building's street wall: its depth across u (a kerb, two runs of bays and a central aisle). */
 	public static final int PARKING_DEPTH = 14;
-	/** ... then the building across u, walls included (street wall, 7 interior columns, platform wall); the compact depth
-	 * ({@link #buildingDepth}). */
-	public static final int BUILDING_DEPTH = 9;
+	/** ... then the building across u, walls included (street wall to platform wall); the compact depth ({@link #buildingDepth}):
+	 * 12 blocks, 8 m, as small real station buildings run 6-17 m deep (Godalming 10, Havant 10, Royston 14). */
+	public static final int BUILDING_DEPTH = 12;
 	/** A city building's depth (street wall to platform wall): the compact block grown to a real ticket hall, about 15 m. */
 	public static final int CITY_BUILDING_DEPTH = 15;
 	/** A grand building's depth: a real monumental hall, about 21 m, the depth a Beaux-Arts or Gothic front really has. */

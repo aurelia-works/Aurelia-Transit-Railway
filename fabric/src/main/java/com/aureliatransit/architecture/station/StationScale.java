@@ -24,6 +24,7 @@ public enum StationScale {
 	/**
 	 * Longest a grand building and its wings run along the platform: 230 blocks, 153 m. A grand station's building fronts the
 	 * concourse, not the whole platform: Guildford 144 m on 311 m, Arnhem 145 m on 452 m; a train shed runs on past it.
+	 * Amersfoort's 355 m building is the outlier this leaves out.
 	 */
 	public static final int GRAND_SPAN = 230;
 	/** Tracks from which a building is grand: the big interchange stations (Arnhem, Amersfoort, Guildford). */

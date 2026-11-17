@@ -506,15 +506,21 @@ public final class Landmarks {
 	static final List<Landmark> ALL = List.of(ST_PANCRAS, ANTWERP, GRAND_CENTRAL, FRANKFURT, ZURICH, PARIS, MILAN, MUMBAI, BANGKOK, MUNICH, BERLIN,
 			COVENTRY, TOKYO, AMSTERDAM, BEIJING, KUALA_LUMPUR, SURBITON);
 
+	/** The town stations among the landmarks, whose real buildings are city-sized blocks: Surbiton's runs 61 m. */
+	static final List<Landmark> TOWN = List.of(SURBITON, COVENTRY);
+
 	/**
-	 * The building size of the real station the words name (by name or by a city word), or null for none: the landmark's own
-	 * building, compact for the small ones, grand for the rest, so a real station is built at its size and not the size its
-	 * track count would give an ordinary one.
+	 * The building size of the real station the words name (by name or by a city word), or null for none, so a real station
+	 * is built at its own size and not the one its track count gives an ordinary station: city for a {@link #TOWN} station,
+	 * grand for the main stations.
 	 */
 	public static StationScale ownScale(String name, String sheet) {
-		for (final Landmark landmark : ALL) {
-			if (landmark.named(name) || !sheet.isEmpty() && landmark.named(sheet)) {
-				return landmark.compactOnly() ? StationScale.COMPACT : StationScale.GRAND;
+		// the name wins over a city word, as in of()
+		for (final String words : List.of(name, sheet)) {
+			for (final Landmark landmark : ALL) {
+				if (!words.isEmpty() && landmark.named(words)) {
+					return TOWN.contains(landmark) ? StationScale.CITY : StationScale.GRAND;
+				}
 			}
 		}
 		return null;

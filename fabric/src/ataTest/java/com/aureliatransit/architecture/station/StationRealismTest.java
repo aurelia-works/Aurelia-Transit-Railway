@@ -90,7 +90,8 @@ class StationRealismTest {
 	void aCityBuildingIsABlockWithWingsNotAWall() {
 		assertEquals(StationScale.CITY_SPAN, StationScale.CITY.wingSpan(250));
 		assertEquals(70, StationScale.CITY.wingSpan(100));
-		assertEquals(250 * 92 / 100, StationScale.GRAND.wingSpan(250));
+		assertEquals(200 * 92 / 100, StationScale.GRAND.wingSpan(200));
+		assertEquals(StationScale.GRAND_SPAN, StationScale.GRAND.wingSpan(300), "a grand building stops at 153 m, as Guildford and Arnhem do");
 		assertEquals(0, StationScale.COMPACT.wingSpan(250));
 		final StationPlan plan = plan("four track surbiton station, two island platforms, 250 long, city station building with footbridge, named Surbiton");
 		final int bw = plan.layout().buildingWidth();

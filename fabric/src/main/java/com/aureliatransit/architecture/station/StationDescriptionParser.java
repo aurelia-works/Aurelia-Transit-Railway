@@ -2472,6 +2472,11 @@ public final class StationDescriptionParser {
 			options = options.withType(deepType).withDepth(depthAsked).withTile(tile == null ? "" : tile);
 		}
 
+		/** The real city station whose sheet the words ask for ("real coventry"), or empty: one city word and no real station named. */
+		private String sheetName() {
+			return cityStationName != null && (real == null || real == RealStation.NONE) && looks.size() == 1 && !mixing ? cityStationName : "";
+		}
+
 		private StationSpec resolve(boolean blank) {
 			applyReal();
 			undergroundDefaults();
@@ -2846,13 +2851,11 @@ public final class StationDescriptionParser {
 					builder.scale(scale);
 					note(scaleAt, scale.label() + " station building");
 				} else {
-					// the sheet is set further down; the same test picks it here so a real station gets its own building's size
-					final boolean sheet = cityStationName != null && (real == null || real == RealStation.NONE) && looks.size() == 1 && !mixing;
-					final StationScale own = Landmarks.ownScale(name, sheet ? cityStationName : "");
+					final StationScale own = Landmarks.ownScale(name, sheetName());
 					final StationScale auto = own != null ? own : StationScale.forSize(true, sized.trackCount());
 					builder.scale(auto);
-					defaulted.add(auto.label() + " station building (default for " + sized.trackCount() + (sized.trackCount() == 1 ? " track, " : " tracks, ")
-							+ sized.platformLength() + " long)");
+					defaulted.add(auto.label() + " station building (" + (own != null ? "the real station's size"
+							: "default for " + sized.trackCount() + (sized.trackCount() == 1 ? " track" : " tracks")) + ")");
 				}
 			}
 			// a bigger through station (a city or grand building) gives every platform wide enough two ways down from its footbridge, so
@@ -2955,7 +2958,7 @@ public final class StationDescriptionParser {
 				}
 			}
 			builder.name(name);
-			if (cityStationName != null && (real == null || real == RealStation.NONE) && looks.size() == 1 && !mixing) {
+			if (!sheetName().isEmpty()) {
 				// the station is itself only through its sheet: its name stays as typed (or empty), as the controls gave it
 				builder.options(options.withSheet(cityStationName));
 				note(looks.get(0).at(), "the real " + cityStationName + "'s front and train shed (say \"" + looks.get(0).word() + " style\" for its look on a station of your own)");
