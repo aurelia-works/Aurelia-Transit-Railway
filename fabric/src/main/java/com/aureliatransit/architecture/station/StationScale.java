@@ -65,8 +65,8 @@ public enum StationScale {
 
 	/**
 	 * As {@link #wingSpan(int)}, but a real landmark's front ({@code landmark}) is not held to {@link #GRAND_SPAN} and runs the
-	 * platform's share: 245 m on 400-block platforms, nearer Amsterdam Centraal's front of about 300 m and Tokyo's 335 m than
-	 * the cap's 153 m.
+	 * platform's share: 245 m on 400-block platforms, against about 300 m for Amsterdam Centraal's front and 335 m for
+	 * Tokyo's, where the cap would give 153 m.
 	 */
 	public int wingSpan(int length, boolean landmark) {
 		final int span = length * wingPercent / 100;
