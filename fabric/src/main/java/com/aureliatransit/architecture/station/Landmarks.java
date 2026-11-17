@@ -506,6 +506,20 @@ public final class Landmarks {
 	static final List<Landmark> ALL = List.of(ST_PANCRAS, ANTWERP, GRAND_CENTRAL, FRANKFURT, ZURICH, PARIS, MILAN, MUMBAI, BANGKOK, MUNICH, BERLIN,
 			COVENTRY, TOKYO, AMSTERDAM, BEIJING, KUALA_LUMPUR, SURBITON);
 
+	/**
+	 * The building size of the real station the words name (by name or by a city word), or null for none: the landmark's own
+	 * building, compact for the small ones, grand for the rest, so a real station is built at its size and not the size its
+	 * track count would give an ordinary one.
+	 */
+	public static StationScale ownScale(String name, String sheet) {
+		for (final Landmark landmark : ALL) {
+			if (landmark.named(name) || !sheet.isEmpty() && landmark.named(sheet)) {
+				return landmark.compactOnly() ? StationScale.COMPACT : StationScale.GRAND;
+			}
+		}
+		return null;
+	}
+
 	/** The sheet of the real station {@code spec} is named after, or null. */
 	public static Landmark of(StationSpec spec) {
 		final String name = spec.name();

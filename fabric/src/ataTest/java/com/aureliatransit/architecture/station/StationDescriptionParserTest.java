@@ -521,12 +521,15 @@ class StationDescriptionParserTest {
 		assertEquals(StationScale.GRAND, spec("frankfurt hauptbahnhof, 2 tracks, 40 long").scale());
 		assertEquals(StationScale.CITY, spec("city station with station building, 6 tracks").scale(), "a size word wins over the station size");
 		assertEquals(StationScale.COMPACT, spec("compact station building, 4 tracks, 120 long").scale());
-		// without a word: grand from 3 tracks or 100 long, city from 2 tracks and 48 long, else compact
-		final ParseResult big = StationDescriptionParser.parse("4 track station with station building");
+		// without a word, from the platformed tracks as at real stations: grand from 6, city from 4, else compact
+		final ParseResult big = StationDescriptionParser.parse("6 track station with station building");
 		assertEquals(StationScale.GRAND, big.spec().scale());
 		assertTrue(big.defaulted().stream().anyMatch(d -> d.startsWith("grand station building")), big.defaulted().toString());
-		assertEquals(StationScale.GRAND, spec("1 track station with station building, 120 long").scale());
-		assertEquals(StationScale.CITY, spec("2 track station with station building, 64 long").scale());
+		final ParseResult city = StationDescriptionParser.parse("4 track station with station building");
+		assertEquals(StationScale.CITY, city.spec().scale());
+		assertTrue(city.defaulted().stream().anyMatch(d -> d.startsWith("city station building")), city.defaulted().toString());
+		assertEquals(StationScale.COMPACT, spec("1 track station with station building, 120 long").scale(), "a long platform alone is no big station");
+		assertEquals(StationScale.COMPACT, spec("2 track station with station building, 64 long").scale());
 		assertEquals(StationScale.COMPACT, spec("2 track station with station building, 32 long").scale());
 		assertEquals(StationScale.COMPACT, spec("small station with station building").scale());
 		assertEquals(StationScale.COMPACT, spec("6 tracks").buildingScale(), "no building, nothing to size");

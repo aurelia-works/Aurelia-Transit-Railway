@@ -2846,7 +2846,10 @@ public final class StationDescriptionParser {
 					builder.scale(scale);
 					note(scaleAt, scale.label() + " station building");
 				} else {
-					final StationScale auto = StationScale.forSize(true, sized.trackCount(), sized.platformLength());
+					// the sheet is set further down; the same test picks it here so a real station gets its own building's size
+					final boolean sheet = cityStationName != null && (real == null || real == RealStation.NONE) && looks.size() == 1 && !mixing;
+					final StationScale own = Landmarks.ownScale(name, sheet ? cityStationName : "");
+					final StationScale auto = own != null ? own : StationScale.forSize(true, sized.trackCount());
 					builder.scale(auto);
 					defaulted.add(auto.label() + " station building (default for " + sized.trackCount() + (sized.trackCount() == 1 ? " track, " : " tracks, ")
 							+ sized.platformLength() + " long)");

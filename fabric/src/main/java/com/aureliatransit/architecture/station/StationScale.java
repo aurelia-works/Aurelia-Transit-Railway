@@ -12,15 +12,24 @@ public enum StationScale {
 	COMPACT("compact", 0, 0),
 	/** Three storeys, with two-storey wings along about 70% of the platform, at most {@link #CITY_SPAN} long in all. */
 	CITY("city", 1, 70),
-	/** Four storeys, wings along about 92% of the platform, a clock tower and a taller shed. */
+	/** Four storeys, wings along about 92% of the platform up to {@link #GRAND_SPAN}, a clock tower and a taller shed. */
 	GRAND("grand", 2, 92);
 
 	/**
 	 * Longest a city building and its wings run along the platform: 96 blocks, 64 m. A town's station building is a block
 	 * with short wings and the platforms run on past it under their canopies; at 70% of a 250-long platform it was a 117 m
-	 * wall (Surbiton, Coventry). A grand station's building stays the platform's share (Amsterdam Centraal's is longer still).
+	 * wall (Surbiton, Coventry). A grand station's building runs the platform's share, up to {@link #GRAND_SPAN}.
 	 */
 	public static final int CITY_SPAN = 96;
+	/**
+	 * Longest a grand building and its wings run along the platform: 230 blocks, 153 m. A grand station's building fronts the
+	 * concourse, not the whole platform: Guildford 144 m on 311 m, Arnhem 145 m on 452 m; a train shed runs on past it.
+	 */
+	public static final int GRAND_SPAN = 230;
+	/** Tracks from which a building is grand: the big interchange stations (Arnhem, Amersfoort, Guildford). */
+	public static final int GRAND_TRACKS = 6;
+	/** Tracks from which a building is city size; most real stations' buildings are small blocks. */
+	public static final int CITY_TRACKS = 4;
 
 	private final String label;
 	private final int extraStoreys;
@@ -50,20 +59,24 @@ public enum StationScale {
 	/** Blocks along the platform the building and its wings cover on platforms {@code length} long; 0 for no wings. */
 	public int wingSpan(int length) {
 		final int span = length * wingPercent / 100;
-		return this == CITY ? Math.min(span, CITY_SPAN) : span;
+		if (this == CITY) {
+			return Math.min(span, CITY_SPAN);
+		}
+		return this == GRAND ? Math.min(span, GRAND_SPAN) : span;
 	}
 
 	/**
-	 * The scale a description gets when it names none: a grand station for a building with three or more tracks or a
-	 * platform of 100 or more, a city station for a building with two tracks and 48 or more, otherwise compact.
+	 * The scale a description gets when it names none, from its platformed tracks as at 63 real UK and Dutch stations
+	 * (OpenStreetMap, 2026-11): a grand building from {@link #GRAND_TRACKS}, a city one from {@link #CITY_TRACKS}, else compact.
+	 * Platform length says little: a 250 m two-track platform usually has a 20-50 m building (Havant, Godalming, Royston).
 	 */
-	public static StationScale forSize(boolean building, int tracks, int length) {
+	public static StationScale forSize(boolean building, int tracks) {
 		if (!building) {
 			return COMPACT;
 		}
-		if (tracks >= 3 || length >= 100) {
+		if (tracks >= GRAND_TRACKS) {
 			return GRAND;
 		}
-		return tracks >= 2 && length >= 48 ? CITY : COMPACT;
+		return tracks >= CITY_TRACKS ? CITY : COMPACT;
 	}
 }
