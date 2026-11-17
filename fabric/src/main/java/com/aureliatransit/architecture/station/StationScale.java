@@ -30,7 +30,11 @@ public enum StationScale {
 	public static final int GRAND_SPAN = 230;
 	/** Tracks from which a building is grand: the big interchange stations (Arnhem, Amersfoort, Guildford). */
 	public static final int GRAND_BUILDING_TRACKS = 6;
-	/** Tracks from which a building is city size: the median of the eight scored 4-track buildings is 68 m (between Surbiton 61 and Leamington Spa 75; they run 16 to 223 m); fewer get a small block. */
+	/**
+	 * Platformed tracks from which a building is city size: the eight scored stations with four platformed tracks have a
+	 * median building of 68 m (between Surbiton 61 and Leamington Spa 75; they run 16 to 223 m). A 4-track station with
+	 * only two platform faces counts 2 and gets a small block (Berrylands, Winchfield); fewer get a small block too.
+	 */
 	public static final int CITY_BUILDING_TRACKS = 4;
 
 	private final String label;
