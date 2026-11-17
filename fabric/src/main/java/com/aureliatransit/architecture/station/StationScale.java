@@ -30,7 +30,7 @@ public enum StationScale {
 	public static final int GRAND_SPAN = 230;
 	/** Tracks from which a building is grand: the big interchange stations (Arnhem, Amersfoort, Guildford). */
 	public static final int GRAND_BUILDING_TRACKS = 6;
-	/** Tracks from which a building is city size: the 4-track median is 68 m (Surbiton 61, Leamington Spa 75); fewer get a small block. */
+	/** Tracks from which a building is city size: the two measured 4-track town stations average 68 m (Surbiton 61, Leamington Spa 75); fewer get a small block. */
 	public static final int CITY_BUILDING_TRACKS = 4;
 
 	private final String label;
