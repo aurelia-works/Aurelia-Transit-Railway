@@ -516,9 +516,9 @@ public final class Landmarks {
 	 */
 	public static StationScale ownScale(String name, String sheet) {
 		// the name wins over a city word, as in of()
-		for (final String words : List.of(name, sheet)) {
+		for (final String words : new String[] {name, sheet}) {
 			for (final Landmark landmark : ALL) {
-				if (!words.isEmpty() && landmark.named(words)) {
+				if (words != null && !words.isEmpty() && landmark.named(words)) {
 					return TOWN.contains(landmark) ? StationScale.CITY : StationScale.GRAND;
 				}
 			}

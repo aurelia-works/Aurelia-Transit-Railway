@@ -28,9 +28,9 @@ public enum StationScale {
 	 */
 	public static final int GRAND_SPAN = 230;
 	/** Tracks from which a building is grand: the big interchange stations (Arnhem, Amersfoort, Guildford). */
-	public static final int GRAND_TRACKS = 6;
+	public static final int GRAND_BUILDING_TRACKS = 6;
 	/** Tracks from which a building is city size; most real stations' buildings are small blocks. */
-	public static final int CITY_TRACKS = 4;
+	public static final int CITY_BUILDING_TRACKS = 4;
 
 	private final String label;
 	private final int extraStoreys;
@@ -67,17 +67,17 @@ public enum StationScale {
 	}
 
 	/**
-	 * The scale a description gets when it names none, from its platformed tracks as at 63 real UK and Dutch stations
-	 * (OpenStreetMap, 2026-11): a grand building from {@link #GRAND_TRACKS}, a city one from {@link #CITY_TRACKS}, else compact.
+	 * The scale a description gets when it names none, from its tracks as at 63 real UK and Dutch stations, counting their platformed tracks
+	 * (OpenStreetMap, 2026-11): a grand building from {@link #GRAND_BUILDING_TRACKS}, a city one from {@link #CITY_BUILDING_TRACKS}, else compact.
 	 * Platform length says little: a 250 m two-track platform usually has a 20-50 m building (Havant, Godalming, Royston).
 	 */
 	public static StationScale forSize(boolean building, int tracks) {
 		if (!building) {
 			return COMPACT;
 		}
-		if (tracks >= GRAND_TRACKS) {
+		if (tracks >= GRAND_BUILDING_TRACKS) {
 			return GRAND;
 		}
-		return tracks >= CITY_TRACKS ? CITY : COMPACT;
+		return tracks >= CITY_BUILDING_TRACKS ? CITY : COMPACT;
 	}
 }

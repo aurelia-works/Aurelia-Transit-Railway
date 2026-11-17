@@ -31,7 +31,7 @@ class ConcourseGeometryTest {
 	}
 
 	@Test
-	void compactKeepsItsBlockSizes() {
+	void compactBlockSizes() {
 		assertEquals(12, StationGeometry.BUILDING_DEPTH);
 		assertEquals(18, StationGeometry.HEAD_DEPTH);
 		assertEquals(3, StationGeometry.BRIDGE_WIDTH);
