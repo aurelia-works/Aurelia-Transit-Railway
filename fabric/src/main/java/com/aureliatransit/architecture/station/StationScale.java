@@ -59,11 +59,19 @@ public enum StationScale {
 
 	/** Blocks along the platform the building and its wings cover on platforms {@code length} long; 0 for no wings. */
 	public int wingSpan(int length) {
+		return wingSpan(length, false);
+	}
+
+	/**
+	 * As {@link #wingSpan(int)}, but a real landmark's front ({@code landmark}) is not held to {@link #GRAND_SPAN}: Amsterdam
+	 * Centraal's runs about 300 m and Tokyo's 335 m, twice a generic grand building's.
+	 */
+	public int wingSpan(int length, boolean landmark) {
 		final int span = length * wingPercent / 100;
 		if (this == CITY) {
 			return Math.min(span, CITY_SPAN);
 		}
-		return this == GRAND ? Math.min(span, GRAND_SPAN) : span;
+		return this == GRAND && !landmark ? Math.min(span, GRAND_SPAN) : span;
 	}
 
 	/**
