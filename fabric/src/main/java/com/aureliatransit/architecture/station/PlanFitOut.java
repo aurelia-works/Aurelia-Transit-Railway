@@ -217,8 +217,14 @@ abstract class PlanFitOut extends PlanLandmark {
 			}
 			final boolean post = side == half + 1 || side == wide;
 			for (int y = side <= half ? door + 1 : 1; y <= CANOPY_Y; y++) {
-				final boolean glass = !post && y < CANOPY_Y;
+				// a heritage doorway is an arch in the stucco, a fanlight over its middle, not a glass screen
+				final boolean glass = !post && y < CANOPY_Y && (!heritageArch() || side < half && y == door + 1);
 				face(f.u(x, 0), y, f.v(x, 0), out, glass ? Role.WINDOW : Role.WALL, glass ? FRONT_GLASS : porchFrame());
+			}
+			if (heritageArch() && side == half && half > 1) {
+				// the arch's springing: a stucco stair in each top corner of the opening, its back to the jamb
+				put(Role.WALL, f.u(x, 0), door, f.v(x, 0), x < x0 ? f.dir(PlanLandmark.Dir.LEFT) : f.dir(PlanLandmark.Dir.RIGHT),
+						ARCH_STAIR, "half=top");
 			}
 		}
 		// the canopy over the ramps and the forecourt, its lights down the middle and an edge along the front
@@ -436,6 +442,14 @@ abstract class PlanFitOut extends PlanLandmark {
 		}
 		return pierUp(u, v, out, porchFrame());
 	}
+
+	/** Whether the street doorway is a heritage arch in the stucco (see {@link #ARCH_STAIR}). */
+	private boolean heritageArch() {
+		return palette.heritagePorch() != null;
+	}
+
+	/** The cream stair that rounds a heritage doorway's top corners. */
+	static final String ARCH_STAIR = "minecraft:smooth_quartz_stairs";
 
 	/** The entrance portal's jambs, the piers just inside them and the canopy posts: a heritage look's stucco, else dark steel. */
 	private String porchFrame() {
