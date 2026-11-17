@@ -507,7 +507,8 @@ public final class Landmarks {
 			COVENTRY, TOKYO, AMSTERDAM, BEIJING, KUALA_LUMPUR, SURBITON);
 
 	/**
-	 * The town stations among the landmarks, whose real buildings are city-sized blocks: Surbiton's runs 61 m. This list is
+	 * The town stations among the landmarks, whose real buildings are city-sized blocks: Surbiton's runs 61 m (Coventry has no
+	 * building outline to measure). This list is
 	 * what sizes a landmark: one not in it gets a grand building, so a new town landmark goes here.
 	 */
 	static final List<Landmark> TOWN = List.of(SURBITON, COVENTRY);
