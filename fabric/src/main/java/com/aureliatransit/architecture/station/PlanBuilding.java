@@ -45,6 +45,11 @@ abstract class PlanBuilding extends PlanPlatforms {
 	 * Whether a hall ceiling cell, counted from the building's street corner, is a light: lines of light along the hall every
 	 * fourth row, broken at each bay line, rather than single panels dotted over the whole ceiling.
 	 */
+	/** A window cell of a long wall: the bay centre, and with framed windows the cell after it too. */
+	private boolean glazed(int v, boolean framed) {
+		return isBayCentre(v) || framed && isBayCentre(v - 1);
+	}
+
 	static boolean ceilingLight(int du, int dv) {
 		return du % 4 == 2 && dv % StationGeometry.BAY != 0;
 	}
@@ -153,18 +158,19 @@ abstract class PlanBuilding extends PlanPlatforms {
 		final boolean framed = palette.framedWindows();
 		for (int v = vS; v <= vE; v++) {
 			final boolean pilaster = framed ? v == vS || v == vE : (v - vS) % StationGeometry.BAY == 0;
-			// a framed window's surround: the cells either side of it, and its sill and lintel rows three wide
-			final boolean jamb = framed && (isBayCentre(v - 1) || isBayCentre(v + 1));
-			final boolean head = framed && (jamb || isBayCentre(v));
+			// a framed window is two cells wide (a 2-over-2 sash is about 1.3 m) with a stucco sill and lintel its own width; no
+			// side posts, as a block-thick jamb read as a slab of render round a slit, and wider heads ran into stripes (11-17)
+			final boolean glazed = glazed(v, framed);
+			final boolean head = framed && glazed;
 			for (int y = 1; y < StationGeometry.UPPER_FLOOR_Y; y++) {
-				final boolean dressed = pilaster || jamb && windowRow(y) || head && (windowRow(y - 1) || windowRow(y + 1)) && !windowRow(y);
+				final boolean dressed = pilaster || head && (windowRow(y - 1) || windowRow(y + 1)) && !windowRow(y);
 				if (y == 1) {
 					put(Role.WALL, uS, y, v, LocalDir.MINUS_U, pilaster ? b.trim() : b.plinth());
 					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, pilaster ? b.trim() : b.plinth());
 				} else if (!windowRow(y)) {
 					put(Role.WALL, uS, y, v, LocalDir.MINUS_U, dressed ? b.trim() : b.wall());
 					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, dressed ? b.trim() : b.wall());
-				} else if (isBayCentre(v)) {
+				} else if (glazed) {
 					put(Role.WINDOW, uS, y, v, LocalDir.MINUS_U, b.window());
 					put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
 				} else {
@@ -179,8 +185,8 @@ abstract class PlanBuilding extends PlanPlatforms {
 			}
 			// the upper storey, windows in its middle rows
 			for (int y = StationGeometry.UPPER_WALK_Y; y <= StationGeometry.BUILDING_ROOF_Y - 1; y++) {
-				final boolean dressed = pilaster || jamb && windowRow(y) || head && (windowRow(y - 1) || windowRow(y + 1)) && !windowRow(y);
-				if (windowRow(y) && isBayCentre(v)) {
+				final boolean dressed = pilaster || head && (windowRow(y - 1) || windowRow(y + 1)) && !windowRow(y);
+				if (windowRow(y) && glazed) {
 					put(Role.WINDOW, uS, y, v, LocalDir.MINUS_U, b.window());
 					put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
 				} else {
@@ -415,7 +421,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 
 	/**
 	 * Six brick chimney stacks through a hipped roof, as Teddington's house has (Historic England 1410351): a pair over each end
-	 * and over the middle, on the front and back slopes, two cells long and standing two above the ridge with a pot on top.
+	 * and over the middle, on the front and back slopes, two cells long, all brick, standing two above the ridge with a pot on top.
 	 * Put before the roof tiles so the stacks own their cells.
 	 */
 	private void chimneys(int top, int uS, int uP, int vS, int vE) {
@@ -429,8 +435,9 @@ abstract class PlanBuilding extends PlanPlatforms {
 					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, b.wall());
 					put(Role.BUILDING_ROOF, u, y, v + 1, LocalDir.PLUS_V, b.wall());
 				}
-				put(Role.BUILDING_ROOF, u, cap, v, LocalDir.PLUS_V, b.trim());
-				put(Role.BUILDING_ROOF, u, cap, v + 1, LocalDir.PLUS_V, b.trim());
+				// an all-brick stack: a stucco cap read as a white block on every chimney (judge, 11-17)
+				put(Role.BUILDING_ROOF, u, cap, v, LocalDir.PLUS_V, b.wall());
+				put(Role.BUILDING_ROOF, u, cap, v + 1, LocalDir.PLUS_V, b.wall());
 				put(Role.BUILDING_ROOF, u, cap + 1, v, LocalDir.PLUS_V, "minecraft:flower_pot");
 				put(Role.BUILDING_ROOF, u, cap + 1, v + 1, LocalDir.PLUS_V, "minecraft:flower_pot");
 			}

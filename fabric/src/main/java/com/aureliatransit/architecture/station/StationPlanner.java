@@ -258,7 +258,10 @@ public final class StationPlanner {
 	static final int SPEAKER_Y = StationGeometry.WALK_Y + 3;
 	/** The pole an open platform's lamp stands on. */
 	static final String LAMP_POLE = "aurelia_transit_architecture:sign_pole";
-	/** Roughly how many blocks of platform each departure screen serves. */
-	static final int SCREEN_SPACING = 30;
+	/**
+	 * Roughly how many blocks of platform each departure screen serves: about 40 m, as a real platform has a screen at each
+	 * entrance and a few along it (Teddington's 130 m platforms have three). 30 put a screen on nearly every column.
+	 */
+	static final int SCREEN_SPACING = 60;
 
 }

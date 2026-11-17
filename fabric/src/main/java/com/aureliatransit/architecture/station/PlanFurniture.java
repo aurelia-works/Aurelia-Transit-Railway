@@ -388,7 +388,7 @@ abstract class PlanFurniture extends PlanRoofs {
 				case MACHINE -> ticketMachine(unit.uMin(), y, unit.vMin(), unit.front());
 				case INFO_KIOSK -> kiosk(unit.uMin(), y, unit.vMin(), unit.front());
 				case PILLAR -> put(Role.FIXTURE, unit.uMin(), y, unit.vMin(), unit.front(), "aurelia_transit_architecture:information_pillar");
-				case OFFICE -> shopUnit(fitUnit(unit, ConcourseFit.Kind.KIOSK), y, office(region, unit.name()), true, b);
+				case OFFICE -> shopUnit(fitUnit(unit, ConcourseFit.Kind.KIOSK), y, heritageOffice(office(region, unit.name()), b), true, b);
 				case COUNTER -> shopUnit(fitUnit(unit, ConcourseFit.Kind.KIOSK), y,
 						new String[]{unit.name(), "minecraft:barrel", "minecraft:barrel", PlanFitOut.KIOSK_FASCIA}, true, b);
 				case SHOP -> {
@@ -565,6 +565,14 @@ abstract class PlanFurniture extends PlanRoofs {
 			case JAPANESE -> "minecraft:lime_concrete";
 		};
 		return new String[]{name, "minecraft:barrel", "minecraft:bookshelf", fascia};
+	}
+
+	/**
+	 * A heritage hall's ticket office under a moulded stone band, as Teddington's booking hall keeps its cornice (Historic
+	 * England 1410351), not an operator's coloured fascia.
+	 */
+	private String[] heritageOffice(String[] office, StylePalette.Building b) {
+		return palette.plasterCeiling() == null ? office : new String[]{office[0], office[1], office[2], b.cornice()};
 	}
 
 	/** See {@link PlanFitOut#shopUnit}. */

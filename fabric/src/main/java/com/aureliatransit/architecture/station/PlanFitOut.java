@@ -201,7 +201,8 @@ abstract class PlanFitOut extends PlanLandmark {
 		final StylePalette.Building b = palette.building();
 		final LocalDir out = f.dir(PlanLandmark.Dir.OUT);
 		final int door = StationGeometry.DOOR_HEIGHT;
-		final int wide = half + 1 + Math.max(CANOPY_WING, half);
+		// a heritage porch spans the middle of the front, as Teddington's canopy runs across its three middle bays
+		final int wide = Math.max(half + 1 + Math.max(CANOPY_WING, half), palette.heritagePorch() != null ? HERITAGE_WING : 0);
 		if (!sheet) {
 			glassBay(f, x0, half, wide, b, out);
 			shopfront(f, x0, half, b, out);
@@ -284,6 +285,8 @@ abstract class PlanFitOut extends PlanLandmark {
 	static final int BOLLARD_PITCH = 3;
 	/** How far the canopy and the glass front reach past each jamb of the doorway, at least: a wide portal gets wider wings. */
 	static final int CANOPY_WING = 2;
+	/** How far a heritage porch's canopy reaches either side of the doorway's middle: over the bays beside the door's. */
+	static final int HERITAGE_WING = StationGeometry.BAY + 1;
 
 	/**
 	 * The forecourt past the ramps (z = -RAMP_LENGTH-1 .. -APRON): the street's own ground, left as it is (paving it would dig

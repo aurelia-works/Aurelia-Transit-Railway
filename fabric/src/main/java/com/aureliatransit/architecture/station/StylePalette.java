@@ -231,7 +231,8 @@ public final class StylePalette {
 	 */
 	private static StylePalette british(BuildingStyle look, boolean tactile, boolean hall, StylePalette base) {
 		final String[] canopy = switch (look) {
-			case VICTORIAN -> new String[]{"uk_timber_canopy", "uk_canopy_valance", "steel_column_round", "wooden_bench"};
+			// Teddington's canopy columns are painted white (geograph 2272647, 3439492)
+			case VICTORIAN -> new String[]{"uk_timber_canopy", "uk_canopy_valance", "uk_painted_column", "wooden_bench"};
 			case ART_DECO -> new String[]{"uk_concrete_canopy", "uk_concrete_canopy_edge", "steel_column_square", "wooden_bench"};
 			case MODERNIST -> new String[]{"uk_hardwood_canopy", "uk_hardwood_canopy_fascia", "steel_column_square", "steel_bench"};
 			default -> null;
@@ -308,6 +309,14 @@ public final class StylePalette {
 	 */
 	String[] heritagePorch() {
 		return buildingStyle == BuildingStyle.VICTORIAN ? new String[]{ata("uk_timber_canopy"), ata("uk_canopy_valance"), building.trim()} : null;
+	}
+
+	/**
+	 * The cladding of a heritage footbridge's sides, below its window band and under its eaves: Teddington's is boarded in
+	 * cream with windows along the top (geograph 4331043). Null keeps glass from the floor up.
+	 */
+	String bridgePanel() {
+		return buildingStyle == BuildingStyle.VICTORIAN ? building.trim() : null;
 	}
 
 	/**

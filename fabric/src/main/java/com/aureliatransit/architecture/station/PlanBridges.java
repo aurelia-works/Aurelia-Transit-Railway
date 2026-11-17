@@ -100,13 +100,16 @@ abstract class PlanBridges extends PlanConcourse {
 						}
 					}
 				}
+				final String panel = palette.bridgePanel();
 				for (int y = StationGeometry.UPPER_WALK_Y; y <= StationGeometry.BUILDING_ROOF_Y - 1; y++) {
 					final boolean low = y <= StationGeometry.UPPER_WALK_Y + 1;
+					// a heritage bridge is clad to waist height and under its eaves, a band of windows between
+					final boolean clad = panel != null && (low || y == StationGeometry.BUILDING_ROOF_Y - 1);
 					if (!(low && exitLo)) {
-						put(Role.WINDOW, u, y, wallLo, LocalDir.MINUS_V, b.bridgeWall());
+						put(clad ? Role.WALL : Role.WINDOW, u, y, wallLo, LocalDir.MINUS_V, clad ? panel : b.bridgeWall());
 					}
 					if (!(low && exitHi)) {
-						put(Role.WINDOW, u, y, wallHi, LocalDir.PLUS_V, b.bridgeWall());
+						put(clad ? Role.WALL : Role.WINDOW, u, y, wallHi, LocalDir.PLUS_V, clad ? panel : b.bridgeWall());
 					}
 				}
 			}
