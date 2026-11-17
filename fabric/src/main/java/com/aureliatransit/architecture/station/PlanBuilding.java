@@ -150,21 +150,26 @@ abstract class PlanBuilding extends PlanPlatforms {
 			}
 		}
 		// perimeter walls, ground storey y=1..4
+		final boolean framed = palette.framedWindows();
 		for (int v = vS; v <= vE; v++) {
-			final boolean pilaster = (v - vS) % StationGeometry.BAY == 0;
+			final boolean pilaster = framed ? v == vS || v == vE : (v - vS) % StationGeometry.BAY == 0;
+			// a framed window's surround: the cells either side of it, and its sill and lintel rows three wide
+			final boolean jamb = framed && (isBayCentre(v - 1) || isBayCentre(v + 1));
+			final boolean head = framed && (jamb || isBayCentre(v));
 			for (int y = 1; y < StationGeometry.UPPER_FLOOR_Y; y++) {
+				final boolean dressed = pilaster || jamb && windowRow(y) || head && (windowRow(y - 1) || windowRow(y + 1)) && !windowRow(y);
 				if (y == 1) {
 					put(Role.WALL, uS, y, v, LocalDir.MINUS_U, pilaster ? b.trim() : b.plinth());
 					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, pilaster ? b.trim() : b.plinth());
 				} else if (!windowRow(y)) {
-					put(Role.WALL, uS, y, v, LocalDir.MINUS_U, pilaster ? b.trim() : b.wall());
-					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, pilaster ? b.trim() : b.wall());
+					put(Role.WALL, uS, y, v, LocalDir.MINUS_U, dressed ? b.trim() : b.wall());
+					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, dressed ? b.trim() : b.wall());
 				} else if (isBayCentre(v)) {
 					put(Role.WINDOW, uS, y, v, LocalDir.MINUS_U, b.window());
 					put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
 				} else {
-					put(Role.WALL, uS, y, v, LocalDir.MINUS_U, pilaster ? b.trim() : b.wall());
-					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, pilaster ? b.trim() : b.wall());
+					put(Role.WALL, uS, y, v, LocalDir.MINUS_U, dressed ? b.trim() : b.wall());
+					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, dressed ? b.trim() : b.wall());
 				}
 			}
 			// band at the slab level (leaving the bridge doorway open)
@@ -174,17 +179,18 @@ abstract class PlanBuilding extends PlanPlatforms {
 			}
 			// the upper storey, windows in its middle rows
 			for (int y = StationGeometry.UPPER_WALK_Y; y <= StationGeometry.BUILDING_ROOF_Y - 1; y++) {
+				final boolean dressed = pilaster || jamb && windowRow(y) || head && (windowRow(y - 1) || windowRow(y + 1)) && !windowRow(y);
 				if (windowRow(y) && isBayCentre(v)) {
 					put(Role.WINDOW, uS, y, v, LocalDir.MINUS_U, b.window());
 					put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
 				} else {
-					put(Role.WALL, uS, y, v, LocalDir.MINUS_U, pilaster ? b.trim() : b.wall());
-					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, pilaster ? b.trim() : b.wall());
+					put(Role.WALL, uS, y, v, LocalDir.MINUS_U, dressed ? b.trim() : b.wall());
+					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, dressed ? b.trim() : b.wall());
 				}
 			}
 		}
 		for (int u = uS; u <= uP; u++) {
-			final boolean pilaster = (u - uS) % 3 == 0;
+			final boolean pilaster = framed ? u == uS || u == uP : (u - uS) % 3 == 0;
 			for (int y = 1; y < StationGeometry.UPPER_FLOOR_Y; y++) {
 				if (y == 1) {
 					put(Role.WALL, u, y, vS, LocalDir.MINUS_V, pilaster ? b.trim() : b.plinth());
@@ -385,7 +391,8 @@ abstract class PlanBuilding extends PlanPlatforms {
 				if (pitched != null && !edge && Math.floorMod(u + v, 4) == 0) {
 					put(Role.LIGHT_PANEL, u, top, v, LocalDir.PLUS_V, b.light());
 				} else {
-					put(Role.BUILDING_ROOF, u, top, v, LocalDir.PLUS_V, pitched != null ? b.roof() : flatRoof());
+					// under a pitched roof the wall runs on up to the cornice, not a band of slate showing on the front
+					put(Role.BUILDING_ROOF, u, top, v, LocalDir.PLUS_V, pitched == null ? flatRoof() : edge ? b.wall() : b.roof());
 				}
 			}
 		}
@@ -400,7 +407,34 @@ abstract class PlanBuilding extends PlanPlatforms {
 		if (pitched == null) {
 			return;
 		}
+		if (palette.framedWindows()) {
+			chimneys(top, uS, uP, vS, vE);
+		}
 		hipped(uS + 1, uP - 1, vS + 1, vE - 1, top + 1, pitched[0], pitched[1], Integer.MAX_VALUE);
+	}
+
+	/**
+	 * Six brick chimney stacks through a hipped roof, as Teddington's house has (Historic England 1410351): a pair over each end
+	 * and over the middle, on the front and back slopes, two cells long and standing two above the ridge with a pot on top.
+	 * Put before the roof tiles so the stacks own their cells.
+	 */
+	private void chimneys(int top, int uS, int uP, int vS, int vE) {
+		final StylePalette.Building b = palette.building();
+		final int rings = Math.min((uP - uS - 2) / 2, (vE - vS - 2) / 2);
+		final int cap = top + 1 + rings + 2;
+		final int mid = (vS + vE) / 2;
+		for (final int v : new int[]{vS + 4, mid, vE - 5}) {
+			for (final int u : new int[]{uS + 3, uP - 3}) {
+				for (int y = top + 1; y < cap; y++) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, b.wall());
+					put(Role.BUILDING_ROOF, u, y, v + 1, LocalDir.PLUS_V, b.wall());
+				}
+				put(Role.BUILDING_ROOF, u, cap, v, LocalDir.PLUS_V, b.trim());
+				put(Role.BUILDING_ROOF, u, cap, v + 1, LocalDir.PLUS_V, b.trim());
+				put(Role.BUILDING_ROOF, u, cap + 1, v, LocalDir.PLUS_V, "minecraft:flower_pot");
+				put(Role.BUILDING_ROOF, u, cap + 1, v + 1, LocalDir.PLUS_V, "minecraft:flower_pot");
+			}
+		}
 	}
 
 	/**

@@ -36,6 +36,8 @@ public final class StationBlocksUk {
 			new Block(ModBlocks.paving(MapColor.WHITE)));
 	public static final Block UK_STEEL_WINDOW = ModBlocks.register("uk_steel_window", BlockFamily.STATIONS_UK, RenderKind.TRANSLUCENT,
 			new ArchGlassBlock(ModBlocks.glass()));
+	public static final Block UK_SASH_WINDOW = ModBlocks.register("uk_sash_window", BlockFamily.STATIONS_UK, RenderKind.TRANSLUCENT,
+			new ArchGlassBlock(ModBlocks.glass()));
 	public static final Block UK_PLATFORM_TARMAC = ModBlocks.register("uk_platform_tarmac", BlockFamily.STATIONS_UK, RenderKind.SOLID,
 			MtrPlatformContract.surface(ModBlocks.paving(MapColor.DEEPSLATE_GRAY)));
 	public static final Block UK_PLATFORM_COPING = ModBlocks.register("uk_platform_coping", BlockFamily.STATIONS_UK, RenderKind.SOLID,

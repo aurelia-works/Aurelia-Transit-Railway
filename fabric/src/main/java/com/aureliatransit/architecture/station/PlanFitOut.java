@@ -217,7 +217,7 @@ abstract class PlanFitOut extends PlanLandmark {
 			final boolean post = side == half + 1 || side == wide;
 			for (int y = side <= half ? door + 1 : 1; y <= CANOPY_Y; y++) {
 				final boolean glass = !post && y < CANOPY_Y;
-				face(f.u(x, 0), y, f.v(x, 0), out, glass ? Role.WINDOW : Role.WALL, glass ? FRONT_GLASS : FRAME);
+				face(f.u(x, 0), y, f.v(x, 0), out, glass ? Role.WINDOW : Role.WALL, glass ? FRONT_GLASS : porchFrame());
 			}
 		}
 		// the canopy over the ramps and the forecourt, its lights down the middle and an edge along the front
@@ -226,7 +226,9 @@ abstract class PlanFitOut extends PlanLandmark {
 				if (!inside(f, x, z)) {
 					continue;
 				}
-				final String block = z == -CANOPY_DEPTH ? CANOPY_EDGE : Math.floorMod(x - x0, 2) == 0 ? CANOPY_LIGHT : CANOPY;
+				final String[] heritage = palette.heritagePorch();
+				final String block = z == -CANOPY_DEPTH ? heritage != null ? heritage[1] : CANOPY_EDGE
+						: Math.floorMod(x - x0, 2) == 0 ? CANOPY_LIGHT : heritage != null ? heritage[0] : CANOPY;
 				put(Role.BUILDING_ROOF, f.u(x, z), CANOPY_Y, f.v(x, z), out, block);
 			}
 		}
@@ -429,7 +431,13 @@ abstract class PlanFitOut extends PlanLandmark {
 		if (roof == null || !roof.role().covers()) {
 			return false;
 		}
-		return pierUp(u, v, out, FRAME);
+		return pierUp(u, v, out, porchFrame());
+	}
+
+	/** The entrance portal's jambs, the piers just inside them and the canopy posts: a heritage look's stucco, else dark steel. */
+	private String porchFrame() {
+		final String[] heritage = palette.heritagePorch();
+		return heritage != null ? heritage[2] : FRAME;
 	}
 
 	/** A rail at the side of the ramp, facing the doorway, on a plinth when the apron is bare there. */
@@ -471,7 +479,7 @@ abstract class PlanFitOut extends PlanLandmark {
 		}
 		final int u = f.u(x, z);
 		final int v = f.v(x, z);
-		if (pierUp(u, v, f.dir(PlanLandmark.Dir.IN), FRAME)) {
+		if (pierUp(u, v, f.dir(PlanLandmark.Dir.IN), porchFrame())) {
 			return;
 		}
 		final PlannedBlock ground = at(u, StationGeometry.PLATFORM_Y, v);
@@ -485,7 +493,7 @@ abstract class PlanFitOut extends PlanLandmark {
 		}
 		final LocalDir out = f.dir(PlanLandmark.Dir.OUT);
 		for (int y = 1; y <= StationGeometry.DOOR_HEIGHT; y++) {
-			put(Role.WALL, u, y, v, out, FRAME);
+			put(Role.WALL, u, y, v, out, porchFrame());
 		}
 	}
 

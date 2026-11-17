@@ -484,18 +484,25 @@ abstract class PlanFurniture extends PlanRoofs {
 
 	/**
 	 * A ceiling hung a cell under the upper slab over {@code u0..u1, v0..v1}, its lights in lines ({@link #ceilingLight},
-	 * counted from {@code uOrigin, vOrigin}). Left out over a stair, a lift, a board or anything else reaching that high.
+	 * counted from {@code uOrigin, vOrigin}), or a heritage look's plaster with a pendant lamp a bay. Left out over a stair, a
+	 * lift, a board or anything else reaching that high.
 	 */
 	void hallCeiling(int u0, int u1, int v0, int v1, int uOrigin, int vOrigin) {
 		final int y = StationGeometry.UPPER_FLOOR_Y - 1;
 		final String light = palette.building().light();
+		final String plaster = palette.plasterCeiling();
 		for (int u = u0; u <= u1; u++) {
 			for (int v = v0; v <= v1; v++) {
 				final PlannedBlock slab = at(u, StationGeometry.UPPER_FLOOR_Y, v);
 				if (slab == null || slab.role() != Role.FLOOR && slab.role() != Role.LIGHT_PANEL || taken(u, y - 1, v) || !clearOfFlights(u, v, y)) {
 					continue;
 				}
-				if (PlanBuilding.ceilingLight(u - uOrigin, v - vOrigin)) {
+				if (plaster != null) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, plaster);
+					if ((u - uOrigin) % 4 == 2 && (v - vOrigin) % StationGeometry.BAY == StationGeometry.BAY / 2) {
+						put(Role.FIXTURE, u, y - 1, v, LocalDir.PLUS_V, PlanRoofs.HALL_LAMP);
+					}
+				} else if (PlanBuilding.ceilingLight(u - uOrigin, v - vOrigin)) {
 					put(Role.LIGHT_PANEL, u, y, v, LocalDir.PLUS_V, light);
 				} else {
 					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, HALL_CEILING);

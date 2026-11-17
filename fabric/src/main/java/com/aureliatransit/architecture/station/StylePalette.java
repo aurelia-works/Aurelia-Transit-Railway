@@ -150,10 +150,10 @@ public final class StylePalette {
 						ata("antwerp_marble_floor_tile"), ata("frankfurt_sandstone_ashlar"), ata("metro_recessed_light"), ata("station_stair"),
 						ata("antwerp_marble_floor_tile"), ata("clear_float_glass_pane"), ata("canopy_flat"), ata("canopy_light"),
 						ata("steel_column_round"), ata("wooden_bench"), ata("antwerp_polished_marble_wall"));
-				// Teddington: yellow stock brick with red dressings on a blue brick plinth, sash windows, quarry tiles, a slate
-				// roof, and a covered timber footbridge
-				case VICTORIAN -> new Building(ata("uk_yellow_stock_brick"), ata("uk_red_brick_dressing"), ata("uk_blue_engineering_brick"),
-						ata("amsterdam_stone_cornice"), ata("amsterdam_arched_window"), ata("metro_quarry_floor"), ata("metro_quarry_floor"),
+				// Teddington: yellow stock brick with cream stucco dressings (quoins, window surrounds, string course) and no plinth,
+				// white-painted sash windows, quarry tiles, a slate roof, and a covered timber footbridge (Historic England 1410351)
+				case VICTORIAN -> new Building(ata("uk_yellow_stock_brick"), ata("uk_white_render"), ata("uk_yellow_stock_brick"),
+						ata("amsterdam_stone_cornice"), ata("uk_sash_window"), ata("metro_quarry_floor"), ata("metro_quarry_floor"),
 						"minecraft:deepslate_tiles", ata("metro_recessed_light"), ata("station_stair"), ata("metro_quarry_floor"),
 						ata("wired_glass_pane"), ata("uk_timber_canopy"), ata("canopy_light"), ata("steel_column_round"), ata("wooden_bench"),
 						ata("uk_white_render"));
@@ -251,7 +251,9 @@ public final class StylePalette {
 			case ANTWERP, BEAUX_ARTS, AMSTERDAM, PARIS -> "green";
 			case SANDSTONE, CLINKER, CONCRETE, TOKYO, ZURICH, MILAN, BANGKOK -> "steel";
 			case MODERN, BERLIN, HONG_KONG, BEIJING, KUALA_LUMPUR -> "white";
-			case MUMBAI, VICTORIAN -> "green";
+			case MUMBAI -> "green";
+			// Teddington's platform canopies stand on blue-painted steel
+			case VICTORIAN -> "blue";
 			case ART_DECO -> "white";
 			case MODERNIST -> "steel";
 			case NONE -> switch (style) {
@@ -290,6 +292,30 @@ public final class StylePalette {
 	/** The station building's materials (the modern set when the spec has no building). */
 	public Building building() {
 		return building;
+	}
+
+	/**
+	 * Stucco dressings instead of pilasters: cream quoins at the corners and a cream surround, sill and lintel round each
+	 * window, as on Teddington's Italianate front (Historic England 1410351); every other look keeps a pilaster each bay.
+	 */
+	boolean framedWindows() {
+		return buildingStyle == BuildingStyle.VICTORIAN;
+	}
+
+	/**
+	 * The street entrance's canopy, its front edge and its posts for a heritage look: Teddington's is a timber canopy with a
+	 * painted valance on stucco posts over the doorway, not a modern steel frame. Null keeps the steel-and-glass porch.
+	 */
+	String[] heritagePorch() {
+		return buildingStyle == BuildingStyle.VICTORIAN ? new String[]{ata("uk_timber_canopy"), ata("uk_canopy_valance"), building.trim()} : null;
+	}
+
+	/**
+	 * A heritage hall's plain plaster ceiling, hung with a pendant lamp a bay: Teddington's booking hall keeps its moulded
+	 * cornice (Historic England 1410351), not a timber-slat ceiling with strip lights. Null keeps the slats.
+	 */
+	String plasterCeiling() {
+		return buildingStyle == BuildingStyle.VICTORIAN ? building.trim() : null;
 	}
 
 	/** The old rail-built buffers with a timber baulk at the Victorian stations; a modern friction buffer everywhere else. */
