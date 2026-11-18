@@ -93,7 +93,10 @@ public final class StationDescriptionParser {
 
 	private static final Map<String, Integer> NUMBER_WORDS = Map.ofEntries(Map.entry("one", 1), Map.entry("two", 2),
 			Map.entry("three", 3), Map.entry("four", 4), Map.entry("five", 5), Map.entry("six", 6), Map.entry("seven", 7),
-			Map.entry("eight", 8), Map.entry("nine", 9), Map.entry("ten", 10), Map.entry("eleven", 11), Map.entry("twelve", 12));
+			Map.entry("eight", 8), Map.entry("nine", 9), Map.entry("ten", 10), Map.entry("eleven", 11), Map.entry("twelve", 12),
+			Map.entry("thirteen", 13), Map.entry("fourteen", 14), Map.entry("fifteen", 15), Map.entry("sixteen", 16),
+			Map.entry("seventeen", 17), Map.entry("eighteen", 18), Map.entry("nineteen", 19), Map.entry("twenty", 20),
+			Map.entry("thirty", 30), Map.entry("forty", 40), Map.entry("fifty", 50));
 	/** Only count before "track(s)": "double track", "single-track". */
 	private static final Map<String, Integer> TRACK_WORDS = Map.of("single", 1, "double", 2, "twin", 2, "triple", 3, "quadruple", 4, "quad", 4);
 	private static final Set<String> METRE_UNITS = Set.of("m", "metre", "metres", "meter", "meters");
@@ -1248,6 +1251,21 @@ public final class StationDescriptionParser {
 			return NUMBER_WORDS.get(token);
 		}
 
+		/** Value and end token index of a number starting at {@code i} (including compounds like "twenty four"), or null. */
+		private int[] numberAt(int i) {
+			final Integer first = value(at(i));
+			if (first == null) {
+				return null;
+			}
+			if ((first == 20 || first == 30 || first == 40 || first == 50) && i + 1 < tokens.length) {
+				final Integer ones = NUMBER_WORDS.get(tokens[i + 1]);
+				if (ones != null && ones >= 1 && ones <= 9) {
+					return new int[]{first + ones, i + 1};
+				}
+			}
+			return new int[]{first, i};
+		}
+
 		private boolean number(int i) {
 			final String token = tokens[i];
 			final Integer trackWord = TRACK_WORDS.get(token);
@@ -1256,35 +1274,37 @@ public final class StationDescriptionParser {
 				use(i, i + 1);
 				return true;
 			}
-			final Integer n = value(token);
-			if (n == null) {
+			final int[] num = numberAt(i);
+			if (num == null) {
 				return false;
 			}
+			final int n = num[0];
+			final int end = num[1];
 			// <n> track(s), <n> platform track(s), <n> rail tracks
-			if (TRACK_NOUNS.contains(at(i + 1))) {
+			if (TRACK_NOUNS.contains(at(end + 1))) {
 				setTracks(n, i);
-				use(i, i + 1);
+				use(i, end + 1);
 				return true;
 			}
-			if ((at(i + 1).equals("platform") || at(i + 1).equals("rail")) && TRACK_NOUNS.contains(at(i + 2))) {
+			if ((at(end + 1).equals("platform") || at(end + 1).equals("rail")) && TRACK_NOUNS.contains(at(end + 2))) {
 				setTracks(n, i);
-				use(i, i + 2);
+				use(i, end + 2);
 				return true;
 			}
 			// <n> island platforms, <n> side platforms
-			if (at(i + 1).equals("island") && PLATFORM_NOUNS.contains(at(i + 2))) {
+			if (at(end + 1).equals("island") && PLATFORM_NOUNS.contains(at(end + 2))) {
 				islandPlatforms = n;
 				islandMention(i);
-				use(i, i + 2);
+				use(i, end + 2);
 				return true;
 			}
-			if (at(i + 1).equals("side") && PLATFORM_NOUNS.contains(at(i + 2))) {
+			if (at(end + 1).equals("side") && PLATFORM_NOUNS.contains(at(end + 2))) {
 				sideMention(i);
-				use(i, i + 2);
+				use(i, end + 2);
 				return true;
 			}
 			// <n> [unit] long|length|wide|width, or <n> metres alone
-			int j = i + 1;
+			int j = end + 1;
 			final String unit = at(j);
 			if (UNITS.contains(unit)) {
 				j++;
@@ -1303,10 +1323,10 @@ public final class StationDescriptionParser {
 			// "300 blocks" alone is a length too, once it is long enough to be one
 			if (METRE_UNITS.contains(unit) || (unit.equals("blocks") || unit.equals("block")) && n >= StationSpec.MIN_LENGTH) {
 				setLength(n, i);
-				use(i, i + 1);
+				use(i, end + 1);
 				return true;
 			}
-			use(i, i);
+			use(i, end);
 			return true;
 		}
 
@@ -2155,11 +2175,6 @@ public final class StationDescriptionParser {
 				buildingStyle = null;
 				looks.clear();
 				lookOnlyWord = null;
-				if (tracks != null && listed.isEmpty() && islandPlatforms == null) {
-					for (int number = 1; number <= tracks / 2; number++) {
-						listed.put(number, PlatformSpec.of(PlatformSpec.Kind.ISLAND));
-					}
-				}
 				note(looseAt, "the real " + real.label() + " (say \"" + real.phrase().split(" ")[0] + " style\" for its look on a station of your own)");
 			}
 			if (real == null) {

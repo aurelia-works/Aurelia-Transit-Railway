@@ -97,14 +97,17 @@ class StationDescriptionParserTest {
 
 	@Test
 	void trackCountsAreClampedWithWarnings() {
-		final ParseResult many = StationDescriptionParser.parse("20 tracks");
+		assertEquals(20, spec("20 tracks").trackCount());
+		assertEquals(24, spec("twenty-four tracks").trackCount());
+		assertEquals(18, spec("nine island platforms").trackCount());
+		final ParseResult many = StationDescriptionParser.parse("40 tracks");
 		assertEquals(StationSpec.MAX_TRACKS, many.spec().trackCount());
 		assertTrue(warned(many, "more than " + StationSpec.MAX_TRACKS));
 		assertEquals(9, spec("9 tracks").trackCount());
 		final ParseResult none = StationDescriptionParser.parse("0 tracks");
 		assertEquals(StationSpec.MIN_TRACKS, none.spec().trackCount());
 		assertTrue(warned(none, "too few"));
-		assertEquals(StationSpec.MAX_TRACKS, spec("nine island platforms").trackCount());
+		assertEquals(StationSpec.MAX_TRACKS, spec("seventeen island platforms").trackCount());
 	}
 
 	@Test
