@@ -1,0 +1,14 @@
+name: Setup
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: zulu
+        java-version: 21
+    - uses: gradle/actions/setup-gradle@v4
+      with:
+        cache-read-only: ${{ inputs.cache-read-only }}
+inputs:
+  cache-read-only:
+    default: 'true'
