@@ -14,8 +14,9 @@ import java.util.List;
 
 /**
  * The sheets of the real stations the presets copy (Jah, 10-21), each from photos and published sizes (the reference
- * briefs list the sources). A station gets its sheet when it is named after it, as every preset is. One block is about
- * two thirds of a metre; heights are squeezed where the real building would pass the station's height limit.
+ * briefs, reconstructed in {@code docs/research/landmark_reference_briefs.md}, list the sources). A station gets its
+ * sheet when it is named after it, as every preset is. One block is about two thirds of a metre; heights are squeezed
+ * where the real building would pass the station's height limit.
  */
 public final class Landmarks {
 
