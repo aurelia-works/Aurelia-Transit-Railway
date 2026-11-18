@@ -152,8 +152,16 @@ input[type="range"]:disabled { opacity: .35; cursor: default; }
 /* ---- settings column ---- */
 .rail { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-right: 1px solid var(--line); background: var(--chrome); outline: 0; }
 .rail-scroll { flex: 1; overflow-x: hidden; overflow-y: auto; padding: 0.25rem 0.6875rem 1.5rem; scrollbar-width: thin; scrollbar-color: var(--panel-3) transparent; }
-.group { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
+.group { display: flex; flex-direction: column; gap: 0.6875rem; padding: 0.875rem 0; border-bottom: 1px solid var(--line); }
 .group:last-child { border-bottom: 0; }
+.group-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-width: 0; }
+.seed-group { padding-top: 0.625rem; gap: 0.5rem; }
+.seed-meta { font: 500 var(--t-2xs)/1.2 var(--mono); color: var(--accent-text); background: var(--accent-soft); border: 1px solid rgba(43, 102, 246, .4); padding: 0.1875rem 0.4375rem; border-radius: 999px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 68%; }
+.seed-meta:hover { border-color: var(--accent-hi); color: #fff; }
+.lock-block { display: flex; flex-direction: column; gap: 0.3125rem; margin-top: 0.125rem; }
+.lock-block .sub-label { margin: 0; font-size: var(--t-xs); }
+#words { display: flex; flex-direction: column; gap: 0.5rem; }
+.pill-count { margin-left: auto; font: 500 var(--t-xs)/1 var(--mono); color: var(--muted); background: var(--panel-2); border: 1px solid var(--line); padding: 0.125rem 0.4375rem; border-radius: 999px; }
 
 .looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(4.6rem, 100%), 1fr)); gap: 0.25rem; }
 /* room for the city grid, the Build facts and the checks before the server answers, so nothing below them jumps */
@@ -397,20 +405,22 @@ code { font: var(--t-sm) var(--mono); color: var(--accent-text); }
 .clash { margin: 0.375rem 0 0; font-size: var(--t-sm); color: var(--warn); }
 .clash[hidden] { display: none; }
 
-#presets { display: none; }
-.airports { margin: 0.375rem 0 0.125rem; }
+.presets { max-height: 11rem; overflow-y: auto; padding-right: 2px; scrollbar-width: thin; scrollbar-color: var(--panel-3) transparent; }
+.airports { margin: 0.25rem 0 0.125rem; }
 body[data-page="airport"] .st-only, body:not([data-page="airport"]) .ap-only { display: none !important; }
 body[data-page="airport"] #wordsAdvanced > summary { display: none; }
 body[data-page="airport"] #wordsAdvanced { border: 0; background: transparent; padding-bottom: 0; }
 body[data-page="airport"] #wordsAdvanced > :not(summary) { margin: 0; }
 
-.adv.extra { margin-top: 0.625rem; }
-.adv.extra > summary { font-size: var(--t-base); padding: 0.6875rem 0.75rem; color: var(--fg); }
-.adv.extra > summary:hover { background: var(--panel-2); }
+.adv.extra { margin-top: 0.5rem; background: transparent; border-inline: 0; border-bottom: 0; border-radius: 0; }
+.adv.extra > summary { font-size: var(--t-md); padding: 0.75rem 0.125rem; color: var(--fg); border-radius: var(--r-sm); }
+.adv.extra > summary:hover { background: var(--panel); padding-inline: 0.5rem; }
 .adv.extra > summary:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
+.adv.extra[open] > :not(summary) { margin: 0; }
 .extra-body { display: flex; flex-direction: column; gap: 0.875rem; padding-top: 0.25rem; }
 .extra-body > .group { margin: 0; }
-#words .help { margin-bottom: 0.5rem; }
+#words .help { margin-bottom: 0; }
+.photo-row { margin-top: 0; }
 
 /* block swapper */
 .swap-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.375rem; align-items: center; margin: 0.375rem 0; }

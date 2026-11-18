@@ -366,16 +366,44 @@
 
 		const presets = $("presets");
 		presets.innerHTML = "";
+		if ($("presetCount")) {
+			$("presetCount").textContent = String(options.presets.length);
+		}
 		for (const p of options.presets) {
 			const b = document.createElement("button");
 			b.type = "button";
 			b.className = "chip";
-			b.textContent = p.key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+			b.textContent = p.name || p.key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 			b.title = p.description;
 			// the preset sets the buttons (they are always sent, so they would otherwise win over its numbers); the rest of its
 			// words, such as the roof and the footbridge, go in the description
 			b.addEventListener("click", () => applyPreset(p));
 			presets.append(b);
+		}
+		const meta = $("rolledMeta");
+		if (meta) {
+			meta.addEventListener("click", () => {
+				const more = $("more");
+				if (more) {
+					more.open = true;
+					more.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" });
+				}
+			});
+			synced.push(() => {
+				const tags = [];
+				if ($("class").value && $("class").value !== "auto") {
+					tags.push($("class").selectedOptions[0]?.text + " class");
+				}
+				if ($("era").value && $("era").value !== "auto") {
+					tags.push($("era").selectedOptions[0]?.text + " era");
+				}
+				if ($("mix").value) {
+					tags.push("+ " + ($("mix").selectedOptions[0]?.text || $("mix").value));
+				}
+				meta.hidden = tags.length === 0;
+				meta.textContent = tags.join(" · ");
+				meta.title = tags.length ? "Active overrides (" + tags.join(", ") + ") — click to adjust" : "";
+			});
 		}
 		// airports are planned from their words alone: the card only writes them, and the station controls keep their settings
 		const airports = $("airports");
@@ -925,9 +953,9 @@
 		}
 		const note = $("seedNote");
 		note.classList.toggle("seed-note-edited", seeds.edited);
-		note.textContent = seeds.edited ? "Changed since the roll, so this seed alone no longer makes this station."
-			: seeds.locks.look && seeds.detail !== seeds.value ? "The look is kept from seed " + seeds.detail + "."
-				: "The same seed makes the same station. Press R to roll.";
+		note.textContent = seeds.edited ? "Modified after roll — seed alone won't recreate edits."
+			: seeds.locks.look && seeds.detail !== seeds.value ? "Look held from seed " + seeds.detail + "."
+				: "Deterministic seed · press R to roll.";
 	}
 
 	function setupSeed() {

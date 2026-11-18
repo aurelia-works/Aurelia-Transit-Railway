@@ -50,11 +50,44 @@
 	<main class="app">
 		<aside class="rail" id="settings" aria-label="Station settings" tabindex="-1">
 			<div class="rail-scroll">
+				<section class="group seed-group" aria-labelledby="g-seed">
+					<div class="group-head">
+						<h2 class="label" id="g-seed">Seed</h2>
+						<button type="button" class="seed-meta st-only" id="rolledMeta" hidden></button>
+					</div>
+					<div class="seed-row">
+						<div class="seed" id="seedBox">
+							<input id="seed" type="text" inputmode="text" autocomplete="off" spellcheck="false" maxlength="6" aria-label="Seed" aria-describedby="seedNote">
+							<span class="flaps" id="flaps" aria-hidden="true"></span>
+						</div>
+						<button type="button" class="icon-btn roll" id="roll" title="Roll a new seed (R)" aria-label="Roll a new seed">
+							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8.5" cy="8.5" r="1.4"/><circle cx="15.5" cy="15.5" r="1.4"/><circle cx="12" cy="12" r="1.4"/></svg>
+						</button>
+						<button type="button" class="icon-btn" id="copySeed" title="Copy the seed" aria-label="Copy the seed">
+							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15.5 5.5v-.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+						</button>
+					</div>
+					<p class="help" id="seedNote"></p>
+					<div class="lock-block st-only">
+						<span class="sub-label" id="keepLabel">Lock on roll</span>
+						<div class="locks" role="group" aria-labelledby="keepLabel">
+							<button type="button" class="lock" data-lock="look" aria-pressed="false" title="Keep the city and mix, the hall and platform style, and the seed's canopy, floor and roof-deck choices">Look</button>
+							<button type="button" class="lock" data-lock="shape" aria-pressed="false" title="Keep the type, tracks, length and platforms">Shape</button>
+							<button type="button" class="lock" data-lock="building" aria-pressed="false" title="Keep whether there is a building, its size and roof form, the stairs, travelators and track bed">Building</button>
+						</div>
+					</div>
+				</section>
+
 				<section class="group" aria-labelledby="g-words">
-					<h2 class="label" id="g-words">What do you want to build?</h2>
+					<h2 class="label" id="g-words">Quick start &amp; prompt</h2>
 					<div id="words">
-						<p class="help st-only">Describe a station in plain English or generate from a reference photo.</p>
-						<div class="chips presets" id="presets" role="group" aria-label="Presets"></div>
+						<details class="adv st-only" id="presetsFold">
+							<summary>Presets <span class="pill-count" id="presetCount"></span></summary>
+							<div class="adv-body">
+								<p class="help">Landmarks, underground metro stations, halts and stops.</p>
+								<div class="chips presets" id="presets" role="group" aria-label="Presets"></div>
+							</div>
+						</details>
 						<p class="help ap-only">Pick a starting layout or describe runways, gates and terminal in blocks or metres (1.5 blocks = 1 m).</p>
 						<div class="chips airports ap-only" id="airports" role="group" aria-label="Airports"></div>
 						<details class="adv" id="wordsAdvanced">
@@ -72,7 +105,7 @@
 							<span class="help" id="photoNote" role="status"></span>
 						</div>
 						<div class="photo-prompt st-only" id="photoPrompt" hidden>
-							<p class="help">No Anthropic API key is set for the Studio (ANTHROPIC_API_KEY). Instead: open Claude, attach the photo, paste this prompt, and put Claude's answer in the box above.</p>
+							<p class="help">No Anthropic API key is set for the Studio (ANTHROPIC_API_KEY). Open Claude, attach the photo, paste this prompt, and put Claude's answer in the words box above.</p>
 							<textarea id="photoPromptText" rows="4" readonly aria-label="Prompt for Claude"></textarea>
 							<button type="button" class="chip-btn" id="photoCopy">Copy prompt</button>
 						</div>
@@ -115,7 +148,7 @@
 					</div>
 				</section>
 				<details class="adv extra st-only" id="more">
-					<summary>More options</summary>
+					<summary>Architecture, roof &amp; blocks</summary>
 					<div class="extra-body">
 										<label class="field row" for="mix"><span class="f-name">Mix in</span>
 						<select id="mix" title="Takes the train shed (or the platforms) from a second city"></select>
@@ -139,28 +172,6 @@
 						<div class="seg wrap" id="facingSeg" role="group" aria-labelledby="facingLabel"></div>
 						<select id="facing" hidden></select>
 						<p class="help">Auto is the way you look when you build it in game.</p>
-					</div>
-				</section>
-<section class="group seed-group" aria-labelledby="g-seed">
-					<h2 class="label" id="g-seed">Seed</h2>
-					<div class="seed-row">
-						<div class="seed" id="seedBox">
-							<input id="seed" type="text" inputmode="text" autocomplete="off" spellcheck="false" maxlength="6" aria-label="Seed" aria-describedby="seedNote">
-							<span class="flaps" id="flaps" aria-hidden="true"></span>
-						</div>
-						<button type="button" class="icon-btn roll" id="roll" title="Roll a new seed (R)" aria-label="Roll a new seed">
-							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8.5" cy="8.5" r="1.4"/><circle cx="15.5" cy="15.5" r="1.4"/><circle cx="12" cy="12" r="1.4"/></svg>
-						</button>
-						<button type="button" class="icon-btn" id="copySeed" title="Copy the seed" aria-label="Copy the seed">
-							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15.5 5.5v-.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-						</button>
-					</div>
-					<p class="help" id="seedNote"></p>
-					<p class="sub-label" id="keepLabel">Keep when re-rolling</p>
-					<div class="locks" role="group" aria-labelledby="keepLabel">
-						<button type="button" class="lock" data-lock="look" aria-pressed="false" title="Keep the city and mix, the hall and platform style, and the seed's canopy, floor and roof-deck choices">Look</button>
-						<button type="button" class="lock" data-lock="shape" aria-pressed="false" title="Keep the type, tracks, length and platforms">Shape</button>
-						<button type="button" class="lock" data-lock="building" aria-pressed="false" title="Keep whether there is a building, its size and roof form, the stairs, travelators and track bed">Building</button>
 					</div>
 				</section>
 					<div class="field">
@@ -232,7 +243,7 @@
 					</div>
 				</details>
 				<details class="adv extra st-only" id="devPanel">
-					<summary>Dev panel: visible fittings</summary>
+					<summary>Fittings &amp; surroundings</summary>
 					<div class="extra-body">
 						<label class="check"><input type="checkbox" id="cctv" checked> CCTV cameras under the canopies and in the hall</label>
 						<label class="check"><input type="checkbox" id="edgeLines" checked> White line along every platform edge</label>
