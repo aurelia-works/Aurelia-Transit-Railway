@@ -259,9 +259,9 @@ public final class StationPlanner {
 	/** The pole an open platform's lamp stands on. */
 	static final String LAMP_POLE = "aurelia_transit_architecture:sign_pole";
 	/**
-	 * Roughly how many blocks of platform each departure screen serves: one screen at the main entrance/canopy on suburban
-	 * platforms up to ~150 m (220 blocks, as at Teddington), and two on the longest mainline platforms.
+	 * Roughly how many blocks of platform each departure screen serves: about 40 m, as a real platform has a screen at each
+	 * entrance and a few along it (Teddington's 130 m platforms have three). 30 put a screen on nearly every column.
 	 */
-	static final int SCREEN_SPACING = 220;
+	static final int SCREEN_SPACING = 60;
 
 }

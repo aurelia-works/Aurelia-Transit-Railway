@@ -223,7 +223,8 @@ abstract class PlanFitOut extends PlanLandmark {
 						cells.put(new Cell(f.u(x, 0), door + 1, f.v(x, 0)),
 								new PlannedBlock(f.u(x, 0), door + 1, f.v(x, 0), Role.WALL, ARCH_STAIR, jamb, "", "half=top,shape=straight"));
 					} else {
-						face(f.u(x, 0), door + 1, f.v(x, 0), out, Role.WALL, "aurelia_transit_architecture:uk_navy_fascia");
+						// the fanlight over the door, glazed in the front's white-framed sash
+						face(f.u(x, 0), door + 1, f.v(x, 0), out, Role.WINDOW, b.window());
 					}
 					face(f.u(x, 0), CANOPY_Y, f.v(x, 0), out, Role.WALL, porchFrame());
 				}
