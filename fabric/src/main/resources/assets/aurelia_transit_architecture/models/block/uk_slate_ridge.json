@@ -1,0 +1,142 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "particle": "aurelia_transit_architecture:block/uk_slate_tile",
+    "slate": "aurelia_transit_architecture:block/uk_slate_tile",
+    "lead": "aurelia_transit_architecture:block/uk_lead_roll"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        5,
+        16
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ],
+          "texture": "#slate",
+          "cullface": "down"
+        },
+        "up": {
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ],
+          "texture": "#slate"
+        },
+        "north": {
+          "uv": [
+            0.0,
+            11,
+            16.0,
+            16.0
+          ],
+          "texture": "#slate",
+          "cullface": "north"
+        },
+        "south": {
+          "uv": [
+            0.0,
+            11,
+            16.0,
+            16.0
+          ],
+          "texture": "#slate",
+          "cullface": "south"
+        },
+        "west": {
+          "uv": [
+            0.0,
+            11,
+            16.0,
+            16.0
+          ],
+          "texture": "#slate",
+          "cullface": "west"
+        },
+        "east": {
+          "uv": [
+            0.0,
+            11,
+            16.0,
+            16.0
+          ],
+          "texture": "#slate",
+          "cullface": "east"
+        }
+      }
+    },
+    {
+      "from": [
+        3,
+        5,
+        3
+      ],
+      "to": [
+        13,
+        7,
+        13
+      ],
+      "faces": {
+        "up": {
+          "uv": [
+            3,
+            3,
+            13,
+            13
+          ],
+          "texture": "#lead"
+        },
+        "north": {
+          "uv": [
+            3,
+            9,
+            13,
+            11
+          ],
+          "texture": "#lead"
+        },
+        "south": {
+          "uv": [
+            3,
+            9,
+            13,
+            11
+          ],
+          "texture": "#lead"
+        },
+        "west": {
+          "uv": [
+            3,
+            9,
+            13,
+            11
+          ],
+          "texture": "#lead"
+        },
+        "east": {
+          "uv": [
+            3,
+            9,
+            13,
+            11
+          ],
+          "texture": "#lead"
+        }
+      }
+    }
+  ]
+}

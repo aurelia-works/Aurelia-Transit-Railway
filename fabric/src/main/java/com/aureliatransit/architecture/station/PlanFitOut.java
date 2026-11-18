@@ -201,57 +201,92 @@ abstract class PlanFitOut extends PlanLandmark {
 		final StylePalette.Building b = palette.building();
 		final LocalDir out = f.dir(PlanLandmark.Dir.OUT);
 		final int door = StationGeometry.DOOR_HEIGHT;
-		final int wide = half + 1 + Math.max(CANOPY_WING, half);
+		// a heritage porch spans the projecting central bays of the front, as Teddington's canopy runs across its three middle bays
+		final int heritageReach = site.building() && site.vEnd() - site.vStart() < 30 ? 3 : HERITAGE_WING;
+		final int wide = Math.max(half + 1 + Math.max(CANOPY_WING, half), palette.heritagePorch() != null ? heritageReach : 0);
 		if (!sheet) {
 			glassBay(f, x0, half, wide, b, out);
 			shopfront(f, x0, half, b, out);
 		}
-		// the portal: jambs either side of the doorway, glass over the opening up to a lintel under the canopy, and a glass
-		// screen either side out to a post at the canopy's corner
-		for (int x = x0 - wide; x <= x0 + wide; x++) {
-			final int side = Math.abs(x - x0);
-			if (sheet && side > half + 1) {
-				// a real station's own front keeps its walls beside the doorway
-				continue;
+		if (heritageArch()) {
+			// Teddington's central round-headed entrance arch in cream stucco: rusticated piers, curved arch shoulders and fanlight
+			final int archHalf = Math.min(half, 1);
+			for (int x = x0 - (archHalf + 1); x <= x0 + (archHalf + 1); x++) {
+				final int side = Math.abs(x - x0);
+				if (side == archHalf + 1) {
+					for (int y = 1; y <= CANOPY_Y - 1; y++) {
+						face(f.u(x, 0), y, f.v(x, 0), out, Role.WALL, porchFrame());
+					}
+				} else {
+					if (side == archHalf && archHalf >= 1) {
+						final LocalDir jamb = x < x0 ? f.dir(PlanLandmark.Dir.LEFT) : f.dir(PlanLandmark.Dir.RIGHT);
+						cells.put(new Cell(f.u(x, 0), door + 1, f.v(x, 0)),
+								new PlannedBlock(f.u(x, 0), door + 1, f.v(x, 0), Role.WALL, ARCH_STAIR, jamb, "", "half=top,shape=straight"));
+					} else {
+						face(f.u(x, 0), door + 1, f.v(x, 0), out, Role.WALL, "aurelia_transit_architecture:uk_navy_fascia");
+					}
+					face(f.u(x, 0), CANOPY_Y, f.v(x, 0), out, Role.WALL, porchFrame());
+				}
 			}
-			final boolean post = side == half + 1 || side == wide;
-			for (int y = side <= half ? door + 1 : 1; y <= CANOPY_Y; y++) {
-				final boolean glass = !post && y < CANOPY_Y;
-				face(f.u(x, 0), y, f.v(x, 0), out, glass ? Role.WINDOW : Role.WALL, glass ? FRONT_GLASS : FRAME);
+		} else {
+			// the portal: jambs either side of the doorway, glass over the opening up to a lintel under the canopy, and a glass
+			// screen either side out to a post at the canopy's corner
+			for (int x = x0 - wide; x <= x0 + wide; x++) {
+				final int side = Math.abs(x - x0);
+				if (sheet && side > half + 1) {
+					// a real station's own front keeps its walls beside the doorway
+					continue;
+				}
+				final boolean post = side == half + 1 || side == wide;
+				for (int y = side <= half ? door + 1 : 1; y <= CANOPY_Y; y++) {
+					final boolean glass = !post && y < CANOPY_Y;
+					face(f.u(x, 0), y, f.v(x, 0), out, glass ? Role.WINDOW : Role.WALL, glass ? FRONT_GLASS : porchFrame());
+				}
 			}
 		}
 		// the canopy over the ramps and the forecourt, its lights down the middle and an edge along the front
+		final String[] heritage = palette.heritagePorch();
 		for (int z = -1; z >= -CANOPY_DEPTH; z--) {
 			for (int x = x0 - wide; x <= x0 + wide; x++) {
 				if (!inside(f, x, z)) {
 					continue;
 				}
-				final String block = z == -CANOPY_DEPTH ? CANOPY_EDGE : Math.floorMod(x - x0, 2) == 0 ? CANOPY_LIGHT : CANOPY;
-				put(Role.BUILDING_ROOF, f.u(x, z), CANOPY_Y, f.v(x, z), out, block);
+				if (heritage != null) {
+					final boolean frontEdge = z == -CANOPY_DEPTH;
+					final boolean sideEdge = !frontEdge && Math.abs(x - x0) == wide;
+					final LocalDir edgeDir = frontEdge ? out : x < x0 ? f.dir(PlanLandmark.Dir.LEFT) : f.dir(PlanLandmark.Dir.RIGHT);
+					final String block = frontEdge || sideEdge ? heritage[1]
+							: z == -1 && Math.floorMod(x - x0, 6) == 0 ? CANOPY_LIGHT : heritage[0];
+					put(Role.BUILDING_ROOF, f.u(x, z), CANOPY_Y, f.v(x, z), edgeDir, block);
+				} else {
+					final String block = z == -CANOPY_DEPTH ? CANOPY_EDGE
+							: Math.floorMod(x - x0, 2) == 0 ? CANOPY_LIGHT : CANOPY;
+					put(Role.BUILDING_ROOF, f.u(x, z), CANOPY_Y, f.v(x, z), out, block);
+				}
 			}
 		}
 		porch(f, x0, half, wide, b, out);
 		forecourt(f, x0, wide, out);
-		// the name, over the canopy
+		// the name, over the canopy (a neat compact 3-cell name board on heritage fronts, no hanging black bar below the valance)
 		if (!spec.name().isEmpty()) {
-			for (int x = x0 - half; x <= x0 + half; x++) {
+			final int nameHalf = heritage != null ? 1 : half;
+			for (int x = x0 - nameHalf; x <= x0 + nameHalf; x++) {
 				if (taken(f.u(x, 0), CANOPY_Y + 1, f.v(x, 0))) {
-					// lettering fixed flat to the wall, not the operator's platform name board on its legs (Jah, 10-22: that
-					// belongs inside); a fixture, so the platform sign rules (one row, on a floor) are not about it
 					putText(Role.FIXTURE, f.u(x, -1), CANOPY_Y + 1, f.v(x, -1), out, LETTERING, spec.name());
 				}
 			}
-			nameBand(f, x0, wide, out);
-			// the pylon right beside the canopy's end, its faces to the street, on a paved footing (Jah, 10-22: it stood a
-			// cell further off and turned along the wall)
-			final int x = x0 + wide + 1;
-			final int z = -Math.min(StationGeometry.APRON, StationGeometry.RAMP_LENGTH + 1);
-			final int u = f.u(x, z);
-			final int v = f.v(x, z);
-			if (inside(f, x, z) && !taken(u, StationGeometry.PLATFORM_Y, v) && !taken(u, 1, v) && !taken(u, 2, v)) {
-				footing(u, v, out, b);
-				putText(Role.FIXTURE, u, 1, v, out, PlanUnderground.PYLON, "NONE:" + spec.name());
-				put(Role.FIXTURE, u, 2, v, out, PlanUnderground.PYLON, "half=upper");
+			if (heritage == null) {
+				nameBand(f, x0, wide, out);
+				// the pylon right beside the canopy's end on modern fronts
+				final int x = x0 + wide + 1;
+				final int z = -Math.min(StationGeometry.APRON, StationGeometry.RAMP_LENGTH + 1);
+				final int u = f.u(x, z);
+				final int v = f.v(x, z);
+				if (inside(f, x, z) && !taken(u, StationGeometry.PLATFORM_Y, v) && !taken(u, 1, v) && !taken(u, 2, v)) {
+					footing(u, v, out, b);
+					putText(Role.FIXTURE, u, 1, v, out, PlanUnderground.PYLON, "NONE:" + spec.name());
+					put(Role.FIXTURE, u, 2, v, out, PlanUnderground.PYLON, "half=upper");
+				}
 			}
 		}
 	}
@@ -282,6 +317,8 @@ abstract class PlanFitOut extends PlanLandmark {
 	static final int BOLLARD_PITCH = 3;
 	/** How far the canopy and the glass front reach past each jamb of the doorway, at least: a wide portal gets wider wings. */
 	static final int CANOPY_WING = 2;
+	/** How far a heritage porch's canopy reaches either side of the doorway's middle: over the bays beside the door's. */
+	static final int HERITAGE_WING = StationGeometry.BAY + 1;
 
 	/**
 	 * The forecourt past the ramps (z = -RAMP_LENGTH-1 .. -APRON): the street's own ground, left as it is (paving it would dig
@@ -386,6 +423,21 @@ abstract class PlanFitOut extends PlanLandmark {
 	 * plinth threshold. The opening itself stays air, so a passenger still walks through and a fare gate still sees them.
 	 */
 	private void porch(Front f, int x0, int half, int wide, StylePalette.Building b, LocalDir out) {
+		if (heritageArch()) {
+			// Teddington's porch is cantilevered on stucco wall brackets aligned with the piers (clear of the arched windows)
+			final LocalDir intoWall = f.dir(PlanLandmark.Dir.IN);
+			for (final int bx : new int[]{x0 - wide, x0 - 2, x0 + 2, x0 + wide}) {
+				final PlannedBlock backing = at(f.u(bx, 0), CANOPY_Y - 1, f.v(bx, 0));
+				if (Math.abs(bx - x0) <= wide && inside(f, bx, -1) && backing != null && backing.role() == Role.WALL
+						&& !backing.blockId().equals(ARCH_STAIR) && !taken(f.u(bx, -1), CANOPY_Y - 1, f.v(bx, -1))) {
+					put(Role.WALL, f.u(bx, -1), CANOPY_Y - 1, f.v(bx, -1), intoWall, ARCH_STAIR, "half=top,shape=straight");
+				}
+			}
+			for (int x = x0 - 1; x <= x0 + 1; x++) {
+				retile(f.u(x, 1), f.v(x, 1), b.floor());
+			}
+			return;
+		}
 		final int front = -CANOPY_DEPTH;
 		canopyPost(f, x0 - wide, front, b, out);
 		canopyPost(f, x0 + wide, front, b, out);
@@ -429,7 +481,21 @@ abstract class PlanFitOut extends PlanLandmark {
 		if (roof == null || !roof.role().covers()) {
 			return false;
 		}
-		return pierUp(u, v, out, FRAME);
+		return pierUp(u, v, out, porchFrame());
+	}
+
+	/** Whether the street doorway is a heritage arch in the stucco (see {@link #ARCH_STAIR}). */
+	private boolean heritageArch() {
+		return palette.heritagePorch() != null;
+	}
+
+	/** The cream stair that rounds a heritage doorway's top corners. */
+	static final String ARCH_STAIR = "minecraft:smooth_quartz_stairs";
+
+	/** The entrance portal's jambs, the piers just inside them and the canopy posts: a heritage look's stucco, else dark steel. */
+	private String porchFrame() {
+		final String[] heritage = palette.heritagePorch();
+		return heritage != null ? heritage[2] : FRAME;
 	}
 
 	/** A rail at the side of the ramp, facing the doorway, on a plinth when the apron is bare there. */
@@ -471,7 +537,7 @@ abstract class PlanFitOut extends PlanLandmark {
 		}
 		final int u = f.u(x, z);
 		final int v = f.v(x, z);
-		if (pierUp(u, v, f.dir(PlanLandmark.Dir.IN), FRAME)) {
+		if (pierUp(u, v, f.dir(PlanLandmark.Dir.IN), porchFrame())) {
 			return;
 		}
 		final PlannedBlock ground = at(u, StationGeometry.PLATFORM_Y, v);
@@ -485,7 +551,7 @@ abstract class PlanFitOut extends PlanLandmark {
 		}
 		final LocalDir out = f.dir(PlanLandmark.Dir.OUT);
 		for (int y = 1; y <= StationGeometry.DOOR_HEIGHT; y++) {
-			put(Role.WALL, u, y, v, out, FRAME);
+			put(Role.WALL, u, y, v, out, porchFrame());
 		}
 	}
 
@@ -502,6 +568,11 @@ abstract class PlanFitOut extends PlanLandmark {
 	 */
 	void sideHall() {
 		if (!site.building()) {
+			return;
+		}
+		if (palette.plasterCeiling() != null) {
+			// a heritage booking hall keeps its unbroken moulded plaster ceiling and pendant lamps
+			stairPosters(site.platformWall(layout) - 3);
 			return;
 		}
 		final int uS = streetWall();

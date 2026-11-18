@@ -70,6 +70,7 @@ abstract class PlanBridges extends PlanConcourse {
 				}
 			}
 		}
+		final String heritagePanel = palette.bridgePanel();
 		// deck, out to and under both corridor walls, so the stair exits have a floor and the walls do not float
 		for (int u = from; u <= to; u++) {
 			for (int v = wallLo; v <= wallHi; v++) {
@@ -79,7 +80,8 @@ abstract class PlanBridges extends PlanConcourse {
 					// the building's recessed light: a full block with the light underneath, so the walkway has no pit
 					put(Role.BRIDGE_DECK, u, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.PLUS_V, b.light());
 				} else {
-					put(Role.BRIDGE_DECK, u, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.PLUS_V, b.deck());
+					put(Role.BRIDGE_DECK, u, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.PLUS_V,
+							heritagePanel != null ? "aurelia_transit_architecture:uk_navy_fascia" : b.deck());
 				}
 			}
 		}
@@ -100,31 +102,68 @@ abstract class PlanBridges extends PlanConcourse {
 						}
 					}
 				}
+				final String panel = heritagePanel;
 				for (int y = StationGeometry.UPPER_WALK_Y; y <= StationGeometry.BUILDING_ROOF_Y - 1; y++) {
 					final boolean low = y <= StationGeometry.UPPER_WALK_Y + 1;
+					// a heritage bridge is clad to waist height and under its eaves, a band of windows between
+					final boolean clad = panel != null && (low || y == StationGeometry.BUILDING_ROOF_Y - 1);
 					if (!(low && exitLo)) {
-						put(Role.WINDOW, u, y, wallLo, LocalDir.MINUS_V, b.bridgeWall());
+						put(clad ? Role.WALL : Role.WINDOW, u, y, wallLo, LocalDir.MINUS_V, clad ? panel : b.bridgeWall());
 					}
 					if (!(low && exitHi)) {
-						put(Role.WINDOW, u, y, wallHi, LocalDir.PLUS_V, b.bridgeWall());
+						put(clad ? Role.WALL : Role.WINDOW, u, y, wallHi, LocalDir.PLUS_V, clad ? panel : b.bridgeWall());
 					}
 				}
 			}
-			// glass across the corridor's open ends (the building closes its own end)
+			// glass (or heritage cladding + sash ribbon) across the corridor's open ends (the building closes its own end)
 			for (final int u : site.building() ? new int[]{to} : new int[]{from, to}) {
+				final LocalDir endOut = u == to ? LocalDir.PLUS_U : LocalDir.MINUS_U;
 				for (int v = wallLo + 1; v < wallHi; v++) {
 					for (int y = StationGeometry.UPPER_WALK_Y; y <= StationGeometry.BUILDING_ROOF_Y - 1; y++) {
-						put(Role.WINDOW, u, y, v, u == to ? LocalDir.PLUS_U : LocalDir.MINUS_U, b.bridgeWall());
+						final boolean clad = heritagePanel != null
+								&& (y <= StationGeometry.UPPER_WALK_Y + 1 || y == StationGeometry.BUILDING_ROOF_Y - 1);
+						put(clad ? Role.WALL : Role.WINDOW, u, y, v, endOut, clad ? heritagePanel : b.bridgeWall());
 					}
 				}
 			}
-			// roof over the corridor and the stairs
-			for (int u = from; u <= to; u++) {
-				for (int v = wallLo; v <= wallHi; v++) {
-					if ((u + v) % 4 == 0) {
-						put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y, v, LocalDir.PLUS_V, b.bridgeLight());
+			// roof over the corridor and the stairs: a pitched slate gable roof on open heritage bridges (geograph 4331043)
+			final boolean pitchedBridge = heritagePanel != null && spec.roof() != RoofType.HALL;
+			if (pitchedBridge) {
+				final String stair = "minecraft:deepslate_tile_stairs";
+				final String solid = "minecraft:deepslate_tiles";
+				final String ridge = "aurelia_transit_architecture:uk_slate_ridge";
+				for (int u = from; u <= to; u++) {
+					for (int v = wallLo; v <= wallHi; v++) {
+						if (v == wallLo) {
+							put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y, v, LocalDir.PLUS_V, stair, PITCH_STATE);
+						} else if (v == wallHi) {
+							put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y, v, LocalDir.MINUS_V, stair, PITCH_STATE);
+						} else if ((u + v) % 4 == 0 && u > from && u < to) {
+							put(Role.LIGHT_PANEL, u, StationGeometry.BUILDING_ROOF_Y, v, LocalDir.PLUS_V, b.light());
+						} else {
+							put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y, v, LocalDir.PLUS_V, b.interiorWall());
+						}
+					}
+					if (wallHi - wallLo >= 4) {
+						put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y + 1, wallLo + 1, LocalDir.PLUS_V, stair, PITCH_STATE);
+						put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y + 1, wallHi - 1, LocalDir.MINUS_V, stair, PITCH_STATE);
+						for (int v = wallLo + 2; v <= wallHi - 2; v++) {
+							put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y + 1, v, LocalDir.PLUS_V,
+									(u == to || !site.building() && u == from) ? heritagePanel : solid);
+							put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y + 2, v, LocalDir.PLUS_V, ridge);
+						}
 					} else {
-						put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y, v, LocalDir.PLUS_V, b.bridgeRoof());
+						put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y + 1, vB, LocalDir.PLUS_V, ridge);
+					}
+				}
+			} else {
+				for (int u = from; u <= to; u++) {
+					for (int v = wallLo; v <= wallHi; v++) {
+						if ((u + v) % 4 == 0) {
+							put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y, v, LocalDir.PLUS_V, b.bridgeLight());
+						} else {
+							put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y, v, LocalDir.PLUS_V, b.bridgeRoof());
+						}
 					}
 				}
 			}
@@ -135,6 +174,9 @@ abstract class PlanBridges extends PlanConcourse {
 						stairShaft(band, flight, b);
 					} else {
 						stairHood(band, flight, b);
+					}
+					if (pitchedBridge) {
+						pitchStairRoof(band, flight, heritagePanel);
 					}
 				}
 			}
@@ -161,9 +203,15 @@ abstract class PlanBridges extends PlanConcourse {
 				continue;
 			}
 			for (final int uPier : bridgePierLines(band)) {
-				for (int y = StationGeometry.WALK_Y; y < StationGeometry.UPPER_FLOOR_Y; y++) {
-					put(Role.BRIDGE_PIER, uPier, y, vB, LocalDir.PLUS_V, b.pier());
+				if (heritagePanel != null && !spec.mezzanine()
+						&& freeColumn(uPier, StationGeometry.WALK_Y, StationGeometry.UPPER_FLOOR_Y - 1, wallLo)
+						&& freeColumn(uPier, StationGeometry.WALK_Y, StationGeometry.UPPER_FLOOR_Y - 1, wallHi)) {
+					// Trestle piers under both side girders when both edges are clear, leaving the central platform doorway sightline open
+					putBridgePierColumn(uPier, wallLo, b);
+					putBridgePierColumn(uPier, wallHi, b);
+					continue;
 				}
+				putBridgePierColumn(uPier, vB, b);
 				// a mezzanine's deck is too wide to overhang one pier line: a pier under each edge as well, where it is free
 				for (final int vEdge : spec.mezzanine() ? new int[]{vB - bridgeHalf(), vB + bridgeHalf()} : new int[0]) {
 					if (freeColumn(uPier, StationGeometry.WALK_Y, StationGeometry.UPPER_FLOOR_Y - 1, vEdge)) {
@@ -286,6 +334,43 @@ abstract class PlanBridges extends PlanConcourse {
 		if (hall) {
 			plateaus(from, to, wallLo, wallHi);
 			realHall(from, to, wallLo, wallHi);
+		}
+	}
+
+	/** Places a bridge pier column with a navy plinth base when the style uses painted cast-iron columns. */
+	private void putBridgePierColumn(int u, int v, StylePalette.Building b) {
+		final boolean ukCol = b.pier().equals("aurelia_transit_architecture:uk_painted_column");
+		for (int y = StationGeometry.WALK_Y; y < StationGeometry.UPPER_FLOOR_Y; y++) {
+			put(Role.BRIDGE_PIER, u, y, v, LocalDir.PLUS_V,
+					ukCol && y == StationGeometry.WALK_Y ? "aurelia_transit_architecture:uk_painted_column_base" : b.pier());
+		}
+	}
+
+	/** Gives a heritage footbridge's stair shaft or hood a matching pitched slate roof with ridge cap (geograph 4331043). */
+	private void pitchStairRoof(TrackLayout.PlatformBand band, StationLayout.Flight flight, String panel) {
+		final List<Integer> open = opening(band, flight);
+		final int left = Math.max(band.uMin(), open.get(0) - 1);
+		final int right = Math.min(band.uMax(), open.get(open.size() - 1) + 1);
+		final int top = flight.stepV(StationGeometry.STAIR_STEPS);
+		final int side = flight.side();
+		final int end = canopyOver(band, flight)
+				? (Math.max(1, StationGeometry.CANOPY_Y - 2) > 1 ? flight.stepV(Math.max(1, StationGeometry.CANOPY_Y - 2) - 1) : flight.landingV())
+				: flight.stepV(1);
+		final String stair = "minecraft:deepslate_tile_stairs";
+		final String ridge = "aurelia_transit_architecture:uk_slate_ridge";
+		for (int v = top; v != end + side; v += side) {
+			for (int u = left; u <= right; u++) {
+				final Cell roofCell = new Cell(u, StationGeometry.BUILDING_ROOF_Y, v);
+				if (u == left && left < open.get(0)) {
+					cells.put(roofCell, new PlannedBlock(u, StationGeometry.BUILDING_ROOF_Y, v, Role.BUILDING_ROOF, stair, LocalDir.PLUS_U, "", PITCH_STATE));
+				} else if (u == right && right > open.get(open.size() - 1)) {
+					cells.put(roofCell, new PlannedBlock(u, StationGeometry.BUILDING_ROOF_Y, v, Role.BUILDING_ROOF, stair, LocalDir.MINUS_U, "", PITCH_STATE));
+				} else {
+					cells.put(roofCell, new PlannedBlock(u, StationGeometry.BUILDING_ROOF_Y, v, Role.BUILDING_ROOF,
+							v == end ? panel : palette.building().interiorWall(), LocalDir.PLUS_V, "", ""));
+					put(Role.BUILDING_ROOF, u, StationGeometry.BUILDING_ROOF_Y + 1, v, LocalDir.PLUS_V, ridge);
+				}
+			}
 		}
 	}
 

@@ -430,6 +430,8 @@
 		"aurelia_transit_architecture:uk_blue_engineering_brick",
 		"aurelia_transit_architecture:uk_white_render",
 		"aurelia_transit_architecture:uk_steel_window",
+		"aurelia_transit_architecture:uk_sash_window",
+		"aurelia_transit_architecture:uk_painted_column",
 		"aurelia_transit_architecture:uk_platform_tarmac",
 		"aurelia_transit_architecture:uk_platform_coping",
 		"aurelia_transit_architecture:uk_platform_coping_tactile",
@@ -482,6 +484,20 @@
 		"aurelia_transit_architecture:ns_stair_handrail",
 		"aurelia_transit_architecture:stair_handrail",
 		"aurelia_transit_architecture:lineside_fence",
-		"aurelia_transit_architecture:bicycle_rack"
+		"aurelia_transit_architecture:bicycle_rack",
+		"aurelia_transit_architecture:uk_stucco_dressed",
+		"aurelia_transit_architecture:uk_stucco_quoin",
+		"aurelia_transit_architecture:uk_brick_string_course",
+		"aurelia_transit_architecture:uk_window_lintel",
+		"aurelia_transit_architecture:uk_window_sill",
+		"aurelia_transit_architecture:uk_eaves_cornice",
+		"aurelia_transit_architecture:uk_painted_column_base",
+		"aurelia_transit_architecture:uk_painted_column_cap",
+		"aurelia_transit_architecture:uk_arched_booth_window",
+		"aurelia_transit_architecture:uk_wood_wainscot",
+		"aurelia_transit_architecture:uk_booking_hall_tile",
+		"aurelia_transit_architecture:uk_bridge_cladding",
+		"aurelia_transit_architecture:uk_navy_fascia",
+		"aurelia_transit_architecture:uk_slate_ridge"
 	]
 }

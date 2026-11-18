@@ -22,19 +22,26 @@ abstract class PlanLifts extends PlanBuilding {
 	 * done.
 	 */
 	void lifts() {
+		// a Victorian suburban station with side platforms only is already step-free on both platforms via its street and end ramps,
+		// so no glass lift box rises beside the tracks or fills the booking hall (Teddington, Historic England 1410351)
+		if (heritageSidePlatforms()) {
+			return;
+		}
 		final StylePalette.Building b = palette.building();
+		final boolean victorian = spec.building() == BuildingStyle.VICTORIAN;
+		final String shaftWall = victorian ? b.wall() : b.bridgeWall();
 		for (final TrackLayout.PlatformBand band : layout.platforms()) {
 			final StationLayout.Lift lift = site.platformLift(band, layout);
 			if (lift != null) {
 				// at the platform the car also opens at the back, onto the platform, when the platform runs on past it;
 				// at the footbridge it opens only into the corridor
-				shaft(lift, b.bridgeWall(), true, b.bridgeRoof(), band.runs(lift.doorV() + 4 * lift.out()));
+				shaft(lift, shaftWall, true, b.bridgeRoof(), band.runs(lift.doorV() + 4 * lift.out()));
 			}
 		}
 		for (final TrackLayout.PlatformBand band : site.streets()) {
 			final StationLayout.Lift street = site.platformLift(band, layout);
 			if (street != null) {
-				shaft(street, b.bridgeWall(), true, b.bridgeRoof(), band.runs(street.doorV() + 4 * street.out()));
+				shaft(street, shaftWall, true, b.bridgeRoof(), band.runs(street.doorV() + 4 * street.out()));
 			}
 			// a real station's square at the hall's level: the lift from the square below, its lobby kept open before walls go up
 			final StationLayout.Lift square = site.plateauLift(band);
@@ -46,10 +53,10 @@ abstract class PlanLifts extends PlanBuilding {
 						keepClear(c, y, square.doorV() - 1);
 					}
 				}
-				shaft(square, b.bridgeWall(), true, b.bridgeRoof(), false);
+				shaft(square, shaftWall, true, b.bridgeRoof(), false);
 			}
 		}
-		final StationLayout.Lift hall = site.buildingLift(layout);
+		final StationLayout.Lift hall = activeBuildingLift();
 		if (hall != null) {
 			// the building's own platform wall closes the shaft's far side, and its roof covers it
 			shaft(hall, b.interiorWall(), false, null, false);
@@ -216,15 +223,16 @@ abstract class PlanLifts extends PlanBuilding {
 		// the roof, where the lift's machinery sits, so the glass runs between frame members instead of up to the roof (a
 		// head of three rows read as a solid silo above the bridge: Jah's judge, 11-08)
 		final boolean tower = farWall && roofId != null;
+		final boolean victorianTower = tower && spec.building() == BuildingStyle.VICTORIAN;
 		// an NS tower's glass reads as framed panes from outside (Utrecht Leidsche Rijn), not as a dark hole onto the shaft
 		final String glass = tower && palette.glassLiftHead() ? LIFT_CURTAIN : wallId;
-		final String clad = tower ? palette.liftFrame(false) : palette.building().trim();
+		final String clad = victorianTower ? palette.building().trim() : tower ? palette.liftFrame(false) : palette.building().trim();
 		for (int y = low; y < roof; y++) {
 			final boolean band = tower && (y == StationGeometry.UPPER_FLOOR_Y || y == roof - 1 && !palette.glassLiftHead());
 			for (int c = c0 - 1; c <= cMax; c++) {
 				// a glass shaft stands on solid corner posts: the panes end on them and the call buttons are fixed to them
 				final boolean corner = farWall && (c == c0 - 1 || c == cMax);
-				final String id = corner ? (tower ? palette.liftFrame(true) : palette.building().pier()) : band ? clad : glass;
+				final String id = corner ? (victorianTower ? palette.building().trim() : tower ? palette.liftFrame(true) : palette.building().pier()) : band ? clad : glass;
 				// the door row's floor at the upper level is the deck or the slab
 				if (y != StationGeometry.UPPER_FLOOR_Y) {
 					put(Role.WALL, c, y, vD, in.opposite(), id);
@@ -259,7 +267,8 @@ abstract class PlanLifts extends PlanBuilding {
 						put(Role.BUILDING_ROOF, c, roof, v, LocalDir.PLUS_V, clad);
 					}
 					if (!palette.glassLiftHead() && (c == c0 - 1 || c == c1 + 1 || v == vD || v == vBack)) {
-						put(Role.BUILDING_ROOF, c, roof + 1, v, LocalDir.PLUS_V, LIFT_COPING, "type=bottom");
+						put(Role.BUILDING_ROOF, c, roof + 1, v, LocalDir.PLUS_V,
+								victorianTower ? "aurelia_transit_architecture:uk_slate_ridge" : LIFT_COPING, victorianTower ? "" : "type=bottom");
 					}
 				}
 			}

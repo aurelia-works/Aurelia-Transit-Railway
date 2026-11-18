@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": {
+    "item": "minecraft:bricks"
+  },
+  "result": "aurelia_transit_architecture:uk_window_lintel",
+  "count": 2
+}

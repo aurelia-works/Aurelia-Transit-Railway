@@ -29,7 +29,7 @@ abstract class PlanRoofs extends PlanColumns {
 			final List<Integer> lines = columnLines(band, RoofType.CANOPY);
 			final int from = canopyFrom(band);
 			final int to = canopyTo(band);
-			final String girder = palette.blockId(Role.BEAM);
+			final String girder = spec.building() == BuildingStyle.VICTORIAN ? ROOF_TRUSS : palette.blockId(Role.BEAM);
 			final String kind = "kind=" + palette.girderKind();
 			final CanopyShape shape = spec.canopy();
 			final RoofPiece[] across = acrossProfile(shape, lines, from, to);
@@ -163,10 +163,11 @@ abstract class PlanRoofs extends PlanColumns {
 	 * stopped short of it (Jah 11-09). The cell keeps its pier role, so the bridge deck still rests on a pier.
 	 */
 	void girdersOverPiers(int y) {
-		final String girder = palette.blockId(Role.BEAM);
+		final String girder = spec.building() == BuildingStyle.VICTORIAN ? ROOF_TRUSS : palette.blockId(Role.BEAM);
 		final String kind = "kind=" + palette.girderKind();
 		for (final PlannedBlock pier : List.copyOf(cells.values())) {
-			if (pier.role() != Role.BRIDGE_PIER || pier.y() != y || !pier.blockId().contains("steel_column")) {
+			if (pier.role() != Role.BRIDGE_PIER || pier.y() != y
+					|| !(pier.blockId().contains("steel_column") || pier.blockId().contains("uk_painted_column"))) {
 				continue;
 			}
 			for (final LocalDir side : new LocalDir[]{LocalDir.PLUS_U, LocalDir.PLUS_V}) {
@@ -946,13 +947,49 @@ abstract class PlanRoofs extends PlanColumns {
 			if (roof(band) != RoofType.CANOPY) {
 				continue;
 			}
-			strip(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), y, band);
-			batten(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), band);
-			chains(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), y);
+			if (spec.building() == BuildingStyle.VICTORIAN) {
+				// Heritage canopies have clean open trusses and boarded soffits with enamel pendant lamps (every light touches roof/truss above)
+				victorianCanopyLights(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), band);
+			} else {
+				strip(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), y, band);
+				batten(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), band);
+				chains(band.uMin(), band.uMax(), canopyStart(band), canopyEnd(band), y);
+			}
 		}
 		for (final TrackLayout.PlatformBand street : site.streets()) {
 			strip(street.uMin(), street.uMax(), street.vFrom(), street.vTo(), y, street);
 			chains(street.uMin(), street.uMax(), street.vFrom(), street.vTo(), y);
+		}
+	}
+
+	/**
+	 * Enamel pendant lamps under each cross-truss and flush soffit light blocks directly under the canopy roof/frame on
+	 * Victorian stations, so every light cell is joined face-to-face to the roof or steelwork above it with no battens or rods.
+	 */
+	private void victorianCanopyLights(int uMin, int uMax, int from, int to, TrackLayout.PlatformBand band) {
+		for (final int uCol : columnLines(band, RoofType.CANOPY)) {
+			final int uLamp = uCol > band.uMin() + 1 ? uCol - 1 : uCol + 1;
+			for (final int v : columnVForLine(band, uCol)) {
+				final PlannedBlock arm = at(uLamp, StationGeometry.CANOPY_Y - 1, v);
+				if (arm != null && arm.role() == Role.BEAM && !isEdge(band, uLamp) && !taken(uLamp, StationGeometry.CANOPY_Y - 2, v)) {
+					put(Role.FIXTURE, uLamp, StationGeometry.CANOPY_Y - 2, v, LocalDir.PLUS_V, HALL_LAMP);
+				}
+			}
+		}
+		final List<Integer> lines = new ArrayList<>();
+		for (int u = uMin; u <= uMax; u += 2) {
+			lines.add(u);
+		}
+		if (lines.get(lines.size() - 1) < uMax - 1) {
+			lines.add(uMax);
+		}
+		for (final int u : lines) {
+			for (int v = from; v <= to; v++) {
+				final int top = ceilingAbove(u, LAMP_HEAD_Y - 1, v);
+				if (top - 1 >= LAMP_HEAD_Y) {
+					put(Role.FIXTURE, u, top - 1, v, LocalDir.PLUS_V, CANOPY_LIGHT, CANOPY_LIGHT_STATE);
+				}
+			}
 		}
 	}
 

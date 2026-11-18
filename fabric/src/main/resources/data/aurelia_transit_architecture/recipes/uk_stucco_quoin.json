@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": {
+    "item": "minecraft:bricks"
+  },
+  "result": "aurelia_transit_architecture:uk_stucco_quoin",
+  "count": 2
+}

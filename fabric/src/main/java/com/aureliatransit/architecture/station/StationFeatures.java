@@ -14,10 +14,11 @@ import java.util.Locale;
  * @param fence     a lineside fence along the open outer sides, past the cess
  * @param square    a Dutch street entrance's station square beside it: the street, a cycle path, trees and covered bike parking
  * @param doorMarkers boarding markers on the platform where a stopped train's doors open, the accessible door marked
+ * @param heritage heritage features for Teddington station overhaul
  */
-public record StationFeatures(boolean cctv, boolean edgeLines, PlatformHeight height, boolean overheadLine, boolean fence, boolean square, boolean doorMarkers) {
+public record StationFeatures(boolean cctv, boolean edgeLines, PlatformHeight height, boolean overheadLine, boolean fence, boolean square, boolean doorMarkers, boolean heritage) {
 
-	public static final StationFeatures DEFAULTS = new StationFeatures(true, true, PlatformHeight.AUTO, true, true, true, true);
+	public static final StationFeatures DEFAULTS = new StationFeatures(true, true, PlatformHeight.AUTO, true, true, true, true, true);
 
 	public StationFeatures {
 		if (height == null) {
@@ -26,35 +27,39 @@ public record StationFeatures(boolean cctv, boolean edgeLines, PlatformHeight he
 	}
 
 	public StationFeatures(boolean cctv, boolean edgeLines, PlatformHeight height) {
-		this(cctv, edgeLines, height, true, true, true, true);
+		this(cctv, edgeLines, height, true, true, true, true, true);
 	}
 
 	public StationFeatures withCctv(boolean value) {
-		return new StationFeatures(value, edgeLines, height, overheadLine, fence, square, doorMarkers);
+		return new StationFeatures(value, edgeLines, height, overheadLine, fence, square, doorMarkers, heritage);
 	}
 
 	public StationFeatures withEdgeLines(boolean value) {
-		return new StationFeatures(cctv, value, height, overheadLine, fence, square, doorMarkers);
+		return new StationFeatures(cctv, value, height, overheadLine, fence, square, doorMarkers, heritage);
 	}
 
 	public StationFeatures withHeight(PlatformHeight value) {
-		return new StationFeatures(cctv, edgeLines, value == null ? PlatformHeight.AUTO : value, overheadLine, fence, square, doorMarkers);
+		return new StationFeatures(cctv, edgeLines, value == null ? PlatformHeight.AUTO : value, overheadLine, fence, square, doorMarkers, heritage);
 	}
 
 	public StationFeatures withOverheadLine(boolean value) {
-		return new StationFeatures(cctv, edgeLines, height, value, fence, square, doorMarkers);
+		return new StationFeatures(cctv, edgeLines, height, value, fence, square, doorMarkers, heritage);
 	}
 
 	public StationFeatures withFence(boolean value) {
-		return new StationFeatures(cctv, edgeLines, height, overheadLine, value, square, doorMarkers);
+		return new StationFeatures(cctv, edgeLines, height, overheadLine, value, square, doorMarkers, heritage);
 	}
 
 	public StationFeatures withSquare(boolean value) {
-		return new StationFeatures(cctv, edgeLines, height, overheadLine, fence, value, doorMarkers);
+		return new StationFeatures(cctv, edgeLines, height, overheadLine, fence, value, doorMarkers, heritage);
 	}
 
 	public StationFeatures withDoorMarkers(boolean value) {
-		return new StationFeatures(cctv, edgeLines, height, overheadLine, fence, square, value);
+		return new StationFeatures(cctv, edgeLines, height, overheadLine, fence, square, value, heritage);
+	}
+
+	public StationFeatures withHeritage(boolean value) {
+		return new StationFeatures(cctv, edgeLines, height, overheadLine, fence, square, doorMarkers, value);
 	}
 
 	/** What a country's railways board at, from its platform height above the rail. */
