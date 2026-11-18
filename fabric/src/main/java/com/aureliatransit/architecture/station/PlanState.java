@@ -119,7 +119,7 @@ abstract class PlanState {
 		this.scale = spec.buildingScale();
 		// a real train shed is the station's whole mass, entered at its ends (Hamburg's Wandelhalle and bridges): beside it the
 		// building is the entrance block under its tower, not a wing along the full shed (10-24)
-		this.wingBays = site.building() && !spec.real().trainShed() ? wingBays(scale, length, site.vStart(), site.vEnd()) : 0;
+		this.wingBays = site.building() && !spec.real().trainShed() ? wingBays(scale.wingSpan(length, named != null), length, site.vStart(), site.vEnd()) : 0;
 		// a side sheet that runs the length of the building needs a grand one with room for its end pavilions; else the generic one stays
 		this.landmark = named != null && named.anchor() == Landmark.Anchor.SIDE
 				&& (named.compactOnly() && scale != StationScale.COMPACT || named.usesEnd() && (scale != StationScale.GRAND || wingBays < Landmarks.MIN_SIDE_WINGS)) ? null : named;
@@ -213,9 +213,8 @@ abstract class PlanState {
 		return v >= canopyStart(band) && v <= canopyEnd(band);
 	}
 
-	/** Whole bays per wing so the block and both wings cover about the scale's share of the platform, the same both sides. */
-	static int wingBays(StationScale scale, int length, int vStart, int vEnd) {
-		final int span = scale.wingSpan(length);
+	/** Whole bays per wing so the block and both wings cover about {@code span} of the platform, the same both sides. */
+	static int wingBays(int span, int length, int vStart, int vEnd) {
 		if (span == 0) {
 			return 0;
 		}

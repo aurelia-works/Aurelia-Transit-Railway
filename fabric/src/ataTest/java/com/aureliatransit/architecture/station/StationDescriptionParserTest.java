@@ -521,13 +521,25 @@ class StationDescriptionParserTest {
 		assertEquals(StationScale.GRAND, spec("frankfurt hauptbahnhof, 2 tracks, 40 long").scale());
 		assertEquals(StationScale.CITY, spec("city station with station building, 6 tracks").scale(), "a size word wins over the station size");
 		assertEquals(StationScale.COMPACT, spec("compact station building, 4 tracks, 120 long").scale());
-		// without a word: grand from 3 tracks or 100 long, city from 2 tracks and 48 long, else compact
-		final ParseResult big = StationDescriptionParser.parse("4 track station with station building");
+		// without a word, from the platformed tracks as at real stations: grand from 6, city from 4, else compact
+		final ParseResult big = StationDescriptionParser.parse("6 track station with station building");
 		assertEquals(StationScale.GRAND, big.spec().scale());
 		assertTrue(big.defaulted().stream().anyMatch(d -> d.startsWith("grand station building")), big.defaulted().toString());
-		assertEquals(StationScale.GRAND, spec("1 track station with station building, 120 long").scale());
-		assertEquals(StationScale.CITY, spec("2 track station with station building, 64 long").scale());
+		final ParseResult city = StationDescriptionParser.parse("4 track station with station building");
+		assertEquals(StationScale.CITY, city.spec().scale());
+		assertTrue(city.defaulted().stream().anyMatch(d -> d.startsWith("city station building")), city.defaulted().toString());
+		assertEquals(StationScale.COMPACT, spec("1 track station with station building, 120 long").scale(), "a long platform alone is no big station");
+		assertEquals(StationScale.COMPACT, spec("2 track station with station building, 64 long").scale());
 		assertEquals(StationScale.COMPACT, spec("2 track station with station building, 32 long").scale());
+		// a real station keeps its own building's size whatever its tracks: Surbiton and Coventry are town blocks, KL a main station
+		assertEquals(StationScale.CITY, spec("2 tracks, 250 long, station building, named Surbiton").scale());
+		assertEquals(StationScale.CITY, spec("3 track real coventry station building, 100 long").scale());
+		assertEquals(StationScale.GRAND, spec("four track kuala lumpur station, 160 long, named Kuala Lumpur").scale());
+		// fast lines through the middle have no platform: Berrylands and Winchfield, four tracks and two side platforms, have
+		// 26-27 m buildings
+		assertEquals(StationScale.COMPACT, spec("4 tracks side, 200 long, station building").scale());
+		// a city-sized Berlin left its platforms with no way across the tracks: the real Hbf is a grand station
+		assertEquals(StationScale.GRAND, spec("4 track real berlin station building, 300 long").scale());
 		assertEquals(StationScale.COMPACT, spec("small station with station building").scale());
 		assertEquals(StationScale.COMPACT, spec("6 tracks").buildingScale(), "no building, nothing to size");
 		assertEquals(StationScale.GRAND, spec("grand terminus").buildingScale(), "a head building has a size too");
