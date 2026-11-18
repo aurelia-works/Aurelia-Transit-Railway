@@ -292,41 +292,47 @@
 				</div>
 				<div id="busy" class="busy" hidden><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>Planning…</div>
 				<div id="pick" class="pick" hidden></div>
-				<p class="hint" id="orbitHint">Drag to turn · Right-drag to move · Scroll to zoom · Click a block to name it</p>
+				<p class="hint" id="orbitHint">Drag orbit · Right-drag pan · Scroll zoom · Click block</p>
 				<p class="status" id="status" aria-live="polite"></p>
 			</div>
 			<div class="viewbar" role="toolbar" aria-label="Camera">
-				<div class="seg views" role="group" aria-label="View">
-					<button type="button" data-view="overview" aria-pressed="true">Overview</button>
-					<button type="button" data-view="passenger">Passenger</button>
-					<button type="button" data-view="plan" title="Floor plan from above: street at the bottom, or north up once you choose a facing">Plan</button>
-					<button type="button" id="walkBtn" aria-pressed="false" title="Walk through the station yourself">Walk</button>
-				</div>
-				<div class="jumps" role="group" aria-label="Jump to">
-					<button type="button" class="chip-btn" data-view="street">Street</button>
-					<button type="button" class="chip-btn" data-view="head" id="headView" hidden>Head</button>
-					<button type="button" class="chip-btn" data-view="reverse">Back</button>
-					<button type="button" class="chip-btn ap-only" data-view="terminal" id="terminalView" hidden title="In front of the terminal, looking at its entrance">Terminal</button>
-					<button type="button" class="chip-btn ap-only" data-view="apron" id="apronView" hidden title="On the apron, looking at the gates and boarding bridges">Gates</button>
-					<button type="button" class="chip-btn ap-only" data-view="threshold" id="thresholdView" hidden title="Behind the runway's threshold, looking at its numbers and markings">Runway</button>
-				</div>
-				<div class="seg times" role="group" aria-label="Time of day">
-					<button type="button" data-time="" aria-pressed="true" title="The plain studio backdrop">Studio</button>
-					<button type="button" data-time="day" aria-pressed="false" title="Midday in game">Day</button>
-					<button type="button" data-time="sunset" aria-pressed="false" title="Sunset in game">Sunset</button>
-					<button type="button" data-time="night" aria-pressed="false" title="Night in game: only lights and screens stay bright">Night</button>
-				</div>
-				<label class="mini-switch" title="Sun and shadows, a sky, and a glow round every light, as a shader pack draws it"><input type="checkbox" id="shaders"> Shaders</label>
-				<label class="mini-switch"><input type="checkbox" id="textures" checked> In-game look</label>
-				<label class="mini-switch"><input type="checkbox" id="faces" checked> Numbers</label>
-				<details class="menu">
-					<summary aria-label="Mouse options" title="Mouse options"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3.5" width="11" height="17" rx="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></summary>
-					<div class="menu-body">
-						<button type="button" id="invertX" aria-pressed="false">Invert X</button>
-						<button type="button" id="invertY" aria-pressed="false">Invert Y</button>
+				<div class="vb-row cam">
+					<div class="seg views" role="group" aria-label="View">
+						<button type="button" data-view="overview" aria-pressed="true">Overview</button>
+						<button type="button" data-view="passenger">Passenger</button>
+						<button type="button" data-view="plan" title="Floor plan from above: street at the bottom, or north up once you choose a facing">Plan</button>
+						<button type="button" id="walkBtn" aria-pressed="false" title="Walk through the station yourself">Walk</button>
 					</div>
-				</details>
-				<button type="button" class="chip-btn fit" id="reset" title="Frame the whole station">Fit</button>
+					<div class="jumps" role="group" aria-label="Jump to">
+						<button type="button" class="chip-btn" data-view="street">Street</button>
+						<button type="button" class="chip-btn" data-view="head" id="headView" hidden>Head</button>
+						<button type="button" class="chip-btn" data-view="reverse">Back</button>
+						<button type="button" class="chip-btn ap-only" data-view="terminal" id="terminalView" hidden title="In front of the terminal, looking at its entrance">Terminal</button>
+						<button type="button" class="chip-btn ap-only" data-view="apron" id="apronView" hidden title="On the apron, looking at the gates and boarding bridges">Gates</button>
+						<button type="button" class="chip-btn ap-only" data-view="threshold" id="thresholdView" hidden title="Behind the runway's threshold, looking at its numbers and markings">Runway</button>
+					</div>
+					<button type="button" class="chip-btn fit" id="reset" title="Frame the whole station">Fit</button>
+				</div>
+				<div class="vb-row env">
+					<div class="seg times" role="group" aria-label="Time of day">
+						<button type="button" data-time="" aria-pressed="true" title="The plain studio backdrop">Studio</button>
+						<button type="button" data-time="day" aria-pressed="false" title="Midday in game">Day</button>
+						<button type="button" data-time="sunset" aria-pressed="false" title="Sunset in game">Sunset</button>
+						<button type="button" data-time="night" aria-pressed="false" title="Night in game: only lights and screens stay bright">Night</button>
+					</div>
+					<div class="vb-toggles">
+						<label class="mini-switch" title="Sun and shadows, a sky, and a glow round every light, as a shader pack draws it"><input type="checkbox" id="shaders"><span>Shaders</span></label>
+						<label class="mini-switch" title="Show block textures from Minecraft, MTR and ATA instead of role colours"><input type="checkbox" id="textures" checked><span>Textures</span></label>
+						<label class="mini-switch" title="Show numbered boarding-face badges in the 3D view"><input type="checkbox" id="faces" checked><span>Numbers</span></label>
+						<details class="menu">
+							<summary aria-label="Mouse options" title="Mouse options"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="3.5" width="11" height="17" rx="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></summary>
+							<div class="menu-body">
+								<button type="button" id="invertX" aria-pressed="false">Invert X</button>
+								<button type="button" id="invertY" aria-pressed="false">Invert Y</button>
+							</div>
+						</details>
+					</div>
+				</div>
 			</div>
 		</section>
 
