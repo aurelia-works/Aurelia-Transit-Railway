@@ -17,7 +17,7 @@
 <div class="shell">
 	<nav class="side" aria-label="Aurelia tools">
 		<a class="wordmark" href="./" title="Aurelia Transit Architecture">
-			<svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#3d63ff"/><rect x="6" y="9" width="20" height="4" rx="1" fill="#fff"/><rect x="6" y="19" width="20" height="4" rx="1" fill="#fff"/><rect x="10" y="13" width="2" height="6" fill="#fff"/><rect x="20" y="13" width="2" height="6" fill="#fff"/></svg>
+			<svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2b66f6"/><rect x="6" y="9" width="20" height="4" rx="1" fill="#fff"/><rect x="6" y="19" width="20" height="4" rx="1" fill="#fff"/><rect x="10" y="13" width="2" height="6" fill="#fff"/><rect x="20" y="13" width="2" height="6" fill="#fff"/></svg>
 			<span class="wm"><b>Station</b> <i>Generator</i></span>
 		</a>
 
@@ -53,14 +53,14 @@
 				<section class="group" aria-labelledby="g-words">
 					<h2 class="label" id="g-words">What do you want to build?</h2>
 					<div id="words">
-						<p class="help st-only">Pick a preset, then tune it with the settings below. The words box is under Advanced.</p>
+						<p class="help st-only">Describe a station in plain English or generate from a reference photo.</p>
 						<div class="chips presets" id="presets" role="group" aria-label="Presets"></div>
-						<p class="help ap-only">Pick one, or say it: <i>airport with 2 runways, 6 gates and a terminal</i>. Sizes in blocks or metres (1.5 blocks a metre).</p>
+						<p class="help ap-only">Pick a starting layout or describe runways, gates and terminal in blocks or metres (1.5 blocks = 1 m).</p>
 						<div class="chips airports ap-only" id="airports" role="group" aria-label="Airports"></div>
 						<details class="adv" id="wordsAdvanced">
-							<summary class="st-only">Advanced: describe it in words</summary>
+							<summary class="st-only">Describe in words</summary>
 							<div class="adv-body">
-								<p class="help st-only">Type it like you would say it, for example: <i>six-track Amsterdam station</i>.</p>
+								<p class="help st-only">Plain words win where they clash with controls, e.g. <i>six-track Amsterdam station</i>.</p>
 								<textarea id="text" rows="3" aria-label="Station description" placeholder="e.g. six-track Amsterdam station with a big glass roof"></textarea>
 								<div class="clash" id="clash" hidden role="status"><span id="clashText"></span></div>
 								<div class="field-foot"><span id="count"></span></div>

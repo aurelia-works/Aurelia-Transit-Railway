@@ -498,8 +498,9 @@
 					return;
 				}
 				$("photoPrompt").hidden = true;
+				$("wordsAdvanced").open = true;
 				applyPreset(answer.preset);
-				note.textContent = "Read from the photo. Change anything in the words above.";
+				note.textContent = "Read from photo — refine the words above if needed.";
 			} catch (e) {
 				note.textContent = e.message || "Could not read the photo.";
 			} finally {
@@ -527,7 +528,7 @@
 	}
 
 	function showWhere() {
-		$("where").innerHTML = IN_GAME ? "Connected to <b>your game</b>" : "Design mode, no game";
+		$("where").innerHTML = IN_GAME ? "Live link to <b>your world</b>" : "Standalone preview · export .schem";
 		$("where").classList.toggle("live", IN_GAME);
 	}
 
@@ -553,7 +554,10 @@
 				img.src = "https://mc-heads.net/avatar/" + uuid + "/72";
 			}
 		} else {
-			avatar.innerHTML = "<svg viewBox='0 0 16 16' width='20' height='20'><rect x='3' y='2' width='10' height='9' rx='1' fill='none' stroke='currentColor' stroke-width='1.3'/><path d='M5 14h6M8 11v3' stroke='currentColor' stroke-width='1.3'/></svg>";
+			$("mcName").textContent = IN_GAME ? "In-game Studio" : "Standalone";
+			$("mcBadge").textContent = IN_GAME ? "Connected" : "Offline";
+			$("mcBadge").classList.toggle("live", IN_GAME);
+			avatar.innerHTML = "<svg viewBox='0 0 16 16' width='20' height='20' aria-hidden='true'><rect x='3' y='2' width='10' height='9' rx='1' fill='none' stroke='currentColor' stroke-width='1.3'/><path d='M5 14h6M8 11v3' stroke='currentColor' stroke-width='1.3'/></svg>";
 		}
 	}
 
@@ -1097,7 +1101,7 @@
 				: "Copied. Paste it in chat in your world, then /ata_station confirm to build.");
 		});
 		if ($("text").value) {
-			$("words").open = true;
+			$("wordsAdvanced").open = true;
 		}
 		for (const b of document.querySelectorAll("[data-send]")) {
 			b.addEventListener("click", () => send(b.dataset.send));
@@ -2288,9 +2292,11 @@
 				b.face = f;
 				if (f.view) {
 					b.title = "View from platform " + f.platform + " (boarding face " + f.n + ")";
+					b.setAttribute("aria-label", b.title);
 					b.addEventListener("click", () => setView("face:" + f.n, true));
 				} else {
 					b.title = "Boarding face " + f.n + " (platform " + f.platform + ")";
+					b.setAttribute("aria-label", b.title);
 					b.disabled = true;
 				}
 				box.append(b);
@@ -2430,6 +2436,26 @@
 		invertY = !invertY;
 		$("invertY").setAttribute("aria-pressed", String(invertY));
 	});
+	// Mouse options popover: Escape closes and restores focus to its trigger; outside pointerdown dismisses cleanly.
+	const mouseMenu = document.querySelector("details.menu");
+	if (mouseMenu) {
+		mouseMenu.addEventListener("keydown", (e) => {
+			if (e.key === "Escape" && mouseMenu.open) {
+				e.preventDefault();
+				e.stopPropagation();
+				mouseMenu.open = false;
+				const trigger = mouseMenu.querySelector("summary");
+				if (trigger) {
+					trigger.focus();
+				}
+			}
+		});
+		document.addEventListener("pointerdown", (e) => {
+			if (mouseMenu.open && !mouseMenu.contains(e.target)) {
+				mouseMenu.open = false;
+			}
+		});
+	}
 	$("cut").addEventListener("change", updateCut);
 	$("cutAt").addEventListener("input", updateCut);
 	$("faces").addEventListener("change", draw);
@@ -2456,7 +2482,21 @@
 			applyLook();
 		}
 	});
-	window.addEventListener("resize", draw);
+	function syncZoomLayout() {
+		const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+		const remW = window.innerWidth / rootPx;
+		if (rootPx > 20 && remW < 64 && window.innerWidth > 832) {
+			document.documentElement.setAttribute("data-zoom-stack", "");
+		} else if (document.documentElement.hasAttribute("data-zoom-stack")) {
+			document.documentElement.removeAttribute("data-zoom-stack");
+		}
+	}
+	window.addEventListener("resize", () => {
+		syncZoomLayout();
+		draw();
+	});
+	new MutationObserver(syncZoomLayout).observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class"] });
+	syncZoomLayout();
 
 	// ---- walk audio ----------------------------------------------------------------------------------------------------
 	// Spoken announcements (Web Speech) plus short cues (Web Audio): a fare gate beep, a lift chime. Optional, and started
