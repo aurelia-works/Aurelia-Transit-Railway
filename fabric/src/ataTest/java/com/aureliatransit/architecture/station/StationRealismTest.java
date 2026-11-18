@@ -352,4 +352,26 @@ class StationRealismTest {
 		assertEquals(0, pancras.layout().buildingWidth());
 		assertTrue(wallRows(pancras, 0).stream().allMatch(v -> v >= pancras.layout().platformLength()), "st pancras " + wallRows(pancras, 0));
 	}
+
+	@Test
+	void surbitonHasItsArtDecoClockTowerAndRibbonWings() {
+		final StationPlan surbiton = plan(preset("surbiton"));
+		assertEquals(1, streetClocks(surbiton).size(), "Surbiton's square Art Deco clock tower faces the street");
+		final int towerTop = surbiton.blocks().stream().filter(b -> b.u() < surbiton.layout().buildingWidth())
+				.mapToInt(PlannedBlock::y).max().orElseThrow();
+		assertTrue(towerTop >= 29, "tower top " + towerTop);
+		assertTrue(surbiton.blocks().stream().anyMatch(b -> b.blockId().endsWith("uk_steel_window")), "steel ribbon windows in the wings");
+	}
+
+	@Test
+	void terminusHeadLandmarksSpanTheirWholeHeadWithoutTwoStoreyEars() {
+		for (final String key : new String[]{"st_pancras", "antwerp", "frankfurt", "grand_central", "zurich", "paris", "milan", "mumbai", "bangkok"}) {
+			final StationPlan plan = plan(preset(key));
+			final int vE = plan.layout().headEnd();
+			for (final int u : new int[]{plan.layout().headFrom() + 1, plan.layout().headTo() - 1}) {
+				final int top = plan.blocks().stream().filter(b -> b.u() == u && b.v() == vE).mapToInt(PlannedBlock::y).max().orElse(0);
+				assertTrue(top > StationGeometry.BUILDING_ROOF_Y + 2, key + " left a generic 2-storey ear at u=" + u + " (top=" + top + ")");
+			}
+		}
+	}
 }

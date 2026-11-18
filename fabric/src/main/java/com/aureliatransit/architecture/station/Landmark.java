@@ -95,6 +95,14 @@ public final class Landmark {
 		public Skin withRoof(String full, String stair) {
 			return new Skin(wall, trim, base, glass, full, stair, cornice, accent);
 		}
+
+		public Skin withCornice(String id) {
+			return new Skin(wall, trim, base, glass, roof, roofStair, id, accent);
+		}
+
+		public Skin withAccent(String id) {
+			return new Skin(wall, trim, base, glass, roof, roofStair, cornice, id);
+		}
 	}
 
 	/**
@@ -129,12 +137,16 @@ public final class Landmark {
 	/**
 	 * A sheet may follow its building's size: a side building's length or a head building's width. An x of {@code END - k} stands k cells in from the building's right
 	 * end (as seen from the street) and {@code -END + k} k cells in from its left end, so a sheet's wings and end pavilions
-	 * follow the station's length (Tokyo, West Kowloon's width).
+	 * follow the station's length (Tokyo, West Kowloon's width). {@link #SPAN} follows the same outer ends without asking for a
+	 * grand building with long wings (a town station's block and short wings: Surbiton, Coventry), and {@link #BLOCK} follows
+	 * the central building block's own end walls ({@code vStart..vEnd}) so wings meet the block cleanly at any bay count.
 	 */
 	public static final int END = 10_000;
+	public static final int SPAN = 4_000;
+	public static final int BLOCK = 2_000;
 
 	/** One piece of a sheet. */
-	public sealed interface Mass permits Volume, Tower, Dome, Arch, Colonnade, Gable, Clock, Pinnacles, Ceiling {
+	public sealed interface Mass permits Volume, Tower, Dome, Arch, Arcade, Colonnade, Gable, Clock, Pinnacles, Ceiling {
 	}
 
 	/**
@@ -167,6 +179,10 @@ public final class Landmark {
 	 * round or pointed head; glazing bars of {@code skin.trim} every third cell and a ring of trim round it.
 	 */
 	public record Arch(int x, int z, int half, int bottom, int spring, boolean pointed, Skin skin) implements Mass {
+	}
+
+	/** A row of arches in the wall at depth z, every {@code every} cells from x0 to x1, each 2 half + 1 wide. */
+	public record Arcade(int x0, int x1, int z, int every, int half, int bottom, int spring, boolean pointed, Skin skin) implements Mass {
 	}
 
 	/** Columns at depth z every {@code every} cells from x0 to x1, {@code height} high, under an entablature row. */
@@ -223,7 +239,15 @@ public final class Landmark {
 	/** True when the sheet's wings and end pavilions follow the building's length (see {@link #END}). */
 	public boolean usesEnd() {
 		return masses.stream().anyMatch(m -> m instanceof Volume v && (Math.abs(v.x0()) >= END / 2 || Math.abs(v.x1()) >= END / 2)
-				|| m instanceof Tower t && Math.abs(t.x()) >= END / 2 || m instanceof Dome d && Math.abs(d.x()) >= END / 2);
+				|| m instanceof Tower t && Math.abs(t.x()) >= END / 2
+				|| m instanceof Dome d && Math.abs(d.x()) >= END / 2
+				|| m instanceof Gable g && Math.abs(g.x()) >= END / 2
+				|| m instanceof Arch a && Math.abs(a.x()) >= END / 2
+				|| m instanceof Arcade a && (Math.abs(a.x0()) >= END / 2 || Math.abs(a.x1()) >= END / 2)
+				|| m instanceof Colonnade c && (Math.abs(c.x0()) >= END / 2 || Math.abs(c.x1()) >= END / 2)
+				|| m instanceof Pinnacles p && (Math.abs(p.x0()) >= END / 2 || Math.abs(p.x1()) >= END / 2)
+				|| m instanceof Ceiling c && (Math.abs(c.x0()) >= END / 2 || Math.abs(c.x1()) >= END / 2)
+				|| m instanceof Clock c && Math.abs(c.x()) >= END / 2);
 	}
 
 	/** True for a small station's sheet, drawn on a compact building only (a bigger one's rooms outgrow its roofs' lights). */
@@ -342,9 +366,12 @@ public final class Landmark {
 
 		/** Round-headed arches in the wall at depth z, every {@code every} cells from x0 to x1, each 2 half + 1 wide. */
 		public Builder arcade(int x0, int x1, int z, int every, int half, int bottom, int spring) {
-			for (int x = x0; x <= x1; x += every) {
-				masses.add(new Arch(x, z, half, bottom, spring, false, skin));
-			}
+			return arcade(x0, x1, z, every, half, bottom, spring, false);
+		}
+
+		/** Arches (round or pointed) in the wall at depth z, every {@code every} cells from x0 to x1, each 2 half + 1 wide. */
+		public Builder arcade(int x0, int x1, int z, int every, int half, int bottom, int spring, boolean pointed) {
+			masses.add(new Arcade(x0, x1, z, every, half, bottom, spring, pointed, skin));
 			return this;
 		}
 

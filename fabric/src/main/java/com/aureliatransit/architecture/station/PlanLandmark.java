@@ -1,6 +1,7 @@
 package com.aureliatransit.architecture.station;
 
 import com.aureliatransit.architecture.station.Landmark.Arch;
+import com.aureliatransit.architecture.station.Landmark.Arcade;
 import com.aureliatransit.architecture.station.Landmark.Ceiling;
 import com.aureliatransit.architecture.station.Landmark.Clock;
 import com.aureliatransit.architecture.station.Landmark.Colonnade;
@@ -99,6 +100,16 @@ abstract class PlanLandmark extends PlanDeep {
 	@Override
 	void landmarkSide() {
 		if (landmark != null && landmark.anchor() == Landmark.Anchor.SIDE && site.building()) {
+			if (!landmark.usesEnd() && wingBays > 0) {
+				final int uP = site.platformWall(layout);
+				final String window = palette.building().window();
+				for (final int side : new int[]{-1, 1}) {
+					final int inner = side < 0 ? site.vStart() : site.vEnd();
+					for (int j = 0; j < wingBays; j++) {
+						platformDoorway(uP, inner + side * (StationGeometry.BAY * j + 3), window);
+					}
+				}
+			}
 			draw(sideFront());
 		}
 	}
@@ -108,7 +119,16 @@ abstract class PlanLandmark extends PlanDeep {
 		if (u < 0 || u >= layout.width() || v < layout.vMin() || v > layout.vMax()) {
 			return false;
 		}
-		return f.head() ? v >= length : u < layout.buildingWidth();
+		return f.head() ? v >= length && u >= layout.headFrom() && u <= layout.headTo()
+				: u >= layout.parkingWidth() && u < layout.buildingWidth();
+	}
+
+	int minX(Front f) {
+		return f.head() ? f.cu() - layout.headTo() : f.cv() - buildingTo();
+	}
+
+	int maxX(Front f) {
+		return f.head() ? f.cu() - layout.headFrom() : f.cv() - buildingFrom();
 	}
 
 	/** Places a block of the sheet at frame cell (x, y, z), facing {@code d}; false if it is outside its zone or taken. */
@@ -127,9 +147,9 @@ abstract class PlanLandmark extends PlanDeep {
 
 	/** Draws every mass, the ones that cut into walls (clocks, arches, colonnades, gables, towers) before the walls. */
 	void draw(Front f) {
-		final List<Mass> masses = landmark.usesEnd() ? landmark.masses().stream().map(m -> sideLength(f, m)).toList() : landmark.masses();
-		for (final Class<?> kind : List.of(Clock.class, Arch.class, Ceiling.class, Colonnade.class, Gable.class, Tower.class, Volume.class, Dome.class,
-				Pinnacles.class)) {
+		final List<Mass> masses = landmark.masses().stream().map(m -> sideLength(f, m)).toList();
+		for (final Class<?> kind : List.of(Clock.class, Arch.class, Arcade.class, Ceiling.class, Colonnade.class, Gable.class, Tower.class,
+				Volume.class, Dome.class, Pinnacles.class)) {
 			for (final Mass m : masses) {
 				if (!kind.isInstance(m)) {
 					continue;
@@ -138,6 +158,8 @@ abstract class PlanLandmark extends PlanDeep {
 					clock(f, c);
 				} else if (m instanceof Arch a) {
 					arch(f, a);
+				} else if (m instanceof Arcade a) {
+					arcade(f, a);
 				} else if (m instanceof Colonnade c) {
 					colonnade(f, c);
 				} else if (m instanceof Gable g) {
@@ -157,12 +179,33 @@ abstract class PlanLandmark extends PlanDeep {
 		}
 	}
 
-	/** A sheet's mass with its {@link Landmark#END} positions turned into cells of this building (its length, or a head building's width). */
+	/** A sheet's mass with its {@link Landmark#END}, {@link Landmark#SPAN} and {@link Landmark#BLOCK} positions resolved on this building. */
 	Mass sideLength(Front f, Mass m) {
-		// a side building runs along v, a head building across u
-		final int right = f.head() ? f.cu() - layout.headFrom() : f.cv() - buildingFrom();
-		final int left = f.head() ? f.cu() - layout.headTo() : f.cv() - buildingTo();
-		final java.util.function.IntUnaryOperator at = x -> x >= Landmark.END / 2 ? right + x - Landmark.END : x <= -Landmark.END / 2 ? left + x + Landmark.END : x;
+		final int right = maxX(f);
+		final int left = minX(f);
+		final int blockRight = f.head() ? right : f.cv() - site.vStart();
+		final int blockLeft = f.head() ? left : f.cv() - site.vEnd();
+		final java.util.function.IntUnaryOperator at = x -> {
+			if (x >= 7_000) {
+				return right + x - Landmark.END;
+			}
+			if (x <= -7_000) {
+				return left + x + Landmark.END;
+			}
+			if (x >= 3_000) {
+				return right + x - Landmark.SPAN;
+			}
+			if (x <= -3_000) {
+				return left + x + Landmark.SPAN;
+			}
+			if (x >= 1_000) {
+				return blockRight + x - Landmark.BLOCK;
+			}
+			if (x <= -1_000) {
+				return blockLeft + x + Landmark.BLOCK;
+			}
+			return x;
+		};
 		if (m instanceof Volume v) {
 			return new Volume(at.applyAsInt(v.x0()), at.applyAsInt(v.x1()), v.z0(), v.z1(), v.height(), v.skin(), v.facade(), v.roof(), v.rise(),
 					v.openBack(), v.dormers(), v.openFront(), v.bottom());
@@ -172,8 +215,18 @@ abstract class PlanLandmark extends PlanDeep {
 			return new Dome(at.applyAsInt(d.x()), d.z(), d.r(), d.y0(), d.drum(), d.skin(), d.onion(), d.lantern());
 		} else if (m instanceof Gable g) {
 			return new Gable(at.applyAsInt(g.x()), g.z(), g.half(), g.y(), g.rise(), g.stepped(), g.skin());
+		} else if (m instanceof Arch a) {
+			return new Arch(at.applyAsInt(a.x()), a.z(), a.half(), a.bottom(), a.spring(), a.pointed(), a.skin());
+		} else if (m instanceof Arcade a) {
+			return new Arcade(at.applyAsInt(a.x0()), at.applyAsInt(a.x1()), a.z(), a.every(), a.half(), a.bottom(), a.spring(), a.pointed(), a.skin());
 		} else if (m instanceof Colonnade c) {
 			return new Colonnade(at.applyAsInt(c.x0()), at.applyAsInt(c.x1()), c.z(), c.height(), c.every(), c.column(), c.skin());
+		} else if (m instanceof Pinnacles p) {
+			return new Pinnacles(at.applyAsInt(p.x0()), at.applyAsInt(p.x1()), p.z(), p.y(), p.every(), p.shaft(), p.cap());
+		} else if (m instanceof Ceiling c) {
+			return new Ceiling(at.applyAsInt(c.x0()), at.applyAsInt(c.x1()), c.z0(), c.z1(), c.y(), c.block(), c.light(), c.every());
+		} else if (m instanceof Clock c) {
+			return new Clock(at.applyAsInt(c.x()), c.y(), c.z(), c.r(), c.face(), c.rim());
 		}
 		return m;
 	}
@@ -206,12 +259,14 @@ abstract class PlanLandmark extends PlanDeep {
 	}
 
 	void volume(Front f, Volume whole) {
+		final int x0 = Math.max(whole.x0(), minX(f));
+		final int x1 = Math.min(whole.x1(), maxX(f));
 		// a volume deeper than its zone ends at the zone's edge, with its back wall and parapet there
 		final int z1 = Math.min(whole.z1(), zoneDepth(f));
-		if (z1 <= whole.z0()) {
+		if (x0 > x1 || z1 <= whole.z0()) {
 			return;
 		}
-		final Volume m = new Volume(whole.x0(), whole.x1(), whole.z0(), z1, whole.height(), whole.skin(), whole.facade(), whole.roof(),
+		final Volume m = new Volume(x0, x1, whole.z0(), z1, whole.height(), whole.skin(), whole.facade(), whole.roof(),
 				whole.rise(), whole.openBack(), whole.dormers(), whole.openFront(), whole.bottom());
 		final List<Face> faces = List.of(new Face(m.x0(), m.z0(), Dir.RIGHT, m.x1() - m.x0() + 1, Dir.OUT),
 				new Face(m.x0(), m.z1(), Dir.RIGHT, m.x1() - m.x0() + 1, Dir.IN),
@@ -266,8 +321,10 @@ abstract class PlanLandmark extends PlanDeep {
 			// a side wall standing inside the head building (a hall narrower than the head) is an arcade on the ground floor, so
 			// the side lobbies, their lifts and stairs open onto the hall (Grand Central's lift lobbies were walled off, Jah 10-21)
 			final boolean arcade = side && f.head() && insideHead(f.u(face.x(i), face.z(i))) && Math.floorMod(i, ARCADE_BAY) != 0;
+			final int vCell = f.v(face.x(i), face.z(i));
+			final boolean innerSide = side && !f.head() && vCell > site.vStart() && vCell < site.vEnd();
 			for (int y = Math.max(1, m.bottom()); y <= m.height(); y++) {
-				if (openGround && y < StationGeometry.UPPER_FLOOR_Y || arcade && arcadeOpening(y)) {
+				if (openGround && y < StationGeometry.UPPER_FLOOR_Y || arcade && arcadeOpening(y) || innerSide && y < roofY()) {
 					continue;
 				}
 				final int r = Math.floorMod(y - 1, fa.storey());
@@ -364,6 +421,10 @@ abstract class PlanLandmark extends PlanDeep {
 			case "minecraft:cut_copper" -> "minecraft:cut_copper_stairs";
 			case "minecraft:oxidized_cut_copper" -> "minecraft:oxidized_cut_copper_stairs";
 			case "minecraft:weathered_cut_copper" -> "minecraft:weathered_cut_copper_stairs";
+			case "minecraft:calcite", "aurelia_transit_architecture:uk_white_render" -> "minecraft:smooth_quartz_stairs";
+			case "aurelia_transit_architecture:amsterdam_red_brick" -> "minecraft:brick_stairs";
+			case "aurelia_transit_architecture:frankfurt_sandstone_ashlar", "aurelia_transit_architecture:roma_travertine" -> "minecraft:smooth_sandstone_stairs";
+			case "aurelia_transit_architecture:antwerp_ornate_limestone" -> "minecraft:polished_diorite_stairs";
 			default -> null;
 		};
 		return stairs != null ? stairs : fallback;
@@ -420,6 +481,16 @@ abstract class PlanLandmark extends PlanDeep {
 		for (int x = m.x0(); x <= m.x1(); x++) {
 			for (int z = m.z0(); z <= m.z1(); z++) {
 				peak = Math.max(peak, ring(m, x, z));
+			}
+		}
+		if (m.bottom() == 1 && m.height() >= StationGeometry.BUILDING_ROOF_Y) {
+			for (int x = m.x0() + 1; x < m.x1(); x++) {
+				for (int z = m.z0() + 1; z < m.z1(); z++) {
+					at(f, Role.BUILDING_ROOF, x, m.height(), z, Dir.OUT, s.roof());
+					if (Math.floorMod(x + z, 4) == 0) {
+						at(f, Role.LIGHT_PANEL, x, m.height() - 1, z, Dir.OUT, palette.building().light());
+					}
+				}
 			}
 		}
 		for (int x = m.x0(); x <= m.x1(); x++) {
@@ -540,6 +611,9 @@ abstract class PlanLandmark extends PlanDeep {
 	}
 
 	void tower(Front f, Tower t) {
+		if (t.x() - t.r() < minX(f) || t.x() + t.r() > maxX(f) || t.z() + t.r() > zoneDepth(f)) {
+			return;
+		}
 		final Skin s = t.skin();
 		final int r = t.r();
 		final int top = t.y0() + t.height();
@@ -549,33 +623,46 @@ abstract class PlanLandmark extends PlanDeep {
 				final boolean shell = in && !inside(t.octagonal(), dx, dz, r - 1);
 				final boolean cornerCell = Math.abs(dx) == Math.abs(dz) || t.octagonal() && Math.abs(dx) + Math.abs(dz) == r + r / 2;
 				final boolean mid = dx == 0 || dz == 0;
+				final int along = Math.abs(dx) >= Math.abs(dz) ? dz : dx;
 				final Dir out = outward(dx, dz);
+				final int x = t.x() + dx;
+				final int z = t.z() + dz;
+				final int vCell = f.v(x, z);
+				final boolean innerHall = !f.head() && z > 0 && vCell > site.vStart() && vCell < site.vEnd();
 				for (int y = t.y0(); y < top; y++) {
-					if (!shell) {
+					if (!shell || innerHall && y < roofY()) {
 						continue;
 					}
 					final int fromTop = top - 1 - y;
-					final boolean clockRow = t.clock() && r >= 2 && fromTop == 3;
+					final boolean clockCentre = t.clock() && r >= 2 && fromTop == 3 && mid;
+					final boolean dialFace = t.clock() && r >= 3 && (fromTop == 3 && Math.abs(along) == 1
+							|| (fromTop == 2 || fromTop == 4) && mid);
+					final boolean dialRim = t.clock() && r >= 3 && (fromTop == 2 || fromTop == 4) && Math.abs(along) == 1;
+					final boolean stringCourse = t.height() >= 18 && (y - t.y0()) > 0 && (y - t.y0()) % 8 == 0 && fromTop > 5;
 					final boolean slit = mid && (y - t.y0()) % 6 >= 2 && (y - t.y0()) % 6 <= 3 && fromTop > 5;
-					final boolean belfry = mid && fromTop >= 0 && fromTop <= 1 && r >= 2;
-					String id = cornerCell || y == top - 1 ? s.trim() : y - t.y0() < 2 ? s.base() : s.wall();
+					final boolean belfry = mid && fromTop >= 0 && fromTop <= 1 && r >= 2 && !t.clock();
+					String id = cornerCell || y == top - 1 || stringCourse || dialRim ? s.trim() : y - t.y0() < 2 ? s.base() : s.wall();
 					Role role = Role.WALL;
-					if (clockRow && mid) {
+					if (clockCentre) {
 						id = Landmarks.CLOCK_FACE;
-						role = Role.WALL;
+					} else if (dialFace) {
+						id = FACE;
 					} else if (slit || belfry) {
 						id = s.glass();
 						role = Role.WINDOW;
 					}
-					at(f, role, t.x() + dx, y, t.z() + dz, out, id);
+					at(f, role, x, y, z, out, id);
 				}
 				// the cornice round the top of the shaft
 				if (!in && inside(t.octagonal(), dx, dz, r + 1) && (Math.abs(dx) <= r || Math.abs(dz) <= r)) {
-					at(f, Role.WALL, t.x() + dx, top - 1, t.z() + dz, out.opposite(), s.cornice(), TOP);
+					at(f, Role.WALL, x, top - 1, z, out.opposite(), s.cornice(), TOP);
 				}
-				// a floor closing the shaft under its cap
+				// a floor closing the shaft under its cap, with lights beneath so wide ground-up shafts stay lit
 				if (in) {
-					at(f, Role.BUILDING_ROOF, t.x() + dx, top, t.z() + dz, Dir.OUT, s.roof());
+					at(f, Role.BUILDING_ROOF, x, top, z, Dir.OUT, s.roof());
+					if (!shell && t.y0() == 1 && Math.floorMod(dx + dz, 4) == 0) {
+						at(f, Role.LIGHT_PANEL, x, top - 1, z, Dir.OUT, palette.building().light());
+					}
 				}
 			}
 		}
@@ -588,8 +675,14 @@ abstract class PlanLandmark extends PlanDeep {
 			case FLAT -> {
 				for (int dx = -r; dx <= r; dx++) {
 					for (int dz = -r; dz <= r; dz++) {
-						if (inside(octagonal, dx, dz, r) && !inside(octagonal, dx, dz, r - 1) && Math.floorMod(dx + dz, 2) == 0) {
-							at(f, Role.WALL, cx + dx, y, cz + dz, outward(dx, dz), s.trim());
+						if (inside(octagonal, dx, dz, r) && !inside(octagonal, dx, dz, r - 1)) {
+							at(f, Role.BUILDING_ROOF, cx + dx, y, cz + dz, outward(dx, dz), s.trim());
+						}
+						if (r >= 2 && inside(octagonal, dx, dz, r - 1)) {
+							at(f, Role.BUILDING_ROOF, cx + dx, y, cz + dz, Dir.OUT, s.roof());
+							if (!inside(octagonal, dx, dz, r - 2)) {
+								at(f, Role.BUILDING_ROOF, cx + dx, y + 1, cz + dz, outward(dx, dz), s.trim());
+							}
 						}
 					}
 				}
@@ -598,6 +691,12 @@ abstract class PlanLandmark extends PlanDeep {
 				final int steps = r + 1;
 				final int rise = cap == Landmark.Cap.MANSARD ? 3 : Math.max(1, Math.max(cap == Landmark.Cap.SPIRE ? 2 : 1, height / steps));
 				final int rings = cap == Landmark.Cap.MANSARD ? Math.max(1, r / 2) : steps;
+				if (cap == Landmark.Cap.SPIRE && r >= 3 && !octagonal) {
+					for (final int[] c : new int[][]{{-r, -r}, {-r, r}, {r, -r}, {r, r}}) {
+						at(f, Role.WALL, cx + c[0], y, cz + c[1], outward(c[0], c[1]), s.trim());
+						at(f, Role.WALL, cx + c[0], y + 1, cz + c[1], outward(c[0], c[1]), s.trim());
+					}
+				}
 				int yy = y;
 				for (int k = 0; k < rings && r - k >= 0; k++) {
 					final int rr = r - k;
@@ -608,7 +707,13 @@ abstract class PlanLandmark extends PlanDeep {
 							}
 							// a ring above the first starts beside the top of the one below, so it stands on it by a face
 							for (int j = k > 0 ? -1 : 0; j < rise; j++) {
-								at(f, Role.BUILDING_ROOF, cx + dx, yy + j, cz + dz, outward(dx, dz), s.roof());
+								final boolean stairSlope = cap != Landmark.Cap.MANSARD && j == rise - 1 && rr > 0 && !octagonal
+										&& Math.abs(dx) != Math.abs(dz) && s.roofStair() != null && s.roofStair().endsWith("_stairs");
+								if (stairSlope) {
+									at(f, Role.BUILDING_ROOF, cx + dx, yy + j, cz + dz, outward(dx, dz).opposite(), s.roofStair(), BOTTOM);
+								} else {
+									at(f, Role.BUILDING_ROOF, cx + dx, yy + j, cz + dz, outward(dx, dz), s.roof());
+								}
 							}
 						}
 					}
@@ -694,6 +799,9 @@ abstract class PlanLandmark extends PlanDeep {
 	}
 
 	void dome(Front f, Dome d) {
+		if (d.x() - d.r() < minX(f) || d.x() + d.r() > maxX(f) || d.z() + d.r() > zoneDepth(f)) {
+			return;
+		}
 		final Skin s = d.skin();
 		final int r = d.r();
 		// the drum: a round wall with a window in every third cell of its middle rows
@@ -729,6 +837,9 @@ abstract class PlanLandmark extends PlanDeep {
 	}
 
 	void arch(Front f, Arch a) {
+		if (a.x() - a.half() - 1 < minX(f) || a.x() + a.half() + 1 > maxX(f)) {
+			return;
+		}
 		final Skin s = a.skin();
 		final PlanHead.ArchShape shape = a.pointed() ? PlanHead.ArchShape.POINTED : PlanHead.ArchShape.ROUND;
 		final int h = a.half();
@@ -742,16 +853,33 @@ abstract class PlanLandmark extends PlanDeep {
 					continue;
 				}
 				final boolean ring = dist > -0.01;
-				final boolean bar = !ring && (Math.floorMod(dx, 3) == 0 || k == 0 || k > 0 && Math.floorMod(k, 4) == 0 && k < rise - 1);
+				final boolean bar = !ring && (h >= 3 && Math.floorMod(dx, 3) == 0 || k == 0 && a.spring() - a.bottom() >= 6
+						|| k > 0 && h >= 3 && Math.floorMod(k, 4) == 0 && k < rise - 1);
 				final boolean glass = !ring && !bar;
 				at(f, glass ? Role.WINDOW : Role.WALL, a.x() + dx, y, a.z(), out, ring ? s.trim() : bar ? s.trim() : s.glass());
 			}
 		}
 	}
 
+	void arcade(Front f, Arcade a) {
+		final int step = Math.max(1, a.every());
+		final int doorKeep = !f.head() && a.z() == 0 && a.bottom() <= StationGeometry.DOOR_HEIGHT ? entranceHalf() + a.half() + 2 : -1;
+		for (int x = a.x0(); x <= a.x1(); x += step) {
+			if (doorKeep >= 0 && Math.abs(x) <= doorKeep) {
+				continue;
+			}
+			arch(f, new Arch(x, a.z(), a.half(), a.bottom(), a.spring(), a.pointed(), a.skin()));
+		}
+	}
+
 	void colonnade(Front f, Colonnade c) {
+		final int x0 = Math.max(c.x0(), minX(f));
+		final int x1 = Math.min(c.x1(), maxX(f));
+		if (x0 > x1) {
+			return;
+		}
 		final Skin s = c.skin();
-		for (int x = c.x0(); x <= c.x1(); x++) {
+		for (int x = x0; x <= x1; x++) {
 			final boolean column = Math.floorMod(x - c.x0(), c.every()) == 0;
 			if (column) {
 				for (int y = 1; y < c.height(); y++) {
@@ -768,6 +896,9 @@ abstract class PlanLandmark extends PlanDeep {
 	}
 
 	void gable(Front f, Gable g) {
+		if (g.x() - g.half() < minX(f) || g.x() + g.half() > maxX(f)) {
+			return;
+		}
 		final Skin s = g.skin();
 		for (int j = 0; j < g.rise(); j++) {
 			final int half = g.stepped() ? g.half() - 2 * (j / 2) * g.half() / Math.max(1, g.rise()) : g.half() - j * g.half() / Math.max(1, g.rise());
@@ -776,7 +907,7 @@ abstract class PlanLandmark extends PlanDeep {
 			}
 			for (int dx = -half; dx <= half; dx++) {
 				final boolean edge = Math.abs(dx) == half;
-				if (!g.stepped() && edge && half > 0) {
+				if (!g.stepped() && edge && half > 0 && s.roofStair() != null && s.roofStair().endsWith("_stairs")) {
 					at(f, Role.WALL, g.x() + dx, g.y() + j, g.z(), dx < 0 ? Dir.RIGHT : Dir.LEFT, s.roofStair(), BOTTOM);
 				} else {
 					at(f, Role.WALL, g.x() + dx, g.y() + j, g.z(), Dir.OUT, edge || j == 0 ? s.trim() : s.wall());
@@ -787,15 +918,27 @@ abstract class PlanLandmark extends PlanDeep {
 	}
 
 	/**
-	 * A clock face on the wall: one clock panel (r = 0), or a round white dial r cells each side of its middle with a rim and
-	 * black hands at twenty past twelve and marks at the quarters.
+	 * A clock face on the wall: one clock panel (r = 0), a framed 3x3 dial round a clock panel (r = 1), or a round white dial
+	 * r cells each side of its middle with a rim and black hands at twenty past twelve and marks at the quarters.
 	 */
 	void clock(Front f, Clock c) {
-		if (c.r() == 0) {
-			at(f, Role.WALL, c.x(), c.y(), c.z(), faceOut(c.z()), c.face());
+		if (c.x() - c.r() < minX(f) || c.x() + c.r() > maxX(f)) {
 			return;
 		}
 		final Dir out = faceOut(c.z());
+		if (c.r() == 0) {
+			at(f, Role.WALL, c.x(), c.y(), c.z(), out, c.face());
+			return;
+		}
+		if (c.r() == 1) {
+			for (int dx = -1; dx <= 1; dx++) {
+				for (int dy = -1; dy <= 1; dy++) {
+					final String id = dx == 0 && dy == 0 ? c.face() : Math.abs(dx) + Math.abs(dy) == 2 ? c.rim() : FACE;
+					at(f, Role.WALL, c.x() + dx, c.y() + dy, c.z(), out, id);
+				}
+			}
+			return;
+		}
 		for (int dx = -c.r() - 1; dx <= c.r() + 1; dx++) {
 			for (int dy = -c.r() - 1; dy <= c.r() + 1; dy++) {
 				final double d = Math.hypot(dx, dy);
@@ -804,7 +947,7 @@ abstract class PlanLandmark extends PlanDeep {
 				}
 				final boolean rim = d > c.r() + 0.3;
 				// the minute hand at twelve, the hour hand towards four, and marks at three, six and nine
-				final boolean hand = dx == 0 && dy >= 0 && dy < c.r() || dx > 0 && dx == -dy && dx < c.r() - 1;
+				final boolean hand = dx == 0 && dy >= 0 && dy < c.r() || dx > 0 && dx == -dy && dx <= Math.max(1, c.r() - 1);
 				final boolean mark = !rim && Math.round(d) == c.r() && (dx == 0 && dy < 0 || dy == 0);
 				at(f, Role.WALL, c.x() + dx, c.y() + dy, c.z(), out, rim ? c.rim() : hand || mark ? HANDS : FACE);
 			}
@@ -812,8 +955,11 @@ abstract class PlanLandmark extends PlanDeep {
 	}
 
 	void ceiling(Front f, Ceiling c) {
-		for (int x = c.x0(); x <= c.x1(); x++) {
-			for (int z = c.z0(); z <= c.z1(); z++) {
+		final int x0 = Math.max(c.x0(), minX(f) + 1);
+		final int x1 = Math.min(c.x1(), maxX(f) - 1);
+		final int z1 = Math.min(c.z1(), zoneDepth(f) - 1);
+		for (int x = x0; x <= x1; x++) {
+			for (int z = c.z0(); z <= z1; z++) {
 				final int every = Math.max(2, c.every());
 				final boolean star = Math.floorMod(x + (Math.floorMod(z / every, 2) == 0 ? 0 : every / 2), every) == 0 && Math.floorMod(z, every) == 0;
 				at(f, star ? Role.LIGHT_PANEL : Role.BUILDING_ROOF, x, c.y(), z, Dir.OUT, star ? c.light() : c.block());
@@ -822,7 +968,9 @@ abstract class PlanLandmark extends PlanDeep {
 	}
 
 	void pinnacles(Front f, Pinnacles p) {
-		for (int x = p.x0(); x <= p.x1(); x += Math.max(1, p.every())) {
+		final int x0 = Math.max(p.x0(), minX(f));
+		final int x1 = Math.min(p.x1(), maxX(f));
+		for (int x = x0; x <= x1; x += Math.max(1, p.every())) {
 			at(f, Role.WALL, x, p.y(), p.z(), Dir.OUT, p.shaft());
 			at(f, Role.WALL, x, p.y() + 1, p.z(), Dir.OUT, p.shaft());
 			at(f, Role.WALL, x, p.y() + 2, p.z(), Dir.OUT, p.cap());
