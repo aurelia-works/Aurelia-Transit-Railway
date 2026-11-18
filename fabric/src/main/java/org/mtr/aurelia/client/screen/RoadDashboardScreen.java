@@ -37,17 +37,11 @@ import org.mtr.aurelia.vehicle.RoadVehicleKind;
 import org.mtr.aurelia.vehicle.RoadVehicleSettings;
 import org.mtr.aurelia.vehicle.RoadVehicles;
 import org.mtr.aurelia.vehicle.client.RoadVehicleClient;
-import org.mtr.core.data.Position;
-import org.mtr.core.data.Route;
-import org.mtr.core.data.RoutePlatformData;
-import org.mtr.core.data.SavedRailBase;
 import org.mtr.core.data.Station;
-import org.mtr.core.data.TransportMode;
 import org.mtr.mod.data.IGui;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -77,8 +71,7 @@ public final class RoadDashboardScreen extends Screen {
 
 	private final MapCamera camera;
 	private double preservedMtrScale;
-	private boolean preservedCurrentY;
-	private boolean cameraTouched;
+	private final boolean preservedCurrentY;
 
 	private SubTab subTab = SubTab.VEHICLES;
 	private Filter vehicleFilter = Filter.ALL;
@@ -110,6 +103,10 @@ public final class RoadDashboardScreen extends Screen {
 	private ButtonWidget teleportButton;
 	@Nullable
 	private ButtonWidget giveVehicleButton;
+	@Nullable
+	private ButtonWidget enabledButton;
+	@Nullable
+	private ButtonWidget bikeShareButton;
 
 	private DashboardLayout layout;
 	private boolean draggingMap;
@@ -124,13 +121,23 @@ public final class RoadDashboardScreen extends Screen {
 	}
 
 	public DashboardMapState captureMapState() {
-		final double effectiveScale = cameraTouched ? camera.scale() : preservedMtrScale;
-		return new DashboardMapState(camera.centerX(), camera.centerZ(), effectiveScale, preservedCurrentY);
+		return new DashboardMapState(camera.centerX(), camera.centerZ(), preservedMtrScale, preservedCurrentY);
 	}
 
 	@Override
 	protected void init() {
-		layout = DashboardLayout.compute(width, height, AureliaClient.isMagicLoaded());
+		searchField = null;
+		filterButton = null;
+		vehicleList = null;
+		stationList = null;
+		focusButton = null;
+		teleportButton = null;
+		giveVehicleButton = null;
+		enabledButton = null;
+		bikeShareButton = null;
+
+		// MAGIC only injects its (150, 6) button into MTR's DashboardScreen, so RoadDashboardScreen places ATU/ATR at y=6.
+		layout = DashboardLayout.compute(width, height, false);
 
 		// Left panel sub-tabs (48 px each across 144 px, matching Stations | Routes | Depots)
 		final int tabW = PANEL_WIDTH / 3;
@@ -144,7 +151,7 @@ public final class RoadDashboardScreen extends Screen {
 			case SETTINGS -> initSettingsPanel();
 		}
 
-		// Top-left map icon buttons (ATU panel + ATR menu) at the exact same coordinates as DashboardScreen
+		// Top-left map icon buttons (ATU panel + ATR menu)
 		final DashboardLayout.Rect atuRect = layout.atuButton();
 		final TexturedButtonWidget atuButton = new TexturedButtonWidget(
 				atuRect.x(), atuRect.y(), atuRect.width(), atuRect.height(),
@@ -267,22 +274,27 @@ public final class RoadDashboardScreen extends Screen {
 		final int x = 4;
 		final int w = PANEL_WIDTH - 8;
 
-		final ButtonWidget enabledBtn = addDrawableChild(ButtonWidget.builder(vehiclesEnabledLabel(), b -> {
-			RoadVehicleClient.request(RoadVehicles.settings(true).withEnabled(!RoadVehicles.settings(true).enabled()));
+		enabledButton = addDrawableChild(ButtonWidget.builder(vehiclesEnabledLabel(), b -> {
+			final RoadVehicleSettings next = RoadVehicles.settings(true).withEnabled(!RoadVehicles.settings(true).enabled());
+			RoadVehicles.setClientSettings(next);
 			b.setMessage(vehiclesEnabledLabel());
+			RoadVehicleClient.request(next);
 		}).dimensions(x, 26, w, 20).build());
-		enabledBtn.active = mayEdit;
+		enabledButton.active = mayEdit;
 
-		final ButtonWidget bikeBtn = addDrawableChild(ButtonWidget.builder(bikeShareLabel(), b -> {
-			RoadVehicleClient.request(RoadVehicles.settings(true).withBikeShare(!RoadVehicles.settings(true).bikeShare()));
+		bikeShareButton = addDrawableChild(ButtonWidget.builder(bikeShareLabel(), b -> {
+			final RoadVehicleSettings next = RoadVehicles.settings(true).withBikeShare(!RoadVehicles.settings(true).bikeShare());
+			RoadVehicles.setClientSettings(next);
 			b.setMessage(bikeShareLabel());
+			RoadVehicleClient.request(next);
 		}).dimensions(x, 48, w, 20).build());
-		bikeBtn.active = mayEdit;
+		bikeShareButton.active = mayEdit;
 
 		final CompactSlider speedSlider = addDrawableChild(new CompactSlider(
 				x, 70, w,
 				RoadVehicleSettings.SPEED_MIN, RoadVehicleSettings.SPEED_MAX, 5,
 				() -> RoadVehicles.settings(true).maxSpeedKmh(),
+				val -> RoadVehicles.setClientSettings(RoadVehicles.settings(true).withSpeed((int) val)),
 				val -> RoadVehicleClient.request(RoadVehicles.settings(true).withSpeed((int) val)),
 				val -> Text.translatable("gui.aurelia.vehicles.speed", val.intValue())
 		));
@@ -292,6 +304,7 @@ public final class RoadDashboardScreen extends Screen {
 				x, 92, w,
 				RoadVehicleSettings.SIZE_MIN, RoadVehicleSettings.SIZE_MAX, 5,
 				() -> RoadVehicles.settings(true).sizePercent(),
+				val -> RoadVehicles.setClientSettings(RoadVehicles.settings(true).withSize((int) val)),
 				val -> RoadVehicleClient.request(RoadVehicles.settings(true).withSize((int) val)),
 				val -> Text.translatable("gui.aurelia.vehicles.size", val.intValue())
 		));
@@ -386,6 +399,14 @@ public final class RoadDashboardScreen extends Screen {
 		if (searchField != null) {
 			searchField.tick();
 		}
+		if (subTab == SubTab.SETTINGS) {
+			if (enabledButton != null) {
+				enabledButton.setMessage(vehiclesEnabledLabel());
+			}
+			if (bikeShareButton != null) {
+				bikeShareButton.setMessage(bikeShareLabel());
+			}
+		}
 		if (++ticks % REFRESH_TICKS == 0) {
 			refreshData();
 		}
@@ -393,10 +414,10 @@ public final class RoadDashboardScreen extends Screen {
 
 	private void refreshData() {
 		collectVehicles();
-		collectStations();
 		if (subTab == SubTab.VEHICLES) {
 			applyVehicleFilter();
 		} else if (subTab == SubTab.STOPS) {
+			collectStations();
 			applyStationFilter();
 		}
 	}
@@ -450,55 +471,7 @@ public final class RoadDashboardScreen extends Screen {
 		final var data = MtrBridge.dashboardData();
 		final double refX = client != null && client.player != null ? client.player.getX() : camera.centerX();
 		final double refZ = client != null && client.player != null ? client.player.getZ() : camera.centerZ();
-
-		final List<StationInterchangeRow> rows = new ArrayList<>();
-		for (final Station station : data.stations) {
-			final double sx;
-			final double sz;
-			if (MtrBridge.validCorners(station) && station.getCenter() != null) {
-				final Position center = station.getCenter();
-				sx = center.getX();
-				sz = center.getZ();
-			} else if (!station.savedRails.isEmpty()) {
-				final Position mid = station.savedRails.iterator().next().getMidPosition();
-				sx = mid.getX();
-				sz = mid.getZ();
-			} else {
-				continue;
-			}
-
-			final Set<TransportMode> modes = EnumSet.noneOf(TransportMode.class);
-			for (final SavedRailBase<?, ?> rail : station.savedRails) {
-				modes.add(rail.getTransportMode());
-			}
-			int routeCount = 0;
-			for (final Route route : data.routes) {
-				boolean servesStation = false;
-				for (final RoutePlatformData rp : route.getRoutePlatforms()) {
-					if (rp.platform != null && rp.platform.area != null && rp.platform.area.getId() == station.getId()) {
-						servesStation = true;
-						break;
-					}
-				}
-				if (servesStation) {
-					routeCount++;
-					modes.add(route.getTransportMode());
-				}
-			}
-			rows.add(new StationInterchangeRow(
-					station.getId(),
-					MtrBridge.displayName(station.getName()),
-					station.getZone1(),
-					station.getColor(),
-					station.savedRails.size(),
-					routeCount,
-					modes.size(),
-					sx,
-					sz,
-					Math.hypot(sx - refX, sz - refZ)
-			));
-		}
-		allStations = rows;
+		allStations = RoadVehicleListModel.buildStationRows(data.stations, data.routes, refX, refZ, MtrBridge::displayName);
 	}
 
 	private void applyVehicleFilter() {
@@ -567,10 +540,26 @@ public final class RoadDashboardScreen extends Screen {
 		return null;
 	}
 
+	@Nullable
+	private static Station findStationById(long stationId) {
+		final var data = MtrBridge.dashboardData();
+		final Station direct = data.stationIdMap.get(stationId);
+		if (direct != null) {
+			return direct;
+		}
+		for (final Station station : data.stations) {
+			if (station.getId() == stationId) {
+				return station;
+			}
+		}
+		return null;
+	}
+
 	private boolean canTeleport() {
 		return client != null && client.player != null && client.player.hasPermissionLevel(2);
 	}
 
+	/** Uses {@code /give @s}, which requires operator permission level 2 (matching {@link AtrMenuScreen}). */
 	private boolean canGiveItems() {
 		return client != null && client.player != null && client.player.hasPermissionLevel(2);
 	}
@@ -614,7 +603,6 @@ public final class RoadDashboardScreen extends Screen {
 		camera.zoomAt(MapCamera.MAX_SCALE / Math.max(0.25, camera.scale()), PANEL_WIDTH + (width - PANEL_WIDTH) / 2.0, height / 2.0, PANEL_WIDTH, 0, width - PANEL_WIDTH, height);
 		camera.center(worldX, worldZ);
 		preservedMtrScale = Math.max(8.0, camera.scale());
-		cameraTouched = true;
 	}
 
 	private void teleportToSelectedVehicle() {
@@ -631,8 +619,9 @@ public final class RoadDashboardScreen extends Screen {
 		if (selected == null || !canTeleport() || client == null || client.player == null) {
 			return;
 		}
-		final double y = client.player.getY();
-		client.player.networkHandler.sendCommand(String.format(Locale.ROOT, "tp @s %.1f %.1f %.1f", selected.x() + 0.5, y, selected.z() + 0.5));
+		final Station station = findStationById(selected.stationId());
+		final String command = RoadVehicleListModel.stationTeleportCommand(station, selected, client.player.getY());
+		client.player.networkHandler.sendCommand(command);
 		client.setScreen(null);
 	}
 
@@ -640,13 +629,11 @@ public final class RoadDashboardScreen extends Screen {
 		final int mapW = Math.max(1, width - PANEL_WIDTH);
 		camera.zoomAt(factor, PANEL_WIDTH + mapW / 2.0, height / 2.0, PANEL_WIDTH, 0, mapW, height);
 		preservedMtrScale = camera.scale();
-		cameraTouched = true;
 	}
 
 	private void centreOnPlayer() {
 		if (client != null && client.player != null) {
 			camera.center(client.player.getX(), client.player.getZ());
-			cameraTouched = true;
 		}
 	}
 
@@ -665,15 +652,28 @@ public final class RoadDashboardScreen extends Screen {
 		renderMouseWorldCoords(context, mouseX, mouseY, mapW);
 		if (subTab == SubTab.SETTINGS) {
 			renderSettingsStatus(context);
-		} else if (subTab == SubTab.VEHICLES && filteredVehicles.isEmpty()) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.dashboard.road.none"),
-					PANEL_WIDTH / 2, 76 + Math.max(12, (height - 110) / 2), 0x888888);
-		} else if (subTab == SubTab.STOPS && filteredStations.isEmpty()) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.dashboard.road.no_stops"),
-					PANEL_WIDTH / 2, 76 + Math.max(12, (height - 110) / 2), 0x888888);
 		}
 
 		super.render(context, mouseX, mouseY, delta);
+
+		// Draw empty-state labels after SimpleListWidget so its 0x80000000 backdrop does not dim the text.
+		if (subTab == SubTab.VEHICLES && filteredVehicles.isEmpty()) {
+			context.drawCenteredTextWithShadow(
+					textRenderer,
+					textRenderer.trimToWidth(Text.translatable("gui.aurelia.dashboard.road.none"), PANEL_WIDTH - 12).getString(),
+					PANEL_WIDTH / 2,
+					76 + Math.max(12, (height - 110) / 2),
+					0x888888
+			);
+		} else if (subTab == SubTab.STOPS && filteredStations.isEmpty()) {
+			context.drawCenteredTextWithShadow(
+					textRenderer,
+					textRenderer.trimToWidth(Text.translatable("gui.aurelia.dashboard.road.no_stops"), PANEL_WIDTH - 12).getString(),
+					PANEL_WIDTH / 2,
+					76 + Math.max(12, (height - 110) / 2),
+					0x888888
+			);
+		}
 	}
 
 	private void drawMapOverlays(DrawContext context, int mapLeft, int mapTop, int mapWidth, int mapHeight) {
@@ -698,8 +698,9 @@ public final class RoadDashboardScreen extends Screen {
 			}
 		}
 
-		// Live road vehicle markers on map
-		for (final RoadVehicleRow row : allVehicles) {
+		// Live road vehicle markers on map (matches active filter on Vehicles sub-tab)
+		final List<RoadVehicleRow> visibleMarkers = subTab == SubTab.VEHICLES ? filteredVehicles : allVehicles;
+		for (final RoadVehicleRow row : visibleMarkers) {
 			final int sx = (int) Math.round(camera.screenX(row.x(), mapLeft, mapWidth));
 			final int sy = (int) Math.round(camera.screenY(row.z(), mapTop, mapHeight));
 			if (sx < mapLeft - 8 || sy < mapTop - 8 || sx > mapLeft + mapWidth + 8 || sy > mapTop + mapHeight + 8) {
@@ -807,27 +808,41 @@ public final class RoadDashboardScreen extends Screen {
 		if (super.mouseClicked(mouseX, mouseY, button)) {
 			return true;
 		}
-		if (button == 0 && mouseX >= PANEL_WIDTH) {
-			if (trySelectMapMarker(mouseX, mouseY)) {
+		if (mouseX >= PANEL_WIDTH) {
+			if (searchField != null) {
+				searchField.setFocused(false);
+			}
+			setFocused(null);
+			if (button == 0) {
+				if (trySelectMapMarker(mouseX, mouseY)) {
+					return true;
+				}
+				draggingMap = true;
 				return true;
 			}
-			draggingMap = true;
-			return true;
 		}
 		return false;
 	}
 
 	private boolean trySelectMapMarker(double mouseX, double mouseY) {
 		final int mapW = Math.max(1, width - PANEL_WIDTH);
-		for (final RoadVehicleRow row : allVehicles) {
+		final List<RoadVehicleRow> candidates = subTab == SubTab.VEHICLES ? filteredVehicles : allVehicles;
+		for (final RoadVehicleRow row : candidates) {
 			final double sx = camera.screenX(row.x(), PANEL_WIDTH, mapW);
 			final double sy = camera.screenY(row.z(), 0, height);
 			if (Math.abs(mouseX - sx) <= 6 && Math.abs(mouseY - sy) <= 6) {
 				selectedVehicleId = row.entityId();
 				if (subTab != SubTab.VEHICLES) {
+					if (!RoadVehicleListModel.matchesVehicleFilterAndQuery(row, vehicleFilter, searchQuery)) {
+						vehicleFilter = Filter.ALL;
+						searchQuery = "";
+					}
 					selectSubTab(SubTab.VEHICLES);
 				} else {
 					applyVehicleFilter();
+				}
+				if (vehicleList != null) {
+					vehicleList.scrollToSelected();
 				}
 				return true;
 			}
@@ -845,7 +860,6 @@ public final class RoadDashboardScreen extends Screen {
 	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
 		if (draggingMap) {
 			camera.drag(deltaX, deltaY);
-			cameraTouched = true;
 			return true;
 		}
 		return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
@@ -857,7 +871,6 @@ public final class RoadDashboardScreen extends Screen {
 			final int mapW = Math.max(1, width - PANEL_WIDTH);
 			camera.zoomAt(amount > 0 ? 1.25 : 0.8, mouseX, mouseY, PANEL_WIDTH, 0, mapW, height);
 			preservedMtrScale = camera.scale();
-			cameraTouched = true;
 			return true;
 		}
 		return super.mouseScrolled(mouseX, mouseY, amount);
@@ -877,26 +890,52 @@ public final class RoadDashboardScreen extends Screen {
 		return false;
 	}
 
+	/**
+	 * Previews slider changes locally during drag and sends one C2S update packet on mouse release or arrow-key step.
+	 */
 	private static final class CompactSlider extends SliderWidget {
 
 		private final double min;
 		private final double max;
 		private final double step;
-		private final DoubleConsumer set;
+		private final DoubleConsumer preview;
+		private final DoubleConsumer commit;
 		private final Function<Double, Text> label;
+		private double lastCommitted;
 
-		private CompactSlider(int x, int y, int width, double min, double max, double step, DoubleSupplier get, DoubleConsumer set, Function<Double, Text> label) {
+		private CompactSlider(
+				int x,
+				int y,
+				int width,
+				double min,
+				double max,
+				double step,
+				DoubleSupplier get,
+				DoubleConsumer preview,
+				DoubleConsumer commit,
+				Function<Double, Text> label
+		) {
 			super(x, y, width, 20, Text.empty(), (get.getAsDouble() - min) / (max - min));
 			this.min = min;
 			this.max = max;
 			this.step = step;
-			this.set = set;
+			this.preview = preview;
+			this.commit = commit;
 			this.label = label;
+			this.lastCommitted = current();
 			updateMessage();
 		}
 
 		private double current() {
 			return min + Math.round(value * (max - min) / step) * step;
+		}
+
+		private void commitIfChanged() {
+			final double now = current();
+			if (Double.compare(now, lastCommitted) != 0) {
+				lastCommitted = now;
+				commit.accept(now);
+			}
 		}
 
 		@Override
@@ -906,7 +945,22 @@ public final class RoadDashboardScreen extends Screen {
 
 		@Override
 		protected void applyValue() {
-			set.accept(current());
+			preview.accept(current());
+		}
+
+		@Override
+		public void onRelease(double mouseX, double mouseY) {
+			super.onRelease(mouseX, mouseY);
+			commitIfChanged();
+		}
+
+		@Override
+		public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+			final boolean handled = super.keyPressed(keyCode, scanCode, modifiers);
+			if (handled && (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT)) {
+				commitIfChanged();
+			}
+			return handled;
 		}
 	}
 }

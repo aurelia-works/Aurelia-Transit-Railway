@@ -24,6 +24,8 @@ import net.minecraft.util.Language;
 import org.mtr.aurelia.client.Announcer;
 import org.mtr.aurelia.client.AureliaExamplePack;
 import org.mtr.aurelia.client.ui.AureliaUiSettings;
+import org.mtr.aurelia.dashboard.DashboardParentAccess;
+import org.mtr.aurelia.dashboard.UnifiedDashboardClient;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.PassengerClient;
 import org.mtr.aurelia.client.ZipClient;
@@ -77,7 +79,7 @@ import java.util.function.UnaryOperator;
  * config ({@code config/mtr.json}); Tools are ATU's hub; Sound holds the Announcer switches; Riding holds sitting while
  * riding; Builder sets the Rail Builder in the player's hand.
  */
-public final class AureliaPanelScreen extends Screen {
+public final class AureliaPanelScreen extends Screen implements DashboardParentAccess {
 
 	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS, MAP, VEHICLES}
 
@@ -131,7 +133,7 @@ public final class AureliaPanelScreen extends Screen {
 
 	private static final List<Tool> TOOLS = List.of(
 			new Tool("dashboard", false, parent -> {
-				org.mtr.aurelia.dashboard.UnifiedDashboardClient.requestOpen(null);
+				UnifiedDashboardClient.requestOpen(null);
 				return null;
 			}),
 			new Tool("presets", true, TrainPresetScreen::new),
@@ -295,6 +297,7 @@ public final class AureliaPanelScreen extends Screen {
 		final int rows = (TOOLS.size() + columns - 1) / columns;
 		final int left = centerX() - (columns * buttonWidth + (columns - 1) * 8) / 2;
 		final boolean canEdit = MtrBridge.canEdit();
+		final boolean canOpenDashboard = UnifiedDashboardClient.canOpenDashboard(client);
 		for (int i = 0; i < TOOLS.size(); i++) {
 			final Tool tool = TOOLS.get(i);
 			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.tools." + tool.key()), b -> {
@@ -303,7 +306,14 @@ public final class AureliaPanelScreen extends Screen {
 					client.setScreen(next);
 				}
 			}).dimensions(left + (i / rows) * (buttonWidth + 8), top + (i % rows) * TOOL_ROW, buttonWidth, 20).build());
-			button.active = canEdit || !tool.needsEdit();
+			if ("dashboard".equals(tool.key())) {
+				button.active = canOpenDashboard;
+				button.setTooltip(Tooltip.of(Text.translatable(canOpenDashboard
+						? "gui.aurelia.menu.build.dashboard.tooltip"
+						: "gui.aurelia.dashboard.no_permission")));
+			} else {
+				button.active = canEdit || !tool.needsEdit();
+			}
 		}
 	}
 
@@ -1286,6 +1296,12 @@ public final class AureliaPanelScreen extends Screen {
 		Config.save();
 		SoundProfileStore.save();
 		client.setScreen(parent);
+	}
+
+	@Override
+	@Nullable
+	public Screen atr$parentScreen() {
+		return parent;
 	}
 
 	/**

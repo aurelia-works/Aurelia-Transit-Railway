@@ -44,12 +44,6 @@ public enum DashboardMode {
 		return KEY_PREFIX + id + ".tooltip";
 	}
 
-	/** Cycles forwards or backwards across all five modes, wrapping at either end. */
-	public DashboardMode next(int step) {
-		final DashboardMode[] modes = values();
-		return modes[Math.floorMod(ordinal() + step, modes.length)];
-	}
-
 	public static DashboardMode fromTransportMode(@Nullable TransportMode transportMode) {
 		if (transportMode == null) {
 			return TRAIN;

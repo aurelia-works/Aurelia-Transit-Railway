@@ -76,6 +76,7 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		org.mtr.mod.data.DepotOptionsSync.registerServer();
 		org.mtr.mod.data.DepotSchedulesSync.registerServer();
 		org.mtr.mod.data.RouteControlSync.registerServer();
+		org.mtr.aurelia.dashboard.DashboardPackets.registerServer();
 		org.mtr.mod.passenger.PassengerService.registerServer();
 		org.mtr.mod.zip.ZipContent.register();
 		org.mtr.mod.zip.ZipLines.registerServer();

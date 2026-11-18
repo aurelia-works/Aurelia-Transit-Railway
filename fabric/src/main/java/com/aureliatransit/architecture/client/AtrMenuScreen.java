@@ -12,6 +12,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import org.mtr.aurelia.client.screen.AureliaPanelScreen;
 import org.mtr.aurelia.client.ui.AureliaPalette;
+import org.mtr.aurelia.dashboard.DashboardParentAccess;
+import org.mtr.aurelia.dashboard.UnifiedDashboardClient;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -21,7 +23,7 @@ import java.util.List;
  * wayfinding; Guide opens the Station Codex; Settings holds the Aurelia look switches and the wrench's action bar; Dev
  * opens the old dev panel on any of its tabs. The ATR dashboard button and the M key open this screen.
  */
-public final class AtrMenuScreen extends Screen {
+public final class AtrMenuScreen extends Screen implements DashboardParentAccess {
 
 	public enum Tab {BUILD, GUIDE, SETTINGS, DEV}
 
@@ -85,10 +87,14 @@ public final class AtrMenuScreen extends Screen {
 			CodexScreen.openChapter("Finding your way");
 		}).dimensions(left + BUTTON_WIDTH + COLUMN_GAP, top + ROW * 2, BUTTON_WIDTH, 20).build())
 				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.menu.build.wayfinding.tooltip")));
-		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.build.dashboard"), b ->
-				org.mtr.aurelia.dashboard.UnifiedDashboardClient.requestOpen(null))
-				.dimensions(left, top + ROW * 3, BUTTON_WIDTH, 20).build())
-				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.menu.build.dashboard.tooltip")));
+		final boolean canOpenDashboard = UnifiedDashboardClient.canOpenDashboard(client);
+		final ButtonWidget dashboardButton = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.build.dashboard"), b ->
+				UnifiedDashboardClient.requestOpen(null))
+				.dimensions(left, top + ROW * 3, BUTTON_WIDTH, 20).build());
+		dashboardButton.active = canOpenDashboard;
+		dashboardButton.setTooltip(Tooltip.of(Text.translatable(canOpenDashboard
+				? "gui.aurelia.menu.build.dashboard.tooltip"
+				: "gui.aurelia.dashboard.no_permission")));
 		final ButtonWidget give = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.build.give"), b -> {
 			if (client.player != null) {
 				client.player.networkHandler.sendChatCommand("give @s " + Registries.ITEM.getId(ModItems.WRENCH));
@@ -213,5 +219,11 @@ public final class AtrMenuScreen extends Screen {
 	@Override
 	public void close() {
 		MinecraftClient.getInstance().setScreen(parent);
+	}
+
+	@Override
+	@Nullable
+	public Screen atr$parentScreen() {
+		return parent;
 	}
 }

@@ -1,26 +1,20 @@
 package org.mtr.atr.mixin;
 
-import net.minecraft.client.item.TooltipContext;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.world.World;
 import org.mtr.mod.Items;
 import org.mtr.mod.item.ItemDashboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import javax.annotation.Nullable;
-import java.util.List;
-
 /**
- * Titles the primary {@code mtr:dashboard} item as the unified Transit Dashboard and adds mode tooltips to all
- * dashboard items while keeping every {@code mtr:dashboard*} ID registered.
+ * Titles the primary {@code mtr:dashboard} item as the unified Transit Dashboard while keeping every
+ * {@code mtr:dashboard*} ID registered. Item tooltips are appended via Fabric's {@code ItemTooltipCallback}
+ * in {@link org.mtr.aurelia.dashboard.UnifiedDashboardClient} because MTR's {@code ItemExtension.appendTooltip} is final.
  */
 @Mixin(Item.class)
 public abstract class DashboardItemMixin {
@@ -44,19 +38,6 @@ public abstract class DashboardItemMixin {
 	private void atr$primaryDashboardStackName(ItemStack stack, CallbackInfoReturnable<Text> cir) {
 		if (atr$isPrimaryDashboard()) {
 			cir.setReturnValue(Text.translatable("item.aurelia.transit_dashboard"));
-		}
-	}
-
-	@Inject(method = "appendTooltip", at = @At("TAIL"))
-	private void atr$dashboardTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context, CallbackInfo ci) {
-		if (!((Object) this instanceof ItemDashboard)) {
-			return;
-		}
-		if (atr$isPrimaryDashboard()) {
-			tooltip.add(Text.translatable("item.aurelia.transit_dashboard.modes").formatted(Formatting.GOLD));
-			tooltip.add(Text.translatable("item.aurelia.transit_dashboard.sneak").formatted(Formatting.GRAY));
-		} else {
-			tooltip.add(Text.translatable("item.aurelia.transit_dashboard.legacy").formatted(Formatting.GRAY));
 		}
 	}
 }

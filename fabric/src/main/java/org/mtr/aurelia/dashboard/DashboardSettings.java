@@ -38,11 +38,6 @@ public final class DashboardSettings {
 		}
 	}
 
-	/** Sets the in-memory mode for tests or session overrides without requiring FabricLoader. */
-	public static void setLastModeInMemory(DashboardMode mode) {
-		lastMode = mode == null ? DashboardMode.TRAIN : mode;
-	}
-
 	public static DashboardMode load(Path dir) {
 		configDir = dir;
 		lastMode = read(dir);

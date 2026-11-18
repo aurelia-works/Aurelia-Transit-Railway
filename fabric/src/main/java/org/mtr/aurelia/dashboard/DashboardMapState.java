@@ -22,8 +22,4 @@ public record DashboardMapState(double centerX, double centerZ, double scale, bo
 	public double scaleForRoadCamera() {
 		return MapCamera.clampScale(scale);
 	}
-
-	public DashboardMapState withView(double nextCenterX, double nextCenterZ, double nextScale) {
-		return new DashboardMapState(nextCenterX, nextCenterZ, nextScale, currentY);
-	}
 }

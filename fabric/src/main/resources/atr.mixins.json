@@ -13,8 +13,7 @@
 		"DepotRouteControlMixin",
 		"SidingRouteControlMixin",
 		"SidingPathFinderAccessor",
-		"SidingPathFinderRouteControlMixin",
-		"DashboardItemMixin"
+		"SidingPathFinderRouteControlMixin"
 	],
 	"client": [
 		"BlockEntityCounterMixin",
@@ -29,6 +28,7 @@
 		"AureliaButtonMixin",
 		"AureliaCheckboxMixin",
 		"AureliaDashboardMixin",
+		"DashboardItemMixin",
 		"DashboardMapMixin",
 		"DashboardOpenMixin",
 		"AureliaFieldMixin",

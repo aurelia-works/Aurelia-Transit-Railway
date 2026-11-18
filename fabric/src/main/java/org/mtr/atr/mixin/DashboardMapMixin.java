@@ -4,24 +4,19 @@ import org.mtr.aurelia.client.AureliaClient;
 import org.mtr.aurelia.dashboard.DashboardLayout;
 import org.mtr.aurelia.dashboard.DashboardMapState;
 import org.mtr.aurelia.dashboard.WidgetMapCameraAccess;
-import org.mtr.libraries.it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
 import org.mtr.mapping.mapper.ClickableWidgetExtension;
-import org.mtr.mapping.mapper.GraphicsHolder;
-import org.mtr.mod.data.IGui;
 import org.mtr.mod.screen.WidgetMap;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Exposes {@link WidgetMap}'s center/zoom for unified dashboard mode switching and shifts top-right cursor coordinates
  * below the unified mode switcher bar so nothing overlaps at {@code 854x480} or {@code 1080p}.
  */
 @Mixin(value = WidgetMap.class, remap = false)
-public abstract class DashboardMapMixin extends ClickableWidgetExtension implements WidgetMapCameraAccess, IGui {
+public abstract class DashboardMapMixin extends ClickableWidgetExtension implements WidgetMapCameraAccess {
 
 	@Shadow
 	private double scale;
@@ -68,17 +63,12 @@ public abstract class DashboardMapMixin extends ClickableWidgetExtension impleme
 		return this.getY2() + DashboardLayout.editHintY(AureliaClient.isMagicLoaded());
 	}
 
-	@Inject(method = "drawMousePositionText", at = @At("HEAD"), cancellable = true)
-	private void atr$offsetMousePositionBelowBar(GraphicsHolder graphicsHolder, DoubleDoubleImmutablePair mouseWorldPos, CallbackInfo ci) {
-		final String mousePosText = String.format("(%.1f, %.1f)", mouseWorldPos.leftDouble(), mouseWorldPos.rightDouble());
-		graphicsHolder.drawText(
-				mousePosText,
-				this.getX2() + this.width - TEXT_PADDING - GraphicsHolder.getTextWidth(mousePosText),
-				this.getY2() + DashboardLayout.MOUSE_COORDS_Y,
-				ARGB_WHITE,
-				false,
-				GraphicsHolder.getDefaultLight()
-		);
-		ci.cancel();
+	@ModifyArg(
+			method = "drawMousePositionText",
+			at = @At(value = "INVOKE", target = "Lorg/mtr/mapping/mapper/GraphicsHolder;drawText(Ljava/lang/String;IIIZI)V"),
+			index = 2
+	)
+	private int atr$offsetMousePositionBelowBar(int y) {
+		return this.getY2() + DashboardLayout.MOUSE_COORDS_Y;
 	}
 }
