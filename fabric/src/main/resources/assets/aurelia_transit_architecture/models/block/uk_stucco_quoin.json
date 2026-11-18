@@ -1,9 +1,9 @@
 {
   "parent": "block/block",
   "textures": {
-    "particle": "aurelia_transit_architecture:block/uk_stucco_quoin_left",
-    "north": "aurelia_transit_architecture:block/uk_stucco_quoin_left",
-    "west": "aurelia_transit_architecture:block/uk_stucco_quoin_right",
+    "particle": "aurelia_transit_architecture:block/uk_stucco_quoin_right",
+    "north": "aurelia_transit_architecture:block/uk_stucco_quoin_right",
+    "west": "aurelia_transit_architecture:block/uk_stucco_quoin_left",
     "south": "aurelia_transit_architecture:block/uk_yellow_stock_brick",
     "east": "aurelia_transit_architecture:block/uk_yellow_stock_brick",
     "up": "aurelia_transit_architecture:block/uk_stucco_dressed",

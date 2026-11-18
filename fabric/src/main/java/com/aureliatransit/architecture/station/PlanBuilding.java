@@ -518,7 +518,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 	private static final String UK_LINTEL = "aurelia_transit_architecture:uk_window_lintel";
 	private static final String UK_SILL = "aurelia_transit_architecture:uk_window_sill";
 	private static final String UK_SLATE_RIDGE = "aurelia_transit_architecture:uk_slate_ridge";
-	private static final String ARCH_SHOULDER = "minecraft:smooth_quartz_stairs";
+	private static final String ARCH_SHOULDER = "aurelia_transit_architecture:uk_steel_window";
 
 	/**
 	 * Victorian Italianate suburban station house after Teddington (1863, LSWR, Historic England 1410351): a symmetric
@@ -546,6 +546,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 				break;
 			}
 		}
+		final boolean heritage = spec.features().heritage();
 		// Symmetric 7-bay 2-storey house (21 cells each side of entranceV) when platform canopy gives room, else site.vStart..vEnd
 		final boolean fullSevenBay = wingBays == 0 && vEntr - 21 >= vS && vEntr + 21 <= canopyHi - 4;
 		final int vHouseS = fullSevenBay ? vEntr - 21 : vS;
@@ -558,6 +559,9 @@ abstract class PlanBuilding extends PlanPlatforms {
 		final int clearDoor = Math.min(door, 1);
 		for (int v = vEntr - clearDoor; v <= vEntr + clearDoor; v++) {
 			for (int y = 1; y <= 3; y++) {
+				keepClear(uS, y, v);
+			}
+			if (heritage && y == 4) {
 				keepClear(uS, y, v);
 			}
 		}

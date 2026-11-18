@@ -479,7 +479,7 @@ abstract class PlanFurniture extends PlanRoofs {
 				.map(layout::platformNumbers).filter(numbers -> !numbers.isEmpty()).map(TrackLayout::platformsText).orElse("");
 		for (final int door : doorV) {
 			if (!beyond.isEmpty() && door > vS && door < vE && doorV.contains(door - 1) && doorV.contains(door + 1)) {
-				putText(Role.FIXTURE, uP - 1, StationGeometry.WALK_Y + 3, door, LocalDir.MINUS_U, PlanFitOut.SHOP_SIGN, "NONE:" + beyond);
+				// putText(Role.FIXTURE, uP - 1, StationGeometry.WALK_Y + 3, door, LocalDir.MINUS_U, PlanFitOut.SHOP_SIGN, "NONE:" + beyond);
 			}
 		}
 	}
