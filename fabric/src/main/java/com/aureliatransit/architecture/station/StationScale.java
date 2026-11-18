@@ -87,10 +87,19 @@ public enum StationScale {
 	 * 20-50 m building (Havant, Godalming, Royston).
 	 */
 	public static StationScale forSize(boolean building, int tracks) {
+		return forSize(building, tracks, false);
+	}
+
+	/**
+	 * As {@link #forSize(boolean, int)}, with a Dutch station's building grand from {@link #CITY_BUILDING_TRACKS} platformed
+	 * tracks: UK 4-track stations are town blocks (Surbiton 61 m, Leamington Spa 75 m), while Dutch 4-track main-line
+	 * stations build long halls (Nijmegen 223 m, Lelystad Centrum 174 m, Almere Centrum 154 m).
+	 */
+	public static StationScale forSize(boolean building, int tracks, boolean dutch) {
 		if (!building) {
 			return COMPACT;
 		}
-		if (tracks >= GRAND_BUILDING_TRACKS) {
+		if (tracks >= (dutch ? CITY_BUILDING_TRACKS : GRAND_BUILDING_TRACKS)) {
 			return GRAND;
 		}
 		return tracks >= CITY_BUILDING_TRACKS ? CITY : COMPACT;

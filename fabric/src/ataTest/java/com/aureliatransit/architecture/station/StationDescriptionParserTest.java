@@ -549,6 +549,42 @@ class StationDescriptionParserTest {
 	}
 
 	@Test
+	void dutchFourTrackStationsDefaultToGrandWhileOthersStayCity() {
+		assertEquals(StationScale.GRAND, StationScale.forSize(true, 4, true));
+		assertEquals(StationScale.CITY, StationScale.forSize(true, 4, false));
+		assertEquals(StationScale.COMPACT, StationScale.forSize(true, 3, true));
+		assertEquals(StationScale.COMPACT, StationScale.forSize(false, 4, true));
+		for (final String words : new String[]{
+				"four track dutch station, two island platforms, 200 long, station building, named Nijmegen",
+				"4 track station in the netherlands, station building",
+				"4 track nl station, station building",
+				"four track holland station, station building",
+				"four track utrecht station, station building",
+				"four track rotterdam station, station building",
+				"four track amsterdam station, station building",
+				"4 track metro style utrecht station, station building",
+				"4 track station, ns signs, station building"}) {
+			assertEquals(StationScale.GRAND, spec(words).scale(), words);
+		}
+		// an explicit scale word still wins, and fast through lines without platform faces still count only platformed tracks
+		assertEquals(StationScale.CITY, spec("4 track dutch city station with station building").scale());
+		assertEquals(StationScale.CITY, spec("4 track dutch town station with station building").scale());
+		assertEquals(StationScale.COMPACT, spec("4 track dutch compact station building").scale());
+		assertEquals(StationScale.COMPACT, spec("4 tracks side, dutch station, 200 long, station building").scale());
+		assertEquals(StationScale.COMPACT, spec("2 track dutch station, 200 long, station building").scale());
+		// UK, Belgian, generic and rolled-era 4-5 platformed-track stations keep city size
+		for (final String words : new String[]{
+				"4 track station with station building",
+				"5 track modern station, three island platforms, station building",
+				"four track victorian station, two island platforms, station building",
+				"4 track antwerp station, station building",
+				"4 track brick station with station building",
+				"4 track station, modern era, station building"}) {
+			assertEquals(StationScale.CITY, spec(words).scale(), words);
+		}
+	}
+
+	@Test
 	void aTerminusAskedForWithNoBuildingKeepsItsHeadBuilding() {
 		for (final String text : new String[]{"terminus, no building", "1 tracks, hub, 120 long, no building", "8 tracks hub, without building, named X"}) {
 			final ParseResult result = StationDescriptionParser.parse(text);
