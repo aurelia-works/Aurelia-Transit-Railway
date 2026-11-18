@@ -20,6 +20,9 @@
     "aurelia_transit_architecture:hamburg_hall_truss",
     "aurelia_transit_architecture:stair_enclosure",
     "aurelia_transit_architecture:station_stair",
-    "aurelia_transit_architecture:structural_glass_fin"
+    "aurelia_transit_architecture:structural_glass_fin",
+    "aurelia_transit_architecture:uk_painted_column",
+    "aurelia_transit_architecture:uk_painted_column_base",
+    "aurelia_transit_architecture:uk_painted_column_cap"
   ]
 }

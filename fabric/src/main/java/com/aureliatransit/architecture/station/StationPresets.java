@@ -69,14 +69,13 @@ public final class StationPresets {
 			new Preset("mumbai", BuildingStyle.MUMBAI,
 					"ten track mumbai terminus, five island platforms, 280 long, 15 wide platforms, train shed, named Mumbai CSMT"),
 			// British suburban stations (Enviro, 10-20), laid out as the real ones: Teddington's two side platforms and
-			// footbridge, Surbiton's two islands, Coventry's island and side platform under a covered overbridge; British platforms
-			// have no painted door markers
+			// footbridge, Surbiton's two islands, Coventry's island and side platform under a covered overbridge
 			new Preset("teddington", BuildingStyle.VICTORIAN,
-					"two track teddington station, side platforms, 6 wide, 200 long, small station building with footbridge, no door markers, named Teddington"),
+					"two track teddington station, side platforms, 6 wide, 200 long, small station building with footbridge, named Teddington"),
 			new Preset("surbiton", BuildingStyle.ART_DECO,
-					"four track surbiton station, two island platforms, 250 long, 12 wide platforms, escalators, city station building with footbridge, no door markers, named Surbiton"),
+					"four track surbiton station, two island platforms, 250 long, 12 wide platforms, escalators, city station building with footbridge, named Surbiton"),
 			new Preset("coventry", BuildingStyle.MODERNIST,
-					"three track coventry station, island and side platforms, 250 long, 12 wide platforms, escalators, city station building with footbridge, no door markers, named Coventry"),
+					"three track coventry station, island and side platforms, 250 long, 12 wide platforms, escalators, city station building with footbridge, named Coventry"),
 			// an underground station (Enviro, 10-20): Berlin's U8 at Rosenthaler Platz, one island in an orange-tiled box with
 			// stairs at both ends straight up to the street
 			new Preset("rosenthaler_platz", BuildingStyle.NONE,

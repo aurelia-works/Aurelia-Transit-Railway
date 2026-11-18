@@ -198,7 +198,7 @@ abstract class PlanFurniture extends PlanRoofs {
 	 * point. Planned before the benches and signs, so the door spots stay clear.
 	 */
 	void doorMarkers() {
-		if (!spec.furniture() || !spec.features().doorMarkers()) {
+		if (!spec.furniture() || !spec.features().doorMarkers() || palette.britishPlatform()) {
 			return;
 		}
 		for (final TrackLayout.Track track : layout.tracks()) {
@@ -338,6 +338,11 @@ abstract class PlanFurniture extends PlanRoofs {
 	 */
 	void interior() {
 		if (!site.building()) {
+			return;
+		}
+		if (palette.plasterCeiling() != null && scale == StationScale.COMPACT
+				&& (landmark == null || landmark.anchor() != Landmark.Anchor.SIDE)) {
+			victorianInterior();
 			return;
 		}
 		final StylePalette.Building b = palette.building();
@@ -587,7 +592,7 @@ abstract class PlanFurniture extends PlanRoofs {
 	 * True if placed.
 	 */
 	boolean seatRow(int uGate, int uP, int vS, int vE, int vEntr, StylePalette.Building b) {
-		final StationLayout.Lift lift = site.buildingLift(layout);
+		final StationLayout.Lift lift = activeBuildingLift();
 		final int y = StationGeometry.WALK_Y;
 		final List<Integer> order = new ArrayList<>();
 		for (int v = vS + 1; v <= vE - 1; v++) {
@@ -636,7 +641,7 @@ abstract class PlanFurniture extends PlanRoofs {
 		final int endWall = atStart ? lo : hi;
 		final int from = Math.min(lo, partition);
 		final int to = Math.max(hi, partition);
-		final StationLayout.Lift lift = site.buildingLift(layout);
+		final StationLayout.Lift lift = activeBuildingLift();
 		if (to >= site.innerStairMin() - 1 && from <= site.innerStairMax() + 1
 				|| site.bridge() && to >= site.bridgeV() - bridgeWall() && from <= site.bridgeV() + bridgeWall()
 				|| lift != null && to >= lift.vMin() - 1 && from <= lift.vMax() + 1) {
@@ -752,19 +757,24 @@ abstract class PlanFurniture extends PlanRoofs {
 	 * nearest {@code target}; true if hung.
 	 */
 	boolean hangSpeaker(TrackLayout.PlatformBand band, int target) {
-		final int u = band.island() ? (band.uMin() + band.uMax()) / 2 : backColumn(band);
-		if (isEdge(band, u)) {
-			return false;
-		}
-		for (int d = 0; d <= 12; d++) {
-			for (final int v : d == 0 ? new int[]{target} : new int[]{target + d, target - d}) {
-				if (v < band.vFrom() + 1 || v > band.vTo() - 1 || nearStairs(band, v)) {
-					continue;
-				}
-				final int y = ceiling(u, v) - 1;
-				if (y >= StationGeometry.WALK_Y + 2 && y <= StationGeometry.WALK_Y + 5 && !taken(u, y, v)) {
-					put(Role.FIXTURE, u, y, v, LocalDir.MINUS_V, CEILING_SPEAKER);
-					return true;
+		final int baseU = band.island() ? (band.uMin() + band.uMax()) / 2 : backColumn(band);
+		final int[] candidates = !band.island() && palette.britishPlatform()
+				? new int[]{baseU, baseU + (band.trackRight() ? 1 : -1)}
+				: new int[]{baseU};
+		for (final int u : candidates) {
+			if (u < band.uMin() || u > band.uMax() || isEdge(band, u)) {
+				continue;
+			}
+			for (int d = 0; d <= 12; d++) {
+				for (final int v : d == 0 ? new int[]{target} : new int[]{target + d, target - d}) {
+					if (v < band.vFrom() + 1 || v > band.vTo() - 1 || nearStairs(band, v)) {
+						continue;
+					}
+					final int y = ceiling(u, v) - 1;
+					if (y >= StationGeometry.WALK_Y + 2 && y <= StationGeometry.WALK_Y + 5 && !taken(u, y, v)) {
+						put(Role.FIXTURE, u, y, v, LocalDir.MINUS_V, CEILING_SPEAKER);
+						return true;
+					}
 				}
 			}
 		}
@@ -1098,10 +1108,224 @@ abstract class PlanFurniture extends PlanRoofs {
 		return false;
 	}
 
-	/** A stairwell's flank: glass like the corridor, or solid wall when the stairs are asked for enclosed. */
+	private static final String UK_ARCHED_BOOTH = "aurelia_transit_architecture:uk_arched_booth_window";
+	private static final String UK_WAINSCOT = "aurelia_transit_architecture:uk_wood_wainscot";
+	private static final String UK_DRESSED_TRIM = "aurelia_transit_architecture:uk_stucco_dressed";
+	private static final String ANALOG_CLOCK = "aurelia_transit_architecture:station_analog_clock";
+
+	/**
+	 * Teddington / Victorian suburban booking hall interior (Historic England 1410351): a clear, wide sightline from the
+	 * arched street entrance straight through the spacious unpaid booking hall, fare gates and arched platform doorway; an
+	 * arched ticket-office front with mahogany counter and recessed ticket machines on one side; a compact freestanding
+	 * heritage timber kiosk on the other; and an unbroken cream plaster ceiling with moulded cornice and warm pendant lamps.
+	 */
+	private void victorianInterior() {
+		final StylePalette.Building b = palette.building();
+		final int uS = streetWall();
+		final int uP = site.platformWall(layout);
+		final int vS = site.vStart();
+		final int vE = site.vEnd();
+		final int vEntr = site.entranceV();
+		final int h = entranceHalf();
+
+		int canopyHi = length - 1;
+		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			if (band.uMin() == layout.buildingWidth() && roof(band) == RoofType.CANOPY) {
+				canopyHi = canopyEnd(band);
+				break;
+			}
+		}
+		final boolean fullSevenBay = wingBays == 0 && vEntr - 21 >= vS && vEntr + 21 <= canopyHi - 4;
+		final int vHouseS = fullSevenBay ? vEntr - 21 : vS;
+		final int vHouseE = fullSevenBay ? vEntr + 21 : vE;
+		final boolean wideFront = vHouseE - vHouseS >= 30;
+		final int vProjLo = wideFront ? vEntr - 9 : Math.max(vHouseS + 4, vEntr - 4);
+		final int vProjHi = wideFront ? vEntr + 9 : Math.min(vHouseE - 4, vEntr + 4);
+		final int vHallLo = wideFront ? vProjLo + 1 : vHouseS + 1;
+		final int vHallHi = wideFront ? vProjHi - 1 : vHouseE - 1;
+
+		// Frame the central 3-bay booking hall on wide fronts with plaster partition walls and paid-side archways to the side waiting rooms
+		if (wideFront) {
+			for (final int vPart : new int[]{vProjLo, vProjHi}) {
+				final LocalDir intoHall = vPart == vProjLo ? LocalDir.PLUS_V : LocalDir.MINUS_V;
+				for (int u = uS + 2; u <= uP - 1; u++) {
+					final boolean archway = u >= uP - 2;
+					for (int y = StationGeometry.WALK_Y; y <= StationGeometry.UPPER_FLOOR_Y - 1; y++) {
+						if (archway && y <= StationGeometry.WALK_Y + 2) {
+							continue;
+						}
+						put(Role.WALL, u, y, vPart, intoHall, y == StationGeometry.WALK_Y ? UK_WAINSCOT : b.interiorWall());
+					}
+				}
+			}
+		}
+
+		// Gate line set well back (uP - 3) so the unpaid booking hall feels open and uncrowded on arrival
+		final int uGate = Math.max(uS + 4, uP - 3);
+		for (int d = -h - 1; d <= h + 1; d++) {
+			final String kind = Math.abs(d) == h + 1 ? "kind=end" : d == 0 ? "kind=wide" : "kind=gate";
+			gate(uGate, StationGeometry.WALK_Y, vEntr + d, LocalDir.MINUS_U, kind, d > 0, LocalDir.PLUS_U);
+		}
+		for (int v = vHallLo; v <= vHallHi; v++) {
+			if (v >= vEntr - h - 1 && v <= vEntr + h + 1) {
+				continue;
+			}
+			fence(uGate, StationGeometry.WALK_Y, v, LocalDir.PLUS_U);
+		}
+		// Moulded cream plaster threshold architrave at y = 5 above the gate line, with a compact 3-wide flush departure board at y = 4
+		for (int v = vHallLo; v <= vHallHi; v++) {
+			if (!taken(uGate, StationGeometry.UPPER_FLOOR_Y - 1, v)) {
+				put(Role.BUILDING_ROOF, uGate, StationGeometry.UPPER_FLOOR_Y - 1, v, LocalDir.MINUS_U, UK_DRESSED_TRIM);
+			}
+		}
+		for (int v = vEntr - 1; v <= vEntr + 1; v++) {
+			if (taken(uGate, StationGeometry.UPPER_FLOOR_Y, v)) {
+				put(Role.FIXTURE, uGate, StationGeometry.UPPER_FLOOR_Y - 2, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
+			}
+		}
+
+		// Subtle tactile guidance line from street doorway to the wide gate
+		for (int u = uS + 2; u < uGate - 1; u++) {
+			refloor(u, StationGeometry.PLATFORM_Y, vEntr, LocalDir.PLUS_U, "aurelia_transit_architecture:tactile_guidance_paving");
+		}
+		refloor(uGate - 1, StationGeometry.PLATFORM_Y, vEntr, LocalDir.PLUS_U, "aurelia_transit_architecture:tactile_warning_paving");
+
+		// 1. Arched Victorian Ticket Office + Mahogany Counter on the side away from the inner stair
+		final int officeSide = -site.innerStairSide();
+		final LocalDir towardHall = officeSide < 0 ? LocalDir.PLUS_V : LocalDir.MINUS_V;
+		final int vCounter = wideFront ? vEntr + officeSide * 6 : vEntr + officeSide * Math.min(5, Math.abs((officeSide < 0 ? vHouseS : vHouseE) - vEntr) - 2);
+		final int uOff0 = uS + 2;
+		final int uOff1 = Math.min(uGate - 2, uOff0 + 4);
+		for (int u = uOff0; u <= uOff1; u++) {
+			final boolean pilaster = u == uOff0 || u == uOff1;
+			put(Role.WALL, u, StationGeometry.WALK_Y, vCounter, towardHall, UK_WAINSCOT);
+			if (pilaster) {
+				put(Role.WALL, u, StationGeometry.WALK_Y + 1, vCounter, towardHall, UK_DRESSED_TRIM);
+				put(Role.WALL, u, StationGeometry.WALK_Y + 2, vCounter, towardHall, UK_DRESSED_TRIM);
+			} else {
+				put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, vCounter, towardHall, UK_ARCHED_BOOTH);
+				put(Role.WALL, u, StationGeometry.WALK_Y + 2, vCounter, towardHall, UK_DRESSED_TRIM);
+			}
+			put(Role.WALL, u, StationGeometry.WALK_Y + 3, vCounter, towardHall, UK_DRESSED_TRIM);
+			final int vBack = vCounter + officeSide;
+			if (vBack > vHouseS && vBack < vHouseE) {
+				put(Role.WALL, u, StationGeometry.WALK_Y + 3, vBack, towardHall, b.interiorWall());
+				if (!pilaster) {
+					put(Role.FIXTURE, u, StationGeometry.WALK_Y, vBack, towardHall, "minecraft:barrel");
+					put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, vBack, towardHall, "minecraft:bookshelf");
+				} else {
+					for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 2; y++) {
+						put(Role.WALL, u, y, vBack, towardHall, b.interiorWall());
+					}
+				}
+			}
+		}
+		putText(Role.FIXTURE, (uOff0 + uOff1) / 2, StationGeometry.WALK_Y + 3, vCounter - officeSide, towardHall, PlanFitOut.SHOP_SIGN, "NONE:Tickets");
+
+		// Recessed Ticket Vending Machines & Passenger Information Kiosk clear of the central walk
+		final int uFrontIn = (vCounter >= vProjLo && vCounter <= vProjHi ? uS : uS + 1) + 1;
+		final int vMach1 = vEntr + officeSide * 3;
+		final int vMach2 = vEntr + officeSide * 4;
+		ticketMachine(uFrontIn, StationGeometry.WALK_Y, vMach1, LocalDir.PLUS_U);
+		if (Math.abs(vMach2 - vCounter) >= 2) {
+			ticketMachine(uFrontIn, StationGeometry.WALK_Y, vMach2, LocalDir.PLUS_U);
+		}
+		kiosk(uGate - 1, StationGeometry.WALK_Y, vEntr + officeSide * 4, LocalDir.MINUS_U);
+
+		// 2. Compact Heritage Timber Kiosk on the opposite side of the unpaid booking hall (Teddington's original kiosk)
+		final int kioskSide = site.innerStairSide();
+		final LocalDir kioskFront = kioskSide > 0 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+		final int vKiosk = vEntr + kioskSide * (wideFront ? 6 : 4);
+		final int vKioskBack = vKiosk + kioskSide;
+		final int uK0 = uS + 2;
+		final int uK1 = Math.min(uGate - 3, uK0 + 3);
+		if (uK1 - uK0 >= 2 && vKioskBack > vHouseS && vKioskBack < vHouseE) {
+			for (int u = uK0; u <= uK1; u++) {
+				final boolean post = u == uK0 || u == uK1;
+				put(Role.WALL, u, StationGeometry.WALK_Y, vKiosk, kioskFront, UK_WAINSCOT);
+				if (post) {
+					put(Role.WALL, u, StationGeometry.WALK_Y + 1, vKiosk, kioskFront, UK_WAINSCOT);
+				} else {
+					put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, vKiosk, kioskFront, UK_ARCHED_BOOTH);
+				}
+				put(Role.WALL, u, StationGeometry.WALK_Y + 2, vKiosk, kioskFront, UK_DRESSED_TRIM);
+				put(Role.WALL, u, StationGeometry.WALK_Y, vKioskBack, kioskFront, UK_WAINSCOT);
+				put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, vKioskBack, kioskFront, "minecraft:barrel");
+				put(Role.WALL, u, StationGeometry.WALK_Y + 2, vKioskBack, kioskFront, UK_DRESSED_TRIM);
+			}
+			putText(Role.FIXTURE, (uK0 + uK1) / 2, StationGeometry.WALK_Y + 2, vKiosk - kioskSide, kioskFront, PlanFitOut.SHOP_SIGN, "NONE:Kiosk");
+		}
+
+		// 3. Waiting benches & bins (in hall / side waiting rooms)
+		if (spec.furniture()) {
+			if (!seatRow(uGate, uP, vHouseS, vHouseE, vEntr, b)) {
+				// Fallback bench pair in unpaid waiting bay when paid side is tight
+				for (int i = 0; i < 2; i++) {
+					put(Role.BENCH, uFrontIn, StationGeometry.WALK_Y, vEntr + kioskSide * (3 + i), LocalDir.PLUS_U, b.bench());
+				}
+			}
+			// Unbroken cream plaster ceiling across the hall and side rooms, with moulded perimeter cornice and warm pendant lamps
+			final int ceilY = StationGeometry.UPPER_FLOOR_Y - 1;
+			for (int v = vHouseS + 1; v <= vHouseE - 1; v++) {
+				final int uIn = (v > vProjLo && v < vProjHi ? uS : uS + 1) + 1;
+				for (int u = uIn; u <= uP - 1; u++) {
+					final PlannedBlock slab = at(u, StationGeometry.UPPER_FLOOR_Y, v);
+					if (slab == null || slab.role() != Role.FLOOR && slab.role() != Role.LIGHT_PANEL
+							|| taken(u, ceilY, v) || !clearOfFlights(u, v, ceilY)) {
+						continue;
+					}
+					final boolean corniceEdge = u == uIn || u == uP - 1 || v == vHallLo || v == vHallHi || v == vHouseS + 1 || v == vHouseE - 1;
+					put(Role.BUILDING_ROOF, u, ceilY, v, LocalDir.PLUS_V, corniceEdge ? UK_DRESSED_TRIM : b.interiorWall());
+				}
+			}
+			// Symmetric pendant lamps over the booking hall
+			for (final int lu : new int[]{uS + 3, Math.max(uS + 5, uGate - 2)}) {
+				for (final int lv : wideFront ? new int[]{vEntr - 4, vEntr, vEntr + 4} : new int[]{vEntr - 3, vEntr, vEntr + 3}) {
+					if (lu < uGate && lv > vHallLo && lv < vHallHi && taken(lu, ceilY, lv) && !taken(lu, ceilY - 1, lv)) {
+						put(Role.FIXTURE, lu, ceilY - 1, lv, LocalDir.PLUS_V, PlanRoofs.HALL_LAMP);
+					}
+				}
+			}
+			// Platform wayfinding sign over the central platform archway
+			final String beyond = layout.platforms().stream().filter(band -> band.uMin() == layout.buildingWidth()).findFirst()
+					.map(layout::platformNumbers).filter(numbers -> !numbers.isEmpty()).map(TrackLayout::platformsText).orElse("");
+			if (!beyond.isEmpty()) {
+				putText(Role.FIXTURE, uP - 1, StationGeometry.WALK_Y + 3, vEntr, LocalDir.MINUS_U, PlanFitOut.SHOP_SIGN, "NONE:" + beyond);
+			}
+		}
+
+		// Heritage analogue clock over the street entrance arch inside the hall, plus upstairs board
+		put(Role.FIXTURE, uS + 1, 4, vEntr, LocalDir.PLUS_U, ANALOG_CLOCK);
+		put(Role.FIXTURE, (uS + uP) / 2, StationGeometry.UPPER_WALK_Y + 1, vHouseS + 1, LocalDir.PLUS_V, CONCOURSE_BOARD);
+		waitingRoom(b);
+	}
+
+	/** A stairwell's flank: glass like the corridor, clad below waist height on heritage bridges, or solid wall when enclosed. */
 	void flank(int u, int y, int v, LocalDir out, StylePalette.Building b) {
 		if (spec.enclosedStairs()) {
 			put(Role.WALL, u, y, v, out, b.wall());
+			return;
+		}
+		final String panel = palette.bridgePanel();
+		if (panel != null) {
+			// Heritage enclosed stairwell (Teddington, geograph 4331043): cream vertical boarding up to waist height along the
+			// steps and under the eaves, with a ribbon of white-framed multi-pane windows at eye height
+			int stepY = 0;
+			for (final TrackLayout.PlatformBand band : site.bridgeBands(layout)) {
+				if (u >= band.uMin() - 1 && u <= band.uMax() + 1) {
+					for (final StationLayout.Flight flight : site.flights(band)) {
+						for (int sy = 1; sy <= StationGeometry.STAIR_STEPS; sy++) {
+							if (flight.stepV(sy) == v) {
+								stepY = Math.max(stepY, sy);
+							}
+						}
+					}
+				}
+			}
+			final boolean clad = stepY > 0
+					? (y <= stepY + 1 || y >= Math.min(StationGeometry.BUILDING_ROOF_Y - 1, stepY + 4))
+					: (y <= StationGeometry.WALK_Y + 1 || y == StationGeometry.BUILDING_ROOF_Y - 1);
+			put(clad ? Role.WALL : Role.WINDOW, u, y, v, out, clad ? panel : b.bridgeWall());
 		} else {
 			put(Role.WINDOW, u, y, v, out, b.bridgeWall());
 		}

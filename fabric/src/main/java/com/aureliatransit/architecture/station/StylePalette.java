@@ -43,6 +43,7 @@ public final class StylePalette {
 	private BuildingStyle buildingStyle = BuildingStyle.NONE;
 	private StationStyle style = StationStyle.MODERN;
 	private RoofMaterial roofMaterial = RoofMaterial.STYLE_DEFAULT;
+	private boolean britishOperator;
 
 	/**
 	 * Materials of a station building and its footbridge. Ids are ATA or vanilla blocks; {@code cornice} and {@code window}
@@ -151,11 +152,11 @@ public final class StylePalette {
 						ata("antwerp_marble_floor_tile"), ata("clear_float_glass_pane"), ata("canopy_flat"), ata("canopy_light"),
 						ata("steel_column_round"), ata("wooden_bench"), ata("antwerp_polished_marble_wall"));
 				// Teddington: yellow stock brick with cream stucco dressings (quoins, window surrounds, string course) and no plinth,
-				// white-painted sash windows, quarry tiles, a slate roof, and a covered timber footbridge (Historic England 1410351)
-				case VICTORIAN -> new Building(ata("uk_yellow_stock_brick"), ata("uk_white_render"), ata("uk_yellow_stock_brick"),
-						ata("amsterdam_stone_cornice"), ata("uk_sash_window"), ata("metro_quarry_floor"), ata("metro_quarry_floor"),
-						"minecraft:deepslate_tiles", ata("metro_recessed_light"), ata("station_stair"), ata("metro_quarry_floor"),
-						ata("wired_glass_pane"), ata("uk_timber_canopy"), ata("canopy_light"), ata("steel_column_round"), ata("wooden_bench"),
+				// white-painted sash windows, Portland stone hall tiles, a slate roof, and a covered timber footbridge (Historic England 1410351)
+				case VICTORIAN -> new Building(ata("uk_yellow_stock_brick"), ata("uk_stucco_dressed"), ata("uk_yellow_stock_brick"),
+						ata("uk_eaves_cornice"), ata("uk_sash_window"), ata("uk_booking_hall_tile"), ata("uk_booking_hall_tile"),
+						"minecraft:deepslate_tiles", ata("metro_recessed_light"), ata("station_stair"), ata("uk_booking_hall_tile"),
+						ata("uk_sash_window"), ata("uk_timber_canopy"), ata("canopy_light"), ata("uk_painted_column"), ata("wooden_bench"),
 						ata("uk_white_render"));
 				// Surbiton: white render with quartz bands, steel windows, terrazzo, concrete slab roofs
 				case ART_DECO -> new Building(ata("uk_white_render"), "minecraft:smooth_quartz", "minecraft:polished_andesite",
@@ -221,6 +222,7 @@ public final class StylePalette {
 		palette.buildingStyle = spec.building();
 		palette.style = spec.style();
 		palette.roofMaterial = spec.roofMaterial();
+		palette.britishOperator = spec.operator() == Operator.NATIONAL_RAIL || spec.operator() == Operator.UNDERGROUND;
 		return palette;
 	}
 
@@ -231,18 +233,26 @@ public final class StylePalette {
 	 */
 	private static StylePalette british(BuildingStyle look, boolean tactile, boolean hall, StylePalette base) {
 		final String[] canopy = switch (look) {
-			// Teddington's canopy columns are painted white (geograph 2272647, 3439492)
-			case VICTORIAN -> new String[]{"uk_timber_canopy", "uk_canopy_valance", "uk_painted_column", "wooden_bench"};
-			case ART_DECO -> new String[]{"uk_concrete_canopy", "uk_concrete_canopy_edge", "steel_column_square", "wooden_bench"};
-			case MODERNIST -> new String[]{"uk_hardwood_canopy", "uk_hardwood_canopy_fascia", "steel_column_square", "steel_bench"};
+			// Teddington's canopy columns are painted white with navy bases and capitals (geograph 2272647, 3439492)
+			case VICTORIAN -> new String[]{"uk_timber_canopy", "uk_canopy_valance", "uk_painted_column", "uk_painted_column_cap", "wooden_bench"};
+			case ART_DECO -> new String[]{"uk_concrete_canopy", "uk_concrete_canopy_edge", "steel_column_square", "steel_column_square", "wooden_bench"};
+			case MODERNIST -> new String[]{"uk_hardwood_canopy", "uk_hardwood_canopy_fascia", "steel_column_square", "steel_column_square", "steel_bench"};
 			default -> null;
 		};
 		if (canopy == null) {
 			return base;
 		}
 		return new StylePalette(ata("uk_platform_tarmac"), ata(tactile ? "uk_platform_coping_tactile" : "uk_platform_coping"), ata(canopy[2]),
-				ata(canopy[2]), hall ? base.roof : ata(canopy[0]), hall ? base.roofEdge : ata(canopy[1]), base.roofLight, base.lamp, ata(canopy[3]),
+				ata(canopy[3]), hall ? base.roof : ata(canopy[0]), hall ? base.roofEdge : ata(canopy[1]), base.roofLight, base.lamp, ata(canopy[4]),
 				base.sign);
+	}
+
+	/** True on a British station, where platforms are plain tarmac with coping and carry no painted door-marker arrows. */
+	boolean britishPlatform() {
+		return britishOperator || switch (buildingStyle) {
+			case GOTHIC_BRICK, VICTORIAN, ART_DECO, MODERNIST -> true;
+			default -> false;
+		};
 	}
 
 	/** The {@code kind} state of the station girders: the colour of the roof steel, from the building look or the platform style. */
@@ -316,7 +326,7 @@ public final class StylePalette {
 	 * cream with windows along the top (geograph 4331043). Null keeps glass from the floor up.
 	 */
 	String bridgePanel() {
-		return buildingStyle == BuildingStyle.VICTORIAN ? building.trim() : null;
+		return buildingStyle == BuildingStyle.VICTORIAN ? ata("uk_bridge_cladding") : null;
 	}
 
 	/**

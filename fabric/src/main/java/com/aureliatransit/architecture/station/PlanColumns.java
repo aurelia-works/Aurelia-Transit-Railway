@@ -45,8 +45,13 @@ abstract class PlanColumns extends PlanMovingWalks {
 					}
 					// a canopy column's cap carries the girder along its line, which carries the roof
 					final int capY = roof(band) == RoofType.CANOPY ? top - 2 : top - 1;
+					final boolean ukCol = palette.blockId(Role.COLUMN).equals("aurelia_transit_architecture:uk_painted_column");
 					for (int y = StationGeometry.WALK_Y; y < capY; y++) {
-						put(Role.COLUMN, u, y, v, LocalDir.PLUS_V);
+						if (ukCol && y == StationGeometry.WALK_Y) {
+							put(Role.COLUMN, u, y, v, LocalDir.PLUS_V, "aurelia_transit_architecture:uk_painted_column_base");
+						} else {
+							put(Role.COLUMN, u, y, v, LocalDir.PLUS_V);
+						}
 					}
 					put(Role.COLUMN_CAP, u, capY, v, LocalDir.PLUS_V);
 				}
@@ -180,9 +185,24 @@ abstract class PlanColumns extends PlanMovingWalks {
 				kept.add(v);
 			}
 		}
-		// the footbridge pier carries the roof at bridgeV, so gaps are measured with it as a support
+		// the footbridge pier(s) carry the roof across the bridge, so gaps are measured with them as supports
 		final List<Integer> supports = new ArrayList<>(kept);
-		supports.add(site.bridgeV());
+		boolean foundPier = false;
+		for (int dv = -bridgeWall(); dv <= bridgeWall(); dv++) {
+			final int pv = site.bridgeV() + dv;
+			for (int u = band.uMin(); u <= band.uMax(); u++) {
+				final PlannedBlock b = at(u, StationGeometry.WALK_Y, pv);
+				if (b != null && b.role() == Role.BRIDGE_PIER) {
+					if (!supports.contains(pv)) {
+						supports.add(pv);
+					}
+					foundPier = true;
+				}
+			}
+		}
+		if (!foundPier) {
+			supports.add(site.bridgeV());
+		}
 		supports.sort(Comparator.naturalOrder());
 		// fill any remaining gap longer than the girder spans with a midpoint column that stands free
 		final List<Integer> extra = new ArrayList<>();

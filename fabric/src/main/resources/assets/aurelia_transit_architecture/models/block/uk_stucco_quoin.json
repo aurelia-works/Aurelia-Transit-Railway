@@ -1,0 +1,88 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "particle": "aurelia_transit_architecture:block/uk_stucco_quoin_left",
+    "north": "aurelia_transit_architecture:block/uk_stucco_quoin_left",
+    "west": "aurelia_transit_architecture:block/uk_stucco_quoin_right",
+    "south": "aurelia_transit_architecture:block/uk_yellow_stock_brick",
+    "east": "aurelia_transit_architecture:block/uk_yellow_stock_brick",
+    "up": "aurelia_transit_architecture:block/uk_stucco_dressed",
+    "down": "aurelia_transit_architecture:block/uk_stucco_dressed"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#down",
+          "cullface": "down"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#up",
+          "cullface": "up"
+        },
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#north",
+          "cullface": "north"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#south",
+          "cullface": "south"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#west",
+          "cullface": "west"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#east",
+          "cullface": "east"
+        }
+      }
+    }
+  ]
+}

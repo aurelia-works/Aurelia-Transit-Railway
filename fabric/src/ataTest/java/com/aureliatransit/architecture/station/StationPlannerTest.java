@@ -607,7 +607,7 @@ class StationPlannerTest {
 		expected.put(Role.ROOF_LIGHT, 24);
 		expected.put(Role.BENCH, 12);
 		expected.put(Role.BIN, 6);
-		// per platform: one departure screen (one per 60 blocks of platform) fixed to a column, two blocks wide on both faces of it
+		// per platform: one departure screen (one per 220 blocks of platform) fixed to a column, two blocks wide on both faces of it
 		// (4; two screens and 8 when they came every 30 blocks), a help point and two
 		// speakers (one every 32 blocks), plus a CCTV camera every 20 rows (2 a platform); and the under-canopy light
 		// (invisible level-15 lights, a thin batten a line per half, thin chains to the frame: 404); and door markers, two cells for each of the 4 doors of the 48-long train on each platform (16)

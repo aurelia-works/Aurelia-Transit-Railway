@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": {
+    "item": "minecraft:spruce_planks"
+  },
+  "result": "aurelia_transit_architecture:uk_bridge_cladding",
+  "count": 2
+}

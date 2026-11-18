@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "end": "aurelia_transit_architecture:block/uk_white_render",
+    "side": "aurelia_transit_architecture:block/uk_bridge_cladding"
+  }
+}

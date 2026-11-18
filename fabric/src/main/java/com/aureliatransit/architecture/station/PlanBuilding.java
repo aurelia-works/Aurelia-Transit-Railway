@@ -54,6 +54,17 @@ abstract class PlanBuilding extends PlanPlatforms {
 		return du % 4 == 2 && dv % StationGeometry.BAY != 0;
 	}
 
+	/** True when a Victorian suburban station has side platforms only, so both platforms are already step-free via ramps. */
+	boolean heritageSidePlatforms() {
+		return spec.building() == BuildingStyle.VICTORIAN
+				&& layout.platforms().stream().noneMatch(TrackLayout.PlatformBand::island);
+	}
+
+	/** The building lift when one is actually built (omitted on step-free side-platform Victorian stations). */
+	StationLayout.Lift activeBuildingLift() {
+		return heritageSidePlatforms() ? null : site.buildingLift(layout);
+	}
+
 	/**
 	 * The station building shell beside the tracks: floor, entrance ramps, perimeter walls with pilasters and windows,
 	 * the band and upper slab with lights, the flat roof with a cornice parapet, the street entrance and platform
@@ -61,6 +72,11 @@ abstract class PlanBuilding extends PlanPlatforms {
 	 */
 	void building() {
 		if (!site.building()) {
+			return;
+		}
+		final boolean sheet = landmark != null && landmark.anchor() == Landmark.Anchor.SIDE;
+		if (palette.framedWindows() && scale == StationScale.COMPACT && !sheet) {
+			victorianBuilding();
 			return;
 		}
 		final StylePalette.Building b = palette.building();
@@ -80,7 +96,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 		}
 		if (site.bridge()) {
 			// (a wide corridor's mouth leaves the lift shaft's side wall standing)
-			final StationLayout.Lift shaft = site.buildingLift(layout);
+			final StationLayout.Lift shaft = activeBuildingLift();
 			for (int v = site.bridgeV() - bridgeHalf(); v <= site.bridgeV() + bridgeHalf(); v++) {
 				if (shaft != null && v >= shaft.vMin() && v <= shaft.vMax()) {
 					continue;
@@ -92,7 +108,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 		}
 		for (int bay = 0; bay < site.bays(); bay++) {
 			final int centre = site.bayCentre(bay);
-			final StationLayout.Lift lift = site.buildingLift(layout);
+			final StationLayout.Lift lift = activeBuildingLift();
 			final boolean clearOfLift = lift == null || centre + 1 < lift.vMin() || centre - 1 > lift.vMax();
 			if (clearOfLift && (centre + 1 < site.innerStairMin() || centre - 1 > site.innerStairMax())) {
 				platformDoorway(uP, centre, b.window());
@@ -122,7 +138,6 @@ abstract class PlanBuilding extends PlanPlatforms {
 				keepClear(u, y, vBot);
 			}
 		}
-		final boolean sheet = landmark != null && landmark.anchor() == Landmark.Anchor.SIDE;
 		if (sheet && landmark.usesEnd()) {
 			// the sheet's wings stand over the platform doorways of their waiting rooms: reserved before its walls go up
 			for (final int side : new int[]{-1, 1}) {
@@ -475,11 +490,652 @@ abstract class PlanBuilding extends PlanPlatforms {
 					if (k > 0) {
 						put(Role.BUILDING_ROOF, u, at - 1, v, LocalDir.PLUS_V, solid);
 					}
-					final LocalDir up = v == b0 ? LocalDir.PLUS_V : v == b1 ? LocalDir.MINUS_V : u == a0 ? LocalDir.PLUS_U : LocalDir.MINUS_U;
-					put(Role.BUILDING_ROOF, u, at, v, up, stair, PITCH_STATE);
+					putRoofStair(u, at, v, a0, a1, b0, b1, stair);
 				}
 			}
 		}
+	}
+
+	/** Places a straight or 45-degree mitred outer-corner stair on a rectangular hipped roof ring. */
+	private void putRoofStair(int u, int y, int v, int a0, int a1, int b0, int b1, String stair) {
+		if (u == a0 && v == b0) {
+			put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_U, stair, "half=bottom,shape=outer_left");
+		} else if (u == a0 && v == b1) {
+			put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_U, stair, "half=bottom,shape=outer_right");
+		} else if (u == a1 && v == b0) {
+			put(Role.BUILDING_ROOF, u, y, v, LocalDir.MINUS_U, stair, "half=bottom,shape=outer_right");
+		} else if (u == a1 && v == b1) {
+			put(Role.BUILDING_ROOF, u, y, v, LocalDir.MINUS_U, stair, "half=bottom,shape=outer_left");
+		} else {
+			final LocalDir up = v == b0 ? LocalDir.PLUS_V : v == b1 ? LocalDir.MINUS_V : u == a0 ? LocalDir.PLUS_U : LocalDir.MINUS_U;
+			put(Role.BUILDING_ROOF, u, y, v, up, stair, PITCH_STATE);
+		}
+	}
+
+	private static final String UK_QUOIN = "aurelia_transit_architecture:uk_stucco_quoin";
+	private static final String UK_DRESSED = "aurelia_transit_architecture:uk_stucco_dressed";
+	private static final String UK_STRING_COURSE = "aurelia_transit_architecture:uk_brick_string_course";
+	private static final String UK_LINTEL = "aurelia_transit_architecture:uk_window_lintel";
+	private static final String UK_SILL = "aurelia_transit_architecture:uk_window_sill";
+	private static final String UK_SLATE_RIDGE = "aurelia_transit_architecture:uk_slate_ridge";
+	private static final String ARCH_SHOULDER = "minecraft:smooth_quartz_stairs";
+
+	/**
+	 * Victorian Italianate suburban station house after Teddington (1863, LSWR, Historic England 1410351): a symmetric
+	 * two-storey yellow-stock-brick house whose three central entrance bays step forward under a hipped slate roof with
+	 * overhanging bracketed eaves and six brick chimney stacks, flanked by recessed two-storey bays and single-storey arched
+	 * brick side wings.
+	 */
+	private void victorianBuilding() {
+		final StylePalette.Building b = palette.building();
+		final int uS = streetWall();
+		final int uP = site.platformWall(layout);
+		final int vS = site.vStart();
+		final int vE = site.vEnd();
+		final int vEntr = site.entranceV();
+		final int uA = uP - 2;
+		final int uB = uP - 1;
+		final int door = entranceHalf();
+
+		int canopyLo = 0;
+		int canopyHi = length - 1;
+		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			if (band.uMin() == layout.buildingWidth() && roof(band) == RoofType.CANOPY) {
+				canopyLo = canopyStart(band);
+				canopyHi = canopyEnd(band);
+				break;
+			}
+		}
+		// Symmetric 7-bay 2-storey house (21 cells each side of entranceV) when platform canopy gives room, else site.vStart..vEnd
+		final boolean fullSevenBay = wingBays == 0 && vEntr - 21 >= vS && vEntr + 21 <= canopyHi - 4;
+		final int vHouseS = fullSevenBay ? vEntr - 21 : vS;
+		final int vHouseE = fullSevenBay ? vEntr + 21 : vE;
+		final boolean wideFront = vHouseE - vHouseS >= 30;
+		final int vProjLo = wideFront ? vEntr - 9 : Math.max(vHouseS + 4, vEntr - 4);
+		final int vProjHi = wideFront ? vEntr + 9 : Math.min(vHouseE - 4, vEntr + 4);
+
+		// Reserve street entrance arch (3-wide clear doorway centred on vEntr; outer cells become stucco arch piers)
+		final int clearDoor = Math.min(door, 1);
+		for (int v = vEntr - clearDoor; v <= vEntr + clearDoor; v++) {
+			for (int y = 1; y <= 3; y++) {
+				keepClear(uS, y, v);
+			}
+		}
+		if (site.bridge()) {
+			final StationLayout.Lift shaft = activeBuildingLift();
+			for (int v = site.bridgeV() - bridgeHalf(); v <= site.bridgeV() + bridgeHalf(); v++) {
+				if (shaft != null && v >= shaft.vMin() && v <= shaft.vMax()) {
+					continue;
+				}
+				for (int y = StationGeometry.UPPER_WALK_Y; y <= StationGeometry.BUILDING_ROOF_Y - 1; y++) {
+					keepClear(uP, y, v);
+				}
+			}
+		}
+		// Central arched platform doorway aligned with the street entrance for a straight sightline through the hall
+		final StationLayout.Lift lift = activeBuildingLift();
+		if (lift == null || vEntr + 1 < lift.vMin() || vEntr - 1 > lift.vMax()) {
+			platformDoorway(uP, vEntr, b.window());
+			if (platformBesideBuilding()) {
+				cells.put(new Cell(uP, 4, vEntr - 1), new PlannedBlock(uP, 4, vEntr - 1, Role.WALL, ARCH_SHOULDER, LocalDir.MINUS_V, "", "half=top,shape=straight"));
+				cells.put(new Cell(uP, 4, vEntr + 1), new PlannedBlock(uP, 4, vEntr + 1, Role.WALL, ARCH_SHOULDER, LocalDir.PLUS_V, "", "half=top,shape=straight"));
+			}
+		}
+		// Secondary platform doorways only in outer flanking rooms, keeping the central booking hall symmetric
+		for (final int outerDoor : new int[]{vHouseS + 3, vHouseE - 3}) {
+			if (Math.abs(outerDoor - vEntr) >= 12
+					&& (lift == null || outerDoor + 1 < lift.vMin() || outerDoor - 1 > lift.vMax())
+					&& (outerDoor + 1 < site.innerStairMin() || outerDoor - 1 > site.innerStairMax())) {
+				platformDoorway(uP, outerDoor, b.window());
+			}
+		}
+
+		// Inner stair clearances
+		for (int y = 1; y <= StationGeometry.STAIR_STEPS; y++) {
+			final int v = site.innerStairV(y);
+			for (int u = uA; u <= uB; u++) {
+				keepClear(u, y + 1, v);
+				keepClear(u, y + 2, v);
+			}
+		}
+		final int vBot = site.innerStairV(1) + site.innerStairSide();
+		for (int u = uA; u <= uB; u++) {
+			for (int y = 1; y <= 3; y++) {
+				keepClear(u, y, vBot);
+			}
+		}
+
+		if (vHouseE > vE) {
+			extraSupport.add(new Box(0, -1, vE + 1, layout.buildingWidth() - 1, -1, vHouseE));
+			extraHeadroom.add(new Box(0, StationGeometry.WALK_Y, vE + 1, layout.buildingWidth() - 1, StationGeometry.BUILDING_ROOF_Y + 7, vHouseE));
+		}
+
+		// Ground floor tiles across the T-shaped 2-storey footprint (projecting 3 bays at uS..uP, recessed wings at uS+1..uP)
+		for (int v = vHouseS; v <= vHouseE; v++) {
+			final int uFront = v >= vProjLo && v <= vProjHi ? uS : uS + 1;
+			for (int u = uFront; u <= uP; u++) {
+				final boolean edge = u == uFront || u == uP || v == vHouseS || v == vHouseE
+						|| u == uS && (v == vProjLo || v == vProjHi);
+				final boolean border = !edge && (u == uFront + 1 || u == uP - 1 || v == vProjLo + 1 || v == vProjHi - 1);
+				final boolean porchPlinth = u == uS && v >= vProjLo && v <= vProjHi;
+				put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V,
+						porchPlinth ? UK_DRESSED : edge ? b.plinth() : border ? FLOOR_BORDER : b.floor());
+			}
+		}
+
+		// Street entrance ramps at uS - 2 .. uS - 1
+		final int uRamp = uS - StationGeometry.RAMP_LENGTH;
+		for (int v = vEntr - door; v <= vEntr + door; v++) {
+			put(Role.RAMP_LOWER, uRamp, StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U);
+			put(Role.RAMP_UPPER, uRamp + 1, StationGeometry.PLATFORM_Y, v, LocalDir.MINUS_U);
+			for (int y = 1; y <= 3; y++) {
+				keepClear(uRamp, y, v);
+				keepClear(uRamp + 1, y, v);
+			}
+		}
+
+		// Long walls (street facade with 3-bay central projection, and platform facade)
+		for (int v = vHouseS; v <= vHouseE; v++) {
+			final boolean inProj = v >= vProjLo && v <= vProjHi;
+			final int uFront = inProj ? uS : uS + 1;
+			final boolean streetQuoin = v == vHouseS || v == vHouseE || v == vProjLo || v == vProjHi;
+			final boolean platQuoin = v == vHouseS || v == vHouseE;
+			final LocalDir streetQuoinDir = (v == vHouseS || v == vProjLo) ? LocalDir.MINUS_U : LocalDir.PLUS_V;
+			final LocalDir platQuoinDir = v == vHouseS ? LocalDir.MINUS_V : LocalDir.PLUS_U;
+
+			// 2-wide sash windows centred in each 6-block bay
+			final int rel = Math.floorMod(v - (vEntr - 3), StationGeometry.BAY);
+			final boolean sashPair = (rel == 2 || rel == 3) && v > vHouseS + 1 && v < vHouseE - 1 && v != vProjLo && v != vProjHi;
+			final boolean centerDoorBay = Math.abs(v - vEntr) <= 2;
+			final boolean porchFlankArch = inProj && !centerDoorBay && sashPair;
+
+			for (int y = 1; y < StationGeometry.UPPER_FLOOR_Y; y++) {
+				// Street front ground storey: Teddington's projecting 3-bay porch front is dressed in cream rusticated stucco (geograph 6134993)
+				if (inProj) {
+					if (porchFlankArch) {
+						if (y == 1) {
+							put(Role.WALL, uFront, y, v, LocalDir.MINUS_U, UK_DRESSED);
+						} else if (y <= 3) {
+							put(Role.WINDOW, uFront, y, v, LocalDir.MINUS_U, b.window());
+						} else if (y == 4) {
+							final LocalDir jamb = rel == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+							put(Role.WALL, uFront, y, v, jamb, ARCH_SHOULDER, "half=top,shape=straight");
+						} else {
+							put(Role.WALL, uFront, y, v, LocalDir.MINUS_U, UK_DRESSED);
+						}
+					} else {
+						put(Role.WALL, uFront, y, v, LocalDir.MINUS_U, UK_DRESSED);
+					}
+				} else if (streetQuoin) {
+					putQuoin(uFront, y, v, streetQuoinDir);
+				} else if (sashPair && !centerDoorBay) {
+					if (y == 1) {
+						put(Role.WALL, uFront, y, v, LocalDir.MINUS_U, UK_SILL);
+					} else if (windowRow(y)) {
+						put(Role.WINDOW, uFront, y, v, LocalDir.MINUS_U, b.window());
+					} else {
+						put(Role.WALL, uFront, y, v, LocalDir.MINUS_U, UK_LINTEL);
+					}
+				} else {
+					put(Role.WALL, uFront, y, v, LocalDir.MINUS_U, b.wall());
+				}
+
+				// Platform front ground storey (matching arched windows flanking the central platform doorway, geograph 2670756)
+				if (platQuoin) {
+					putQuoin(uP, y, v, platQuoinDir);
+				} else if (porchFlankArch) {
+					if (y == 1) {
+						put(Role.WALL, uP, y, v, LocalDir.PLUS_U, UK_SILL);
+					} else if (y <= 3) {
+						put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
+					} else if (y == 4) {
+						final LocalDir jamb = rel == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+						put(Role.WALL, uP, y, v, jamb, ARCH_SHOULDER, "half=top,shape=straight");
+					} else {
+						put(Role.WALL, uP, y, v, LocalDir.PLUS_U, b.wall());
+					}
+				} else if (sashPair && !centerDoorBay) {
+					if (y == 1) {
+						put(Role.WALL, uP, y, v, LocalDir.PLUS_U, UK_SILL);
+					} else if (windowRow(y)) {
+						put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
+					} else {
+						put(Role.WALL, uP, y, v, LocalDir.PLUS_U, UK_LINTEL);
+					}
+				} else {
+					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, b.wall());
+				}
+			}
+
+			// Slim moulded cream string course at upper slab level
+			put(Role.WALL, uFront, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.MINUS_U, streetQuoin ? UK_DRESSED : UK_STRING_COURSE);
+			if (!(site.bridge() && v >= site.bridgeV() - bridgeHalf() && v <= site.bridgeV() + bridgeHalf())) {
+				put(Role.WALL, uP, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.PLUS_U, platQuoin ? UK_DRESSED : UK_STRING_COURSE);
+			}
+
+			// Upper storey (y = 7..11): 7 crisp white-painted 2-wide sash windows with navy sills & cream lintels
+			for (int y = StationGeometry.UPPER_WALK_Y; y <= StationGeometry.BUILDING_ROOF_Y - 1; y++) {
+				if (streetQuoin) {
+					putQuoin(uFront, y, v, streetQuoinDir);
+				} else if (sashPair) {
+					if (y == StationGeometry.UPPER_WALK_Y) {
+						put(Role.WALL, uFront, y, v, LocalDir.MINUS_U, UK_SILL);
+					} else if (windowRow(y)) {
+						put(Role.WINDOW, uFront, y, v, LocalDir.MINUS_U, b.window());
+					} else {
+						put(Role.WALL, uFront, y, v, LocalDir.MINUS_U, UK_LINTEL);
+					}
+				} else {
+					put(Role.WALL, uFront, y, v, LocalDir.MINUS_U, b.wall());
+				}
+
+				if (platQuoin) {
+					putQuoin(uP, y, v, platQuoinDir);
+				} else if (sashPair) {
+					if (y == StationGeometry.UPPER_WALK_Y) {
+						put(Role.WALL, uP, y, v, LocalDir.PLUS_U, UK_SILL);
+					} else if (windowRow(y)) {
+						put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
+					} else {
+						put(Role.WALL, uP, y, v, LocalDir.PLUS_U, UK_LINTEL);
+					}
+				} else {
+					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, b.wall());
+				}
+			}
+		}
+
+		// Close the 1-block return walls where the central 3 bays step forward from uS+1 to uS
+		for (final int vRet : new int[]{vProjLo, vProjHi}) {
+			final LocalDir outDir = vRet == vProjLo ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+			for (int y = 1; y <= StationGeometry.BUILDING_ROOF_Y - 1; y++) {
+				put(Role.WALL, uS + 1, y, vRet, outDir, y == StationGeometry.UPPER_FLOOR_Y ? UK_STRING_COURSE : b.wall());
+			}
+		}
+
+		// End walls of the 2-storey house (vHouseS & vHouseE): one centred 2-wide upper sash window (geograph 6134993)
+		final int uMid = (uS + 1 + uP) / 2;
+		for (int u = uS + 2; u <= uP - 1; u++) {
+			final boolean endSash = u == uMid - 1 || u == uMid;
+			for (int y = 1; y < StationGeometry.UPPER_FLOOR_Y; y++) {
+				put(Role.WALL, u, y, vHouseS, LocalDir.MINUS_V, b.wall());
+				put(Role.WALL, u, y, vHouseE, LocalDir.PLUS_V, b.wall());
+			}
+			put(Role.WALL, u, StationGeometry.UPPER_FLOOR_Y, vHouseS, LocalDir.MINUS_V, UK_STRING_COURSE);
+			put(Role.WALL, u, StationGeometry.UPPER_FLOOR_Y, vHouseE, LocalDir.PLUS_V, UK_STRING_COURSE);
+			for (int y = StationGeometry.UPPER_WALK_Y; y <= StationGeometry.BUILDING_ROOF_Y - 1; y++) {
+				for (final int vEnd : new int[]{vHouseS, vHouseE}) {
+					final LocalDir dir = vEnd == vHouseS ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+					if (endSash) {
+						if (y == StationGeometry.UPPER_WALK_Y) {
+							put(Role.WALL, u, y, vEnd, dir, UK_SILL);
+						} else if (windowRow(y)) {
+							put(Role.WINDOW, u, y, vEnd, dir, b.window());
+						} else {
+							put(Role.WALL, u, y, vEnd, dir, UK_LINTEL);
+						}
+					} else {
+						put(Role.WALL, u, y, vEnd, dir, b.wall());
+					}
+				}
+			}
+		}
+
+		// Upper floor slab with light panels (every indoor ground cell within Manhattan distance <= 4 of a LIGHT_PANEL)
+		final int wellMin = Math.min(site.innerStairV(StationGeometry.STAIR_STEPS), site.innerStairV(1));
+		final int wellMax = Math.max(site.innerStairV(StationGeometry.STAIR_STEPS), site.innerStairV(1));
+		for (int v = vHouseS + 1; v <= vHouseE - 1; v++) {
+			final int uFront = v > vProjLo && v < vProjHi ? uS : uS + 1;
+			for (int u = uFront + 1; u <= uP - 1; u++) {
+				if (u >= uA && u <= uB && v >= wellMin && v <= wellMax) {
+					continue;
+				}
+				final boolean nearWell = (u == uA - 1 && (v == wellMin || v == wellMax));
+				if (Math.floorMod(u + v, 4) == 0 || nearWell) {
+					put(Role.LIGHT_PANEL, u, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.PLUS_V, b.light());
+				} else {
+					put(Role.FLOOR, u, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.PLUS_V, b.upperFloor());
+				}
+			}
+		}
+
+		// Bracketed Italianate eaves + compound hipped slate roof + 6 brick chimneys
+		final int top = roofY();
+		victorianCompoundRoof(top, uS, uP, vHouseS, vHouseE, vProjLo, vProjHi);
+
+		// Inner stair flights, cleanly enclosed behind a plaster partition wall so no raw stair steps cut into the hall
+		for (int y = 1; y <= StationGeometry.STAIR_STEPS; y++) {
+			final int v = site.innerStairV(y);
+			for (int u = uA; u <= uB; u++) {
+				put(Role.STAIR, u, y, v, site.innerStairFront(), b.stair());
+				for (int below = StationGeometry.WALK_Y; below < y; below++) {
+					put(Role.WALL, u, below, v, site.innerStairFront(), b.interiorWall());
+				}
+			}
+		}
+		final int side = site.innerStairSide();
+		for (int y = 1; y <= StationGeometry.STAIR_STEPS; y++) {
+			final int v = site.innerStairV(y);
+			for (int h = 1; h < StationGeometry.UPPER_FLOOR_Y; h++) {
+				put(Role.WALL, uA - 1, h, v, LocalDir.MINUS_U, b.interiorWall());
+			}
+			put(Role.BARRIER, uA - 1, StationGeometry.UPPER_WALK_Y, v, LocalDir.PLUS_U);
+		}
+		for (int u = uA; u <= uB; u++) {
+			put(Role.BARRIER, u, StationGeometry.UPPER_WALK_Y, site.innerStairV(1) + side, side < 0 ? LocalDir.PLUS_V : LocalDir.MINUS_V);
+		}
+
+		// 1-storey arched yellow-stock-brick side wings (Teddington's right-hand arched wing & left-hand footbridge wing)
+		if (platformBesideBuilding() && wingBays == 0 && uP - (uS + 2) >= 5) {
+			final int rightSpan = vHouseS - 12 >= Math.max(2, canopyLo + 3) ? 12 : vHouseS - 6 >= Math.max(2, canopyLo + 2) ? 6 : 0;
+			if (rightSpan > 0) {
+				victorianSideWing(uS + 2, uP, vHouseS - rightSpan, vHouseS - 1, -1);
+			}
+			if (vHouseE + 6 <= Math.min(length - 3, canopyHi - 3)) {
+				victorianSideWing(uS + 2, uP, vHouseE + 1, vHouseE + 6, 1);
+			}
+		}
+	}
+
+	private void putQuoin(int u, int y, int v, LocalDir cornerDir) {
+		put(Role.WALL, u, y, v, cornerDir, (y & 1) == 1 ? UK_DRESSED : UK_QUOIN);
+	}
+
+	/**
+	 * Single-storey arched yellow-stock-brick wing beside the two-storey house (geograph 6134993, 4331043): round-headed
+	 * arched windows, bracketed cream cornice at y=5, recessed ceiling lights over wooden waiting benches, and a low hipped
+	 * slate roof at y=6..7.
+	 */
+	private void victorianSideWing(int u0, int uP, int v0, int v1, int endSide) {
+		final StylePalette.Building b = palette.building();
+		extraSupport.add(new Box(0, -1, v0, layout.buildingWidth() - 1, -1, v1));
+		extraHeadroom.add(new Box(0, StationGeometry.WALK_Y, v0, layout.buildingWidth() - 1, 9, v1));
+
+		final int vEnd = endSide < 0 ? v0 : v1;
+		final LocalDir endDir = endSide < 0 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+		final int doorMid = (v0 + v1) / 2;
+		final boolean hasDoor = platformBesideBuilding() && v1 - v0 >= 5;
+		if (hasDoor) {
+			for (int dv = -1; dv <= 1; dv++) {
+				for (int y = 1; y <= 3; y++) {
+					keepClear(uP, y, doorMid + dv);
+				}
+			}
+		}
+
+		for (int u = u0; u <= uP; u++) {
+			for (int v = v0; v <= v1; v++) {
+				final boolean edge = u == u0 || u == uP || v == vEnd;
+				put(Role.FLOOR, u, StationGeometry.PLATFORM_Y, v, LocalDir.PLUS_V, edge ? b.plinth() : b.floor());
+			}
+		}
+
+		for (int v = v0; v <= v1; v++) {
+			final boolean outerCorner = v == vEnd;
+			final int local = Math.floorMod(v - v0, 6);
+			final boolean archWin = (local == 2 || local == 3) && v > v0 && v < v1;
+			for (int y = 1; y <= 4; y++) {
+				if (outerCorner) {
+					putQuoin(u0, y, v, endSide < 0 ? LocalDir.MINUS_U : LocalDir.PLUS_V);
+					putQuoin(uP, y, v, endSide < 0 ? LocalDir.MINUS_V : LocalDir.PLUS_U);
+				} else {
+					if (archWin) {
+						if (y == 1) {
+							put(Role.WALL, u0, y, v, LocalDir.MINUS_U, UK_SILL);
+						} else if (y <= 3) {
+							put(Role.WINDOW, u0, y, v, LocalDir.MINUS_U, b.window());
+						} else {
+							cells.put(new Cell(u0, y, v), new PlannedBlock(u0, y, v, Role.WALL, ARCH_SHOULDER,
+									local == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V, "", "half=top,shape=straight"));
+						}
+					} else {
+						put(Role.WALL, u0, y, v, LocalDir.MINUS_U, b.wall());
+					}
+					final boolean inDoor = hasDoor && Math.abs(v - doorMid) <= 1;
+					if (!inDoor) {
+						if (archWin) {
+							if (y == 1) {
+								put(Role.WALL, uP, y, v, LocalDir.PLUS_U, UK_SILL);
+							} else if (y <= 3) {
+								put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
+							} else {
+								cells.put(new Cell(uP, y, v), new PlannedBlock(uP, y, v, Role.WALL, ARCH_SHOULDER,
+										local == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V, "", "half=top,shape=straight"));
+							}
+						} else {
+							put(Role.WALL, uP, y, v, LocalDir.PLUS_U, b.wall());
+						}
+					} else if (y == 4) {
+						if (v == doorMid) {
+							put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
+						} else {
+							cells.put(new Cell(uP, y, v), new PlannedBlock(uP, y, v, Role.WALL, ARCH_SHOULDER,
+									v < doorMid ? LocalDir.MINUS_V : LocalDir.PLUS_V, "", "half=top,shape=straight"));
+						}
+					}
+				}
+			}
+			// Waiting bench along the inside of the wing's street wall
+			if (spec.furniture() && archWin && !taken(u0 + 1, StationGeometry.WALK_Y, v)) {
+				put(Role.BENCH, u0 + 1, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, b.bench());
+			}
+		}
+
+		// End wall of the 1-storey wing
+		final int uWingMid = (u0 + uP) / 2;
+		for (int u = u0 + 1; u <= uP - 1; u++) {
+			final boolean win = u == uWingMid || u == uWingMid - 1;
+			for (int y = 1; y <= 4; y++) {
+				if (win && y == 1) {
+					put(Role.WALL, u, y, vEnd, endDir, UK_SILL);
+				} else if (win && (y == 2 || y == 3)) {
+					put(Role.WINDOW, u, y, vEnd, endDir, b.window());
+				} else if (win && y == 4) {
+					put(Role.WALL, u, y, vEnd, endDir, UK_LINTEL);
+				} else {
+					put(Role.WALL, u, y, vEnd, endDir, b.wall());
+				}
+			}
+		}
+
+		// Eaves & lit ceiling at y = 5, plus low hipped slate roof at y = 6..7
+		final int wingTop = 5;
+		for (int u = u0; u <= uP; u++) {
+			for (int v = v0; v <= v1; v++) {
+				final boolean outerEdge = u == u0 || u == uP || v == vEnd;
+				if (outerEdge) {
+					final LocalDir dir = u == u0 ? LocalDir.MINUS_U : u == uP ? LocalDir.PLUS_U : endDir;
+					put(Role.BUILDING_ROOF, u, wingTop, v, dir, b.cornice());
+				} else if (Math.floorMod(u + v, 3) == 0) {
+					put(Role.LIGHT_PANEL, u, wingTop, v, LocalDir.PLUS_V, b.light());
+				} else {
+					put(Role.BUILDING_ROOF, u, wingTop, v, LocalDir.PLUS_V, b.interiorWall());
+				}
+			}
+		}
+		final String[] tiles = pitchedRoof();
+		if (tiles != null) {
+			for (int u = u0; u <= uP; u++) {
+				for (int v = v0; v <= v1; v++) {
+					if (u == u0 || u == uP || v == v0 || v == v1) {
+						putRoofStair(u, wingTop + 1, v, u0, uP, v0, v1, tiles[0]);
+					} else {
+						put(Role.BUILDING_ROOF, u, wingTop + 1, v, LocalDir.PLUS_V, tiles[1]);
+						put(Role.BUILDING_ROOF, u, wingTop + 2, v, LocalDir.PLUS_V, UK_SLATE_RIDGE);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Overhanging Italianate bracketed eaves at {@code top}, six yellow-brick chimney stacks, and a compound hipped slate roof
+	 * over the T-shaped two-storey house (with 45-degree outer hip and inner valley stairs and a smooth slate-and-lead ridge).
+	 */
+	private void victorianCompoundRoof(int top, int uS, int uP, int vHouseS, int vHouseE, int vProjLo, int vProjHi) {
+		final StylePalette.Building b = palette.building();
+		final String[] pitched = pitchedRoof();
+		for (int v = vHouseS; v <= vHouseE; v++) {
+			final int uFront = v >= vProjLo && v <= vProjHi ? uS : uS + 1;
+			for (int u = uFront; u <= uP; u++) {
+				final boolean outer = u == uFront || u == uP || v == vHouseS || v == vHouseE
+						|| u == uS && (v == vProjLo || v == vProjHi);
+				if (outer) {
+					final LocalDir dir = u == uFront ? LocalDir.MINUS_U : u == uP ? LocalDir.PLUS_U
+							: (v == vHouseS || v == vProjLo) ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+					put(Role.BUILDING_ROOF, u, top, v, dir, b.cornice());
+				} else if (Math.floorMod(u + v, 4) == 0) {
+					put(Role.LIGHT_PANEL, u, top, v, LocalDir.PLUS_V, b.light());
+				} else {
+					put(Role.BUILDING_ROOF, u, top, v, LocalDir.PLUS_V, b.roof());
+				}
+			}
+		}
+		if (pitched == null) {
+			return;
+		}
+		final String stair = pitched[0];
+		final String solid = pitched[1];
+
+		// Compute exact Chebyshev roof ring height h(u, v) >= 0 inside the T-shaped footprint
+		final int uSpan = uP - uS + 1;
+		final int vSpan = vHouseE - vHouseS + 1;
+		final int[][] h = new int[uSpan][vSpan];
+		int maxH = 0;
+		for (int u = uS; u <= uP; u++) {
+			for (int v = vHouseS; v <= vHouseE; v++) {
+				if (!inVictorianHouse(u, v, uS, uP, vHouseS, vHouseE, vProjLo, vProjHi)) {
+					h[u - uS][v - vHouseS] = -1;
+					continue;
+				}
+				int ring = 0;
+				while (ring < 16) {
+					boolean outside = false;
+					final int r = ring + 1;
+					for (int du = -r; du <= r && !outside; du++) {
+						for (int dv = -r; dv <= r && !outside; dv++) {
+							if (Math.max(Math.abs(du), Math.abs(dv)) == r
+									&& !inVictorianHouse(u + du, v + dv, uS, uP, vHouseS, vHouseE, vProjLo, vProjHi)) {
+								outside = true;
+							}
+						}
+					}
+					if (outside) {
+						break;
+					}
+					ring++;
+				}
+				h[u - uS][v - vHouseS] = ring;
+				maxH = Math.max(maxH, ring);
+			}
+		}
+
+		// Six yellow-stock-brick chimney stacks with a slim stucco necking course and terracotta chimney pots
+		final int capY = top + 1 + maxH + 2;
+		final int midV = (vProjLo + vProjHi) / 2;
+		final int[] chimVs = vHouseE - vHouseS >= 28
+				? new int[]{vHouseS + 4, midV - 1, vHouseE - 5}
+				: new int[]{vHouseS + 3, vHouseE - 4};
+		for (final int cv : chimVs) {
+			for (final int cu : new int[]{uS + 3, uP - 3}) {
+				if (cu <= uS + 1 || cu >= uP - 1 || cv <= vHouseS + 1 || cv + 1 >= vHouseE - 1) {
+					continue;
+				}
+				for (int y = top + 1; y <= capY; y++) {
+					put(Role.BUILDING_ROOF, cu, y, cv, LocalDir.PLUS_V, b.wall());
+					put(Role.BUILDING_ROOF, cu, y, cv + 1, LocalDir.PLUS_V, b.wall());
+				}
+				put(Role.BUILDING_ROOF, cu, capY + 1, cv, LocalDir.PLUS_V, "minecraft:flower_pot");
+				put(Role.BUILDING_ROOF, cu, capY + 1, cv + 1, LocalDir.PLUS_V, "minecraft:flower_pot");
+			}
+		}
+
+		// Lay compound hipped slate slopes with exact straight / outer-hip / inner-valley stairs + smooth slate ridge cap
+		for (int u = uS; u <= uP; u++) {
+			for (int v = vHouseS; v <= vHouseE; v++) {
+				final int k = h[u - uS][v - vHouseS];
+				if (k < 0) {
+					continue;
+				}
+				final int y = top + 1 + k;
+				if (k > 0) {
+					put(Role.BUILDING_ROOF, u, y - 1, v, LocalDir.PLUS_V, solid);
+				}
+				final boolean upPu = roofHigher(h, u + 1, v, uS, uP, vHouseS, vHouseE, k);
+				final boolean upMu = roofHigher(h, u - 1, v, uS, uP, vHouseS, vHouseE, k);
+				final boolean upPv = roofHigher(h, u, v + 1, uS, uP, vHouseS, vHouseE, k);
+				final boolean upMv = roofHigher(h, u, v - 1, uS, uP, vHouseS, vHouseE, k);
+
+				if (!upPu && !upMu && !upPv && !upMv) {
+					// Ridge peak: smooth low-profile Welsh slate & lead roll cap instead of a blocky stair step
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, UK_SLATE_RIDGE);
+				} else if (upPu && upPv) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_U, stair, "half=bottom,shape=inner_left");
+				} else if (upPu && upMv) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_U, stair, "half=bottom,shape=inner_right");
+				} else if (upMu && upPv) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.MINUS_U, stair, "half=bottom,shape=inner_right");
+				} else if (upMu && upMv) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.MINUS_U, stair, "half=bottom,shape=inner_left");
+				} else if (upPu) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_U, stair, PITCH_STATE);
+				} else if (upMu) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.MINUS_U, stair, PITCH_STATE);
+				} else if (upPv) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, stair, PITCH_STATE);
+				} else if (upMv) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.MINUS_V, stair, PITCH_STATE);
+				}
+			}
+		}
+		// Second pass for outer hip corners (where neither cardinal neighbour is higher, only a diagonal neighbour is k + 1)
+		for (int u = uS; u <= uP; u++) {
+			for (int v = vHouseS; v <= vHouseE; v++) {
+				final int k = h[u - uS][v - vHouseS];
+				if (k < 0 || k == maxH) {
+					continue;
+				}
+				final boolean anyCard = roofHigher(h, u + 1, v, uS, uP, vHouseS, vHouseE, k)
+						|| roofHigher(h, u - 1, v, uS, uP, vHouseS, vHouseE, k)
+						|| roofHigher(h, u, v + 1, uS, uP, vHouseS, vHouseE, k)
+						|| roofHigher(h, u, v - 1, uS, uP, vHouseS, vHouseE, k);
+				if (anyCard) {
+					continue;
+				}
+				final int y = top + 1 + k;
+				final PlannedBlock cur = at(u, y, v);
+				if (cur == null || !cur.blockId().equals(UK_SLATE_RIDGE)) {
+					continue;
+				}
+				final boolean dPP = roofHigher(h, u + 1, v + 1, uS, uP, vHouseS, vHouseE, k);
+				final boolean dPM = roofHigher(h, u + 1, v - 1, uS, uP, vHouseS, vHouseE, k);
+				final boolean dMP = roofHigher(h, u - 1, v + 1, uS, uP, vHouseS, vHouseE, k);
+				final boolean dMM = roofHigher(h, u - 1, v - 1, uS, uP, vHouseS, vHouseE, k);
+				if (dPP && !dPM && !dMP && !dMM) {
+					cells.put(new Cell(u, y, v), new PlannedBlock(u, y, v, Role.BUILDING_ROOF, stair, LocalDir.PLUS_U, "", "half=bottom,shape=outer_left"));
+				} else if (dPM && !dPP && !dMP && !dMM) {
+					cells.put(new Cell(u, y, v), new PlannedBlock(u, y, v, Role.BUILDING_ROOF, stair, LocalDir.PLUS_U, "", "half=bottom,shape=outer_right"));
+				} else if (dMP && !dPP && !dPM && !dMM) {
+					cells.put(new Cell(u, y, v), new PlannedBlock(u, y, v, Role.BUILDING_ROOF, stair, LocalDir.MINUS_U, "", "half=bottom,shape=outer_right"));
+				} else if (dMM && !dPP && !dPM && !dMP) {
+					cells.put(new Cell(u, y, v), new PlannedBlock(u, y, v, Role.BUILDING_ROOF, stair, LocalDir.MINUS_U, "", "half=bottom,shape=outer_left"));
+				}
+			}
+		}
+	}
+
+	private static boolean inVictorianHouse(int u, int v, int uS, int uP, int vHouseS, int vHouseE, int vProjLo, int vProjHi) {
+		if (v < vHouseS || v > vHouseE || u > uP) {
+			return false;
+		}
+		return u >= (v >= vProjLo && v <= vProjHi ? uS : uS + 1);
+	}
+
+	private static boolean roofHigher(int[][] h, int u, int v, int uS, int uP, int vHouseS, int vHouseE, int k) {
+		if (u < uS || u > uP || v < vHouseS || v > vHouseE) {
+			return false;
+		}
+		return h[u - uS][v - vHouseS] > k;
 	}
 
 	/**
