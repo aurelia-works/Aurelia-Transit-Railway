@@ -348,27 +348,19 @@
 					<div id="checks"></div>
 				</section>
 				<section class="card" aria-labelledby="c-layers">
-					<h2 class="label" id="c-layers">Layers</h2>
+					<h2 class="label" id="c-layers">Layers &amp; cutaway</h2>
 					<div class="layers" id="layers" role="group" aria-labelledby="c-layers"></div>
-					<label class="field" for="cut"><span class="f-name">Cutaway</span>
-						<select id="cut"><option value="none">Show everything</option><option value="height">Cut by height</option><option value="across">Cut across the tracks</option><option value="along">Cut along the tracks</option></select>
+					<label class="field cut-field" for="cut"><span class="f-name">Cutaway</span>
+						<select id="cut"><option value="none">Show everything</option><option value="height">Cut by height</option><option value="across">Cut across</option><option value="along">Cut along</option></select>
 					</label>
 					<input type="range" id="cutAt" min="0" max="100" value="100" aria-label="Cut position" disabled>
 				</section>
-				<section class="card quiet" aria-label="Check a paste">
-					<details class="fold">
-						<summary>Check a paste</summary>
-						<p class="note">Plan the station here, download the .schem, stand where you will paste and run <code>//paste</code>. Then run <code>/ata_station verify paste</code> in game (operators). It says "Exact" when every block is as planned, or lists the first blocks that differ. The file holds the blocks only: name sign text, screens and the MTR connections come from building with the generator.</p>
-					</details>
-				</section>
-				<section class="card" aria-labelledby="c-mat">
-					<h2 class="label" id="c-mat">Materials</h2>
+				<section class="card quiet" aria-labelledby="c-mat">
+					<h2 class="sr" id="c-mat">Materials and blueprint details</h2>
 					<details class="fold" id="matFold">
 						<summary>Block counts and stacks</summary>
 						<table class="mat" id="materials"></table>
 					</details>
-				</section>
-				<section class="card quiet" aria-label="Details">
 					<details class="fold">
 						<summary>What you asked for</summary>
 						<table id="reqTable"></table>
@@ -378,6 +370,10 @@
 						<div id="fromText"></div>
 					</details>
 					<details class="fold">
+						<summary>Verify a schematic paste</summary>
+						<p class="note">Download the <code>.schem</code>, stand at your paste spot, run <code>//paste</code>, then run <code>/ata_station verify paste</code> in game. Blocks are verified cell-for-cell; live sign text, screens and MTR station links are created when built with the generator.</p>
+					</details>
+					<details class="fold">
 						<summary>Blueprint data</summary>
 						<pre id="raw"></pre>
 					</details>
@@ -385,13 +381,9 @@
 			</div>
 
 			<div class="dock">
-				<div class="dock-row export">
-					<button type="button" id="exportBtn" title="Download the planned station as a .schem file for WorldEdit, FAWE or Litematica">Download .schem</button>
-				</div>
-				<p class="note" id="exportNote" role="status"></p>
 				<div id="game" class="game" hidden>
-					<div class="dock-row">
-						<button type="button" class="primary" data-send="plan" title="Plan this station in front of you, facing the way you look">Plan in front of me</button>
+					<div class="dock-row main-actions">
+						<button type="button" class="tonal" data-send="plan" title="Plan this station in front of you, facing the way you look">Plan in front</button>
 						<button type="button" class="go" data-send="build" title="Build the planned station">Build it</button>
 					</div>
 					<div class="dock-row quiet">
@@ -399,17 +391,21 @@
 						<button type="button" data-send="undo">Undo last build</button>
 					</div>
 					<p id="sent" class="note" role="status"></p>
-					<div class="dock-row files">
+					<div class="dock-row files st-only" id="filesRow">
 						<select id="fileList" aria-label="Station files" title="Stations saved here or in the game's station editor"></select>
 						<button type="button" id="fileOpen" title="Open this station file">Open</button>
 						<button type="button" id="fileSave" title="Save this station under its name, for the editor in the game">Save</button>
 					</div>
-					<p id="fileNote" class="note" role="status"></p>
+					<p id="fileNote" class="note st-only" role="status"></p>
 				</div>
 				<div id="offline" class="offline" hidden>
 					<button type="button" class="primary wide" id="copyCmd">Copy /ata_station command</button>
-					<p class="note" id="cmdNote">Paste it in chat in your world (needs cheats) to plan this station in front of you. Open the studio from the Station Wrench to build from here.</p>
+					<p class="note" id="cmdNote">Paste in world chat to preview, or open Studio from the Station Wrench to build directly.</p>
 				</div>
+				<div class="dock-row export">
+					<button type="button" id="exportBtn" title="Download the planned station as a .schem file for WorldEdit, FAWE or Litematica">Download .schem</button>
+				</div>
+				<p class="note" id="exportNote" role="status"></p>
 			</div>
 		</aside>
 	</main>

@@ -1192,10 +1192,21 @@
 
 	async function listFiles(select) {
 		const list = $("fileList");
+		const filesRow = $("filesRow");
 		try {
 			const r = await fetch("api/stations", { headers: { "X-Studio-Token": TOKEN }, cache: "no-store" });
+			if (r.status === 409) {
+				if (filesRow) {
+					filesRow.hidden = true;
+				}
+				$("fileNote").textContent = "";
+				return;
+			}
 			if (!r.ok) {
 				throw new Error(await r.text());
+			}
+			if (filesRow) {
+				filesRow.hidden = false;
 			}
 			const { stations } = await r.json();
 			list.innerHTML = "";
@@ -3447,21 +3458,25 @@
 			? ["bad", "!", "Can't build this yet", plural(fails, "problem") + " to fix first"]
 			: warns ? ["warned", "!", "Ready to build", plural(warns, "thing") + " worth a look" + (tally ? " · " + tally : "")]
 				: ["good", "✓", "Ready to build", "All " + plural(passed.length, "check") + " passed"];
-		const all = problems.concat(passed);
-		const shown = report.open ? all : all.slice(0, Math.max(problems.length, 8));
-		$("checks").innerHTML = "<div class='verdict " + verdict[0] + "'><span class='icon' aria-hidden='true'>" + verdict[1] + "</span><div><h3>"
-			+ verdict[2] + "</h3><p>" + verdict[3] + "</p></div></div>"
-			+ "<ul class='checks'>" + shown.map((c) => "<li class='" + c.status + "'><span class='sr'>" + (c.status === "PASS" ? "Passed: " : c.status === "FAIL" ? "Failed: " : "Warning: ")
-				+ "</span><div>" + (c.title ? "<b class='ttl'>" + esc(c.title) + "</b> " : "") + esc(c.message)
-				+ (c.fix ? "<span class='fix'>Next: " + esc(c.fix) + "</span>" : "") + "</div></li>").join("") + "</ul>"
-			+ (all.length > shown.length ? "<button type='button' class='more' id='moreChecks'>Show all " + all.length + " checks</button>"
-				: report.open && all.length > 8 ? "<button type='button' class='more' id='moreChecks'>Show fewer</button>" : "");
-		const more = $("moreChecks");
-		if (more) {
-			more.addEventListener("click", () => {
-				report.open = !report.open;
-				report(plan);
-				$("moreChecks") && $("moreChecks").focus();
+		const renderCheck = (c) => "<li class='" + c.status + "'><span class='sr'>" + (c.status === "PASS" ? "Passed: " : c.status === "FAIL" ? "Failed: " : "Warning: ")
+			+ "</span><div>" + (c.title ? "<b class='ttl'>" + esc(c.title) + "</b> " : "") + esc(c.message)
+			+ (c.fix ? "<span class='fix'>Next: " + esc(c.fix) + "</span>" : "") + "</div></li>";
+		const verdictHtml = "<div class='verdict " + verdict[0] + "'><span class='icon' aria-hidden='true'>" + verdict[1] + "</span><div><h3>"
+			+ verdict[2] + "</h3><p>" + verdict[3] + "</p></div></div>";
+		if (problems.length === 0) {
+			$("checks").innerHTML = verdictHtml
+				+ "<details class='fold checks-fold'" + (report.open ? " open" : "") + "><summary>Inspect all " + passed.length + " passed checks</summary>"
+				+ "<ul class='checks'>" + passed.map(renderCheck).join("") + "</ul></details>";
+		} else {
+			$("checks").innerHTML = verdictHtml
+				+ "<ul class='checks'>" + problems.map(renderCheck).join("") + "</ul>"
+				+ (passed.length ? "<details class='fold checks-fold'" + (report.open ? " open" : "") + "><summary>Show " + passed.length + " passed checks</summary>"
+					+ "<ul class='checks'>" + passed.map(renderCheck).join("") + "</ul></details>" : "");
+		}
+		const fold = $("checks").querySelector(".checks-fold");
+		if (fold) {
+			fold.addEventListener("toggle", () => {
+				report.open = fold.open;
 			});
 		}
 	}
