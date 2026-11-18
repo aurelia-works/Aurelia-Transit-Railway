@@ -3,6 +3,7 @@ package org.mtr.aurelia.client.ui;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import org.mtr.aurelia.client.screen.AureliaPanelScreen;
+import org.mtr.aurelia.client.screen.RoadDashboardScreen;
 import org.mtr.aurelia.client.ui.AureliaUiSettings.ScreenId;
 import org.mtr.mod.screen.ConfigScreen;
 import org.mtr.mod.screen.DashboardScreen;
@@ -28,7 +29,7 @@ public final class AureliaUi {
 	}
 
 	public static ScreenId id(Screen screen) {
-		if (screen instanceof DashboardScreen) {
+		if (screen instanceof DashboardScreen || screen instanceof RoadDashboardScreen) {
 			return ScreenId.DASHBOARD;
 		}
 		if (screen instanceof EditStationScreen) {

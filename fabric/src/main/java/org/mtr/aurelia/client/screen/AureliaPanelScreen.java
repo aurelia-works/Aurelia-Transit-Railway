@@ -130,6 +130,10 @@ public final class AureliaPanelScreen extends Screen {
 	}
 
 	private static final List<Tool> TOOLS = List.of(
+			new Tool("dashboard", false, parent -> {
+				org.mtr.aurelia.dashboard.UnifiedDashboardClient.requestOpen(null);
+				return null;
+			}),
 			new Tool("presets", true, TrainPresetScreen::new),
 			new Tool("stops", true, RouteStopsScreen::new),
 			new Tool("return", true, ReturnRouteScreen::new),
@@ -293,8 +297,12 @@ public final class AureliaPanelScreen extends Screen {
 		final boolean canEdit = MtrBridge.canEdit();
 		for (int i = 0; i < TOOLS.size(); i++) {
 			final Tool tool = TOOLS.get(i);
-			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.tools." + tool.key()), b -> client.setScreen(tool.open().apply(this)))
-					.dimensions(left + (i / rows) * (buttonWidth + 8), top + (i % rows) * TOOL_ROW, buttonWidth, 20).build());
+			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.tools." + tool.key()), b -> {
+				final Screen next = tool.open().apply(this);
+				if (next != null) {
+					client.setScreen(next);
+				}
+			}).dimensions(left + (i / rows) * (buttonWidth + 8), top + (i % rows) * TOOL_ROW, buttonWidth, 20).build());
 			button.active = canEdit || !tool.needsEdit();
 		}
 	}

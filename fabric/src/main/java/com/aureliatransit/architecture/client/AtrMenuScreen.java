@@ -85,11 +85,15 @@ public final class AtrMenuScreen extends Screen {
 			CodexScreen.openChapter("Finding your way");
 		}).dimensions(left + BUTTON_WIDTH + COLUMN_GAP, top + ROW * 2, BUTTON_WIDTH, 20).build())
 				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.menu.build.wayfinding.tooltip")));
+		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.build.dashboard"), b ->
+				org.mtr.aurelia.dashboard.UnifiedDashboardClient.requestOpen(null))
+				.dimensions(left, top + ROW * 3, BUTTON_WIDTH, 20).build())
+				.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.menu.build.dashboard.tooltip")));
 		final ButtonWidget give = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.build.give"), b -> {
 			if (client.player != null) {
 				client.player.networkHandler.sendChatCommand("give @s " + Registries.ITEM.getId(ModItems.WRENCH));
 			}
-		}).dimensions(left, top + ROW * 3, BUTTON_WIDTH * 2 + COLUMN_GAP, 20).build());
+		}).dimensions(left + BUTTON_WIDTH + COLUMN_GAP, top + ROW * 3, BUTTON_WIDTH, 20).build());
 		give.active = client.player != null && client.player.hasPermissionLevel(2);
 		give.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.menu.build.give.tooltip")));
 	}

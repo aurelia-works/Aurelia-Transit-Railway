@@ -85,6 +85,8 @@ public final class AureliaClient implements ClientModInitializer {
 		PassengerClient.register();
 		PassengerDrawSettings.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.client.ui.AureliaUiSettings.load(FabricLoader.getInstance().getConfigDir());
+		org.mtr.aurelia.dashboard.DashboardSettings.load(FabricLoader.getInstance().getConfigDir());
+		org.mtr.aurelia.dashboard.UnifiedDashboardClient.register();
 		org.mtr.aurelia.route.RouteControlSettings.load();
 		org.mtr.aurelia.sound.SoundProfileStore.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.sound.SoundProfileReloadListener.register();
@@ -102,6 +104,14 @@ public final class AureliaClient implements ClientModInitializer {
 
 	private static Method magicMenuOpenMethod;
 	private static boolean magicMenuOpenLookedUp;
+
+	public static boolean isMagicLoaded() {
+		return MAGIC_LOADED;
+	}
+
+	public static boolean isMagicMenuOpen(Screen screen) {
+		return magicMenuOpen(screen);
+	}
 
 	/** MAGIC adds a public {@code jme$isOverlayMenuOpen()} to MTR's dashboard; its dropdown opens where the button is. */
 	private static boolean magicMenuOpen(Screen screen) {

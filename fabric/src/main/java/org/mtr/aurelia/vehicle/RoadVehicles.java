@@ -53,6 +53,7 @@ public final class RoadVehicles {
 	}
 
 	public static void register() {
+		org.mtr.aurelia.dashboard.DashboardPackets.registerServer();
 		ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(CAR_ITEM));
 		BikeShare.register();
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> serverSettings = RoadVehicleSettings.load(FabricLoader.getInstance().getConfigDir()));
