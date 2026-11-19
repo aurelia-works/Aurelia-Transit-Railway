@@ -77,7 +77,7 @@ public final class StationPresets {
 			// footbridge, Surbiton's two islands, Coventry's island and side platform under a covered overbridge; British platforms
 			// have no painted door markers
 			new Preset("teddington", BuildingStyle.VICTORIAN,
-					"two track teddington station, side platforms, 6 wide, 200 long, small station building with footbridge, no door markers, named Teddington"),
+					"two track teddington station, side platforms, 6 wide, 200 long, small station building with footbridge, no door markers, gravel bed, named Teddington"),
 			new Preset("surbiton", BuildingStyle.ART_DECO,
 					"four track surbiton station, two island platforms, 250 long, 12 wide platforms, escalators, city station building with footbridge, no door markers, named Surbiton"),
 			new Preset("coventry", BuildingStyle.MODERNIST,

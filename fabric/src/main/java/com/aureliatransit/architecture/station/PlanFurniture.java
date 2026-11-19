@@ -1139,10 +1139,10 @@ abstract class PlanFurniture extends PlanRoofs {
 	private static final String UK_ARCHED_BOOTH = "aurelia_transit_architecture:uk_arched_booth_window";
 	private static final String UK_WAINSCOT = "aurelia_transit_architecture:uk_wood_wainscot";
 	private static final String UK_DRESSED_TRIM = "aurelia_transit_architecture:uk_stucco_dressed";
-	/** The booking hall's cream moulded cornice, an upside-down stair against the wall under the ceiling. */
-	private static final String HALL_CORNICE = "minecraft:smooth_sandstone_stairs";
-	/** The booking hall ceiling's coffer beams, cream like its cornice. */
-	private static final String HALL_BEAM = "minecraft:smooth_sandstone_slab";
+	/** The booking hall's white plaster moulded cornice, an upside-down stair against the wall under the ceiling. */
+	private static final String HALL_CORNICE = "minecraft:smooth_quartz_stairs";
+	/** The booking hall ceiling's coffer beams, white plaster like its cornice and the panels between them. */
+	private static final String HALL_BEAM = "minecraft:smooth_quartz_slab";
 	/** A wall board of train times in a booking hall. */
 	private static final String INFO_BOARD = "aurelia_transit_architecture:station_info_board";
 	private static final String ANALOG_CLOCK = "aurelia_transit_architecture:station_analog_clock";
@@ -1408,8 +1408,9 @@ abstract class PlanFurniture extends PlanRoofs {
 					}
 				}
 			}
+			// the glazing follows the stair's slope three panes deep, as on Teddington's stair (geograph 4331043)
 			final boolean clad = stepY > 0
-					? (y <= stepY + 1 || y >= Math.min(StationGeometry.BUILDING_ROOF_Y - 1, stepY + 4))
+					? (y <= stepY + 1 || y >= Math.min(StationGeometry.BUILDING_ROOF_Y - 1, stepY + 5))
 					: (y <= StationGeometry.WALK_Y + 1 || y == StationGeometry.BUILDING_ROOF_Y - 1);
 			put(clad ? Role.WALL : Role.WINDOW, u, y, v, out, clad ? panel : b.bridgeWall());
 		} else {
