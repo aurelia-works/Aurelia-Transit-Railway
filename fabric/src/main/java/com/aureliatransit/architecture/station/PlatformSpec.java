@@ -18,7 +18,7 @@ import java.util.Objects;
 public record PlatformSpec(Kind kind, int width, int length, Roof roof, boolean bay) {
 
 	/** Most platforms one station can list. */
-	public static final int MAX_PLATFORMS = 10;
+	public static final int MAX_PLATFORMS = 16;
 
 	public enum Kind {
 		SIDE, ISLAND;

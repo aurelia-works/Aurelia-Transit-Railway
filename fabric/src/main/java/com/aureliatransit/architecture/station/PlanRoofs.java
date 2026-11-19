@@ -507,7 +507,7 @@ abstract class PlanRoofs extends PlanColumns {
 		// a real station's shed that springs from the platforms (St Pancras) spans them freely: its ribs carry it, with no
 		// girders along it (its edges stand over the outer tracks, where nothing may stand under them)
 		for (int i = 0; i < n; i++) {
-			if (free ? false : lit[u0 + i] || i == 0 || i == n - 1 || spec.shed().arched() && rise[i] == 0) {
+			if (free ? false : lit[u0 + i] || i == 0 || i == n - 1 || spec.shed().arched() && rise[i] == 0 && !untied[u0 + i]) {
 				along.add(i);
 			}
 		}

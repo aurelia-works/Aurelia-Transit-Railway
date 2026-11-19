@@ -320,6 +320,21 @@ class StationRealismTest {
 				.map(PlannedBlock::v).collect(java.util.stream.Collectors.toSet());
 	}
 
+	/** The most consecutive rows in {@code rows}. */
+	private static int longestRun(java.util.Set<Integer> rows) {
+		int best = 0;
+		for (final int v : rows) {
+			if (!rows.contains(v - 1)) {
+				int run = 1;
+				while (rows.contains(v + run)) {
+					run++;
+				}
+				best = Math.max(best, run);
+			}
+		}
+		return best;
+	}
+
 	@Test
 	void aShedIsClosedAlongItsBuildingSide() {
 		// Hamburg's entrance block and Amsterdam's front stop short of their sheds; past them the street looked in under the roof
@@ -335,7 +350,14 @@ class StationRealismTest {
 			for (final TrackLayout.Track track : layout.tracks()) {
 				assertTrue(Math.abs(track.u() - line) > StationGeometry.ENVELOPE_HALF_WIDTH, words + ": track " + track.u());
 			}
-			assertTrue(wallRows(plan, layout.width() - 1).isEmpty(), words + ": far side closed");
+			// over an outer track the far side has no wall at all; along a far side platform (Amsterdam's 11 real tracks end on
+			// one) only its footbridge stair and lift enclosures, never a wall closing it like the building side
+			final java.util.Set<Integer> far = wallRows(plan, layout.width() - 1);
+			if (layout.platforms().stream().anyMatch(p -> p.uMax() == layout.width() - 1)) {
+				assertTrue(longestRun(far) <= StationGeometry.STAIR_STEPS + 2, words + ": far side closed over " + longestRun(far) + " rows");
+			} else {
+				assertTrue(far.isEmpty(), words + ": far side closed");
+			}
 			// the platform columns and the shed over them are still there
 			assertTrue(plan.blocks().stream().anyMatch(b -> b.role() == Role.COLUMN && b.u() > line), words + ": no columns");
 			assertTrue(plan.blocks().stream().anyMatch(b -> b.role() == Role.RIB && b.u() > line), words + ": no shed");

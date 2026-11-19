@@ -122,4 +122,25 @@ class StudioWordsTest {
 		q.put("text", "2 track munich station, station building, 64 long");
 		assertEquals("MUNICH", Json.object(Json.parse(api.plan(q))).get("wordsLook"));
 	}
+
+	@Test
+	void aPickedPresetCanBeAdjustedAsATemplate() {
+		final String parisWords = com.aureliatransit.architecture.station.StationPresets.ALL.stream()
+				.filter(p -> p.key().equals("paris")).findFirst().orElseThrow().description().replaceFirst(",?\\s*named .*$", "");
+		final StationSpec adjusted = spec(StudioApi.description(Map.ofEntries(
+				Map.entry("text", parisWords),
+				Map.entry("look", "PARIS"),
+				Map.entry("mode", "terminus"),
+				Map.entry("tracks", "20"),
+				Map.entry("length", "240"),
+				Map.entry("layout", "ISLAND"),
+				Map.entry("roof", "HALL"),
+				Map.entry("building", "1"),
+				Map.entry("size", "GRAND"),
+				Map.entry("pinned", "text,tracks,length"),
+				Map.entry("rolled", ""))));
+		assertEquals(20, adjusted.trackCount());
+		assertEquals(240, adjusted.platformLength());
+		assertEquals(BuildingStyle.PARIS, adjusted.building());
+	}
 }

@@ -12,9 +12,9 @@ references. Line numbers are for the reconstruction base (`5f2167c`).
 
 - A sheet is drawn in its building's front frame: `x` across the street front (0 in the middle, + to the
   right as seen from the street), `z` into the building from the street wall, `y` up from the floor
-  (`Landmark.java:18-24`).
+  (`Landmark.java:14-17`).
 - A terminus sheet stands on its head building; a through station's sheet stands on the building beside the
-  tracks (`Landmark.java:26-31`).
+  tracks (`Landmark.java:22-27`).
 - One block is about two thirds of a metre. Heights are squeezed where the real building would pass the
   station's height limit (`Landmarks.java:17-18`).
 - A station gets a sheet when it is named after it, as every preset is (`Landmarks.java:16-18`).

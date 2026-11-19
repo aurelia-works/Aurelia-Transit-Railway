@@ -41,16 +41,16 @@ The planner's derived rules:
 - The shallowest hall the generator builds is 31 rows (`RealStation.MIN_HALL_DEPTH`,
   `RealStation.java:53-54`).
 - The middle wave takes 56% of the width; the side waves rise 40% as high
-  (`RealStation.MIDDLE_WAVE` and `RealStation.SIDE_WAVE`, `RealStation.java:147-151`).
+  (`RealStation.MIDDLE_WAVE` and `RealStation.SIDE_WAVE`, `RealStation.java:159-161`).
 - Utrecht's own roof follows the middle wave over the tracks and the lower waves over the bus and tram
   stations beyond them (`RealStation.roofProfile(...)`, `RealStation.java:166-177`).
 - A real hall is only built over island platforms with a track each side
-  (`RealStation.islandsOnly(...)`, `RealStation.java:193-203`).
+  (`RealStation.islandsOnly(...)`, `RealStation.java:207-216`).
 
 Platform materials: the sources show Utrecht Centraal's canopies were renewed from 2010, some with solar
 cells. Their shape and material are not in the sources, so the generator uses plain steel canopies on round
 columns (`StylePalette.java:190-195`). The Utrecht platform palette also uses light paving, a warning edge,
-platform lamps, steel benches and Dutch station signs (`StylePalette.java:196-201`).
+platform lamps, steel benches and Dutch station signs (`StylePalette.java:193-195`).
 
 ## Hamburg Hauptbahnhof
 
@@ -74,7 +74,7 @@ platform lamps, steel benches and Dutch station signs (`StylePalette.java:196-20
 | Operator | `Operator.DB` | `RealStation.java:35` |
 | Enum values | islands 5, hallDepth 150, hallHeight 37, waves 3 | `RealStation.java:35` |
 | Nave share | 73 / 114 of the width | `RealStation.HAMBURG_NAVE`, `RealStation.java:46-47` |
-| Tower top | 45 m over the street | `RealStation.towerTopY()`, `RealStation.java:100-102` |
+| Tower top | 45 m over the street | `RealStation.towerTopY()`, `RealStation.java:93-96` |
 | Track count used by the plan | 10 (2 per island) | `RealStation.tracks()`, `RealStation.java:121-123` |
 
 The parser currently says the two through tracks without platforms and the S-Bahn tunnel are not built
