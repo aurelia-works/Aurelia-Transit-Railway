@@ -213,13 +213,15 @@ class StationRealismTest {
 		// Teddington's was a flat field of slate at y 12 inside its cornice
 		final StationPlan teddington = plan(preset("teddington"));
 		assertEquals(StationScale.COMPACT, teddington.spec().scale());
-		assertTrue(buildingRoof(teddington, "minecraft:deepslate_tile_stairs") > 100, "slate stairs");
+		// grey Welsh slate, as the real roofs (geograph 6134993)
+		assertTrue(buildingRoof(teddington, "minecraft:stone_brick_stairs") > 100, "slate stairs");
 		final int top = teddington.blocks().stream().filter(b -> b.u() < teddington.layout().buildingWidth() && b.role() == Role.BUILDING_ROOF)
 				.mapToInt(PlannedBlock::y).max().orElseThrow();
 		assertTrue(top > StationGeometry.BUILDING_ROOF_Y + 2, "ridge at " + top);
 		// a modern look stays flat
 		final StationPlan modern = plan("two track modern station, side platforms, 120 long, small station building with footbridge");
-		assertEquals(0, buildingRoof(modern, "minecraft:deepslate_tile_stairs") + buildingRoof(modern, "minecraft:polished_diorite_stairs"));
+		assertEquals(0, buildingRoof(modern, "minecraft:deepslate_tile_stairs") + buildingRoof(modern, "minecraft:polished_diorite_stairs")
+				+ buildingRoof(modern, "minecraft:stone_brick_stairs"));
 	}
 
 	@Test
