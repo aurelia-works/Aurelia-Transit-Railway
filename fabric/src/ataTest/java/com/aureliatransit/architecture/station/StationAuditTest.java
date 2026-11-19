@@ -59,7 +59,7 @@ class StationAuditTest {
 	@Test
 	void everyPlannablePlanPassesExceptIslandsReachedAtGrade() {
 		final List<StationSpec.Builder> builders = new ArrayList<>();
-		for (final int tracks : new int[]{1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 16, 20, 24, 31, StationSpec.MAX_TRACKS}) {
+		for (int tracks = StationSpec.MIN_TRACKS; tracks <= StationSpec.MAX_TRACKS; tracks++) {
 			for (final PlatformLayout layout : PlatformLayout.values()) {
 				if (layout == PlatformLayout.ISLAND && tracks < 2) {
 					continue;

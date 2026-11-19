@@ -24,9 +24,13 @@ class ShedLogicTest {
 
 	@Test
 	void everyGirderJoinsAnotherOnTwoSidesOrMore() {
+		final String mumbai = StationPresets.ALL.stream().filter(p -> p.key().equals("mumbai")).findFirst().orElseThrow().description();
 		for (final String text : List.of("flat train shed island 4 tracks", "several arches train shed 6 tracks island", "arched train shed 4 tracks",
-				"pointed train shed with a footbridge 3 tracks island", "terminus 8 tracks several arches train shed")) {
+				"pointed train shed with a footbridge 3 tracks island", "terminus 8 tracks several arches train shed",
+				"terminus 18 tracks several arches train shed", "24 tracks arched train shed island", mumbai)) {
 			final StationPlan plan = plan(text);
+			assertEquals(List.of(), LayoutValidator.validate(plan), text);
+			assertTrue(StationAudit.audit(plan).buildable(), text);
 			final Map<String, PlannedBlock> at = new HashMap<>();
 			for (final PlannedBlock block : plan.blocks()) {
 				at.put(block.u() + "," + block.y() + "," + block.v(), block);

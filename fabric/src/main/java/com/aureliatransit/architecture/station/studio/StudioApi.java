@@ -12,6 +12,7 @@ import com.aureliatransit.architecture.station.LocalFrame;
 import com.aureliatransit.architecture.station.ParseResult;
 import com.aureliatransit.architecture.station.PlanFingerprint;
 import com.aureliatransit.architecture.station.PlannedBlock;
+import com.aureliatransit.architecture.station.PlatformSpec;
 import com.aureliatransit.architecture.station.Role;
 import com.aureliatransit.architecture.station.Facing;
 import com.aureliatransit.architecture.station.StationAudit;
@@ -88,8 +89,8 @@ public final class StudioApi {
 		return recipe(q).length();
 	}
 
-	/** The longest platform list a request may carry: ten platforms with every setting. */
-	public static final int MAX_PLATFORM_WORDS = 600;
+	/** The longest platform list a request may carry: sixteen platforms with every setting. */
+	public static final int MAX_PLATFORM_WORDS = PlatformSpec.MAX_PLATFORMS * 64;
 
 	/**
 	 * The typed words of a request, cut to {@link #MAX_TYPED}, after the advanced platform list ("platform 1: island 12 wide;
@@ -180,26 +181,44 @@ public final class StudioApi {
 	/** Controls a player can adjust on top of a picked preset's own words without having to edit its text first. */
 	static final Set<String> PRESET_CONTROLS = Set.of("tracks", "length", "layout", "mode");
 
-	/** True when {@code words} is the stripped description {@link #preset} puts in the text box for one of {@link StationPresets#ALL}. */
-	static boolean isPresetWords(String words) {
-		if (words.isEmpty()) {
-			return false;
+	/** The preset base description (without {@code named ...}) that {@code words} starts with, or null. */
+	static String presetBase(String words) {
+		final String clean = words.replace('\n', ' ').strip();
+		if (clean.isEmpty()) {
+			return null;
 		}
+		String match = null;
 		for (final StationPresets.Preset preset : StationPresets.ALL) {
-			if (words.equals(preset.description().replaceFirst(",?\\s*named .*$", ""))) {
-				return true;
+			final String base = preset.description().replaceFirst(",?\\s*named .*$", "");
+			if (clean.equals(base) || clean.startsWith(base) && clean.substring(base.length()).matches("^\\s*,.*")) {
+				if (match == null || base.length() > match.length()) {
+					match = base;
+				}
 			}
 		}
-		return false;
+		return match;
+	}
+
+	/** True when {@code words} is a preset's description (with or without {@code named ...} or extra comma-separated clauses). */
+	static boolean isPresetWords(String words) {
+		return presetBase(words) != null;
 	}
 
 	/** Drops a picked preset's own track, platform, length or mode words when the player adjusted that control by hand. */
 	private static String presetAdjusted(Map<String, String> q, String text) {
-		if (!isPresetWords(text)) {
+		final String base = presetBase(text);
+		if (base == null) {
 			return text;
 		}
+		final String tailWords = text.substring(base.length()).replaceFirst("^\\s*,\\s*", "");
+		final Set<String> tailSaid = tailWords.isEmpty() ? Set.of() : StationDescriptionParser.controlsSaid(tailWords);
 		final Set<String> hand = keys(q.getOrDefault("pinned", ""));
 		hand.removeAll(keys(q.getOrDefault("rolled", "")));
+		for (final String key : PRESET_CONTROLS) {
+			if (tailSaid.contains(key)) {
+				hand.add(key);
+			}
+		}
 		boolean any = false;
 		for (final String key : PRESET_CONTROLS) {
 			if (hand.contains(key)) {
@@ -210,11 +229,12 @@ public final class StudioApi {
 		if (!any) {
 			return text;
 		}
-		String out = text;
+		final StationRecipe recipe = recipe(q);
+		String out = base;
 		if (hand.contains("tracks")) {
 			out = out.replaceFirst("(?i)^(?:single|double|twin|triple|quadruple|quad|\\d+|[a-z]+(?:-[a-z]+)?)\\s+tracks?\\s+", "");
 			if (!hand.contains("layout")) {
-				final int t = recipe(q).tracks();
+				final int t = tailSaid.contains("tracks") ? StationDescriptionParser.parse(tailWords).spec().trackCount() : recipe.tracks();
 				if (t < 2) {
 					out = out.replaceFirst("(?i),\\s*(?:(?:\\d+|[a-z]+(?:-[a-z]+)?)\\s+)?(?:island\\s+and\\s+side|island)\\s+platforms?\\b", "");
 				} else {
@@ -232,12 +252,23 @@ public final class StudioApi {
 			out = out.replaceFirst("(?i),\\s*\\d+\\s*(?:m|blocks?)?\\s*long\\b", "");
 		}
 		if (hand.contains("mode")) {
-			out = out.replaceFirst("(?i)\\bterminus\\b", "station");
-			if (recipe(q).terminus()) {
+			final boolean wantsTerminus = tailSaid.contains("mode") ? StationDescriptionParser.parse(tailWords).spec().terminus() : recipe.terminus();
+			final boolean wantsHub = tailSaid.contains("mode") ? StationDescriptionParser.parse(tailWords).spec().hub() : recipe.hub();
+			if (!wantsTerminus || wantsHub) {
+				out = out.replaceFirst("(?i)\\bterminus\\b", "station");
+			}
+			if (wantsTerminus) {
 				out = out.replaceFirst("(?i)\\s+with\\s+(?:footbridge|mezzanine)\\b", "");
 			}
+			if (wantsHub && !hand.contains("layout")) {
+				out = out.replaceFirst("(?i),\\s*(?:(?:\\d+|[a-z]+(?:-[a-z]+)?)\\s+)?(?:island\\s+and\\s+side|side)\\s+platforms?\\b", ", island platforms");
+			}
 		}
-		return out.strip();
+		out = out.strip();
+		if (tailWords.isEmpty()) {
+			return out;
+		}
+		return out.isEmpty() ? tailWords : out + ", " + tailWords;
 	}
 
 	/** The controls a real station fixes itself: its look, through tracks, hall or shed, and island platforms. */
@@ -248,7 +279,7 @@ public final class StudioApi {
 
 	/** The pinned controls the typed words set themselves, and so overrule (sorted, for the page's note). */
 	public static List<String> wordsWon(Map<String, String> q) {
-		final String words = q.getOrDefault("text", "").strip();
+		final String words = q.getOrDefault("text", "").replace('\n', ' ').strip();
 		final String list = q.getOrDefault("pinned", "").strip();
 		if (words.isEmpty() || list.isEmpty()) {
 			return List.of();
@@ -258,7 +289,9 @@ public final class StudioApi {
 			asked.add(part.strip().equals("mix") ? "look" : part.strip());
 		}
 		final Set<String> rolled = keys(q.getOrDefault("rolled", ""));
-		final boolean preset = isPresetWords(words);
+		final String base = presetBase(words);
+		final String tail = base == null ? "" : words.substring(base.length()).replaceFirst("^\\s*,\\s*", "");
+		final Set<String> tailSaid = tail.isEmpty() ? Set.of() : StationDescriptionParser.controlsSaid(tail);
 		final List<String> won = new ArrayList<>();
 		// words that name a real station ("utrecht station") set what it really is, so a pinned second city, hub, building, roof
 		// or side platforms cannot turn it back into a station of the player's own (Jah 10-22; the dice pin some on a fresh page)
@@ -281,7 +314,7 @@ public final class StudioApi {
 			if (won.contains(key)) {
 				continue;
 			}
-			if (preset && PRESET_CONTROLS.contains(key) && !rolled.contains(key)) {
+			if (base != null && PRESET_CONTROLS.contains(key) && !tailSaid.contains(key) && !rolled.contains(key)) {
 				continue;
 			}
 			if (asked.contains(key)) {
@@ -508,7 +541,7 @@ public final class StudioApi {
 		out.append(",\"heights\":").append(keys(StationFeatures.PlatformHeight.values(), StationFeatures.PlatformHeight::key, StationFeatures.PlatformHeight::label));
 		out.append(",\"facings\":").append(keys(Facing.values(), Facing::key, f -> f == Facing.AUTO ? "Auto" : f.key().substring(0, 1).toUpperCase(Locale.ROOT) + f.key().substring(1)));
 		out.append(",\"blocks\":").append(Json.strings(BlockFamilies.suggestions()));
-		out.append(",\"maxTyped\":").append(MAX_TYPED).append(",\"maxName\":").append(StationSpec.MAX_NAME);
+		out.append(",\"maxTyped\":").append(MAX_TYPED).append(",\"maxName\":").append(StationSpec.MAX_NAME).append(",\"maxPlatforms\":").append(PlatformSpec.MAX_PLATFORMS);
 		out.append(",\"airports\":[");
 		for (int i = 0; i < AirportPresets.ALL.size(); i++) {
 			final AirportPresets.Preset a = AirportPresets.ALL.get(i);

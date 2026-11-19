@@ -228,8 +228,8 @@
 			want.building = "1";
 			want.size = "GRAND";
 			const t = +$("tracks").value;
-			// St Pancras's front is drawn for eight tracks, Paris's for six or eight
-			if (t < 6 || t % 2 || look === "ST_PANCRAS" && t !== 8 || look === "PARIS" && t > 8) {
+			// St Pancras's towers need at least eight tracks
+			if (t < 6 || (t % 2 && look !== "ST_PANCRAS") || look === "ST_PANCRAS" && t < 8) {
 				want.tracks = "8";
 			}
 			if (+$("length").value < 128) {
@@ -606,7 +606,7 @@
 	// The rows are written into the hidden "platforms" field as words the game's parser reads ("platform 1: island 12 wide;"),
 	// so the plan, the wrench and a typed description all agree.
 
-	const MAX_PLATFORMS = 10;
+	let MAX_PLATFORMS = 16;
 	let plats = [];
 
 	function platWords() {
@@ -1041,6 +1041,9 @@
 
 	async function init() {
 		options = await (await fetch("api/options")).json();
+		if (options.maxPlatforms) {
+			MAX_PLATFORMS = options.maxPlatforms;
+		}
 		if (PAGE === "airport") {
 			// the airport's words are its main input, not an advanced fold
 			$("wordsAdvanced").open = true;
@@ -3457,7 +3460,7 @@
 	function report(plan) {
 		const r = plan.requested;
 		const b = plan.built;
-		// with platforms one by one the list sets the layout and the tracks (up to 20, past the slider's 10), and a listed
+		// with platforms one by one the list sets the layout and the tracks (up to 32), and a listed
 		// platform longer than the slider makes the station that long
 		const listed = $("listOn") && $("listOn").checked;
 		// the third value says whether the request was met (true / false), or null where there is nothing to compare
