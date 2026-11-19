@@ -54,11 +54,11 @@ public final class StationBlocksUk {
 	public static final Block UK_SASH_WINDOW = ModBlocks.register("uk_sash_window", BlockFamily.STATIONS_UK, RenderKind.TRANSLUCENT,
 			new GlassFacingBlock(ModBlocks.glass(), Placement.TOWARD_PLAYER, box(0, 0, 2.5, 16, 16, 6.5)));
 	public static final Block UK_PAINTED_COLUMN = ModBlocks.register("uk_painted_column", BlockFamily.STATIONS_UK, RenderKind.SOLID,
-			new ShapedBlock(ModBlocks.metal(), box(4.5, 0, 4.5, 11.5, 16, 11.5)));
+			new ShapedBlock(ModBlocks.metal(), box(5.5, 0, 5.5, 10.5, 16, 10.5)));
 	public static final Block UK_PAINTED_COLUMN_BASE = ModBlocks.register("uk_painted_column_base", BlockFamily.STATIONS_UK, RenderKind.SOLID,
-			new ShapedBlock(ModBlocks.metal(), union(box(3.5, 0, 3.5, 12.5, 10.5, 12.5), box(4.5, 10.5, 4.5, 11.5, 16, 11.5))));
+			new ShapedBlock(ModBlocks.metal(), union(box(5, 0, 5, 11, 10.5, 11), box(5.5, 10.5, 5.5, 10.5, 16, 10.5))));
 	public static final Block UK_PAINTED_COLUMN_CAP = ModBlocks.register("uk_painted_column_cap", BlockFamily.STATIONS_UK, RenderKind.SOLID,
-			new ShapedBlock(ModBlocks.metal(), union(box(4.5, 0, 4.5, 11.5, 9.5, 11.5), box(3, 9.5, 3, 13, 16, 13))));
+			new ShapedBlock(ModBlocks.metal(), union(box(5.5, 0, 5.5, 10.5, 9.5, 10.5), box(4.5, 9.5, 4.5, 11.5, 16, 11.5))));
 	public static final Block UK_ARCHED_BOOTH_WINDOW = ModBlocks.register("uk_arched_booth_window", BlockFamily.STATIONS_UK, RenderKind.TRANSLUCENT,
 			new FacingShapedBlock(ModBlocks.glass(), Placement.TOWARD_PLAYER, BOOTH_SHAPE));
 	public static final Block UK_WOOD_WAINSCOT = ModBlocks.register("uk_wood_wainscot", BlockFamily.STATIONS_UK, RenderKind.SOLID,
