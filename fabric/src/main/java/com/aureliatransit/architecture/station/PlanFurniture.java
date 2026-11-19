@@ -1038,7 +1038,8 @@ abstract class PlanFurniture extends PlanRoofs {
 				if (v < band.vFrom() + 2 || v > band.vTo() - 2 || nearStairs(band, v)) {
 					continue;
 				}
-				for (int k = 0; k <= 2; k++) {
+				// as near the back as it can stand and still find its track (a wide side platform's back is out of reach)
+				for (int k = 0; k < band.width(); k++) {
 					final int u = back + step * k;
 					if (u < band.uMin() || u > band.uMax() || u + step < band.uMin() || u + step > band.uMax()
 							|| isEdge(band, u) || isEdge(band, u + step) || !inScreenReach(u) || !inScreenReach(u + step)
