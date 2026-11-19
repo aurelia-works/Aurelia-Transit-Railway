@@ -518,7 +518,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 	private static final String UK_LINTEL = "aurelia_transit_architecture:uk_window_lintel";
 	private static final String UK_SILL = "aurelia_transit_architecture:uk_window_sill";
 	private static final String UK_SLATE_RIDGE = "aurelia_transit_architecture:uk_slate_ridge";
-	private static final String ARCH_SHOULDER = "minecraft:smooth_quartz_stairs";
+	private static final String ARCH_SHOULDER = "minecraft:smooth_sandstone_stairs";
 
 	/**
 	 * Victorian Italianate suburban station house after Teddington (1863, LSWR, Historic England 1410351): a symmetric
@@ -1005,6 +1005,8 @@ abstract class PlanBuilding extends PlanPlatforms {
 		}
 		final String stair = pitched[0];
 		final String solid = pitched[1];
+		// a shallow Victorian pitch, half a block per ring: stairs on even rings, slabs between them (Teddington's low hipped slate)
+		final String slab = stair.replace("_stairs", "_slab");
 
 		// Compute exact Chebyshev roof ring height h(u, v) >= 0 inside the T-shaped footprint
 		final int uSpan = uP - uS + 1;
@@ -1040,7 +1042,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 		}
 
 		// Six yellow-stock-brick chimney stacks with a slim stucco necking course and terracotta chimney pots
-		final int capY = top + 1 + maxH + 2;
+		final int capY = top + 1 + (maxH + 1) / 2 + 2;
 		final int midV = (vProjLo + vProjHi) / 2;
 		final int[] chimVs = vHouseE - vHouseS >= 28
 				? new int[]{vHouseS + 4, midV - 1, vHouseE - 5}
@@ -1066,9 +1068,13 @@ abstract class PlanBuilding extends PlanPlatforms {
 				if (k < 0) {
 					continue;
 				}
-				final int y = top + 1 + k;
+				final int y = top + 1 + (k + 1) / 2;
 				if (k > 0) {
 					put(Role.BUILDING_ROOF, u, y - 1, v, LocalDir.PLUS_V, solid);
+				}
+				if (k % 2 == 1 && k < maxH) {
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, slab);
+					continue;
 				}
 				final boolean upPu = roofHigher(h, u + 1, v, uS, uP, vHouseS, vHouseE, k);
 				final boolean upMu = roofHigher(h, u - 1, v, uS, uP, vHouseS, vHouseE, k);
@@ -1111,7 +1117,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 				if (anyCard) {
 					continue;
 				}
-				final int y = top + 1 + k;
+				final int y = top + 1 + (k + 1) / 2;
 				final PlannedBlock cur = at(u, y, v);
 				if (cur == null || !cur.blockId().equals(UK_SLATE_RIDGE)) {
 					continue;

@@ -1134,6 +1134,8 @@ abstract class PlanFurniture extends PlanRoofs {
 	private static final String UK_ARCHED_BOOTH = "aurelia_transit_architecture:uk_arched_booth_window";
 	private static final String UK_WAINSCOT = "aurelia_transit_architecture:uk_wood_wainscot";
 	private static final String UK_DRESSED_TRIM = "aurelia_transit_architecture:uk_stucco_dressed";
+	/** The booking hall's cream moulded cornice, an upside-down stair against the wall under the ceiling. */
+	private static final String HALL_CORNICE = "minecraft:smooth_sandstone_stairs";
 	private static final String ANALOG_CLOCK = "aurelia_transit_architecture:station_analog_clock";
 
 	/**
@@ -1298,7 +1300,14 @@ abstract class PlanFurniture extends PlanRoofs {
 						continue;
 					}
 					final boolean corniceEdge = u == uIn || u == uP - 1 || v == vHallLo || v == vHallHi || v == vHouseS + 1 || v == vHouseE - 1;
-					put(Role.BUILDING_ROOF, u, ceilY, v, LocalDir.PLUS_V, corniceEdge ? UK_DRESSED_TRIM : b.interiorWall());
+					if (corniceEdge) {
+						// the moulded cornice coves down from the ceiling onto the wall it runs along
+						final LocalDir wall = u == uIn ? LocalDir.MINUS_U : u == uP - 1 ? LocalDir.PLUS_U
+								: v == vHallLo || v == vHouseS + 1 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+						put(Role.BUILDING_ROOF, u, ceilY, v, wall, HALL_CORNICE, "half=top,shape=straight");
+					} else {
+						put(Role.BUILDING_ROOF, u, ceilY, v, LocalDir.PLUS_V, b.interiorWall());
+					}
 				}
 			}
 			// Symmetric pendant lamps over the booking hall

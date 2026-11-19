@@ -494,7 +494,7 @@ abstract class PlanFitOut extends PlanLandmark {
 	}
 
 	/** The cream stair that rounds a heritage doorway's top corners. */
-	static final String ARCH_STAIR = "minecraft:smooth_quartz_stairs";
+	static final String ARCH_STAIR = "minecraft:smooth_sandstone_stairs";
 
 	/** The entrance portal's jambs, the piers just inside them and the canopy posts: a heritage look's stucco, else dark steel. */
 	private String porchFrame() {
