@@ -20,6 +20,10 @@ public final class RoadVehicleItem extends Item {
 		this.kind = kind;
 	}
 
+	public RoadVehicleKind kind() {
+		return kind;
+	}
+
 	@Override
 	public ActionResult useOnBlock(ItemUsageContext context) {
 		final World world = context.getWorld();

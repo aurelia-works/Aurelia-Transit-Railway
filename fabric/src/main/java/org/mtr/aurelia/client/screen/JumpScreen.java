@@ -1,6 +1,7 @@
 package org.mtr.aurelia.client.screen;
 
 import org.mtr.aurelia.client.MtrBridge;
+import org.mtr.aurelia.dashboard.DashboardParentAccess;
 import org.mtr.aurelia.jump.JumpTarget;
 import org.mtr.aurelia.overlap.Point;
 import net.minecraft.client.gui.DrawContext;
@@ -22,7 +23,7 @@ import java.util.Optional;
  * Jump to any station, platform, depot or siding (MTR #1112). Sends a normal /tp command, so the server decides who may
  * use it (operators / cheats on), exactly as if the player typed it.
  */
-public final class JumpScreen extends Screen {
+public final class JumpScreen extends Screen implements DashboardParentAccess {
 
 	private static final int MARGIN = 8;
 	private static final int TOP = 32;
@@ -141,5 +142,10 @@ public final class JumpScreen extends Screen {
 	@Override
 	public void close() {
 		client.setScreen(parent);
+	}
+
+	@Override
+	public Screen atr$parentScreen() {
+		return parent;
 	}
 }
