@@ -506,9 +506,11 @@ abstract class PlanRoofs extends PlanColumns {
 		// every roof cell is within reach of one; a vault carries its purlins in the curve instead (below)
 		final java.util.TreeSet<Integer> along = new java.util.TreeSet<>();
 		// a real station's shed that springs from the platforms (St Pancras) spans them freely: its ribs carry it, with no
-		// girders along it (its edges stand over the outer tracks, where nothing may stand under them)
+		// girders along it (its edges stand over the outer tracks, where nothing may stand under them); an untied arch omits
+		// cross ties over the track gaps between platforms, so neither an outer track edge nor a multi-span valley line over
+		// an untied track gap takes a longitudinal girder that would float without cross ties or columns under it
 		for (int i = 0; i < n; i++) {
-			if (free ? false : lit[u0 + i] || i == 0 || i == n - 1 || spec.shed().arched() && rise[i] == 0) {
+			if (free ? false : lit[u0 + i] || i == 0 || i == n - 1 || spec.shed().arched() && rise[i] == 0 && !untied[u0 + i]) {
 				along.add(i);
 			}
 		}

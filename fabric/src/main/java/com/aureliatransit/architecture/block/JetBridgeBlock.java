@@ -5,22 +5,29 @@ import com.aureliatransit.architecture.block.entity.JetBridgeBlockEntity;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.random.Random;
 import net.minecraft.util.shape.VoxelShape;
 
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 /**
- * The docking head of a boarding bridge. The walkway behind it is ordinary blocks; this one grows a tunnel toward the
- * aircraft while the plane is stopped with its doors open, and pulls the tunnel back when the plane leaves. The
- * extension is computed on the client from the vehicles the client already has. The renderer advances it while the cab is
- * on screen, so the block has no ticker, a dedicated server does not run it, and nothing is written to the chunk.
+ * The docking head of a boarding bridge, in the fixed tube's roof at its open end. The walkway behind it is ordinary blocks; this
+ * one grows a tunnel toward the aircraft while the plane is stopped with its doors open, and pulls the tunnel back when the plane
+ * leaves. The extension is computed on the client from the vehicles the client already has, and the renderer advances it while the
+ * cab is on screen, so the block has no ticker. While the cab is docked the client asks the server to lay a walkable deck under it
+ * ({@link JetBridgeDeckBlock}); a scheduled tick, only while a deck is down, lifts it once the reports stop.
  */
 public class JetBridgeBlock extends FacingShapedBlock implements BlockEntityProvider {
 
 	/** Installed by the client initializer. Empty on a dedicated server. */
 	public static Supplier<List<AircraftSample>> samples = List::of;
+	/** Installed by the client initializer: tells the server the bridge at this position is docked this far out. */
+	public static BiConsumer<BlockPos, Float> docked = (pos, reach) -> {
+	};
 
 	public JetBridgeBlock(Settings settings, Placement placement, VoxelShape northOutline) {
 		super(settings, placement, northOutline);
@@ -29,5 +36,12 @@ public class JetBridgeBlock extends FacingShapedBlock implements BlockEntityProv
 	@Override
 	public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
 		return new JetBridgeBlockEntity(pos, state);
+	}
+
+	@Override
+	public void scheduledTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
+		if (world.getBlockEntity(pos) instanceof JetBridgeBlockEntity bridge && bridge.expire(world)) {
+			world.scheduleBlockTick(pos, this, JetBridgeBlockEntity.DOCK_REPORT_TICKS);
+		}
 	}
 }

@@ -198,4 +198,63 @@ class AirportReviewFixesTest {
 			assertTrue(StationAudit.audit(plan).buildable(), words + " " + StationAudit.audit(plan).problems());
 		}
 	}
+
+	@Test
+	void entranceCanopyIsGroundedWithColumnsOnTheFootwayClearOfTheRoad() {
+		for (final String words : List.of("small airport", "airport", "large airport", "airport with 4 gates and a train station")) {
+			final StationSpec s = spec(words);
+			final AirportGeometry air = AirportGeometry.of(s.airport());
+			final StationPlan plan = StationPlanner.plan(s);
+			assertEquals(List.of(), LayoutValidator.validate(plan), words);
+			assertTrue(StationAudit.audit(plan).buildable(), words + " " + StationAudit.audit(plan).problems());
+
+			record Cell3(int u, int y, int v) {}
+			final java.util.Map<Cell3, PlannedBlock> byCell = new java.util.HashMap<>();
+			final java.util.Set<Cell3> grounded = new HashSet<>();
+			final java.util.ArrayDeque<Cell3> queue = new java.util.ArrayDeque<>();
+			int canopyCaps = 0;
+			int braces = 0;
+			for (final PlannedBlock b : plan.blocks()) {
+				final Cell3 c = new Cell3(b.u(), b.y(), b.v());
+				byCell.put(c, b);
+				if (b.y() <= StationGeometry.PLATFORM_Y) {
+					grounded.add(c);
+					queue.add(c);
+				}
+				if (b.u() < air.terminalU0()) {
+					if (b.role() == Role.COLUMN || b.role() == Role.COLUMN_CAP) {
+						assertEquals(air.roadU1() - 1, b.u(), words + ": canopy column stands on outer footway behind kerb, not in road: " + b);
+						if (b.role() == Role.COLUMN_CAP) {
+							canopyCaps++;
+						}
+					}
+					if (PlanAirport.VIADUCT_BRACE.equals(b.blockId())) {
+						braces++;
+					}
+					assertFalse(b.blockId().endsWith(":curtain_wall_glass") && b.role() == Role.BUILDING_ROOF,
+							words + ": vertical curtain wall glass must not be laid flat in canopy roof: " + b);
+				}
+			}
+			assertTrue(canopyCaps >= 2, words + ": entrance canopy has footway columns");
+			assertTrue(braces >= 2, words + ": entrance canopy has cantilever braces");
+
+			final int[][] dirs = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+			while (!queue.isEmpty()) {
+				final Cell3 cur = queue.poll();
+				for (final int[] d : dirs) {
+					final Cell3 next = new Cell3(cur.u() + d[0], cur.y() + d[1], cur.v() + d[2]);
+					if (byCell.containsKey(next) && grounded.add(next)) {
+						queue.add(next);
+					}
+				}
+			}
+			final int door = (air.terminalV0() + air.terminalV1()) / 2;
+			for (final PlannedBlock b : plan.blocks()) {
+				if (b.u() < air.terminalU0() && Math.abs(b.v() - door) <= 20 && b.y() > StationGeometry.PLATFORM_Y) {
+					assertTrue(grounded.contains(new Cell3(b.u(), b.y(), b.v())),
+							words + ": floating entrance canopy block " + b);
+				}
+			}
+		}
+	}
 }

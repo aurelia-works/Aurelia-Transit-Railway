@@ -39,9 +39,13 @@ public final class AirportRails {
 	public record AirRail(Kind kind, int gate, Pos from, Pos via, Pos to, Dir startDir, Dir endDir) {
 	}
 
-	/** The rails of every gate's loop at the frame's ground level. */
+	/**
+	 * The rails of every gate's loop on top of the pavement. MTR stands a plane's wheels on its rail, so a rail in the pavement
+	 * block (the old {@code PLATFORM_Y}) sank every plane a block into the apron; MTR draws airplane rails only while a rail
+	 * tool is held, so nothing shows on the pavement.
+	 */
 	public static List<AirRail> of(AirportRoute route, LocalFrame frame) {
-		final int y = frame.y(StationGeometry.PLATFORM_Y);
+		final int y = frame.y(StationGeometry.WALK_Y);
 		final List<AirRail> rails = new ArrayList<>();
 		for (final AirportRoute.Gate gate : route.gates()) {
 			for (final Chunk chunk : chunks(gate)) {
@@ -55,7 +59,10 @@ public final class AirportRails {
 	private record Chunk(List<Cell> cells, List<Kind> kinds) {
 	}
 
-	/** The loop starts at its landing leg, so the siding's deep end (where the loop closes) sits inside one chunk, and the only break is the flight. */
+	/**
+	 * Runs of touching legs, from the landing leg on (wrapping round), so landing, exit, taxi and gate are one run. A run breaks at the
+	 * flight and where a plane reverses: each push-back stretch, and the taxiing that starts again from its join, is its own run.
+	 */
 	private static List<Chunk> chunks(AirportRoute.Gate gate) {
 		final List<Chunk> out = new ArrayList<>();
 		final List<Leg> legs = gate.legs();
@@ -146,10 +153,10 @@ public final class AirportRails {
 				cut = end - 1 > start && nextEnd > end + 1;
 			}
 			if (cut) {
-				// a corner is a connector, never a stand or a siding: a GATE run's corner takes the kind of the run after it, so only the
-				// stand is a platform; any other corner takes the kind of the step into its corner cell, so the siding's corner onto the
-				// taxiway is the PUSH_BACK and the siding is its straight alone
-				final Kind bend = kind == Kind.GATE ? ks.get(runs.get(r + 1)[0]) : ks.get(end - 1);
+				// a corner is a connector, never a stand: the turn off the taxiway into a gate, and out of a remote stand onto it, is
+				// the LEAD_IN; any other corner takes the kind of the step into its corner cell
+				final Kind next = ks.get(runs.get(r + 1)[0]);
+				final Kind bend = next == Kind.GATE || next == Kind.SIDING || kind == Kind.SIDING ? Kind.LEAD_IN : ks.get(end - 1);
 				straight(kind, gate, frame, y, cs.get(start), cs.get(end - 1), out);
 				curve(bend, gate, frame, y, cs.get(end - 1), cs.get(end), cs.get(end + 1), out);
 				start = end + 1;

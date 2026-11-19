@@ -469,7 +469,40 @@ class StudioTest {
 		assertEquals(6, Json.list(options.get("classes")).size());
 		assertEquals(5, Json.list(options.get("eras")).size());
 		assertEquals(5, Json.list(options.get("facings")).size());
+		assertEquals(16.0, options.get("maxPlatforms"));
 		assertEquals(List.of("halt", "Halt"), Json.list(Json.list(options.get("classes")).get(1)));
+	}
+
+	@Test
+	void sixteenDetailedPlatformsAndThirtyTwoDrawnTracksFitWithinBudgets() {
+		final StringBuilder platforms = new StringBuilder();
+		for (int i = 1; i <= 16; i++) {
+			if (i > 1) {
+				platforms.append(' ');
+			}
+			platforms.append("platform ").append(i).append(": island 15 wide 240 long canopy;");
+		}
+		assertTrue(platforms.length() > 700, "detailed 16-platform list exceeds old 600-char limit: " + platforms.length());
+		final StringBuilder drawn = new StringBuilder();
+		for (int i = 0; i < 32; i++) {
+			if (i > 0) {
+				drawn.append(", ");
+			}
+			final int u = 100 + i * 6;
+			drawn.append("track path ").append(u).append("/-10 ").append(u).append("/-124 ").append(u + 8).append("/-240");
+		}
+		assertTrue(drawn.length() > 1200, "32 3-point drawn tracks exceed old 1200-char parser limit: " + drawn.length());
+		final String desc = StudioApi.description(Map.of(
+				"platforms", platforms.toString(),
+				"drawn", drawn.toString(),
+				"text", "paris terminus, train shed, named Paris Nord",
+				"pinned", ""));
+		assertTrue(desc.length() > 1900 && desc.length() <= StationDescriptionParser.MAX_INPUT, "fits in MAX_INPUT: " + desc.length());
+		final var parsed = StationDescriptionParser.parse(desc);
+		assertEquals(16, parsed.spec().platforms().size());
+		assertEquals(32, parsed.spec().trackCount());
+		assertEquals(32, parsed.spec().options().drawn().size());
+		assertEquals(List.of(), parsed.warnings(), parsed.warnings().toString());
 	}
 
 	/** Turning a station turns its panes, rails, girders and screens with it: the same joins whichever way it faces. */

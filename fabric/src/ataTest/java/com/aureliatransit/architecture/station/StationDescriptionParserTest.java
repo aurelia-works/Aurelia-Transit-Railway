@@ -97,14 +97,17 @@ class StationDescriptionParserTest {
 
 	@Test
 	void trackCountsAreClampedWithWarnings() {
-		final ParseResult many = StationDescriptionParser.parse("20 tracks");
+		assertEquals(20, spec("20 tracks").trackCount());
+		assertEquals(24, spec("twenty-four tracks").trackCount());
+		assertEquals(18, spec("nine island platforms").trackCount());
+		final ParseResult many = StationDescriptionParser.parse("40 tracks");
 		assertEquals(StationSpec.MAX_TRACKS, many.spec().trackCount());
 		assertTrue(warned(many, "more than " + StationSpec.MAX_TRACKS));
 		assertEquals(9, spec("9 tracks").trackCount());
 		final ParseResult none = StationDescriptionParser.parse("0 tracks");
 		assertEquals(StationSpec.MIN_TRACKS, none.spec().trackCount());
 		assertTrue(warned(none, "too few"));
-		assertEquals(StationSpec.MAX_TRACKS, spec("nine island platforms").trackCount());
+		assertEquals(StationSpec.MAX_TRACKS, spec("seventeen island platforms").trackCount());
 	}
 
 	@Test
@@ -124,6 +127,12 @@ class StationDescriptionParserTest {
 		assertEquals(72, spec("length 72").platformLength());
 		assertEquals(120, spec("a 120 m station").platformLength());
 		assertEquals(64, spec("64 long").platformLength());
+		final ParseResult compoundLength = StationDescriptionParser.parse("length twenty-four");
+		assertEquals(24, compoundLength.spec().platformLength());
+		assertEquals(List.of(), compoundLength.ignored());
+		final ParseResult platformCompound = StationDescriptionParser.parse("platform length thirty-two m");
+		assertEquals(32, platformCompound.spec().platformLength());
+		assertEquals(List.of(), platformCompound.ignored());
 	}
 
 	@Test
@@ -145,6 +154,10 @@ class StationDescriptionParserTest {
 		assertEquals(5, spec("5 wide").platformWidth());
 		assertEquals(6, spec("6 block wide platforms").platformWidth());
 		assertEquals(7, spec("platform width of 7").platformWidth());
+		assertEquals(16, spec("width sixteen").platformWidth());
+		final ParseResult compoundWidth = StationDescriptionParser.parse("width twenty-four");
+		assertEquals(StationSpec.MAX_WIDTH, compoundWidth.spec().platformWidth());
+		assertEquals(List.of(), compoundWidth.ignored());
 		assertEquals(12, spec("wide platforms").platformWidth());
 		assertEquals(14, spec("wide island platform").platformWidth());
 		assertEquals(3, spec("narrow platforms").platformWidth());
@@ -342,9 +355,33 @@ class StationDescriptionParserTest {
 
 	@Test
 	void overlongInputIsCut() {
-		final ParseResult result = StationDescriptionParser.parse("3 tracks " + "station ".repeat(200));
+		final ParseResult result = StationDescriptionParser.parse("3 tracks " + "station ".repeat(400));
 		assertEquals(3, result.spec().trackCount());
 		assertTrue(warned(result, "longer than " + StationDescriptionParser.MAX_INPUT));
+	}
+
+	@Test
+	void compoundDepthAndCustomRealStationLayouts() {
+		final ParseResult deep = StationDescriptionParser.parse("2 track cut and cover box station, twenty-four m deep");
+		assertEquals(36, deep.spec().options().streetDepth());
+		assertEquals(List.of(), deep.warnings());
+		assertEquals(List.of(), deep.ignored());
+
+		final ParseResult munich = StationDescriptionParser.parse("six track munich station named Munchen Ost");
+		assertEquals(6, munich.spec().trackCount());
+		assertEquals(PlatformLayout.ISLAND, munich.spec().platformLayout());
+		assertEquals(BuildingStyle.CONCRETE, munich.spec().building());
+		assertEquals(List.of(), munich.warnings());
+
+		final ParseResult munichSide = StationDescriptionParser.parse("two track munich station, side platforms, named Munchen Ost");
+		assertEquals(2, munichSide.spec().trackCount());
+		assertEquals(PlatformLayout.SIDE, munichSide.spec().platformLayout());
+		assertEquals(List.of(), munichSide.warnings());
+
+		final ParseResult utrecht = StationDescriptionParser.parse("2 track utrecht station, 200 long");
+		assertEquals(RealStation.UTRECHT_CENTRAAL, utrecht.spec().real());
+		assertEquals(PlatformLayout.ISLAND, utrecht.spec().platformLayout());
+		assertEquals(List.of(), utrecht.warnings());
 	}
 
 	@Test
@@ -546,6 +583,42 @@ class StationDescriptionParserTest {
 		assertEquals(StationScale.GRAND, spec("four track grand central terminus, two island platforms, 96 long").scale());
 		assertTrue(StationDescriptionParser.parse("four track grand central terminus").warnings().isEmpty());
 		assertTrue(warned(StationDescriptionParser.parse("grand city station"), "given twice"));
+	}
+
+	@Test
+	void dutchFourTrackStationsDefaultToGrandWhileOthersStayCity() {
+		assertEquals(StationScale.GRAND, StationScale.forSize(true, 4, true));
+		assertEquals(StationScale.CITY, StationScale.forSize(true, 4, false));
+		assertEquals(StationScale.COMPACT, StationScale.forSize(true, 3, true));
+		assertEquals(StationScale.COMPACT, StationScale.forSize(false, 4, true));
+		for (final String words : new String[]{
+				"four track dutch station, two island platforms, 200 long, station building, named Nijmegen",
+				"4 track station in the netherlands, station building",
+				"4 track nl station, station building",
+				"four track holland station, station building",
+				"four track utrecht station, station building",
+				"four track rotterdam station, station building",
+				"four track amsterdam station, station building",
+				"4 track metro style utrecht station, station building",
+				"4 track station, ns signs, station building"}) {
+			assertEquals(StationScale.GRAND, spec(words).scale(), words);
+		}
+		// an explicit scale word still wins, and fast through lines without platform faces still count only platformed tracks
+		assertEquals(StationScale.CITY, spec("4 track dutch city station with station building").scale());
+		assertEquals(StationScale.CITY, spec("4 track dutch town station with station building").scale());
+		assertEquals(StationScale.COMPACT, spec("4 track dutch compact station building").scale());
+		assertEquals(StationScale.COMPACT, spec("4 tracks side, dutch station, 200 long, station building").scale());
+		assertEquals(StationScale.COMPACT, spec("2 track dutch station, 200 long, station building").scale());
+		// UK, Belgian, generic and rolled-era 4-5 platformed-track stations keep city size
+		for (final String words : new String[]{
+				"4 track station with station building",
+				"5 track modern station, three island platforms, station building",
+				"four track victorian station, two island platforms, station building",
+				"4 track antwerp station, station building",
+				"4 track brick station with station building",
+				"4 track station, modern era, station building"}) {
+			assertEquals(StationScale.CITY, spec(words).scale(), words);
+		}
 	}
 
 	@Test

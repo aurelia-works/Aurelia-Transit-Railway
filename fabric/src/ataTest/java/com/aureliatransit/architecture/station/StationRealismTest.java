@@ -320,6 +320,21 @@ class StationRealismTest {
 				.map(PlannedBlock::v).collect(java.util.stream.Collectors.toSet());
 	}
 
+	/** The most consecutive rows in {@code rows}. */
+	private static int longestRun(java.util.Set<Integer> rows) {
+		int best = 0;
+		for (final int v : rows) {
+			if (!rows.contains(v - 1)) {
+				int run = 1;
+				while (rows.contains(v + run)) {
+					run++;
+				}
+				best = Math.max(best, run);
+			}
+		}
+		return best;
+	}
+
 	@Test
 	void aShedIsClosedAlongItsBuildingSide() {
 		// Hamburg's entrance block and Amsterdam's front stop short of their sheds; past them the street looked in under the roof
@@ -335,7 +350,14 @@ class StationRealismTest {
 			for (final TrackLayout.Track track : layout.tracks()) {
 				assertTrue(Math.abs(track.u() - line) > StationGeometry.ENVELOPE_HALF_WIDTH, words + ": track " + track.u());
 			}
-			assertTrue(wallRows(plan, layout.width() - 1).isEmpty(), words + ": far side closed");
+			// over an outer track the far side has no wall at all; along a far side platform (Amsterdam's 11 real tracks end on
+			// one) only its footbridge stair and lift enclosures, never a wall closing it like the building side
+			final java.util.Set<Integer> far = wallRows(plan, layout.width() - 1);
+			if (layout.platforms().stream().anyMatch(p -> p.uMax() == layout.width() - 1)) {
+				assertTrue(longestRun(far) <= StationGeometry.STAIR_STEPS + 2, words + ": far side closed over " + longestRun(far) + " rows");
+			} else {
+				assertTrue(far.isEmpty(), words + ": far side closed");
+			}
 			// the platform columns and the shed over them are still there
 			assertTrue(plan.blocks().stream().anyMatch(b -> b.role() == Role.COLUMN && b.u() > line), words + ": no columns");
 			assertTrue(plan.blocks().stream().anyMatch(b -> b.role() == Role.RIB && b.u() > line), words + ": no shed");
@@ -351,5 +373,27 @@ class StationRealismTest {
 		final StationPlan pancras = plan(preset("st_pancras"));
 		assertEquals(0, pancras.layout().buildingWidth());
 		assertTrue(wallRows(pancras, 0).stream().allMatch(v -> v >= pancras.layout().platformLength()), "st pancras " + wallRows(pancras, 0));
+	}
+
+	@Test
+	void surbitonHasItsArtDecoClockTowerAndRibbonWings() {
+		final StationPlan surbiton = plan(preset("surbiton"));
+		assertEquals(1, streetClocks(surbiton).size(), "Surbiton's square Art Deco clock tower faces the street");
+		final int towerTop = surbiton.blocks().stream().filter(b -> b.u() < surbiton.layout().buildingWidth())
+				.mapToInt(PlannedBlock::y).max().orElseThrow();
+		assertTrue(towerTop >= 29, "tower top " + towerTop);
+		assertTrue(surbiton.blocks().stream().anyMatch(b -> b.blockId().endsWith("uk_steel_window")), "steel ribbon windows in the wings");
+	}
+
+	@Test
+	void terminusHeadLandmarksSpanTheirWholeHeadWithoutTwoStoreyEars() {
+		for (final String key : new String[]{"st_pancras", "antwerp", "frankfurt", "grand_central", "zurich", "paris", "milan", "mumbai", "bangkok"}) {
+			final StationPlan plan = plan(preset(key));
+			final int vE = plan.layout().headEnd();
+			for (final int u : new int[]{plan.layout().headFrom() + 1, plan.layout().headTo() - 1}) {
+				final int top = plan.blocks().stream().filter(b -> b.u() == u && b.v() == vE).mapToInt(PlannedBlock::y).max().orElse(0);
+				assertTrue(top > StationGeometry.BUILDING_ROOF_Y + 2, key + " left a generic 2-storey ear at u=" + u + " (top=" + top + ")");
+			}
+		}
 	}
 }

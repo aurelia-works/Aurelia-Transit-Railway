@@ -66,11 +66,13 @@ final class Fixtures {
 			result.add(new Entry(entry.id(), entry.block(), entry.family()));
 		}
 		final long inRegistry = Registries.BLOCK.getIds().stream().filter(id -> id.getNamespace().equals(AureliaTransitArchitecture.MOD_ID)).count();
-		if (inRegistry != result.size()) {
-			throw new IllegalStateException("Registry holds " + inRegistry + " Aurelia blocks but ModBlocks lists " + result.size());
+		// blocks only code places have no item and are not in ModBlocks.entries(), but they are registered and ship a blockstate
+		final int withoutItem = ModBlocks.withoutItems().size();
+		if (inRegistry != result.size() + withoutItem) {
+			throw new IllegalStateException("Registry holds " + inRegistry + " Aurelia blocks but ModBlocks lists " + result.size() + " and " + withoutItem + " without an item");
 		}
 		final long blockstates = blockstateFiles();
-		if (blockstates != result.size()) {
+		if (blockstates != result.size() + withoutItem) {
 			throw new IllegalStateException("Only " + result.size() + " blocks are registered but the mod ships " + blockstates + " blockstate files");
 		}
 		return result;

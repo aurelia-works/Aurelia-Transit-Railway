@@ -29,6 +29,9 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
+import com.aureliatransit.architecture.airport.JetBridgeMotion;
+import com.aureliatransit.architecture.block.entity.JetBridgeBlockEntity;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.BlockPos;
 
 /**
@@ -52,12 +55,21 @@ public final class ModPackets {
 	public static final Identifier STATION_STUDIO = AureliaTransitArchitecture.id("station_studio");
 	/** Station build pace: blocks per tick, client asks and the server sends the current value (and on join). */
 	public static final Identifier STATION_PACE = AureliaTransitArchitecture.id("station_pace");
+	/** Client to server: a jet bridge's cab is docked this far out, so keep its deck down. */
+	public static final Identifier JET_BRIDGE_DOCK = AureliaTransitArchitecture.id("jet_bridge_dock");
 	/** Server to client: a pending plan as a compressed hologram packet, or a clear. */
 	public static final Identifier STATION_HOLOGRAM = AureliaTransitArchitecture.id("station_hologram");
 	/** Client to server: whether this player wants the old particle outline instead of the hologram. */
 	public static final Identifier STATION_HOLOGRAM_SETTINGS = AureliaTransitArchitecture.id("station_hologram_settings");
 
 	private ModPackets() {
+	}
+
+	public static PacketByteBuf writeJetBridgeDock(BlockPos pos, float reach) {
+		final PacketByteBuf buf = PacketByteBufs.create();
+		buf.writeBlockPos(pos);
+		buf.writeFloat(reach);
+		return buf;
 	}
 
 	public static PacketByteBuf writeSign(BlockPos pos, SignData data) {
@@ -138,6 +150,24 @@ public final class ModPackets {
 	}
 
 	public static void registerServerReceivers() {
+		ServerPlayNetworking.registerGlobalReceiver(JET_BRIDGE_DOCK, (server, player, handler, buf, responseSender) -> {
+			final BlockPos pos;
+			final float reach;
+			try {
+				pos = buf.readBlockPos();
+				reach = buf.readFloat();
+			} catch (RuntimeException e) {
+				return;
+			}
+			server.execute(() -> {
+				// only a bridge the player can see, docked no further than a bridge runs
+				if (!(reach >= 0 && reach <= JetBridgeMotion.MAX_TRAVEL) || player.squaredDistanceTo(Vec3d.ofCenter(pos)) > 128 * 128
+						|| !(player.getServerWorld().getBlockEntity(pos) instanceof JetBridgeBlockEntity bridge)) {
+					return;
+				}
+				bridge.dock(player.getServerWorld(), reach);
+			});
+		});
 		ServerPlayNetworking.registerGlobalReceiver(STATION_PACE, (server, player, handler, buf, responseSender) -> {
 			final int pace;
 			try {

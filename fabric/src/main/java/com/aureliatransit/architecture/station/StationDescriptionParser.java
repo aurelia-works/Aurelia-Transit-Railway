@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 public final class StationDescriptionParser {
 
 	/** Longer descriptions are cut to this many characters (with a warning). */
-	public static final int MAX_INPUT = 1200;
+	public static final int MAX_INPUT = 2400;
 	/** Tracks for "large" or "big" without a number. */
 	static final int LARGE_TRACKS = 4;
 	/**
@@ -93,7 +93,10 @@ public final class StationDescriptionParser {
 
 	private static final Map<String, Integer> NUMBER_WORDS = Map.ofEntries(Map.entry("one", 1), Map.entry("two", 2),
 			Map.entry("three", 3), Map.entry("four", 4), Map.entry("five", 5), Map.entry("six", 6), Map.entry("seven", 7),
-			Map.entry("eight", 8), Map.entry("nine", 9), Map.entry("ten", 10), Map.entry("eleven", 11), Map.entry("twelve", 12));
+			Map.entry("eight", 8), Map.entry("nine", 9), Map.entry("ten", 10), Map.entry("eleven", 11), Map.entry("twelve", 12),
+			Map.entry("thirteen", 13), Map.entry("fourteen", 14), Map.entry("fifteen", 15), Map.entry("sixteen", 16),
+			Map.entry("seventeen", 17), Map.entry("eighteen", 18), Map.entry("nineteen", 19), Map.entry("twenty", 20),
+			Map.entry("thirty", 30), Map.entry("forty", 40), Map.entry("fifty", 50));
 	/** Only count before "track(s)": "double track", "single-track". */
 	private static final Map<String, Integer> TRACK_WORDS = Map.of("single", 1, "double", 2, "twin", 2, "triple", 3, "quadruple", 4, "quad", 4);
 	private static final Set<String> METRE_UNITS = Set.of("m", "metre", "metres", "meter", "meters");
@@ -106,9 +109,9 @@ public final class StationDescriptionParser {
 	private static final Map<String, StationStyle> STYLE_WORDS = Map.ofEntries(Map.entry("modern", StationStyle.MODERN),
 			Map.entry("contemporary", StationStyle.MODERN), Map.entry("generic", StationStyle.MODERN), Map.entry("default", StationStyle.MODERN),
 			Map.entry("simple", StationStyle.MODERN), Map.entry("standard", StationStyle.MODERN), Map.entry("dutch", StationStyle.DUTCH),
-			Map.entry("netherlands", StationStyle.DUTCH), Map.entry("holland", StationStyle.DUTCH), Map.entry("ns", StationStyle.DUTCH),
-			Map.entry("utrecht", StationStyle.DUTCH), Map.entry("leidsche", StationStyle.DUTCH), Map.entry("amsterdam", StationStyle.DUTCH),
-			Map.entry("rotterdam", StationStyle.DUTCH), Map.entry("german", StationStyle.GERMAN_SBAHN), Map.entry("germany", StationStyle.GERMAN_SBAHN),
+			Map.entry("netherlands", StationStyle.DUTCH), Map.entry("holland", StationStyle.DUTCH), Map.entry("nl", StationStyle.DUTCH),
+			Map.entry("ns", StationStyle.DUTCH), Map.entry("utrecht", StationStyle.DUTCH), Map.entry("leidsche", StationStyle.DUTCH),
+			Map.entry("amsterdam", StationStyle.DUTCH), Map.entry("rotterdam", StationStyle.DUTCH), Map.entry("german", StationStyle.GERMAN_SBAHN), Map.entry("germany", StationStyle.GERMAN_SBAHN),
 			Map.entry("db", StationStyle.GERMAN_SBAHN), Map.entry("sbahn", StationStyle.GERMAN_SBAHN), Map.entry("hamburg", StationStyle.GERMAN_SBAHN),
 			Map.entry("munich", StationStyle.GERMAN_SBAHN), Map.entry("munchen", StationStyle.GERMAN_SBAHN), Map.entry("berlin", StationStyle.GERMAN_SBAHN),
 			Map.entry("frankfurt", StationStyle.GERMAN_SBAHN), Map.entry("metro", StationStyle.METRO), Map.entry("subway", StationStyle.METRO),
@@ -279,6 +282,7 @@ public final class StationDescriptionParser {
 		private boolean small;
 		private boolean large;
 		private StationStyle style;
+		private boolean dutchStyle;
 		private boolean roofNone;
 		private RoofType roof;
 		private boolean weakRoof;
@@ -1011,9 +1015,10 @@ public final class StationDescriptionParser {
 			if (token.equals("box") && (at(i + 1).equals("station") || at(i + 1).equals("underground"))) {
 				return setDeep(UndergroundType.CUT_AND_COVER, i, i + 1, "box");
 			}
-			final Integer n = value(token);
-			if (n != null) {
-				int j = i + 1;
+			final int[] num = numberAt(i);
+			if (num != null) {
+				final int n = num[0];
+				int j = num[1] + 1;
 				boolean blocks = false;
 				if (UNITS.contains(at(j))) {
 					blocks = at(j).startsWith("block");
@@ -1057,14 +1062,14 @@ public final class StationDescriptionParser {
 					&& ENTRANCE_NOUNS.contains(at(i + 1))) {
 				return setEntrance(token.equals("narrow") ? StationOptions.MIN_ENTRANCE : 7, i, i + 1);
 			}
-			final Integer n = value(token);
-			if (n != null) {
-				int j = i + 1;
+			final int[] firstNum = numberAt(i);
+			if (firstNum != null) {
+				int j = firstNum[1] + 1;
 				if (UNITS.contains(at(j))) {
 					j++;
 				}
 				if ((at(j).equals("wide") || at(j).equals("width")) && ENTRANCE_NOUNS.contains(at(j + 1))) {
-					return setEntrance(n, i, j + 1);
+					return setEntrance(firstNum[0], i, j + 1);
 				}
 				return false;
 			}
@@ -1075,11 +1080,12 @@ public final class StationDescriptionParser {
 			if (at(j).equals("width")) {
 				j++;
 			}
-			final Integer m = value(at(j));
-			if (m == null) {
+			final int[] secondNum = numberAt(j);
+			if (secondNum == null) {
 				return false;
 			}
-			int k = j + 1;
+			final int m = secondNum[0];
+			int k = secondNum[1] + 1;
 			if (UNITS.contains(at(k))) {
 				k++;
 			}
@@ -1248,6 +1254,21 @@ public final class StationDescriptionParser {
 			return NUMBER_WORDS.get(token);
 		}
 
+		/** Value and end token index of a number starting at {@code i} (including compounds like "twenty four"), or null. */
+		private int[] numberAt(int i) {
+			final Integer first = value(at(i));
+			if (first == null) {
+				return null;
+			}
+			if ((first == 20 || first == 30 || first == 40 || first == 50) && i + 1 < tokens.length) {
+				final Integer ones = NUMBER_WORDS.get(tokens[i + 1]);
+				if (ones != null && ones >= 1 && ones <= 9) {
+					return new int[]{first + ones, i + 1};
+				}
+			}
+			return new int[]{first, i};
+		}
+
 		private boolean number(int i) {
 			final String token = tokens[i];
 			final Integer trackWord = TRACK_WORDS.get(token);
@@ -1256,35 +1277,37 @@ public final class StationDescriptionParser {
 				use(i, i + 1);
 				return true;
 			}
-			final Integer n = value(token);
-			if (n == null) {
+			final int[] num = numberAt(i);
+			if (num == null) {
 				return false;
 			}
+			final int n = num[0];
+			final int end = num[1];
 			// <n> track(s), <n> platform track(s), <n> rail tracks
-			if (TRACK_NOUNS.contains(at(i + 1))) {
+			if (TRACK_NOUNS.contains(at(end + 1))) {
 				setTracks(n, i);
-				use(i, i + 1);
+				use(i, end + 1);
 				return true;
 			}
-			if ((at(i + 1).equals("platform") || at(i + 1).equals("rail")) && TRACK_NOUNS.contains(at(i + 2))) {
+			if ((at(end + 1).equals("platform") || at(end + 1).equals("rail")) && TRACK_NOUNS.contains(at(end + 2))) {
 				setTracks(n, i);
-				use(i, i + 2);
+				use(i, end + 2);
 				return true;
 			}
 			// <n> island platforms, <n> side platforms
-			if (at(i + 1).equals("island") && PLATFORM_NOUNS.contains(at(i + 2))) {
+			if (at(end + 1).equals("island") && PLATFORM_NOUNS.contains(at(end + 2))) {
 				islandPlatforms = n;
 				islandMention(i);
-				use(i, i + 2);
+				use(i, end + 2);
 				return true;
 			}
-			if (at(i + 1).equals("side") && PLATFORM_NOUNS.contains(at(i + 2))) {
+			if (at(end + 1).equals("side") && PLATFORM_NOUNS.contains(at(end + 2))) {
 				sideMention(i);
-				use(i, i + 2);
+				use(i, end + 2);
 				return true;
 			}
 			// <n> [unit] long|length|wide|width, or <n> metres alone
-			int j = i + 1;
+			int j = end + 1;
 			final String unit = at(j);
 			if (UNITS.contains(unit)) {
 				j++;
@@ -1303,10 +1326,10 @@ public final class StationDescriptionParser {
 			// "300 blocks" alone is a length too, once it is long enough to be one
 			if (METRE_UNITS.contains(unit) || (unit.equals("blocks") || unit.equals("block")) && n >= StationSpec.MIN_LENGTH) {
 				setLength(n, i);
-				use(i, i + 1);
+				use(i, end + 1);
 				return true;
 			}
-			use(i, i);
+			use(i, end);
 			return true;
 		}
 
@@ -1316,10 +1339,12 @@ public final class StationDescriptionParser {
 			if (at(j).equals("of")) {
 				j++;
 			}
-			final Integer n = value(at(j));
-			if (n == null) {
+			final int[] num = numberAt(j);
+			if (num == null) {
 				return false;
 			}
+			final int n = num[0];
+			j = num[1];
 			if (UNITS.contains(at(j + 1))) {
 				j++;
 			}
@@ -2034,6 +2059,7 @@ public final class StationDescriptionParser {
 		private void setStyle(StationStyle value, int i) {
 			if (style == null) {
 				style = value;
+				dutchStyle = value == StationStyle.DUTCH;
 				note(i, styleName(value) + " style");
 			} else if (style != value) {
 				warn("style given twice; using " + styleName(style));
@@ -2155,11 +2181,6 @@ public final class StationDescriptionParser {
 				buildingStyle = null;
 				looks.clear();
 				lookOnlyWord = null;
-				if (tracks != null && listed.isEmpty() && islandPlatforms == null) {
-					for (int number = 1; number <= tracks / 2; number++) {
-						listed.put(number, PlatformSpec.of(PlatformSpec.Kind.ISLAND));
-					}
-				}
 				note(looseAt, "the real " + real.label() + " (say \"" + real.phrase().split(" ")[0] + " style\" for its look on a station of your own)");
 			}
 			if (real == null) {
@@ -2470,6 +2491,17 @@ public final class StationDescriptionParser {
 				};
 			}
 			options = options.withType(deepType).withDepth(depthAsked).withTile(tile == null ? "" : tile);
+		}
+
+		/** True when the words name a Dutch style, operator or city look (not an era's default or a Belgian city's platforms). */
+		private boolean dutchLook() {
+			if (dutchStyle) {
+				return true;
+			}
+			if (!looks.isEmpty()) {
+				return STYLE_WORDS.get(looks.get(0).word()) == StationStyle.DUTCH;
+			}
+			return operator == Operator.NS;
 		}
 
 		/** The real city station whose sheet the words ask for ("real coventry"), or empty: one city word and no real station named. */
@@ -2853,10 +2885,12 @@ public final class StationDescriptionParser {
 				} else {
 					final StationScale own = Landmarks.ownScale(name, sheetName());
 					final int platformed = StationGeometry.platformedTracks(sized);
-					final StationScale auto = own != null ? own : StationScale.forSize(true, platformed);
+					final boolean dutch = dutchLook();
+					final StationScale auto = own != null ? own : StationScale.forSize(true, platformed, dutch);
 					builder.scale(auto);
 					defaulted.add(auto.label() + " station building (" + (own != null ? "the real station's size"
-							: "default for " + platformed + (platformed == 1 ? " track" : " tracks") + " at platforms") + ")");
+							: "default for " + platformed + (platformed == 1 ? " track" : " tracks") + " at platforms"
+									+ (dutch && auto == StationScale.GRAND && platformed < StationScale.GRAND_BUILDING_TRACKS ? " on a Dutch station" : "")) + ")");
 				}
 			}
 			// a bigger through station (a city or grand building) gives every platform wide enough two ways down from its footbridge, so

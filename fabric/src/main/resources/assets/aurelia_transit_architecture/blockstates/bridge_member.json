@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "full=true": {
+      "model": "aurelia_transit_architecture:block/bridge_member"
+    },
+    "full=false": {
+      "model": "aurelia_transit_architecture:block/bridge_member"
+    }
+  }
+}

@@ -113,21 +113,26 @@ class DeepStationTest {
 	}
 
 	@Test
-	void theDeepPresetsKeepTheirRealDepthTypeAndOperator() {
-		// Angel 27 m is 40 blocks (the research's figure); Canary Wharf 24 m is 36 and Vijzelgracht 26 m is 39, at 1.5 blocks a metre
+	void theDeepPresetsKeepTheirRealDepthTypeLengthAndOperator() {
+		// Angel 27 m is 41 blocks; Canary Wharf 24 m is 36 and Vijzelgracht 26 m is 39, at 1.5 blocks a metre
 		final StationSpec angel = StationDescriptionParser.parse(presetText("angel")).spec();
 		assertEquals(UndergroundType.DEEP_TUBE, angel.options().type());
-		assertEquals(40, angel.options().streetDepth());
+		assertEquals(41, angel.options().streetDepth());
 		assertEquals(Operator.UNDERGROUND, angel.operator());
 		// Angel is escalator-only: a tube without the step-free words gets no lift
 		assertFalse(angel.stepFree());
 		final StationSpec canary = StationDescriptionParser.parse(presetText("canary_wharf")).spec();
 		assertEquals(UndergroundType.CUT_AND_COVER, canary.options().type());
 		assertEquals(36, canary.options().streetDepth());
+		// Canary Wharf's 265 m runs past the generator's 300-block limit, so the preset uses all 300
+		assertEquals(300, canary.platformLength());
 		assertEquals(Operator.UNDERGROUND, canary.operator());
 		final StationSpec vijzelgracht = StationDescriptionParser.parse(presetText("vijzelgracht")).spec();
 		assertEquals(UndergroundType.CUT_AND_COVER, vijzelgracht.options().type());
 		assertEquals(39, vijzelgracht.options().streetDepth());
+		// 125 m at 1.5 blocks a metre is 187.5, built as the 188-long island platform
+		assertEquals(188, vijzelgracht.platformLength());
+		assertEquals(PlatformLayout.ISLAND, vijzelgracht.platformLayout());
 		assertEquals(Operator.GVB, vijzelgracht.operator());
 	}
 

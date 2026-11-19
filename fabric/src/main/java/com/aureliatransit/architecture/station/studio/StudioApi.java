@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station.studio;
 
+import com.aureliatransit.architecture.bridge.span.BridgeMember;
 import com.aureliatransit.architecture.station.AirportPresets;
 import com.aureliatransit.architecture.station.BlockFamilies;
 import com.aureliatransit.architecture.station.BuildingStyle;
@@ -11,6 +12,7 @@ import com.aureliatransit.architecture.station.LocalFrame;
 import com.aureliatransit.architecture.station.ParseResult;
 import com.aureliatransit.architecture.station.PlanFingerprint;
 import com.aureliatransit.architecture.station.PlannedBlock;
+import com.aureliatransit.architecture.station.PlatformSpec;
 import com.aureliatransit.architecture.station.Role;
 import com.aureliatransit.architecture.station.Facing;
 import com.aureliatransit.architecture.station.StationAudit;
@@ -87,15 +89,15 @@ public final class StudioApi {
 		return recipe(q).length();
 	}
 
-	/** The longest platform list a request may carry: ten platforms with every setting. */
-	public static final int MAX_PLATFORM_WORDS = 600;
+	/** The longest platform list a request may carry: sixteen platforms with every setting. */
+	public static final int MAX_PLATFORM_WORDS = PlatformSpec.MAX_PLATFORMS * 64;
 
 	/**
 	 * The typed words of a request, cut to {@link #MAX_TYPED}, after the advanced platform list ("platform 1: island 12 wide;
 	 * ..."), which comes first so a long description never cuts it off.
 	 */
 	public static String typed(Map<String, String> q) {
-		String text = q.getOrDefault("text", "").replace('\n', ' ').strip();
+		String text = presetAdjusted(q, q.getOrDefault("text", "").replace('\n', ' ').strip());
 		if (text.length() > MAX_TYPED) {
 			text = text.substring(0, MAX_TYPED);
 		}
@@ -176,6 +178,99 @@ public final class StudioApi {
 		return pinned;
 	}
 
+	/** Controls a player can adjust on top of a picked preset's own words without having to edit its text first. */
+	static final Set<String> PRESET_CONTROLS = Set.of("tracks", "length", "layout", "mode");
+
+	/** The preset base description (without {@code named ...}) that {@code words} starts with, or null. */
+	static String presetBase(String words) {
+		final String clean = words.replace('\n', ' ').strip();
+		if (clean.isEmpty()) {
+			return null;
+		}
+		String match = null;
+		for (final StationPresets.Preset preset : StationPresets.ALL) {
+			final String base = preset.description().replaceFirst(",?\\s*named .*$", "");
+			if (clean.equals(base) || clean.startsWith(base) && clean.substring(base.length()).matches("^\\s*,.*")) {
+				if (match == null || base.length() > match.length()) {
+					match = base;
+				}
+			}
+		}
+		return match;
+	}
+
+	/** True when {@code words} is a preset's description (with or without {@code named ...} or extra comma-separated clauses). */
+	static boolean isPresetWords(String words) {
+		return presetBase(words) != null;
+	}
+
+	/** Drops a picked preset's own track, platform, length or mode words when the player adjusted that control by hand. */
+	private static String presetAdjusted(Map<String, String> q, String text) {
+		final String base = presetBase(text);
+		if (base == null) {
+			return text;
+		}
+		final String tailWords = text.substring(base.length()).replaceFirst("^\\s*,\\s*", "");
+		final Set<String> tailSaid = tailWords.isEmpty() ? Set.of() : StationDescriptionParser.controlsSaid(tailWords);
+		final Set<String> hand = keys(q.getOrDefault("pinned", ""));
+		hand.removeAll(keys(q.getOrDefault("rolled", "")));
+		for (final String key : PRESET_CONTROLS) {
+			if (tailSaid.contains(key)) {
+				hand.add(key);
+			}
+		}
+		boolean any = false;
+		for (final String key : PRESET_CONTROLS) {
+			if (hand.contains(key)) {
+				any = true;
+				break;
+			}
+		}
+		if (!any) {
+			return text;
+		}
+		final StationRecipe recipe = recipe(q);
+		String out = base;
+		if (hand.contains("tracks")) {
+			out = out.replaceFirst("(?i)^(?:single|double|twin|triple|quadruple|quad|\\d+|[a-z]+(?:-[a-z]+)?)\\s+tracks?\\s+", "");
+			if (!hand.contains("layout")) {
+				final int t = tailSaid.contains("tracks") ? StationDescriptionParser.parse(tailWords).spec().trackCount() : recipe.tracks();
+				if (t < 2) {
+					out = out.replaceFirst("(?i),\\s*(?:(?:\\d+|[a-z]+(?:-[a-z]+)?)\\s+)?(?:island\\s+and\\s+side|island)\\s+platforms?\\b", "");
+				} else {
+					out = out.replaceFirst("(?i),\\s*(?:\\d+|[a-z]+(?:-[a-z]+)?)\\s+island\\s+platforms\\b", ", island platforms");
+					if (t % 2 == 0) {
+						out = out.replaceFirst("(?i),\\s*island\\s+and\\s+side\\s+platforms\\b", ", island platforms");
+					}
+				}
+			}
+		}
+		if (hand.contains("layout")) {
+			out = out.replaceFirst("(?i),\\s*(?:(?:\\d+|[a-z]+(?:-[a-z]+)?)\\s+)?(?:island\\s+and\\s+side|island|side)\\s+platforms?\\b", "");
+		}
+		if (hand.contains("length")) {
+			out = out.replaceFirst("(?i),\\s*\\d+\\s*(?:m|blocks?)?\\s*long\\b", "");
+		}
+		if (hand.contains("mode")) {
+			final boolean wantsTerminus = tailSaid.contains("mode") ? StationDescriptionParser.parse(tailWords).spec().terminus() : recipe.terminus();
+			final boolean wantsHub = tailSaid.contains("mode") ? StationDescriptionParser.parse(tailWords).spec().hub() : recipe.hub();
+			if (!wantsTerminus || wantsHub) {
+				out = out.replaceFirst("(?i)\\bterminus\\b", "station");
+			}
+			if (wantsTerminus) {
+				out = out.replaceFirst("(?i)\\s+with\\s+(?:footbridge|mezzanine)\\b", "");
+			}
+			if (wantsHub && !hand.contains("layout")) {
+				out = out.replaceFirst("(?i),\\s*(?:(?:\\d+|[a-z]+(?:-[a-z]+)?)\\s+)?(?:island\\s+and\\s+side|side)\\s+platforms?\\b", ", island platforms");
+			}
+		}
+		out = out.strip();
+		if (tailWords.isEmpty()) {
+			return out;
+		}
+		return out.isEmpty() ? tailWords : out + ", " + tailWords;
+	}
+
 	/** The controls a real station fixes itself: its look, through tracks, hall or shed, and island platforms. */
 	static final List<String> REAL_FIXES = List.of("look", "mode", "building", "size", "roof", "layout");
 
@@ -184,7 +279,7 @@ public final class StudioApi {
 
 	/** The pinned controls the typed words set themselves, and so overrule (sorted, for the page's note). */
 	public static List<String> wordsWon(Map<String, String> q) {
-		final String words = q.getOrDefault("text", "").strip();
+		final String words = q.getOrDefault("text", "").replace('\n', ' ').strip();
 		final String list = q.getOrDefault("pinned", "").strip();
 		if (words.isEmpty() || list.isEmpty()) {
 			return List.of();
@@ -193,6 +288,10 @@ public final class StudioApi {
 		for (final String part : list.split(",")) {
 			asked.add(part.strip().equals("mix") ? "look" : part.strip());
 		}
+		final Set<String> rolled = keys(q.getOrDefault("rolled", ""));
+		final String base = presetBase(words);
+		final String tail = base == null ? "" : words.substring(base.length()).replaceFirst("^\\s*,\\s*", "");
+		final Set<String> tailSaid = tail.isEmpty() ? Set.of() : StationDescriptionParser.controlsSaid(tail);
 		final List<String> won = new ArrayList<>();
 		// words that name a real station ("utrecht station") set what it really is, so a pinned second city, hub, building, roof
 		// or side platforms cannot turn it back into a station of the player's own (Jah 10-22; the dice pin some on a fresh page)
@@ -204,7 +303,6 @@ public final class StudioApi {
 			}
 			// its own track count and platform length beat what the dice rolled (a fresh page made Hamburg 1 to 4 tracks, 64
 			// long, 10-24); a count or length set by hand still holds
-			final Set<String> rolled = keys(q.getOrDefault("rolled", ""));
 			for (final String key : REAL_ROLLED) {
 				if (asked.contains(key) && rolled.contains(key)) {
 					won.add(key);
@@ -216,6 +314,9 @@ public final class StudioApi {
 			if (won.contains(key)) {
 				continue;
 			}
+			if (base != null && PRESET_CONTROLS.contains(key) && !tailSaid.contains(key) && !rolled.contains(key)) {
+				continue;
+			}
 			if (asked.contains(key)) {
 				won.add(key);
 			}
@@ -223,7 +324,6 @@ public final class StudioApi {
 		// words that name a city or a look ("amsterdam station") bring its own building and roof: what the dice rolled on the page
 		// gives way to them (a rolled flat shed or "no building" made Amsterdam something else); a control set by hand still holds
 		if (said.contains("look")) {
-			final Set<String> rolled = keys(q.getOrDefault("rolled", ""));
 			for (final String key : LOOK_FIXES) {
 				if (asked.contains(key) && rolled.contains(key) && !won.contains(key)) {
 					won.add(key);
@@ -441,7 +541,7 @@ public final class StudioApi {
 		out.append(",\"heights\":").append(keys(StationFeatures.PlatformHeight.values(), StationFeatures.PlatformHeight::key, StationFeatures.PlatformHeight::label));
 		out.append(",\"facings\":").append(keys(Facing.values(), Facing::key, f -> f == Facing.AUTO ? "Auto" : f.key().substring(0, 1).toUpperCase(Locale.ROOT) + f.key().substring(1)));
 		out.append(",\"blocks\":").append(Json.strings(BlockFamilies.suggestions()));
-		out.append(",\"maxTyped\":").append(MAX_TYPED).append(",\"maxName\":").append(StationSpec.MAX_NAME);
+		out.append(",\"maxTyped\":").append(MAX_TYPED).append(",\"maxName\":").append(StationSpec.MAX_NAME).append(",\"maxPlatforms\":").append(PlatformSpec.MAX_PLATFORMS);
 		out.append(",\"airports\":[");
 		for (int i = 0; i < AirportPresets.ALL.size(); i++) {
 			final AirportPresets.Preset a = AirportPresets.ALL.get(i);
@@ -612,6 +712,7 @@ public final class StudioApi {
 		final List<String> modelJson = new ArrayList<>();
 		final StringBuilder cells = new StringBuilder();
 		final StringBuilder moving = new StringBuilder();
+		final StringBuilder decals = new StringBuilder();
 		for (final PlannedBlock block : plan.blocks()) {
 			if (block.blockId().equals(com.aureliatransit.architecture.station.StylePalette.MTR_ESCALATOR_STEP)) {
 				// MTR's step model is the same both ways along its axis, so the page is told which way each step moves
@@ -623,11 +724,17 @@ public final class StudioApi {
 						.append(frame.x(block.u() + du, block.v() + dv) - x).append(',').append(frame.z(block.u() + du, block.v() + dv) - z);
 			}
 			final Heading heading = frame.heading(block.front());
+			// a bridge member block shows the block it stands in for, and its paint is drawn flat over the ground
+			final boolean members = block.blockId().equals(MEMBER_BLOCK) && !block.text().isEmpty();
+			final String shownId = members ? BridgeMember.skinOf(block.text()) : block.blockId();
+			if (members) {
+				paintDecals(decals, block, frame, heading);
+			}
 			// the finished shapes: an escalator draws its slope and landings, not a flight of default landing blocks
-			final String state = Connections.finishedState(block, at, full, frame);
-			final String key = BlockModels.key(block.blockId(), heading, state);
+			final String state = members ? "" : Connections.finishedState(block, at, full, frame);
+			final String key = BlockModels.key(shownId, heading, state);
 			final int model = modelIndex.computeIfAbsent(key, k -> {
-				modelJson.add("{\"id\":" + Json.quote(block.blockId()) + ",\"state\":" + Json.quote(state) + ",\"model\":" + models.describe(block.blockId(), heading, state) + "}");
+				modelJson.add("{\"id\":" + Json.quote(shownId) + ",\"state\":" + Json.quote(state) + ",\"model\":" + models.describe(shownId, heading, state) + "}");
 				return modelJson.size() - 1;
 			});
 			if (cells.length() > 0) {
@@ -738,6 +845,7 @@ public final class StudioApi {
 		out.append(",\"models\":[").append(String.join(",", modelJson)).append(']');
 		out.append(",\"cells\":[").append(cells).append(']');
 		out.append(",\"moving\":[").append(moving).append(']');
+		out.append(",\"decals\":[").append(decals).append(']');
 		out.append(",\"ms\":").append((planned - started) / 1_000_000);
 		return out.append('}').toString();
 	}
@@ -796,6 +904,26 @@ public final class StudioApi {
 	/** {@code block}'s state with the joins it gets in the game ({@link Connections}); {@code at} maps {@link #cell} keys to blocks. */
 	public static String withConnections(PlannedBlock block, Map<Long, PlannedBlock> at, Connections.FullFace full) {
 		return Connections.state(block, at, full);
+	}
+
+	private static final String MEMBER_BLOCK = "aurelia_transit_architecture:bridge_member";
+
+	/**
+	 * A bridge member block's paint strips, as the game draws them: x0, z0, x1, z1, top y and width, in the page's block
+	 * coordinates. The block faces the plan's +v; +u is to its right.
+	 */
+	private static void paintDecals(StringBuilder decals, PlannedBlock block, LocalFrame frame, Heading forward) {
+		final Heading right = forward.right();
+		final int x = frame.x(block.u(), block.v());
+		final int z = frame.z(block.u(), block.v());
+		for (final BridgeMember local : BridgeMember.unpack(block.text())) {
+			if (local.material() != BridgeMember.Material.PAINT) {
+				continue;
+			}
+			final BridgeMember m = local.placed(right.dx(), right.dz(), forward.dx(), forward.dz());
+			decals.append(decals.length() == 0 ? "" : ",").append(x + m.x0()).append(',').append(z + m.z0()).append(',').append(x + m.x1())
+					.append(',').append(z + m.z1()).append(',').append(block.y() + m.y0()).append(',').append(m.thickness());
+		}
 	}
 
 	public static long cell(int x, int y, int z) {

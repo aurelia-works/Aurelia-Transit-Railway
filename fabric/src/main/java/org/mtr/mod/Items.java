@@ -11,12 +11,12 @@ import org.mtr.mod.item.*;
 public final class Items {
 
 	static {
-		// Brush and dashboards
+		// Brush and dashboards (legacy dashboard_2..4 stay registered for saved worlds; mtr:dashboard is the unified Transit Dashboard)
 		BRUSH = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "brush"), itemSettings -> new Item(new ItemBrush(itemSettings)), CreativeModeTabs.CORE);
 		RAILWAY_DASHBOARD = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "dashboard"), itemSettings -> new Item(new ItemDashboard(TransportMode.TRAIN, itemSettings)), CreativeModeTabs.CORE);
-		BOAT_DASHBOARD = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "dashboard_2"), itemSettings -> new Item(new ItemDashboard(TransportMode.BOAT, itemSettings)), CreativeModeTabs.CORE);
-		CABLE_CAR_DASHBOARD = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "dashboard_3"), itemSettings -> new Item(new ItemDashboard(TransportMode.CABLE_CAR, itemSettings)), CreativeModeTabs.CORE);
-		AIRPLANE_DASHBOARD = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "dashboard_4"), itemSettings -> new Item(new ItemDashboard(TransportMode.AIRPLANE, itemSettings)), CreativeModeTabs.CORE);
+		BOAT_DASHBOARD = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "dashboard_2"), itemSettings -> new Item(new ItemDashboard(TransportMode.BOAT, itemSettings)));
+		CABLE_CAR_DASHBOARD = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "dashboard_3"), itemSettings -> new Item(new ItemDashboard(TransportMode.CABLE_CAR, itemSettings)));
+		AIRPLANE_DASHBOARD = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "dashboard_4"), itemSettings -> new Item(new ItemDashboard(TransportMode.AIRPLANE, itemSettings)));
 
 		// Misc
 		BASIC_DRIVER_KEY = Init.REGISTRY.registerItem(new Identifier(Init.MOD_ID, "basic_driver_key"), itemSettings -> new Item(new ItemDepotDriverKey(itemSettings.maxCount(1), true, false, false, 0xB6B6B6)));

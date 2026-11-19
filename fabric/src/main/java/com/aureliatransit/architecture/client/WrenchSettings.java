@@ -19,6 +19,12 @@ public final class WrenchSettings {
 	private static boolean actionBar = true;
 	private static boolean menuLook = true;
 	private static boolean planRoof = true;
+	private static boolean curvePaint = true;
+	/** The curved taxiway lines' width, in percent of a painted cell. */
+	private static int paintWidth = 100;
+	private static final int[] PAINT_WIDTHS = {50, 75, 100, 125};
+	/** The warning lights on bridge towers and pylons: 0 off, 1 steady, 2 flashing at night. */
+	private static int towerLights = 2;
 
 	private WrenchSettings() {
 	}
@@ -62,6 +68,18 @@ public final class WrenchSettings {
 			if (look != null && look.isJsonPrimitive() && look.getAsJsonPrimitive().isBoolean()) {
 				menuLook = look.getAsBoolean();
 			}
+			final JsonElement curve = json.get("curvePaint");
+			if (curve != null && curve.isJsonPrimitive() && curve.getAsJsonPrimitive().isBoolean()) {
+				curvePaint = curve.getAsBoolean();
+			}
+			final JsonElement lights = json.get("towerLights");
+			if (lights != null && lights.isJsonPrimitive() && lights.getAsJsonPrimitive().isNumber()) {
+				towerLights = Math.max(0, Math.min(2, lights.getAsInt()));
+			}
+			final JsonElement widthValue = json.get("paintWidth");
+			if (widthValue != null && widthValue.isJsonPrimitive() && widthValue.getAsJsonPrimitive().isNumber()) {
+				paintWidth = Math.max(25, Math.min(200, widthValue.getAsInt()));
+			}
 		} catch (Exception e) {
 			LOGGER.error("[ATR] wrench.json could not be read; keeps the defaults", e);
 		}
@@ -75,6 +93,9 @@ public final class WrenchSettings {
 			json.addProperty("actionBar", actionBar);
 			json.addProperty("menuLook", menuLook);
 			json.addProperty("planRoof", planRoof);
+			json.addProperty("curvePaint", curvePaint);
+			json.addProperty("paintWidth", paintWidth);
+			json.addProperty("towerLights", towerLights);
 			Files.writeString(file, json.toString());
 		} catch (Exception e) {
 			LOGGER.error("[ATR] wrench.json could not be written", e);
@@ -88,6 +109,41 @@ public final class WrenchSettings {
 
 	public static void togglePlanRoof() {
 		planRoof = !planRoof;
+		save();
+	}
+
+	/** Whether the smooth yellow lines round a taxiway's curves are drawn. */
+	public static boolean curvePaint() {
+		return curvePaint;
+	}
+
+	public static void toggleCurvePaint() {
+		curvePaint = !curvePaint;
+		save();
+	}
+
+	/** 0 off, 1 steady, 2 flashing at night: the warning lights on top of bridge towers and pylons. */
+	public static int towerLights() {
+		return towerLights;
+	}
+
+	public static void cycleTowerLights() {
+		towerLights = (towerLights + 1) % 3;
+		save();
+	}
+
+	public static int paintWidth() {
+		return paintWidth;
+	}
+
+	public static void cyclePaintWidth() {
+		int next = PAINT_WIDTHS[0];
+		for (int i = 0; i < PAINT_WIDTHS.length; i++) {
+			if (PAINT_WIDTHS[i] == paintWidth) {
+				next = PAINT_WIDTHS[(i + 1) % PAINT_WIDTHS.length];
+			}
+		}
+		paintWidth = next;
 		save();
 	}
 

@@ -16,6 +16,7 @@ public final class BridgeSystems {
 
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> BridgeCommand.register(dispatcher));
+		RailBridges.registerPackets();
 		ServerTickEvents.END_SERVER_TICK.register(BridgeSessions::tick);
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> BridgeSessions.forgetPlayer(handler.getPlayer().getUuid()));
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> BridgeSessions.clear());

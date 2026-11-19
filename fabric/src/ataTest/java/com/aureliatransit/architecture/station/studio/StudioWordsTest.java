@@ -1,7 +1,12 @@
 package com.aureliatransit.architecture.station.studio;
 
 import com.aureliatransit.architecture.station.BuildingStyle;
+import com.aureliatransit.architecture.station.LayoutValidator;
+import com.aureliatransit.architecture.station.ParseResult;
+import com.aureliatransit.architecture.station.PlatformLayout;
 import com.aureliatransit.architecture.station.RealStation;
+import com.aureliatransit.architecture.station.StationAudit;
+import com.aureliatransit.architecture.station.StationPresets;
 import com.aureliatransit.architecture.station.StationRecipe;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
 import com.aureliatransit.architecture.station.Role;
@@ -121,5 +126,119 @@ class StudioWordsTest {
 		// words that name a look still move the city button
 		q.put("text", "2 track munich station, station building, 64 long");
 		assertEquals("MUNICH", Json.object(Json.parse(api.plan(q))).get("wordsLook"));
+	}
+
+	private static String presetText(String key) {
+		return StationPresets.ALL.stream().filter(p -> p.key().equals(key)).findFirst().orElseThrow().description();
+	}
+
+	@Test
+	void aPickedPresetCanBeAdjustedAsATemplate() {
+		final String parisWords = presetText("paris").replaceFirst(",?\\s*named .*$", "");
+		final StationSpec adjusted = spec(StudioApi.description(Map.ofEntries(
+				Map.entry("text", parisWords),
+				Map.entry("look", "PARIS"),
+				Map.entry("mode", "terminus"),
+				Map.entry("tracks", "20"),
+				Map.entry("length", "240"),
+				Map.entry("layout", "ISLAND"),
+				Map.entry("roof", "HALL"),
+				Map.entry("building", "1"),
+				Map.entry("size", "GRAND"),
+				Map.entry("pinned", "text,tracks,length"),
+				Map.entry("rolled", ""))));
+		assertEquals(20, adjusted.trackCount());
+		assertEquals(240, adjusted.platformLength());
+		assertEquals(BuildingStyle.PARIS, adjusted.building());
+
+		// 1. In-game StationWrenchScreen -> StationEditorScreen path: full preset.description() including ", named Paris Nord"
+		final ParseResult inGameEdited = StationDescriptionParser.parse(StudioApi.description(Map.of(
+				"text", presetText("paris"),
+				"tracks", "20",
+				"pinned", "tracks")));
+		assertEquals(20, inGameEdited.spec().trackCount());
+		assertEquals("Paris Nord", inGameEdited.spec().name());
+		assertEquals(BuildingStyle.PARIS, inGameEdited.spec().building());
+		assertEquals(java.util.List.of(), inGameEdited.warnings(), inGameEdited.warnings().toString());
+		assertEquals(java.util.List.of(), inGameEdited.ignored(), inGameEdited.ignored().toString());
+
+		// 2. Preset words + appended user suffix (", escalators") with pinned=tracks: zero warnings or ignored words
+		final ParseResult suffixed = StationDescriptionParser.parse(StudioApi.description(Map.of(
+				"text", parisWords + ", escalators",
+				"tracks", "20",
+				"name", "Paris Nord",
+				"pinned", "name,tracks")));
+		assertEquals(20, suffixed.spec().trackCount());
+		assertTrue(suffixed.spec().escalators());
+		assertEquals("Paris Nord", suffixed.spec().name());
+		assertEquals(java.util.List.of(), suffixed.warnings(), suffixed.warnings().toString());
+		assertEquals(java.util.List.of(), suffixed.ignored(), suffixed.ignored().toString());
+
+		final ParseResult fullSuffixed = StationDescriptionParser.parse(StudioApi.description(Map.of(
+				"text", presetText("paris") + ", no ramps",
+				"tracks", "18",
+				"length", "220",
+				"pinned", "tracks,length")));
+		assertEquals(18, fullSuffixed.spec().trackCount());
+		assertEquals(220, fullSuffixed.spec().platformLength());
+		assertEquals("Paris Nord", fullSuffixed.spec().name());
+		assertEquals(java.util.List.of(), fullSuffixed.warnings(), fullSuffixed.warnings().toString());
+
+		// 3. mode=through on a terminus preset and mode=terminus on a through preset
+		final ParseResult parisThrough = StationDescriptionParser.parse(StudioApi.description(Map.of(
+				"text", presetText("paris"),
+				"mode", "through",
+				"pinned", "mode")));
+		assertEquals(false, parisThrough.spec().terminus());
+		assertEquals(32, parisThrough.spec().trackCount());
+		assertEquals(java.util.List.of(), parisThrough.warnings(), parisThrough.warnings().toString());
+		final StationPlan parisThroughPlan = StationPlanner.plan(parisThrough.spec());
+		assertEquals(java.util.List.of(), LayoutValidator.validate(parisThroughPlan));
+		assertTrue(StationAudit.audit(parisThroughPlan).buildable());
+
+		final ParseResult munichTerminus = StationDescriptionParser.parse(StudioApi.description(Map.of(
+				"text", presetText("munich"),
+				"mode", "terminus",
+				"pinned", "mode")));
+		assertTrue(munichTerminus.spec().terminus());
+		assertEquals(12, munichTerminus.spec().trackCount());
+		assertEquals(java.util.List.of(), munichTerminus.warnings(), munichTerminus.warnings().toString());
+		final StationPlan munichTerminusPlan = StationPlanner.plan(munichTerminus.spec());
+		assertEquals(java.util.List.of(), LayoutValidator.validate(munichTerminusPlan));
+		assertTrue(StationAudit.audit(munichTerminusPlan).buildable());
+
+		// 4. layout=SIDE / layout=ISLAND and odd track counts (tracks=15) on an "N island platforms" preset
+		final ParseResult frankfordSide = StationDescriptionParser.parse(StudioApi.description(Map.of(
+				"text", presetText("frankford"),
+				"tracks", "2",
+				"layout", "SIDE",
+				"pinned", "layout")));
+		assertEquals(PlatformLayout.SIDE, frankfordSide.spec().platformLayout());
+		assertEquals(java.util.List.of(), frankfordSide.warnings(), frankfordSide.warnings().toString());
+
+		final ParseResult parisTwoSide = StationDescriptionParser.parse(StudioApi.description(Map.of(
+				"text", presetText("paris"),
+				"tracks", "2",
+				"layout", "SIDE",
+				"pinned", "tracks,layout")));
+		assertEquals(2, parisTwoSide.spec().trackCount());
+		assertEquals(PlatformLayout.SIDE, parisTwoSide.spec().platformLayout());
+		assertEquals(java.util.List.of(), parisTwoSide.warnings(), parisTwoSide.warnings().toString());
+
+		final ParseResult teddingtonIsland = StationDescriptionParser.parse(StudioApi.description(Map.of(
+				"text", presetText("teddington"),
+				"tracks", "2",
+				"layout", "ISLAND",
+				"pinned", "layout")));
+		assertEquals(PlatformLayout.ISLAND, teddingtonIsland.spec().platformLayout());
+		assertEquals(java.util.List.of(), teddingtonIsland.warnings(), teddingtonIsland.warnings().toString());
+
+		final ParseResult frankfurtOdd = StationDescriptionParser.parse(StudioApi.description(Map.of(
+				"text", presetText("frankfurt"),
+				"tracks", "15",
+				"pinned", "tracks")));
+		assertEquals(15, frankfurtOdd.spec().trackCount());
+		assertEquals(PlatformLayout.ISLAND, frankfurtOdd.spec().platformLayout());
+		assertEquals(java.util.List.of(), frankfurtOdd.warnings(), frankfurtOdd.warnings().toString());
 	}
 }

@@ -31,6 +31,14 @@ class RealCitiesATest {
 		assertSame(Landmarks.ST_PANCRAS, Landmarks.of(s));
 		assertEquals(Landmark.ShedProfile.POINTED, Landmarks.ST_PANCRAS.shed().profile());
 		assertEquals(1, Landmarks.ST_PANCRAS.shed().spans(), "one pointed span over all the tracks");
+		assertNull(Landmarks.of(spec("6 track real st pancras terminus, 160 long")), "towers float on six tracks");
+		for (final int tracks : new int[]{10, 15, 16}) {
+			final StationSpec wide = spec(tracks + " track real st pancras terminus, 200 long");
+			assertSame(Landmarks.ST_PANCRAS, Landmarks.of(wide), "tracks=" + tracks);
+			final StationPlan plan = StationPlanner.plan(wide);
+			assertEquals(List.of(), LayoutValidator.validate(plan), "tracks=" + tracks);
+			assertTrue(StationAudit.audit(plan).buildable(), "tracks=" + tracks);
+		}
 	}
 
 	@Test
@@ -66,6 +74,13 @@ class RealCitiesATest {
 	@Test
 	void parisMilanNewYorkAndMunichTerminiTakeTheirSheets() {
 		assertSame(Landmarks.PARIS, Landmarks.of(spec("8 track real paris terminus, 160 long")));
+		for (final int tracks : new int[]{10, 20, 32}) {
+			final StationSpec paris = spec(tracks + " track real paris terminus, 200 long");
+			assertSame(Landmarks.PARIS, Landmarks.of(paris), "paris tracks=" + tracks);
+			final StationPlan plan = StationPlanner.plan(paris);
+			assertEquals(List.of(), LayoutValidator.validate(plan), "paris tracks=" + tracks);
+			assertTrue(StationAudit.audit(plan).buildable(), "paris tracks=" + tracks);
+		}
 		assertSame(Landmarks.MILAN, Landmarks.of(spec("10 track real milan terminus, 160 long")));
 		assertSame(Landmarks.GRAND_CENTRAL, Landmarks.of(spec("8 track real new york terminus, 160 long")));
 		assertSame(Landmarks.MUNICH, Landmarks.of(spec("8 track real munich terminus, 160 long")));

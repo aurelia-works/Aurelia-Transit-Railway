@@ -7,6 +7,7 @@ import com.aureliatransit.architecture.station.world.AirportWrenchItem;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.client.airport.AirportClient;
+import com.aureliatransit.architecture.client.bridge.BridgeClient;
 import com.aureliatransit.architecture.client.interactive.InteractiveClient;
 import com.aureliatransit.architecture.client.live.LiveClient;
 import com.aureliatransit.architecture.client.timetable.PocketTimetableClient;
@@ -27,7 +28,8 @@ import net.minecraft.client.gui.widget.TexturedButtonWidget;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import org.mtr.mod.data.IGui;
+import org.mtr.aurelia.client.AureliaClient;
+import org.mtr.aurelia.dashboard.DashboardLayout;
 import org.mtr.mod.screen.DashboardScreen;
 
 public final class AureliaTransitArchitectureClient implements ClientModInitializer {
@@ -38,6 +40,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		FreePlacementRender.init();
 		LiveClient.init();
 		AirportClient.init();
+		BridgeClient.init();
 		InteractiveClient.init();
 		WayfindingLogicClient.init();
 		WayfindingClient.init();
@@ -75,16 +78,18 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 	 * button. The Aurelia panel links to the menu from its own header.
 	 */
 	private static void initMenuEntries() {
-		final Identifier texture = new Identifier("aurelia", "textures/gui/dashboard_button.png");
-		final int y = FabricLoader.getInstance().isModLoaded("jme") ? 6 + 20 + 4 : 6;
+		final Identifier texture = new Identifier(AureliaClient.MOD_ID, "textures/gui/dashboard_button.png");
+		final int y = DashboardLayout.iconButtonY(AureliaClient.isMagicLoaded());
+		final int size = DashboardLayout.ICON_BUTTON_SIZE;
 		ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
 			if (screen instanceof DashboardScreen) {
-				final TexturedButtonWidget button = new TexturedButtonWidget(IGui.PANEL_WIDTH + 30, y, 20, 20, 0, 0, 20, texture,
-						20, 40, pressed -> client.setScreen(new AtrMenuScreen(screen, AtrMenuScreen.Tab.BUILD)),
+				final TexturedButtonWidget button = new TexturedButtonWidget(DashboardLayout.ATR_MENU_BUTTON_X, y, size, size, 0, 0, size, texture,
+						size, size * 2, pressed -> client.setScreen(new AtrMenuScreen(screen, AtrMenuScreen.Tab.BUILD)),
 						Text.translatable("gui.aurelia.menu.title"));
 				button.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.menu.title")));
 				Screens.getButtons(screen).add(button);
-				ScreenMouseEvents.allowMouseClick(screen).register((clickedScreen, mouseX, mouseY, mouseButton) -> !button.mouseClicked(mouseX, mouseY, mouseButton));
+				ScreenMouseEvents.allowMouseClick(screen).register((clickedScreen, mouseX, mouseY, mouseButton) ->
+						AureliaClient.isMagicMenuOpen(clickedScreen) || !button.mouseClicked(mouseX, mouseY, mouseButton));
 			}
 		});
 	}

@@ -49,6 +49,12 @@ public class RenderRails implements IGui {
 	private static final Identifier IRON_BLOCK_TEXTURE = new Identifier("textures/block/iron_block.png");
 	private static final Identifier METAL_TEXTURE = new Identifier(Init.MOD_ID, "textures/block/metal.png");
 	private static final Identifier RAIL_PREVIEW_TEXTURE = new Identifier(Init.MOD_ID, "textures/block/rail_preview.png");
+	/**
+	 * The first node clicked with a rail connector and its block, kept while it is loaded: past the client's render distance its
+	 * chunk unloads and reads as air, which used to make the ghost rail vanish about 150 blocks out though the server still joins it.
+	 */
+	private static long rememberedNodePos = Long.MIN_VALUE;
+	private static BlockState rememberedNodeState;
 	private static final Identifier RAIL_TEXTURE = new Identifier("textures/block/rail.png");
 	private static final Identifier WOOL_TEXTURE = new Identifier("textures/block/white_wool.png");
 	private static final Identifier ONE_WAY_RAIL_ARROW_TEXTURE = new Identifier(Init.MOD_ID, "textures/block/one_way_rail_arrow.png");
@@ -125,7 +131,7 @@ public class RenderRails implements IGui {
 
 				if (compoundTag.contains(ItemBlockClickingBase.TAG_POS)) {
 					final BlockPos posEnd = BlockPos.fromLong(compoundTag.getLong(ItemBlockClickingBase.TAG_POS));
-					final BlockState blockStateEnd = clientWorld.getBlockState(posEnd);
+					final BlockState blockStateEnd = rememberedNode(posEnd, clientWorld.getBlockState(posEnd));
 
 					if (blockStateEnd.getBlock().data instanceof BlockNode) {
 						final BlockState blockStateStart = clientWorld.getBlockState(posStart);
@@ -659,5 +665,15 @@ public class RenderRails implements IGui {
 				IDrawing.drawTexture(graphicsHolder, x2, yStart + SMALL_OFFSET, z2, x1, yStart, z1, x4, yEnd + SMALL_OFFSET, z4, x3, yEnd, z3, offset, u1, vStart, u2, vEnd, Direction.UP, color, light);
 			}
 		}, RailLod.FAR_VIEW_INTERVAL, -halfWidth, halfWidth);
+	}
+
+	/** The node at {@code pos}: the loaded block when it is a node, else the node remembered there while its chunk was loaded. */
+	private static BlockState rememberedNode(BlockPos pos, BlockState loaded) {
+		if (loaded.getBlock().data instanceof BlockNode) {
+			rememberedNodePos = pos.asLong();
+			rememberedNodeState = loaded;
+			return loaded;
+		}
+		return rememberedNodePos == pos.asLong() && rememberedNodeState != null && loaded.isAir() ? rememberedNodeState : loaded;
 	}
 }

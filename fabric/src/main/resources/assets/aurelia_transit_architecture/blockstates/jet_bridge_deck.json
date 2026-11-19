@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "solid=true": {
+      "model": "aurelia_transit_architecture:block/jet_bridge_deck"
+    },
+    "solid=false": {
+      "model": "aurelia_transit_architecture:block/jet_bridge_deck"
+    }
+  }
+}

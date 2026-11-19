@@ -15,7 +15,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.mtr.aurelia.client.screen.AureliaPanelScreen;
-import org.mtr.mod.data.IGui;
+import org.mtr.aurelia.dashboard.DashboardLayout;
 import org.mtr.mod.screen.DashboardScreen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,10 +31,9 @@ public final class AureliaClient implements ClientModInitializer {
 
 	// 20x20 logo button; the texture holds the normal state on top and the hovered state below it.
 	private static final Identifier DASHBOARD_BUTTON_TEXTURE = new Identifier(MOD_ID, "textures/gui/dashboard_button.png");
-	private static final int DASHBOARD_BUTTON_SIZE = 20;
 	// MAGIC (mod id "jme") puts its own 20x20 menu button 6px inside the map's top-left corner, so ours goes under it.
 	private static final boolean MAGIC_LOADED = FabricLoader.getInstance().isModLoaded("jme");
-	private static final int DASHBOARD_BUTTON_Y = MAGIC_LOADED ? 6 + 20 + 4 : 6;
+	private static final int DASHBOARD_BUTTON_Y = DashboardLayout.iconButtonY(MAGIC_LOADED);
 
 	@Override
 	public void onInitializeClient() {
@@ -47,7 +46,20 @@ public final class AureliaClient implements ClientModInitializer {
 		// top-right and its own buttons along the bottom.
 		ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
 			if (screen instanceof DashboardScreen) {
-				final TexturedButtonWidget button = new TexturedButtonWidget(IGui.PANEL_WIDTH + 6, DASHBOARD_BUTTON_Y, DASHBOARD_BUTTON_SIZE, DASHBOARD_BUTTON_SIZE, 0, 0, DASHBOARD_BUTTON_SIZE, DASHBOARD_BUTTON_TEXTURE, DASHBOARD_BUTTON_SIZE, DASHBOARD_BUTTON_SIZE * 2, pressed -> client.setScreen(new AureliaPanelScreen(screen, AureliaPanelScreen.Tab.TOOLS)), Text.translatable("gui.aurelia.dashboard_button"));
+				final TexturedButtonWidget button = new TexturedButtonWidget(
+						DashboardLayout.ATU_BUTTON_X,
+						DASHBOARD_BUTTON_Y,
+						DashboardLayout.ICON_BUTTON_SIZE,
+						DashboardLayout.ICON_BUTTON_SIZE,
+						0,
+						0,
+						DashboardLayout.ICON_BUTTON_SIZE,
+						DASHBOARD_BUTTON_TEXTURE,
+						DashboardLayout.ICON_BUTTON_SIZE,
+						DashboardLayout.ICON_BUTTON_SIZE * 2,
+						pressed -> client.setScreen(new AureliaPanelScreen(screen, AureliaPanelScreen.Tab.TOOLS)),
+						Text.translatable("gui.aurelia.dashboard_button")
+				);
 				button.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.panel.title")));
 				Screens.getButtons(screen).add(button);
 				// MTR's map widget is registered before the button and takes every click over the map, so the button
@@ -85,6 +97,8 @@ public final class AureliaClient implements ClientModInitializer {
 		PassengerClient.register();
 		PassengerDrawSettings.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.client.ui.AureliaUiSettings.load(FabricLoader.getInstance().getConfigDir());
+		org.mtr.aurelia.dashboard.DashboardSettings.load(FabricLoader.getInstance().getConfigDir());
+		org.mtr.aurelia.dashboard.UnifiedDashboardClient.register();
 		org.mtr.aurelia.route.RouteControlSettings.load();
 		org.mtr.aurelia.sound.SoundProfileStore.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.sound.SoundProfileReloadListener.register();
@@ -103,9 +117,17 @@ public final class AureliaClient implements ClientModInitializer {
 	private static Method magicMenuOpenMethod;
 	private static boolean magicMenuOpenLookedUp;
 
+	public static boolean isMagicLoaded() {
+		return MAGIC_LOADED;
+	}
+
+	public static boolean isMagicMenuOpen(Screen screen) {
+		return magicMenuOpen(screen);
+	}
+
 	/** MAGIC adds a public {@code jme$isOverlayMenuOpen()} to MTR's dashboard; its dropdown opens where the button is. */
 	private static boolean magicMenuOpen(Screen screen) {
-		if (!MAGIC_LOADED) {
+		if (!MAGIC_LOADED || !(screen instanceof DashboardScreen)) {
 			return false;
 		}
 		try {
