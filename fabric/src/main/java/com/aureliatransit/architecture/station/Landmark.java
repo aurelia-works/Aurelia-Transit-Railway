@@ -95,14 +95,6 @@ public final class Landmark {
 		public Skin withRoof(String full, String stair) {
 			return new Skin(wall, trim, base, glass, full, stair, cornice, accent);
 		}
-
-		public Skin withCornice(String id) {
-			return new Skin(wall, trim, base, glass, roof, roofStair, id, accent);
-		}
-
-		public Skin withAccent(String id) {
-			return new Skin(wall, trim, base, glass, roof, roofStair, cornice, id);
-		}
 	}
 
 	/**
