@@ -1565,16 +1565,6 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 	}
 
-
-	/** True at one of the forecourt canopy's two columns, from its foot to its cap. */
-	boolean forecourtColumn(int u, int v) {
-		if (!spec.airport().forecourt() || u != air.roadU1() - 1) {
-			return false;
-		}
-		final int side = air.dims().entrance() / 2 + 6;
-		return v == entranceV() - side || v == entranceV() + side;
-	}
-
 	/**
 	 * The row (u) of the security line across the terminal: just airside of the railway station's box when there is one, so its
 	 * escalators come up landside, else past the second column line; in the middle of a terminal too shallow for either.
@@ -1739,10 +1729,9 @@ abstract class PlanAirport extends PlanFitOut {
 
 	/**
 	 * The forecourt in front of the terminal: a footway and kerb on each side of the road, the centre lane's dashed line, a zebra
-	 * crossing at the entrance, a canopy on columns over the door, and street lamps. The road pavement itself is laid last.
+	 * crossing at the entrance, and street lamps and bollards clear of {@link TerminalBuilding}'s entrance canopy.
 	 */
 	void airportForecourt() {
-		final StylePalette.Building b = palette.building();
 		final int u0 = air.roadU0();
 		final int u1 = air.roadU1();
 		final int v0 = air.apronV0();
@@ -1787,37 +1776,10 @@ abstract class PlanAirport extends PlanFitOut {
 				}
 			}
 		}
-		// the canopy over the door: six blocks deep over the drop-off lane, on two columns at the kerb
-		final int from = Math.max(u0, u1 - 6);
-		final int to = u1;
-		for (final int v : new int[]{door - half - 6, door + half + 6}) {
-			for (int y = StationGeometry.WALK_Y; y < StationGeometry.WALK_Y + 5; y++) {
-				put(Role.COLUMN, u1 - 1, y, v, LocalDir.MINUS_U);
-			}
-			put(Role.COLUMN_CAP, u1 - 1, StationGeometry.WALK_Y + 5, v, LocalDir.MINUS_U);
-		}
-		for (int u = from; u <= to; u++) {
-			for (int v = door - half - 6; v <= door + half + 6; v++) {
-				put(Role.BUILDING_ROOF, u, StationGeometry.WALK_Y + 6, v, LocalDir.PLUS_V, b.window());
-			}
-		}
-		// the canopy's metal fascia: a frame round the glass, heaviest at the kerb edge
-		for (int v = door - half - 7; v <= door + half + 7; v++) {
-			put(Role.BUILDING_ROOF, from, StationGeometry.WALK_Y + 7, v, LocalDir.MINUS_U, b.trim());
-			put(Role.BUILDING_ROOF, to, StationGeometry.WALK_Y + 7, v, LocalDir.PLUS_U, b.trim());
-		}
-		for (int u = from; u <= to; u++) {
-			put(Role.BUILDING_ROOF, u, StationGeometry.WALK_Y + 7, door - half - 7, LocalDir.MINUS_V, b.trim());
-			put(Role.BUILDING_ROOF, u, StationGeometry.WALK_Y + 7, door + half + 7, LocalDir.PLUS_V, b.trim());
-		}
-		for (int u = from; u <= to; u += 4) {
-			for (int v = door - half - 6; v <= door + half + 6; v++) {
-				put(Role.BUILDING_ROOF, u, StationGeometry.WALK_Y + 7, v, LocalDir.PLUS_V, b.trim());
-			}
-		}
-		// street lamps down the outer footway, clear of the canopy
+		// street lamps down the outer footway, clear of the entrance canopy
+		final int canopyFlank = TerminalBuilding.canopyFlank(air.dims().wallTop(), half);
 		for (int v = v0 + 12; v <= v1 - 8; v += 24) {
-			if (Math.abs(v - door) < half + 8) {
+			if (Math.abs(v - door) < canopyFlank + 3) {
 				continue;
 			}
 			streetLamp(u0 + 1, v, LocalDir.PLUS_U);
@@ -1829,9 +1791,9 @@ abstract class PlanAirport extends PlanFitOut {
 			}
 			put(Role.LAMP, u0 + 1, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, TOWER_BEACON);
 		}
-		// a row of bollards on the terminal's footway behind the kerb (ap03), every three blocks, open at the crossing and the columns
+		// a row of bollards on the terminal's footway behind the kerb (ap03), every three blocks, open across the entrance canopy
 		for (int v = v0 + 2; v <= v1 - 2; v += 3) {
-			if (Math.abs(v - door) <= half + 2 || forecourtColumn(u1 - 1, v)) {
+			if (Math.abs(v - door) <= canopyFlank) {
 				continue;
 			}
 			put(Role.FIXTURE, u1 - 1, StationGeometry.WALK_Y, v, LocalDir.MINUS_U, BOLLARD);
@@ -1939,12 +1901,17 @@ abstract class PlanAirport extends PlanFitOut {
 	/** True for a column of one of the car park's aisles, where its kerb gives way to a driveway. */
 	private boolean carParkEntrance(int u) {
 		for (int row = 0; row < 2; row++) {
-			final int aisle = CAR_FIRST_BAY + row * (CAR_BAY + CAR_AISLE) + CAR_BAY;
+			final int aisle = carBayU(row) + CAR_BAY;
 			if (u >= aisle && u < aisle + CAR_AISLE) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	/** The first u of a car park bay row: rows count from the landside's own edge, not from the site's. */
+	private static int carBayU(int row) {
+		return AirportGeometry.SITE + CAR_FIRST_BAY + row * (CAR_BAY + CAR_AISLE);
 	}
 
 	/**
@@ -1981,7 +1948,7 @@ abstract class PlanAirport extends PlanFitOut {
 			paint(landsideU1, v, SIDEWALK);
 		}
 		for (int row = 0; row < 3; row++) {
-			final int bay = CAR_FIRST_BAY + row * (CAR_BAY + CAR_AISLE);
+			final int bay = carBayU(row);
 			// one line every third row leaves the bays two blocks wide
 			for (int v = v0 + 3; v <= v1 - 3; v++) {
 				if (Math.floorMod(v - v0, 3) == 0) {
@@ -1994,8 +1961,8 @@ abstract class PlanAirport extends PlanFitOut {
 			carParkPlanter(bay, bay + CAR_BAY - 1, v1 - 2, v1);
 		}
 		// a lamp down each aisle, every 10 rows, clear of the footpath
-		final int aisleA = CAR_FIRST_BAY + CAR_BAY;
-		final int aisleB = CAR_FIRST_BAY + CAR_BAY + CAR_AISLE + CAR_BAY;
+		final int aisleA = carBayU(0) + CAR_BAY;
+		final int aisleB = carBayU(1) + CAR_BAY;
 		for (int v = v0 + 6; v <= v1 - 4; v += 10) {
 			if (Math.abs(v - walk) <= 2) {
 				continue;

@@ -36,6 +36,11 @@ final class TerminalBuilding {
 		return Math.min(StationGeometry.WALK_Y + 6, wallTop - 1);
 	}
 
+	/** Half-span of the entrance canopy either side of {@code doorAlong}: wider than the doorway so two portal bays flank it. */
+	static int canopyFlank(int wallTop, int entranceHalf) {
+		return entranceHalf + (wallTop >= 12 ? 5 : 3);
+	}
+
 	/** Y of the airport name on the landside, just under the eave or just above the canopy, whichever is higher. */
 	static int nameBandY(int wallTop) {
 		return Math.max(wallTop - 1, canopyLine(wallTop) + 1);
@@ -124,12 +129,14 @@ final class TerminalBuilding {
 		final boolean perpU = perpIsU(landside);
 		final int[] box = bounds(cells);
 		final boolean rectangle = filled(cells, box);
-		floor(plan, cells, b, perpU, doorAlong);
-		walls(plan, cells, b, landside, wallTop, openings);
 		final int deck = canopyDeck(wallTop);
-		toe(plan, cells, b, landside, doorAlong, deck >= 0 ? entranceHalf + 2 : entranceHalf);
+		final int flank = deck >= 0 ? clampedFlank(cells, perpU, doorPerp, doorAlong, canopyFlank(wallTop, entranceHalf)) : entranceHalf;
+		final Set<Integer> canopyPosts = deck >= 0 ? canopyPostLines(doorAlong, entranceHalf, flank) : Set.of();
+		floor(plan, cells, b, perpU, doorAlong);
+		walls(plan, cells, b, landside, wallTop, openings, doorPerp, doorAlong, flank, deck, canopyPosts);
+		toe(plan, cells, b, landside, doorAlong, flank);
 		if (deck >= 0) {
-			canopy(plan, cells, b, landside, wallTop, doorPerp, doorAlong, entranceHalf, deck);
+			canopy(plan, cells, b, landside, wallTop, doorPerp, doorAlong, entranceHalf, flank, deck, canopyPosts);
 		}
 		final List<int[]> columns = columns(plan, cells, b, landside, wallTop, box, doorAlong);
 		ribs(plan, cells, b, landside, wallTop, columns);
@@ -159,7 +166,8 @@ final class TerminalBuilding {
 		}
 	}
 
-	private static void walls(PlanState plan, Set<Long> cells, StylePalette.Building b, LocalDir landside, int wallTop, Set<Long> openings) {
+	private static void walls(PlanState plan, Set<Long> cells, StylePalette.Building b, LocalDir landside, int wallTop, Set<Long> openings,
+			int doorPerp, int doorAlong, int canopyFlank, int canopyDeck, Set<Integer> canopyPosts) {
 		final int courses = wallTop - StationGeometry.WALK_Y + 1;
 		final int fascia = Math.max(2, courses / 5);
 		final int bandTop = wallTop - fascia;
@@ -199,7 +207,10 @@ final class TerminalBuilding {
 			final boolean curtain = airOpen && !landOpen && !corner;
 			final boolean jamb = !opening && besideOpening(openings, u, v);
 			final int along = front == LocalDir.PLUS_U || front == LocalDir.MINUS_U ? v : u;
+			final int perp = front == LocalDir.PLUS_U || front == LocalDir.MINUS_U ? u : v;
 			final boolean mullion = Math.floorMod(along, MULLION) == 0;
+			final boolean underCanopy = canopyDeck >= 0 && landOpen && perp == doorPerp && Math.abs(along - doorAlong) <= canopyFlank;
+			final boolean canopyPilaster = underCanopy && canopyPosts.contains(along);
 			for (int y = StationGeometry.WALK_Y; y <= wallTop; y++) {
 				if (opening && y < transom) {
 					continue;
@@ -221,7 +232,7 @@ final class TerminalBuilding {
 				}
 				if (y == StationGeometry.WALK_Y) {
 					plan.put(Role.WALL, u, y, v, front, b.plinth());
-				} else if (y == transom || y <= bandTop && mullion) {
+				} else if (y == transom || y <= bandTop && mullion || underCanopy && y == canopyDeck || canopyPilaster && y <= canopyDeck) {
 					plan.put(Role.WALL, u, y, v, front, b.trim());
 				} else if (y <= bandTop) {
 					plan.put(Role.WINDOW, u, y, v, front, b.window());
@@ -252,37 +263,67 @@ final class TerminalBuilding {
 	}
 
 	/**
-	 * The entrance canopy: a deck over the door only, on steel columns at its outer corners, with a glazed slot down the middle
-	 * and braces on the two flanks. Narrower than the forecourt canopy, so those two columns stay free.
+	 * The entrance canopy: a concrete slab framed flush into the landside spandrel beam, carried by steel columns on the outer
+	 * footway behind the kerb (never in the carriageway), with a steel header girder, cross-beams back to the facade pilasters,
+	 * angled steel cantilever braces under the drop-off overhang, and a horizontal skylight over the doors.
 	 */
 	private static void canopy(PlanState plan, Set<Long> cells, StylePalette.Building b, LocalDir landside, int wallTop, int doorPerp,
-			int doorAlong, int entranceHalf, int deck) {
-		final int reach = wallTop >= 12 ? 7 : 4;
-		final int flank = entranceHalf + 2;
+			int doorAlong, int entranceHalf, int flank, int deck, Set<Integer> postLines) {
+		final int reach = wallTop >= 12 ? 5 : 3;
+		final int colStep = Math.min(2, reach);
 		final boolean perpU = perpIsU(landside);
 		final int sign = perpU ? du(landside) : dv(landside);
-		final List<int[]> posted = new ArrayList<>();
-		for (final int side : new int[]{-1, 1}) {
-			posted.add(atStep(perpU, doorPerp, sign, reach, doorAlong + side * flank));
-			if (reach >= 6) {
-				posted.add(atStep(perpU, doorPerp, sign, reach / 2, doorAlong + side * flank));
+		final LocalDir alongDir = perpU ? LocalDir.PLUS_V : LocalDir.PLUS_U;
+		final String girder = plan.palette.blockId(Role.RIB);
+		final Set<Integer> placedPosts = new LinkedHashSet<>();
+		for (final int along : postLines) {
+			if (along == doorAlong) {
+				continue;
 			}
-		}
-		for (final int[] post : posted) {
-			if (post[1] == doorAlong || cells.contains(DrawnShape.key(post[0], post[1]))) {
+			final int[] post = atStep(perpU, doorPerp, sign, colStep, along);
+			if (cells.contains(DrawnShape.key(post[0], post[1]))) {
 				continue;
 			}
 			// the cap needs a cover at the deck; placeColumn refuses a post whose deck cell is taken
-			placeColumn(plan, post[0], post[1], deck - 1, b.pier(), landside);
+			if (placeColumn(plan, post[0], post[1], deck - 1, b.pier(), landside)) {
+				placedPosts.add(along);
+			}
 		}
-		for (final int side : new int[]{-1, 1}) {
-			int y = StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT;
-			for (int step = 1; step <= reach && y < deck; step++, y++) {
-				final int[] at = atStep(perpU, doorPerp, sign, step, doorAlong + side * flank);
-				if (cells.contains(DrawnShape.key(at[0], at[1]))) {
+		// cross-girders from the facade pilasters to each column cap, and diagonal/knee braces out under the cantilever
+		for (final int along : placedPosts) {
+			for (int step = 1; step < colStep; step++) {
+				final int[] tie = atStep(perpU, doorPerp, sign, step, along);
+				if (!cells.contains(DrawnShape.key(tie[0], tie[1]))) {
+					plan.put(Role.RIB, tie[0], deck - 1, tie[1], landside, girder, "kind=steel");
+				}
+			}
+			if (reach >= 5 && deck - 2 >= StationGeometry.WALK_Y + StationGeometry.DOOR_HEIGHT) {
+				final int[] mid = atStep(perpU, doorPerp, sign, colStep + 1, along);
+				final int[] tip = atStep(perpU, doorPerp, sign, colStep + 2, along);
+				if (!cells.contains(DrawnShape.key(mid[0], mid[1]))) {
+					plan.put(Role.RIB, mid[0], deck - 1, mid[1], landside, girder, "kind=steel");
+					plan.put(Role.RIB, mid[0], deck - 2, mid[1], landside, PlanAirport.VIADUCT_BRACE, "kind=diagonal");
+				}
+				if (!cells.contains(DrawnShape.key(tip[0], tip[1]))) {
+					plan.put(Role.RIB, tip[0], deck - 1, tip[1], landside, PlanAirport.VIADUCT_BRACE, "kind=knee");
+				}
+			} else if (reach > colStep) {
+				final int[] tip = atStep(perpU, doorPerp, sign, colStep + 1, along);
+				if (!cells.contains(DrawnShape.key(tip[0], tip[1]))) {
+					plan.put(Role.RIB, tip[0], deck - 1, tip[1], landside, PlanAirport.VIADUCT_BRACE, "kind=knee");
+				}
+			}
+		}
+		// longitudinal steel header beam linking the column caps along the footway
+		if (placedPosts.size() >= 2) {
+			for (int along = doorAlong - flank; along <= doorAlong + flank; along++) {
+				if (placedPosts.contains(along)) {
 					continue;
 				}
-				plan.put(Role.RIB, at[0], y, at[1], landside, PlanAirport.VIADUCT_BRACE, "kind=diagonal");
+				final int[] beam = atStep(perpU, doorPerp, sign, colStep, along);
+				if (!cells.contains(DrawnShape.key(beam[0], beam[1]))) {
+					plan.put(Role.RIB, beam[0], deck - 1, beam[1], alongDir, girder, "kind=steel");
+				}
 			}
 		}
 		for (int step = 1; step <= reach; step++) {
@@ -291,19 +332,47 @@ final class TerminalBuilding {
 				if (cells.contains(DrawnShape.key(at[0], at[1]))) {
 					continue;
 				}
-				final boolean light = Math.floorMod(step + along, 3) == 0;
-				plan.put(light ? Role.LIGHT_PANEL : Role.BUILDING_ROOF, at[0], deck - 1, at[1], landside,
-						light ? PlanAirport.HALL_LIGHT : b.plinth());
 				final boolean end = along == doorAlong - flank || along == doorAlong + flank;
 				final boolean rim = step == reach;
-				final boolean slot = !end && !rim && Math.abs(along - doorAlong) <= 1;
-				final String id = end || rim ? b.trim() : slot ? b.window() : b.roof();
-				plan.put(Role.BUILDING_ROOF, at[0], deck, at[1], landside, id);
-				if (rim) {
-					plan.put(Role.BUILDING_ROOF, at[0], deck + 1, at[1], landside, b.trim());
+				final boolean postLine = placedPosts.contains(along);
+				final boolean slot = !end && !rim && !postLine && step >= 2 && Math.abs(along - doorAlong) <= Math.max(1, entranceHalf - 1);
+				final boolean light = !end && !rim && !slot && !postLine && step == (reach >= 5 ? 3 : 2) && Math.floorMod(along - doorAlong, 3) == 0;
+				if (light) {
+					plan.put(Role.LIGHT_PANEL, at[0], deck, at[1], landside, PlanAirport.HALL_LIGHT);
+				} else {
+					final String id = end || rim ? b.trim() : slot ? ROOF_GLASS : b.roof();
+					plan.put(Role.BUILDING_ROOF, at[0], deck, at[1], landside, id);
 				}
 			}
 		}
+	}
+
+	private static int clampedFlank(Set<Long> cells, boolean perpU, int doorPerp, int doorAlong, int target) {
+		int max = 0;
+		for (int d = 1; d <= target; d++) {
+			final int[] minus = atStep(perpU, doorPerp, 1, 0, doorAlong - d);
+			final int[] plus = atStep(perpU, doorPerp, 1, 0, doorAlong + d);
+			if (!cells.contains(DrawnShape.key(minus[0], minus[1])) || !cells.contains(DrawnShape.key(plus[0], plus[1]))) {
+				break;
+			}
+			max = d;
+		}
+		return max;
+	}
+
+	private static Set<Integer> canopyPostLines(int doorAlong, int entranceHalf, int flank) {
+		final Set<Integer> lines = new LinkedHashSet<>();
+		if (flank <= 0) {
+			return lines;
+		}
+		lines.add(doorAlong - flank);
+		final int inner = entranceHalf + 2;
+		if (flank >= inner + 3) {
+			lines.add(doorAlong - inner);
+			lines.add(doorAlong + inner);
+		}
+		lines.add(doorAlong + flank);
+		return lines;
 	}
 
 	/** Hall columns. A post is skipped whole when its shaft or the cell above its cap is taken: a broken column fails the audit. */
@@ -452,7 +521,7 @@ final class TerminalBuilding {
 					final boolean rim = u == u0 - 2 || u == u1 + 2 || v == v0 - 2 || v == v1 + 2;
 					final LocalDir front = u < u0 ? LocalDir.MINUS_U : u > u1 ? LocalDir.PLUS_U : v < v0 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
 					plan.put(Role.BUILDING_ROOF, u, roofY, v, front, rim ? b.trim() : b.roof());
-					if (!holdSoffit(landside, u0, u1, v0, v1, u, v, doorAlong, entranceHalf, holdName) && !forecourtCap(plan, u, roofY - 1, v)) {
+					if (!holdSoffit(landside, u0, u1, v0, v1, u, v, doorAlong, entranceHalf, holdName)) {
 						plan.put(Role.BUILDING_ROOF, u, roofY - 1, v, front, b.plinth());
 					}
 				}
@@ -470,7 +539,7 @@ final class TerminalBuilding {
 				}
 				plan.put(Role.BUILDING_ROOF, nu, roofY, nv, SIDE_DIRS[i], b.trim());
 				final boolean name = holdName && SIDE_DIRS[i] == landside && Math.abs(along(landside, nu, nv) - doorAlong) <= entranceHalf + 3;
-				if (!name && !forecourtCap(plan, nu, roofY - 1, nv)) {
+				if (!name) {
 					plan.put(Role.BUILDING_ROOF, nu, roofY - 1, nv, SIDE_DIRS[i], b.plinth());
 				}
 			}
@@ -555,14 +624,6 @@ final class TerminalBuilding {
 		}
 		plan.put(Role.COLUMN_CAP, u, capY, v, front, block);
 		return true;
-	}
-
-	/** The forecourt canopy's column cap, which the eave soffit has to leave free. The forecourt is planned after the terminal. */
-	private static boolean forecourtCap(PlanState plan, int u, int y, int v) {
-		if (!(plan instanceof PlanAirport airport)) {
-			return false;
-		}
-		return y == StationGeometry.WALK_Y + 5 && airport.forecourtColumn(u, v);
 	}
 
 	private static List<int[]> columnFeet(int p0, int p1, int a0, int a1, int doorAlong, boolean perpU) {
