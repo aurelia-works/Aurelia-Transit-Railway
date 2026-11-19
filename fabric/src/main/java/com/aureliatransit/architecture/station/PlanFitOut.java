@@ -223,8 +223,8 @@ abstract class PlanFitOut extends PlanLandmark {
 						cells.put(new Cell(f.u(x, 0), door + 1, f.v(x, 0)),
 								new PlannedBlock(f.u(x, 0), door + 1, f.v(x, 0), Role.WALL, ARCH_STAIR, jamb, "", "half=top,shape=straight"));
 					} else {
-						// the fanlight over the door, glazed in the front's white-framed sash
-						face(f.u(x, 0), door + 1, f.v(x, 0), out, Role.WINDOW, b.window());
+						// the fanlight over the door: plain glass under the arch, so the head reads round rather than as a framed box
+						face(f.u(x, 0), door + 1, f.v(x, 0), out, Role.WINDOW, FRONT_GLASS);
 					}
 					face(f.u(x, 0), CANOPY_Y, f.v(x, 0), out, Role.WALL, porchFrame());
 				}
@@ -428,9 +428,9 @@ abstract class PlanFitOut extends PlanLandmark {
 	 */
 	private void porch(Front f, int x0, int half, int wide, StylePalette.Building b, LocalDir out) {
 		if (heritageArch()) {
-			// Teddington's porch is cantilevered on stucco wall brackets aligned with the piers (clear of the arched windows)
+			// Teddington's porch is cantilevered on stucco wall brackets at its two ends, clear of the round arches under it
 			final LocalDir intoWall = f.dir(PlanLandmark.Dir.IN);
-			for (final int bx : new int[]{x0 - wide, x0 - 2, x0 + 2, x0 + wide}) {
+			for (final int bx : new int[]{x0 - wide, x0 + wide}) {
 				final PlannedBlock backing = at(f.u(bx, 0), CANOPY_Y - 1, f.v(bx, 0));
 				if (Math.abs(bx - x0) <= wide && inside(f, bx, -1) && backing != null && backing.role() == Role.WALL
 						&& !backing.blockId().equals(ARCH_STAIR) && !taken(f.u(bx, -1), CANOPY_Y - 1, f.v(bx, -1))) {

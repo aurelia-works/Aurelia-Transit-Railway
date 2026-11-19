@@ -1328,8 +1328,8 @@ abstract class PlanFurniture extends PlanRoofs {
 
 		// poster cases along the booking hall's solid side walls, as in any staffed suburban booking hall
 		hallPosters(uS, uGate, vHallLo - 1, vHallHi + 1);
-		// Heritage analogue clock over the street entrance arch inside the hall, plus upstairs board
-		put(Role.FIXTURE, uS + 1, 4, vEntr, LocalDir.PLUS_U, ANALOG_CLOCK);
+		// Heritage analogue clock on the wall above the street entrance arch inside the hall (clear of the fanlight), plus upstairs board
+		put(Role.FIXTURE, uS + 1, 5, vEntr, LocalDir.PLUS_U, ANALOG_CLOCK);
 		put(Role.FIXTURE, (uS + uP) / 2, StationGeometry.UPPER_WALK_Y + 1, vHouseS + 1, LocalDir.PLUS_V, CONCOURSE_BOARD);
 		waitingRoom(b);
 	}
