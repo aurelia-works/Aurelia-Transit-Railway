@@ -641,17 +641,16 @@ public final class Landmarks {
 			final boolean amsterdamFits = landmark != AMSTERDAM || spec.platformLayout() == PlatformLayout.ISLAND;
 			return !spec.terminus() && spec.sideBuilding() && spec.trackCount() >= 2 && amsterdamFits;
 		}
-		if (!spec.terminus() || spec.hub() || spec.trackCount() < 6 || spec.trackCount() % 2 != 0 || spec.platformLength() < 96) {
+		if (!spec.terminus() || spec.hub() || spec.trackCount() < 6 || (spec.trackCount() % 2 != 0 && landmark != ST_PANCRAS) || spec.platformLength() < 96) {
 			return false;
 		}
 		// where a sweep of every card setting found the sheet unbuildable (10-25), the city's own look is built instead: a single
 		// arch shed under a sheet whose own shed has several spans (Milan) leaves girders on nothing; St Pancras's towers float on six
-		// tracks; Paris and St Pancras on ten leave indoor spots unlit; a front on a city-size building floats a fixture (Bangkok,
-		// Zurich)
+		// tracks; a front on a city-size building floats a fixture (Bangkok, Zurich)
 		if (landmark.shed() != null && landmark.shed().spans() > 1 && spec.roof() == RoofType.HALL && spec.shed() == ShedShape.ARCH) {
 			return false;
 		}
-		if (landmark == ST_PANCRAS && spec.trackCount() != 8 || landmark == PARIS && spec.trackCount() > 8) {
+		if (landmark == ST_PANCRAS && spec.trackCount() < 8) {
 			return false;
 		}
 		return spec.buildingScale() != StationScale.CITY;

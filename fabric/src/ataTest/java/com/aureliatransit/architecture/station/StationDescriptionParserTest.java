@@ -127,6 +127,12 @@ class StationDescriptionParserTest {
 		assertEquals(72, spec("length 72").platformLength());
 		assertEquals(120, spec("a 120 m station").platformLength());
 		assertEquals(64, spec("64 long").platformLength());
+		final ParseResult compoundLength = StationDescriptionParser.parse("length twenty-four");
+		assertEquals(24, compoundLength.spec().platformLength());
+		assertEquals(List.of(), compoundLength.ignored());
+		final ParseResult platformCompound = StationDescriptionParser.parse("platform length thirty-two m");
+		assertEquals(32, platformCompound.spec().platformLength());
+		assertEquals(List.of(), platformCompound.ignored());
 	}
 
 	@Test
@@ -148,6 +154,10 @@ class StationDescriptionParserTest {
 		assertEquals(5, spec("5 wide").platformWidth());
 		assertEquals(6, spec("6 block wide platforms").platformWidth());
 		assertEquals(7, spec("platform width of 7").platformWidth());
+		assertEquals(16, spec("width sixteen").platformWidth());
+		final ParseResult compoundWidth = StationDescriptionParser.parse("width twenty-four");
+		assertEquals(StationSpec.MAX_WIDTH, compoundWidth.spec().platformWidth());
+		assertEquals(List.of(), compoundWidth.ignored());
 		assertEquals(12, spec("wide platforms").platformWidth());
 		assertEquals(14, spec("wide island platform").platformWidth());
 		assertEquals(3, spec("narrow platforms").platformWidth());
@@ -345,9 +355,33 @@ class StationDescriptionParserTest {
 
 	@Test
 	void overlongInputIsCut() {
-		final ParseResult result = StationDescriptionParser.parse("3 tracks " + "station ".repeat(200));
+		final ParseResult result = StationDescriptionParser.parse("3 tracks " + "station ".repeat(400));
 		assertEquals(3, result.spec().trackCount());
 		assertTrue(warned(result, "longer than " + StationDescriptionParser.MAX_INPUT));
+	}
+
+	@Test
+	void compoundDepthAndCustomRealStationLayouts() {
+		final ParseResult deep = StationDescriptionParser.parse("2 track cut and cover box station, twenty-four m deep");
+		assertEquals(36, deep.spec().options().streetDepth());
+		assertEquals(List.of(), deep.warnings());
+		assertEquals(List.of(), deep.ignored());
+
+		final ParseResult munich = StationDescriptionParser.parse("six track munich station named Munchen Ost");
+		assertEquals(6, munich.spec().trackCount());
+		assertEquals(PlatformLayout.ISLAND, munich.spec().platformLayout());
+		assertEquals(BuildingStyle.CONCRETE, munich.spec().building());
+		assertEquals(List.of(), munich.warnings());
+
+		final ParseResult munichSide = StationDescriptionParser.parse("two track munich station, side platforms, named Munchen Ost");
+		assertEquals(2, munichSide.spec().trackCount());
+		assertEquals(PlatformLayout.SIDE, munichSide.spec().platformLayout());
+		assertEquals(List.of(), munichSide.warnings());
+
+		final ParseResult utrecht = StationDescriptionParser.parse("2 track utrecht station, 200 long");
+		assertEquals(RealStation.UTRECHT_CENTRAAL, utrecht.spec().real());
+		assertEquals(PlatformLayout.ISLAND, utrecht.spec().platformLayout());
+		assertEquals(List.of(), utrecht.warnings());
 	}
 
 	@Test

@@ -15,7 +15,7 @@ import java.util.Locale;
 public enum MeasuredStation {
 	AMSTERDAM("Amsterdam Centraal", 15, 695, 13.5),
 	ANTWERP("Antwerpen-Centraal", 14, 400, 9),
-	BANGKOK("Krung Thep Aphiwat", 14, 0, 0),
+	BANGKOK("Hua Lamphong", 14, 0, 0),
 	BEIJING("Beijing South", 24, 0, 0),
 	BERLIN("Berlin Hauptbahnhof", 18, 430, 15),
 	COVENTRY("Coventry", 4, 0, 0),
@@ -89,6 +89,9 @@ public enum MeasuredStation {
 		}
 		if (wanted.startsWith("berlin")) {
 			return BERLIN;
+		}
+		if (wanted.startsWith("krung thep") || wanted.contains("lamphong")) {
+			return BANGKOK;
 		}
 		// the presets use shorter names than the research sheets ("Amsterdam Centraal", "West Kowloon", "Munchen Ost")
 		for (final MeasuredStation station : values()) {

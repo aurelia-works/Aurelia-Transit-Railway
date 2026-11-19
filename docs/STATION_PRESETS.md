@@ -87,3 +87,29 @@ These are reference material only; no third-party images are shipped in the mod.
 ```
 
 All three passed.
+
+## Realistic track counts and single-level notes (`feat/realistic-track-limits`)
+
+With `StationSpec.MAX_TRACKS` raised to `32` (`PlatformSpec.MAX_PLATFORMS = 16`), each major station preset builds its
+published platformed track count from the `ATA-research/stations/*/notes.md` briefs, with explicit single-level and
+plain-word island approximations where the generator models one railway level:
+
+| Preset | Built tracks & layout | Real-world basis (`ATA-research`) |
+|---|---|---|
+| `paris` (`Paris Nord`) | 32 tracks, 16 islands (terminus) | SNCF Gare du Nord's 32 surface mainline and Transilien suburban platform tracks under the train shed (level -3 RER B/D platforms omitted). |
+| `grand_central` (`Grand Central`) | 30 tracks, 15 islands (terminus) | The 30 platform tracks of Grand Central Terminal's upper intercity/Metro-North level (of 44 platform tracks across upper and lower levels), modeled on one terminus level. |
+| `frankfurt` (`Frankfurt Hbf`) | 24 tracks, 12 islands (terminus) | The 24 surface tracks (`Gleis 1–24`) across the Querbahnsteig under the five platform halls; outer short siding `1a` and underground S-/U-Bahn levels are omitted. |
+| `milan` (`Milano Centrale`) | 24 tracks, 12 islands (terminus) | All 24 stub-end tracks (`binari tronchi 1–24`) under Alberto Fava's five-vault train shed. |
+| `beijing` (`Beijing South`) | 24 tracks, 12 islands (through) | All 24 tracks / 24 platform faces; `twelve island platforms` is the plain-word approximation for 11 island + 2 side platforms since even track counts pair cleanly into islands. |
+| `tokyo` (`Tokyo`) | 20 tracks, 10 islands (through) | All 10 elevated island platforms / 20 tracks of the main Marunouchi–Yaesu surface/viaduct station (deep underground Sobu and Keiyo levels omitted). |
+| `mumbai` (`Mumbai CSMT`) | 18 tracks, 9 islands (terminus) | Represents all 18 terminus platforms (11 long-distance + 7 suburban EMU) together within a single-level terminus hall. |
+| `utrecht` (`Utrecht Centraal`) | 16 tracks, 8 islands (through) | All 8 island platforms / 16 platform tracks beneath Benthem Crouwel's wave-roofed concourse hall. |
+| `zurich` (`Zurich HB`) | 16 tracks, 8 islands (terminus) | All 16 surface Kopfbahnhof tracks (`Gleis 3–18`) in the Gleishalle; `eight island platforms` approximates 7 middle + 2 side platforms (16 faces; underground through levels omitted). |
+| `st_pancras` (`St Pancras`) | 15 tracks, island & side (terminus) | All 15 platforms of the restored station (13 terminus platforms in Barlow's shed and its 2007 extension + 2 Thameslink platforms, combined on one level). |
+| `hong_kong` (`West Kowloon`) | 15 tracks, island & side (terminus) | All 15 designed tracks of Hong Kong West Kowloon's B4 platform level, modeled at grade under a glass hall roof. |
+| `antwerp` (`Antwerpen Centraal`) | 14 tracks, 7 islands (terminus) | All 14 platform tracks modeled on one terminus level under Van Bogaert's shed (the real station stacks 6 dead-end + 4 dead-end + 4 through tunnel tracks across levels +1, -1, and -2). |
+| `bangkok` (`Hua Lamphong`) | 14 tracks, 7 islands (terminus) | Matches Bangkok Hua Lamphong's 14-track / 14-platform 1916 arched terminus hall (`BuildingStyle.BANGKOK` and `Landmarks.BANGKOK` model Tamagno's Hua Lamphong rather than the multi-level 26-platform / 38-track Krung Thep Aphiwat hub). |
+| `munich` (`Munchen Ost`) | 12 tracks, 6 islands (through) | München Ost's 12 platform tracks on 6 island platforms (unplatformed middle through tracks 9–10 omitted). |
+| `amsterdam` (`Amsterdam Centraal`) | 11 tracks, island & side (through) | Amsterdam Centraal's 11 platformed tracks (of 15 total tracks, omitting unplatformed middle release tracks 3, 6, 9, and 12). |
+| `hamburg_hbf` (`Hamburg Hauptbahnhof`) | 10 tracks, 5 islands (through) | Hamburg Hbf's 5 island platforms / 10 platformed tracks under the 3-span shed (unplatformed tracks 9–10 and the S-Bahn tunnel omitted). |
+| `berlin` (`Berlin Hbf`) | 6 tracks, 3 islands (through) | The 6 east-west Stadtbahn tracks on 3 island platforms under the upper glass barrel hall (lower north-south tunnel level omitted). |

@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 public final class StationDescriptionParser {
 
 	/** Longer descriptions are cut to this many characters (with a warning). */
-	public static final int MAX_INPUT = 1200;
+	public static final int MAX_INPUT = 2400;
 	/** Tracks for "large" or "big" without a number. */
 	static final int LARGE_TRACKS = 4;
 	/**
@@ -1015,9 +1015,10 @@ public final class StationDescriptionParser {
 			if (token.equals("box") && (at(i + 1).equals("station") || at(i + 1).equals("underground"))) {
 				return setDeep(UndergroundType.CUT_AND_COVER, i, i + 1, "box");
 			}
-			final Integer n = value(token);
-			if (n != null) {
-				int j = i + 1;
+			final int[] num = numberAt(i);
+			if (num != null) {
+				final int n = num[0];
+				int j = num[1] + 1;
 				boolean blocks = false;
 				if (UNITS.contains(at(j))) {
 					blocks = at(j).startsWith("block");
@@ -1061,14 +1062,14 @@ public final class StationDescriptionParser {
 					&& ENTRANCE_NOUNS.contains(at(i + 1))) {
 				return setEntrance(token.equals("narrow") ? StationOptions.MIN_ENTRANCE : 7, i, i + 1);
 			}
-			final Integer n = value(token);
-			if (n != null) {
-				int j = i + 1;
+			final int[] firstNum = numberAt(i);
+			if (firstNum != null) {
+				int j = firstNum[1] + 1;
 				if (UNITS.contains(at(j))) {
 					j++;
 				}
 				if ((at(j).equals("wide") || at(j).equals("width")) && ENTRANCE_NOUNS.contains(at(j + 1))) {
-					return setEntrance(n, i, j + 1);
+					return setEntrance(firstNum[0], i, j + 1);
 				}
 				return false;
 			}
@@ -1079,11 +1080,12 @@ public final class StationDescriptionParser {
 			if (at(j).equals("width")) {
 				j++;
 			}
-			final Integer m = value(at(j));
-			if (m == null) {
+			final int[] secondNum = numberAt(j);
+			if (secondNum == null) {
 				return false;
 			}
-			int k = j + 1;
+			final int m = secondNum[0];
+			int k = secondNum[1] + 1;
 			if (UNITS.contains(at(k))) {
 				k++;
 			}
@@ -1337,10 +1339,12 @@ public final class StationDescriptionParser {
 			if (at(j).equals("of")) {
 				j++;
 			}
-			final Integer n = value(at(j));
-			if (n == null) {
+			final int[] num = numberAt(j);
+			if (num == null) {
 				return false;
 			}
+			final int n = num[0];
+			j = num[1];
 			if (UNITS.contains(at(j + 1))) {
 				j++;
 			}

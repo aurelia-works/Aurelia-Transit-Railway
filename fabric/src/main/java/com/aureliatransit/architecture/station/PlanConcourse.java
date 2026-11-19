@@ -142,7 +142,7 @@ abstract class PlanConcourse extends PlanHead {
 		final List<int[]> lights = new ArrayList<>();
 		for (final PlannedBlock block : cells.values()) {
 			if (block.role() == Role.LIGHT_PANEL
-					|| (block.role() == Role.BUILDING_ROOF || block.role() == Role.BRIDGE_DECK) && block.blockId().contains("light")) {
+					|| ((block.role() == Role.BUILDING_ROOF || block.role() == Role.BRIDGE_DECK) && block.blockId().contains("light"))) {
 				lights.add(new int[]{block.u(), block.v()});
 			}
 		}
@@ -170,6 +170,9 @@ abstract class PlanConcourse extends PlanHead {
 						for (final int dv : dvAbs == 0 ? new int[]{0} : new int[]{-dvAbs, dvAbs}) {
 							final int cu = u + du;
 							final int cv = v + dv;
+							if (cu < u0 || cu > u1 || cv < vL || cv > vE || !layout.indoor(cu, cv)) {
+								continue;
+							}
 							final int cover = standingCover(cu, cv);
 							if (cover >= StationGeometry.WALK_Y + StationGeometry.HEADROOM + 1
 									&& put(Role.LIGHT_PANEL, cu, cover - 1, cv, LocalDir.PLUS_V, b.light())) {

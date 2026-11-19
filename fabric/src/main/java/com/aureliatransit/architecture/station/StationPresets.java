@@ -26,6 +26,10 @@ public final class StationPresets {
 			// the real stations: their halls, platforms and operators (see RealStation), not looks after them
 			new Preset("utrecht", BuildingStyle.NONE, "utrecht centraal"),
 			new Preset("hamburg_hbf", BuildingStyle.CLINKER, "hamburg hauptbahnhof"),
+			// platformed tracks on one surface level (see docs/STATION_PRESETS.md): Amsterdam's 11 platformed of 15, St Pancras's 13
+			// terminus + 2 Thameslink, Antwerp's 6+4+4 stacked levels on one level, Frankfurt's Gleis 1-24 (1a omitted), Grand Central's
+			// 30 upper-level tracks (of 44), Zurich's 16 Gleishalle faces and Beijing South's 24 faces paired into islands, Paris Nord's
+			// 32 surface hall tracks, Hua Lamphong's 14-track arched terminus (BuildingStyle.BANGKOK), and CSMT's 18 platforms (11+7)
 			new Preset("amsterdam", BuildingStyle.AMSTERDAM,
 					"eleven track amsterdam station, island and side platforms, 240 long, 20 wide platforms, escalators, train shed, grand station building with footbridge, 9 wide entrance, named Amsterdam Centraal"),
 			new Preset("st_pancras", BuildingStyle.GOTHIC_BRICK,
@@ -53,7 +57,7 @@ public final class StationPresets {
 			new Preset("beijing", BuildingStyle.BEIJING,
 					"twenty-four track beijing station, twelve island platforms, 300 long, 15 wide platforms, escalators, train shed, station building with mezzanine, named Beijing South"),
 			new Preset("bangkok", BuildingStyle.BANGKOK,
-					"fourteen track bangkok terminus, seven island platforms, 200 long, 15 wide platforms, train shed, named Krung Thep"),
+					"fourteen track bangkok terminus, seven island platforms, 200 long, 15 wide platforms, train shed, named Hua Lamphong"),
 			new Preset("kuala_lumpur", BuildingStyle.KUALA_LUMPUR,
 					"four track kuala lumpur station, two island platforms, 160 long, 12 wide platforms, escalators, station building with footbridge, named Kuala Lumpur"),
 			// KL Sentral's lower level (research 10-20): KTM Komuter on three islands, KLIA Ekspres and KLIA Transit beside
