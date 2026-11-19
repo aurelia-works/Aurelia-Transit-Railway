@@ -1141,6 +1141,8 @@ abstract class PlanFurniture extends PlanRoofs {
 	private static final String UK_DRESSED_TRIM = "aurelia_transit_architecture:uk_stucco_dressed";
 	/** The booking hall's cream moulded cornice, an upside-down stair against the wall under the ceiling. */
 	private static final String HALL_CORNICE = "minecraft:smooth_sandstone_stairs";
+	/** The booking hall ceiling's coffer beams, cream like its cornice. */
+	private static final String HALL_BEAM = "minecraft:smooth_sandstone_slab";
 	/** A wall board of train times in a booking hall. */
 	private static final String INFO_BOARD = "aurelia_transit_architecture:station_info_board";
 	private static final String ANALOG_CLOCK = "aurelia_transit_architecture:station_analog_clock";
@@ -1186,8 +1188,8 @@ abstract class PlanFurniture extends PlanRoofs {
 						if (archway && y <= StationGeometry.WALK_Y + 2) {
 							continue;
 						}
-						// a dark timber dado, plaster walls, and a cream picture rail a storey's height up
-						put(Role.WALL, u, y, vPart, intoHall, y == StationGeometry.WALK_Y ? UK_WAINSCOT
+						// dark timber panelling two blocks high, plaster above, and a cream picture rail a storey's height up
+						put(Role.WALL, u, y, vPart, intoHall, y <= StationGeometry.WALK_Y + 1 ? UK_WAINSCOT
 								: y == StationGeometry.WALK_Y + 3 ? UK_DRESSED_TRIM : b.interiorWall());
 					}
 				}
@@ -1315,6 +1317,15 @@ abstract class PlanFurniture extends PlanRoofs {
 						put(Role.BUILDING_ROOF, u, ceilY, v, wall, HALL_CORNICE, "half=top,shape=straight");
 					} else {
 						put(Role.BUILDING_ROOF, u, ceilY, v, LocalDir.PLUS_V, b.interiorWall());
+					}
+				}
+			}
+			// a coffered plaster ceiling over the booking hall: cream beams across it between the lamps and one along its middle
+			for (int u = uS + 2; u < uGate; u++) {
+				for (int v = vHallLo + 1; v <= vHallHi - 1; v++) {
+					final int across = Math.floorMod(v - vEntr, 4);
+					if ((across == 2 || u == (uS + uGate) / 2) && taken(u, ceilY, v) && !taken(u, ceilY - 1, v)) {
+						put(Role.BUILDING_ROOF, u, ceilY - 1, v, LocalDir.PLUS_V, HALL_BEAM, "type=top");
 					}
 				}
 			}
