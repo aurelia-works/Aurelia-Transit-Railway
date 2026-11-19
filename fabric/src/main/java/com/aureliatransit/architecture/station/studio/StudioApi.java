@@ -95,7 +95,7 @@ public final class StudioApi {
 	 * ..."), which comes first so a long description never cuts it off.
 	 */
 	public static String typed(Map<String, String> q) {
-		String text = q.getOrDefault("text", "").replace('\n', ' ').strip();
+		String text = presetAdjusted(q, q.getOrDefault("text", "").replace('\n', ' ').strip());
 		if (text.length() > MAX_TYPED) {
 			text = text.substring(0, MAX_TYPED);
 		}
@@ -176,6 +176,69 @@ public final class StudioApi {
 		return pinned;
 	}
 
+	/** Controls a player can adjust on top of a picked preset's own words without having to edit its text first. */
+	static final Set<String> PRESET_CONTROLS = Set.of("tracks", "length", "layout", "mode");
+
+	/** True when {@code words} is the stripped description {@link #preset} puts in the text box for one of {@link StationPresets#ALL}. */
+	static boolean isPresetWords(String words) {
+		if (words.isEmpty()) {
+			return false;
+		}
+		for (final StationPresets.Preset preset : StationPresets.ALL) {
+			if (words.equals(preset.description().replaceFirst(",?\\s*named .*$", ""))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Drops a picked preset's own track, platform, length or mode words when the player adjusted that control by hand. */
+	private static String presetAdjusted(Map<String, String> q, String text) {
+		if (!isPresetWords(text)) {
+			return text;
+		}
+		final Set<String> hand = keys(q.getOrDefault("pinned", ""));
+		hand.removeAll(keys(q.getOrDefault("rolled", "")));
+		boolean any = false;
+		for (final String key : PRESET_CONTROLS) {
+			if (hand.contains(key)) {
+				any = true;
+				break;
+			}
+		}
+		if (!any) {
+			return text;
+		}
+		String out = text;
+		if (hand.contains("tracks")) {
+			out = out.replaceFirst("(?i)^(?:single|double|twin|triple|quadruple|quad|\\d+|[a-z]+(?:-[a-z]+)?)\\s+tracks?\\s+", "");
+			if (!hand.contains("layout")) {
+				final int t = recipe(q).tracks();
+				if (t < 2) {
+					out = out.replaceFirst("(?i),\\s*(?:(?:\\d+|[a-z]+(?:-[a-z]+)?)\\s+)?(?:island\\s+and\\s+side|island)\\s+platforms?\\b", "");
+				} else {
+					out = out.replaceFirst("(?i),\\s*(?:\\d+|[a-z]+(?:-[a-z]+)?)\\s+island\\s+platforms\\b", ", island platforms");
+					if (t % 2 == 0) {
+						out = out.replaceFirst("(?i),\\s*island\\s+and\\s+side\\s+platforms\\b", ", island platforms");
+					}
+				}
+			}
+		}
+		if (hand.contains("layout")) {
+			out = out.replaceFirst("(?i),\\s*(?:(?:\\d+|[a-z]+(?:-[a-z]+)?)\\s+)?(?:island\\s+and\\s+side|island|side)\\s+platforms?\\b", "");
+		}
+		if (hand.contains("length")) {
+			out = out.replaceFirst("(?i),\\s*\\d+\\s*(?:m|blocks?)?\\s*long\\b", "");
+		}
+		if (hand.contains("mode")) {
+			out = out.replaceFirst("(?i)\\bterminus\\b", "station");
+			if (recipe(q).terminus()) {
+				out = out.replaceFirst("(?i)\\s+with\\s+(?:footbridge|mezzanine)\\b", "");
+			}
+		}
+		return out.strip();
+	}
+
 	/** The controls a real station fixes itself: its look, through tracks, hall or shed, and island platforms. */
 	static final List<String> REAL_FIXES = List.of("look", "mode", "building", "size", "roof", "layout");
 
@@ -193,6 +256,8 @@ public final class StudioApi {
 		for (final String part : list.split(",")) {
 			asked.add(part.strip().equals("mix") ? "look" : part.strip());
 		}
+		final Set<String> rolled = keys(q.getOrDefault("rolled", ""));
+		final boolean preset = isPresetWords(words);
 		final List<String> won = new ArrayList<>();
 		// words that name a real station ("utrecht station") set what it really is, so a pinned second city, hub, building, roof
 		// or side platforms cannot turn it back into a station of the player's own (Jah 10-22; the dice pin some on a fresh page)
@@ -204,7 +269,6 @@ public final class StudioApi {
 			}
 			// its own track count and platform length beat what the dice rolled (a fresh page made Hamburg 1 to 4 tracks, 64
 			// long, 10-24); a count or length set by hand still holds
-			final Set<String> rolled = keys(q.getOrDefault("rolled", ""));
 			for (final String key : REAL_ROLLED) {
 				if (asked.contains(key) && rolled.contains(key)) {
 					won.add(key);
@@ -216,6 +280,9 @@ public final class StudioApi {
 			if (won.contains(key)) {
 				continue;
 			}
+			if (preset && PRESET_CONTROLS.contains(key) && !rolled.contains(key)) {
+				continue;
+			}
 			if (asked.contains(key)) {
 				won.add(key);
 			}
@@ -223,7 +290,6 @@ public final class StudioApi {
 		// words that name a city or a look ("amsterdam station") bring its own building and roof: what the dice rolled on the page
 		// gives way to them (a rolled flat shed or "no building" made Amsterdam something else); a control set by hand still holds
 		if (said.contains("look")) {
-			final Set<String> rolled = keys(q.getOrDefault("rolled", ""));
 			for (final String key : LOOK_FIXES) {
 				if (asked.contains(key) && rolled.contains(key) && !won.contains(key)) {
 					won.add(key);

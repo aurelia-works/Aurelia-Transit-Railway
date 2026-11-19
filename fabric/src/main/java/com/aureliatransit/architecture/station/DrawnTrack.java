@@ -29,7 +29,7 @@ public record DrawnTrack(List<Point> points) {
 	public record Leg(int x1, int y1, int z1, int dir1, int x2, int y2, int z2, int dir2) {
 	}
 
-	public static final int MAX_TRACKS = 8;
+	public static final int MAX_TRACKS = StationSpec.MAX_TRACKS;
 	public static final int MAX_POINTS = 24;
 	/** How far from the station a point may be, in blocks: as far as a plan reaches. */
 	public static final int MAX_REACH = 512;

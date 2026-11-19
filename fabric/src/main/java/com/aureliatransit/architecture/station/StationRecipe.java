@@ -249,7 +249,7 @@ public record StationRecipe(Look look, Look mix, boolean terminus, int tracks, P
 			text.add(String.join(" ", head));
 		}
 		if ((all || pinned.contains("layout")) && platforms != Platforms.AUTO) {
-			text.add(platforms == Platforms.ISLAND ? (tracks >= 4 ? "two island platforms" : "island platform") : "side platforms");
+			text.add(platforms == Platforms.ISLAND ? (tracks >= 4 ? "island platforms" : "island platform") : "side platforms");
 		}
 		if (all || pinned.contains("length")) {
 			text.add(length + " long");

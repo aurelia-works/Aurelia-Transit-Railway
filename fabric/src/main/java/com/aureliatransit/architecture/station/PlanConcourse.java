@@ -44,7 +44,7 @@ abstract class PlanConcourse extends PlanHead {
 		final int vE = layout.headEnd();
 		final int door = headDoor();
 		final int depth = vE - vL;
-		final int gateV = headGateV();
+		final int gateV = clearGateRow(headGateV(), door, vL);
 		final int inner = u1 - u0 - 1;
 		// the gate line: banks of gates with a wide gate in the middle of each, one on the walk from the entrance and in a big
 		// hall one more each side, glass fence between them and out to the side walls (Jah 10-20: one long bank across the
@@ -132,8 +132,55 @@ abstract class PlanConcourse extends PlanHead {
 			concourseSeats(u0 + clearOfGallery + 1, u1 - clearOfGallery - 1, door, vL, gateV, b);
 		}
 		concourseHall(u0, u1, vL, vE, door, gateV, b);
+		lightDarkSpots(u0, u1, vL, vE, b);
 		// no MTR name board over the door (the entrance's own lettering names it) and no MTR tactile map, which plays music
 		// to anyone near it (Jah, 10-22)
+	}
+
+	/** Hangs a ceiling light near any standable indoor floor cell of the head building left more than four steps from one. */
+	private void lightDarkSpots(int u0, int u1, int vL, int vE, StylePalette.Building b) {
+		final List<int[]> lights = new ArrayList<>();
+		for (final PlannedBlock block : cells.values()) {
+			if (block.role() == Role.LIGHT_PANEL
+					|| (block.role() == Role.BUILDING_ROOF || block.role() == Role.BRIDGE_DECK) && block.blockId().contains("light")) {
+				lights.add(new int[]{block.u(), block.v()});
+			}
+		}
+		for (int u = u0; u <= u1; u++) {
+			for (int v = vL; v <= vE; v++) {
+				final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, v);
+				if (floor == null || floor.role() != Role.FLOOR || !layout.indoor(u, v)
+						|| taken(u, StationGeometry.WALK_Y, v) || taken(u, StationGeometry.WALK_Y + 1, v)) {
+					continue;
+				}
+				boolean lit = false;
+				for (final int[] light : lights) {
+					if (Math.abs(light[0] - u) + Math.abs(light[1] - v) <= 4) {
+						lit = true;
+						break;
+					}
+				}
+				if (lit) {
+					continue;
+				}
+				placed:
+				for (int dist = 0; dist <= 4; dist++) {
+					for (int du = -dist; du <= dist; du++) {
+						final int dvAbs = dist - Math.abs(du);
+						for (final int dv : dvAbs == 0 ? new int[]{0} : new int[]{-dvAbs, dvAbs}) {
+							final int cu = u + du;
+							final int cv = v + dv;
+							final int cover = standingCover(cu, cv);
+							if (cover >= StationGeometry.WALK_Y + StationGeometry.HEADROOM + 1
+									&& put(Role.LIGHT_PANEL, cu, cover - 1, cv, LocalDir.PLUS_V, b.light())) {
+								lights.add(new int[]{cu, cv});
+								break placed;
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	/** Width of a departure board hung over the gate line between two banks, facing the ticket hall. */
@@ -189,7 +236,8 @@ abstract class PlanConcourse extends PlanHead {
 		}
 		final int y = StationGeometry.WALK_Y + 4;
 		served.forEach((centre, numbers) -> {
-			if (putText(Role.FIXTURE, centre, y, gateV, LocalDir.PLUS_V, HANGING_SIGN, "UP:" + gateSignText(numbers))) {
+			if (ceilingAbove(centre, y, gateV) >= 0
+					&& putText(Role.FIXTURE, centre, y, gateV, LocalDir.PLUS_V, HANGING_SIGN, "UP:" + gateSignText(numbers))) {
 				dropRod(centre, y, gateV);
 			}
 		});
@@ -257,6 +305,30 @@ abstract class PlanConcourse extends PlanHead {
 	int headGateV() {
 		final int vE = layout.headEnd();
 		return vE - Math.max(8, (vE - length) * 2 / 5);
+	}
+
+	/**
+	 * The gate row, moved up to four rows toward the platforms past a wall standing over the door line: on a wide head a
+	 * landmark's tower front can fall on the gate row (Mumbai on 18 tracks), which leaves the gate signs and hall boards
+	 * nothing to hang from.
+	 */
+	int clearGateRow(int gateV, int door, int vL) {
+		for (int v = gateV; v >= Math.max(vL + 6, gateV - 4); v--) {
+			if (!wallOverGate(door, v)) {
+				return v;
+			}
+		}
+		return gateV;
+	}
+
+	private boolean wallOverGate(int u, int v) {
+		for (int y = StationGeometry.WALK_Y + 3; y <= StationGeometry.WALK_Y + 8; y++) {
+			final PlannedBlock block = at(u, y, v);
+			if (block != null && block.role() == Role.WALL) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station;
 
+import com.aureliatransit.architecture.live.NearestPlatformProvider;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -808,7 +809,8 @@ abstract class PlanFurniture extends PlanRoofs {
 				final int ceiling = columns.stream().mapToInt(u -> ceiling(u, v)).min().orElse(-1);
 				final int y = ceiling - 1;
 				if (ceiling < 0 || y < StationGeometry.WALK_Y + 2 || y > StationGeometry.WALK_Y + 4
-						|| columns.stream().anyMatch(u -> ceiling(u, v) < 0 || ceiling(u, v) > ceiling + 1 || taken(u, y, v) || isEdge(band, u))) {
+						|| columns.stream().anyMatch(u -> ceiling(u, v) < 0 || ceiling(u, v) > ceiling + 1 || taken(u, y, v) || isEdge(band, u)
+								|| !inScreenReach(u))) {
 					continue;
 				}
 				for (final int u : columns) {
@@ -866,7 +868,7 @@ abstract class PlanFurniture extends PlanRoofs {
 				}
 				boolean clear = true;
 				for (int u = a + 1; u < b && clear; u++) {
-					clear = !isEdge(band, u) && !taken(u, y, v) && !taken(u, y + 1, v);
+					clear = !isEdge(band, u) && inScreenReach(u) && !taken(u, y, v) && !taken(u, y + 1, v);
 				}
 				if (!clear) {
 					continue;
@@ -926,7 +928,7 @@ abstract class PlanFurniture extends PlanRoofs {
 		final int middle = (band.uMin() + band.uMax()) / 2;
 		for (final Cell post : posts) {
 			final PlannedBlock behind = cells.get(new Cell(post.u(), y, post.v()));
-			if (behind == null || behind.role() != Role.COLUMN || isEdge(band, post.u())) {
+			if (behind == null || behind.role() != Role.COLUMN || isEdge(band, post.u()) || !inScreenReach(post.u())) {
 				continue;
 			}
 			// the second block towards the platform's middle, else away from it
@@ -939,7 +941,7 @@ abstract class PlanFurniture extends PlanRoofs {
 				}
 				for (final int step : new int[]{toward, -toward}) {
 					final int u = post.u() + step;
-					if (band.contains(u, v) && !isEdge(band, u) && !taken(u, y, v)) {
+					if (band.contains(u, v) && !isEdge(band, u) && inScreenReach(u) && !taken(u, y, v)) {
 						put(Role.FIXTURE, post.u(), y, v, side, PIDS, centredOn(side, step) + ON_ARM);
 						put(Role.FIXTURE, u, y, v, side, PIDS, centredOn(side, step));
 						fixed = true;
@@ -948,6 +950,20 @@ abstract class PlanFurniture extends PlanRoofs {
 				}
 			}
 			if (fixed) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * True where a departure screen still finds its platform: within the search radius of a track. The back of a wide side
+	 * platform is not (on St Pancras's and West Kowloon's 15-wide side platforms a screen stood 13-14 from its track and showed
+	 * nothing).
+	 */
+	private boolean inScreenReach(int u) {
+		for (final TrackLayout.Track track : layout.tracks()) {
+			if (Math.abs(u - track.u()) <= NearestPlatformProvider.SEARCH_RADIUS) {
 				return true;
 			}
 		}
@@ -981,7 +997,8 @@ abstract class PlanFurniture extends PlanRoofs {
 				final int toward = post.u() <= middle ? 1 : -1;
 				for (final int step : new int[]{toward, -toward}) {
 					final int other = post.u() + step;
-					if (!band.contains(other, v) || isEdge(band, other) || taken(post.u(), StationGeometry.WALK_Y, v)
+					if (!band.contains(other, v) || isEdge(band, other) || !inScreenReach(post.u()) || !inScreenReach(other)
+							|| taken(post.u(), StationGeometry.WALK_Y, v)
 							|| taken(other, StationGeometry.WALK_Y, v)) {
 						continue;
 					}
@@ -998,7 +1015,7 @@ abstract class PlanFurniture extends PlanRoofs {
 			}
 			for (final LocalDir side : new LocalDir[]{LocalDir.PLUS_V, LocalDir.MINUS_V}) {
 				final int v = post.v() + (side == LocalDir.PLUS_V ? 1 : -1);
-				if (band.runs(v) && !nearStairs(band, v) && !taken(post.u(), StationGeometry.WALK_Y, v)
+				if (band.runs(v) && !nearStairs(band, v) && inScreenReach(post.u()) && !taken(post.u(), StationGeometry.WALK_Y, v)
 						&& put(Role.FIXTURE, post.u(), StationGeometry.WALK_Y, v, side, PIDS, "offset=none" + ON_ARM)) {
 					return true;
 				}
@@ -1021,10 +1038,12 @@ abstract class PlanFurniture extends PlanRoofs {
 				if (v < band.vFrom() + 2 || v > band.vTo() - 2 || nearStairs(band, v)) {
 					continue;
 				}
-				for (int k = 0; k <= 2; k++) {
+				// as near the back as it can stand and still find its track (a wide side platform's back is out of reach)
+				for (int k = 0; k < band.width(); k++) {
 					final int u = back + step * k;
 					if (u < band.uMin() || u > band.uMax() || u + step < band.uMin() || u + step > band.uMax()
-							|| isEdge(band, u) || isEdge(band, u + step) || taken(u, StationGeometry.WALK_Y, v) || taken(u, StationGeometry.WALK_Y + 1, v)
+							|| isEdge(band, u) || isEdge(band, u + step) || !inScreenReach(u) || !inScreenReach(u + step)
+							|| taken(u, StationGeometry.WALK_Y, v) || taken(u, StationGeometry.WALK_Y + 1, v)
 							|| taken(u, StationGeometry.WALK_Y + 2, v) || taken(u + step, StationGeometry.WALK_Y + 2, v)) {
 						continue;
 					}

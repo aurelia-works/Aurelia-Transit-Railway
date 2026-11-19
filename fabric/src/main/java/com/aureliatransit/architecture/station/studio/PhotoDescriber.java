@@ -60,7 +60,7 @@ public final class PhotoDescriber {
 				Use only these phrases:
 				- tracks: "N track" (1 to %d); count the platform tracks you can see, best guess if some are hidden
 				- kind: "station" (trains run through), "terminus" (tracks end at a building), "underground station" (platforms in a tiled box below the street), "tram stop"
-				- platforms: "side platforms", "island platform", "two island platforms", "island and side platforms"
+				- platforms: "side platforms", "island platform", "island platforms", "N island platforms", "island and side platforms"
 				- length: "N long", the platform length in metres (%d to %d); suburban about 120 to 200, city 200 to 300, metro 80 to 130
 				- roof: "canopy", "glass canopy", "butterfly canopy", "gable canopy", "train shed", "arched train shed", "no roof"
 				- building: "small station building", "city station building", "grand station building", or "no station building"
