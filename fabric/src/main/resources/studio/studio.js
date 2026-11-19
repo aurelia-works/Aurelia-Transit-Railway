@@ -366,16 +366,44 @@
 
 		const presets = $("presets");
 		presets.innerHTML = "";
+		if ($("presetCount")) {
+			$("presetCount").textContent = String(options.presets.length);
+		}
 		for (const p of options.presets) {
 			const b = document.createElement("button");
 			b.type = "button";
 			b.className = "chip";
-			b.textContent = p.key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+			b.textContent = p.name || p.key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 			b.title = p.description;
 			// the preset sets the buttons (they are always sent, so they would otherwise win over its numbers); the rest of its
 			// words, such as the roof and the footbridge, go in the description
 			b.addEventListener("click", () => applyPreset(p));
 			presets.append(b);
+		}
+		const meta = $("rolledMeta");
+		if (meta) {
+			meta.addEventListener("click", () => {
+				const more = $("more");
+				if (more) {
+					more.open = true;
+					more.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" });
+				}
+			});
+			synced.push(() => {
+				const tags = [];
+				if ($("class").value && $("class").value !== "auto") {
+					tags.push($("class").selectedOptions[0]?.text + " class");
+				}
+				if ($("era").value && $("era").value !== "auto") {
+					tags.push($("era").selectedOptions[0]?.text + " era");
+				}
+				if ($("mix").value) {
+					tags.push("+ " + ($("mix").selectedOptions[0]?.text || $("mix").value));
+				}
+				meta.hidden = tags.length === 0;
+				meta.textContent = tags.join(" · ");
+				meta.title = tags.length ? "Active overrides (" + tags.join(", ") + ") — click to adjust" : "";
+			});
 		}
 		// airports are planned from their words alone: the card only writes them, and the station controls keep their settings
 		const airports = $("airports");
@@ -498,8 +526,9 @@
 					return;
 				}
 				$("photoPrompt").hidden = true;
+				$("wordsAdvanced").open = true;
 				applyPreset(answer.preset);
-				note.textContent = "Read from the photo. Change anything in the words above.";
+				note.textContent = "Read from photo — refine the words above if needed.";
 			} catch (e) {
 				note.textContent = e.message || "Could not read the photo.";
 			} finally {
@@ -527,7 +556,7 @@
 	}
 
 	function showWhere() {
-		$("where").innerHTML = IN_GAME ? "Connected to <b>your game</b>" : "Design mode, no game";
+		$("where").innerHTML = IN_GAME ? "Live link to <b>your world</b>" : "Standalone preview · export .schem";
 		$("where").classList.toggle("live", IN_GAME);
 	}
 
@@ -553,7 +582,10 @@
 				img.src = "https://mc-heads.net/avatar/" + uuid + "/72";
 			}
 		} else {
-			avatar.innerHTML = "<svg viewBox='0 0 16 16' width='20' height='20'><rect x='3' y='2' width='10' height='9' rx='1' fill='none' stroke='currentColor' stroke-width='1.3'/><path d='M5 14h6M8 11v3' stroke='currentColor' stroke-width='1.3'/></svg>";
+			$("mcName").textContent = IN_GAME ? "In-game Studio" : "Standalone";
+			$("mcBadge").textContent = IN_GAME ? "Connected" : "Offline";
+			$("mcBadge").classList.toggle("live", IN_GAME);
+			avatar.innerHTML = "<svg viewBox='0 0 16 16' width='20' height='20' aria-hidden='true'><rect x='3' y='2' width='10' height='9' rx='1' fill='none' stroke='currentColor' stroke-width='1.3'/><path d='M5 14h6M8 11v3' stroke='currentColor' stroke-width='1.3'/></svg>";
 		}
 	}
 
@@ -921,9 +953,9 @@
 		}
 		const note = $("seedNote");
 		note.classList.toggle("seed-note-edited", seeds.edited);
-		note.textContent = seeds.edited ? "Changed since the roll, so this seed alone no longer makes this station."
-			: seeds.locks.look && seeds.detail !== seeds.value ? "The look is kept from seed " + seeds.detail + "."
-				: "The same seed makes the same station. Press R to roll.";
+		note.textContent = seeds.edited ? "Modified after roll — seed alone won't recreate edits."
+			: seeds.locks.look && seeds.detail !== seeds.value ? "Look held from seed " + seeds.detail + "."
+				: "Deterministic seed · press R to roll.";
 	}
 
 	function setupSeed() {
@@ -1097,7 +1129,7 @@
 				: "Copied. Paste it in chat in your world, then /ata_station confirm to build.");
 		});
 		if ($("text").value) {
-			$("words").open = true;
+			$("wordsAdvanced").open = true;
 		}
 		for (const b of document.querySelectorAll("[data-send]")) {
 			b.addEventListener("click", () => send(b.dataset.send));
@@ -1160,10 +1192,21 @@
 
 	async function listFiles(select) {
 		const list = $("fileList");
+		const filesRow = $("filesRow");
 		try {
 			const r = await fetch("api/stations", { headers: { "X-Studio-Token": TOKEN }, cache: "no-store" });
+			if (r.status === 409) {
+				if (filesRow) {
+					filesRow.hidden = true;
+				}
+				$("fileNote").textContent = "";
+				return;
+			}
 			if (!r.ok) {
 				throw new Error(await r.text());
+			}
+			if (filesRow) {
+				filesRow.hidden = false;
 			}
 			const { stations } = await r.json();
 			list.innerHTML = "";
@@ -2288,9 +2331,11 @@
 				b.face = f;
 				if (f.view) {
 					b.title = "View from platform " + f.platform + " (boarding face " + f.n + ")";
+					b.setAttribute("aria-label", b.title);
 					b.addEventListener("click", () => setView("face:" + f.n, true));
 				} else {
 					b.title = "Boarding face " + f.n + " (platform " + f.platform + ")";
+					b.setAttribute("aria-label", b.title);
 					b.disabled = true;
 				}
 				box.append(b);
@@ -2430,6 +2475,26 @@
 		invertY = !invertY;
 		$("invertY").setAttribute("aria-pressed", String(invertY));
 	});
+	// Mouse options popover: Escape closes and restores focus to its trigger; outside pointerdown dismisses cleanly.
+	const mouseMenu = document.querySelector("details.menu");
+	if (mouseMenu) {
+		mouseMenu.addEventListener("keydown", (e) => {
+			if (e.key === "Escape" && mouseMenu.open) {
+				e.preventDefault();
+				e.stopPropagation();
+				mouseMenu.open = false;
+				const trigger = mouseMenu.querySelector("summary");
+				if (trigger) {
+					trigger.focus();
+				}
+			}
+		});
+		document.addEventListener("pointerdown", (e) => {
+			if (mouseMenu.open && !mouseMenu.contains(e.target)) {
+				mouseMenu.open = false;
+			}
+		});
+	}
 	$("cut").addEventListener("change", updateCut);
 	$("cutAt").addEventListener("input", updateCut);
 	$("faces").addEventListener("change", draw);
@@ -2456,7 +2521,21 @@
 			applyLook();
 		}
 	});
-	window.addEventListener("resize", draw);
+	function syncZoomLayout() {
+		const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+		const remW = window.innerWidth / rootPx;
+		if (rootPx > 20 && remW < 64 && window.innerWidth > 832) {
+			document.documentElement.setAttribute("data-zoom-stack", "");
+		} else if (document.documentElement.hasAttribute("data-zoom-stack")) {
+			document.documentElement.removeAttribute("data-zoom-stack");
+		}
+	}
+	window.addEventListener("resize", () => {
+		syncZoomLayout();
+		draw();
+	});
+	new MutationObserver(syncZoomLayout).observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class"] });
+	syncZoomLayout();
 
 	// ---- walk audio ----------------------------------------------------------------------------------------------------
 	// Spoken announcements (Web Speech) plus short cues (Web Audio): a fare gate beep, a lift chime. Optional, and started
@@ -3379,21 +3458,25 @@
 			? ["bad", "!", "Can't build this yet", plural(fails, "problem") + " to fix first"]
 			: warns ? ["warned", "!", "Ready to build", plural(warns, "thing") + " worth a look" + (tally ? " · " + tally : "")]
 				: ["good", "✓", "Ready to build", "All " + plural(passed.length, "check") + " passed"];
-		const all = problems.concat(passed);
-		const shown = report.open ? all : all.slice(0, Math.max(problems.length, 8));
-		$("checks").innerHTML = "<div class='verdict " + verdict[0] + "'><span class='icon' aria-hidden='true'>" + verdict[1] + "</span><div><h3>"
-			+ verdict[2] + "</h3><p>" + verdict[3] + "</p></div></div>"
-			+ "<ul class='checks'>" + shown.map((c) => "<li class='" + c.status + "'><span class='sr'>" + (c.status === "PASS" ? "Passed: " : c.status === "FAIL" ? "Failed: " : "Warning: ")
-				+ "</span><div>" + (c.title ? "<b class='ttl'>" + esc(c.title) + "</b> " : "") + esc(c.message)
-				+ (c.fix ? "<span class='fix'>Next: " + esc(c.fix) + "</span>" : "") + "</div></li>").join("") + "</ul>"
-			+ (all.length > shown.length ? "<button type='button' class='more' id='moreChecks'>Show all " + all.length + " checks</button>"
-				: report.open && all.length > 8 ? "<button type='button' class='more' id='moreChecks'>Show fewer</button>" : "");
-		const more = $("moreChecks");
-		if (more) {
-			more.addEventListener("click", () => {
-				report.open = !report.open;
-				report(plan);
-				$("moreChecks") && $("moreChecks").focus();
+		const renderCheck = (c) => "<li class='" + c.status + "'><span class='sr'>" + (c.status === "PASS" ? "Passed: " : c.status === "FAIL" ? "Failed: " : "Warning: ")
+			+ "</span><div>" + (c.title ? "<b class='ttl'>" + esc(c.title) + "</b> " : "") + esc(c.message)
+			+ (c.fix ? "<span class='fix'>Next: " + esc(c.fix) + "</span>" : "") + "</div></li>";
+		const verdictHtml = "<div class='verdict " + verdict[0] + "'><span class='icon' aria-hidden='true'>" + verdict[1] + "</span><div><h3>"
+			+ verdict[2] + "</h3><p>" + verdict[3] + "</p></div></div>";
+		if (problems.length === 0) {
+			$("checks").innerHTML = verdictHtml
+				+ "<details class='fold checks-fold'" + (report.open ? " open" : "") + "><summary>Inspect all " + passed.length + " passed checks</summary>"
+				+ "<ul class='checks'>" + passed.map(renderCheck).join("") + "</ul></details>";
+		} else {
+			$("checks").innerHTML = verdictHtml
+				+ "<ul class='checks'>" + problems.map(renderCheck).join("") + "</ul>"
+				+ (passed.length ? "<details class='fold checks-fold'" + (report.open ? " open" : "") + "><summary>Show " + passed.length + " passed checks</summary>"
+					+ "<ul class='checks'>" + passed.map(renderCheck).join("") + "</ul></details>" : "");
+		}
+		const fold = $("checks").querySelector(".checks-fold");
+		if (fold) {
+			fold.addEventListener("toggle", () => {
+				report.open = fold.open;
 			});
 		}
 	}

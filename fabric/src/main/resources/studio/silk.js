@@ -273,15 +273,15 @@ void main() {
 
 	const VERTEX = 'attribute vec2 a_position; void main() { gl_Position = vec4(a_position, 0.0, 1.0); }';
 
-	// Low to high: #02010A, #04052E, #3D2C8D, #916BBF; the other four slots stay black.
+	// Low to high: #05070B, #09111E, #102342, #1C3D72 (ATA midnight & signalling steel, never Indus purple); other slots black.
 	const COLOURS = new Float32Array([
-		0.008, 0.004, 0.039,
-		0.016, 0.020, 0.180,
-		0.239, 0.173, 0.553,
-		0.569, 0.420, 0.749,
+		0.020, 0.027, 0.043,
+		0.035, 0.067, 0.118,
+		0.063, 0.137, 0.259,
+		0.110, 0.239, 0.447,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	]);
-	const TIME_SCALE = 0.76;
+	const TIME_SCALE = 0.45;
 	const COLOUR_COUNT = 4.0;
 
 	const canvas = document.getElementById('silk');
