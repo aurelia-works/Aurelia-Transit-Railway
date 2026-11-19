@@ -76,6 +76,8 @@ class CityLandmarksTest {
 		final StationPlan beijing = StationPlanner.plan(spec("ten track beijing station, 300 long, named Beijing Railway Station"));
 		assertTrue(count(beijing, "minecraft:prismarine_bricks") > 100, "blue-green glazed tile towers");
 		assertEquals(2, StationRealismTest.streetClocks(beijing).size(), "Beijing 1959's twin clock towers flank its central portal");
+		assertEquals(java.util.List.of(), LayoutValidator.validate(beijing));
+		assertEquals(java.util.List.of(), StationAudit.audit(beijing).problems());
 	}
 
 	@Test
@@ -87,6 +89,9 @@ class CityLandmarksTest {
 		assertTrue(count(kl, "minecraft:calcite") > 1000, "white Moorish walls");
 		final StationPlan coventry = StationPlanner.plan(spec("three track coventry station, island and side platforms, 250 long, city station building with footbridge, named Coventry"));
 		assertEquals(java.util.List.of(), LayoutValidator.validate(coventry));
-		assertTrue(StationAudit.audit(coventry).buildable(), StationAudit.audit(coventry).problems().toString());
+		assertEquals(java.util.List.of(), StationAudit.audit(coventry).problems());
+		final StationPlan munich = StationPlanner.plan(spec("eight track real munich terminus, four island platforms, 200 long, 15 wide platforms, train shed"));
+		assertEquals(java.util.List.of(), LayoutValidator.validate(munich));
+		assertEquals(java.util.List.of(), StationAudit.audit(munich).problems());
 	}
 }

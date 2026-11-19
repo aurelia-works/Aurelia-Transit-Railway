@@ -321,14 +321,20 @@ abstract class PlanLandmark extends PlanDeep {
 			// a side wall standing inside the head building (a hall narrower than the head) is an arcade on the ground floor, so
 			// the side lobbies, their lifts and stairs open onto the hall (Grand Central's lift lobbies were walled off, Jah 10-21)
 			final boolean arcade = side && f.head() && insideHead(f.u(face.x(i), face.z(i))) && Math.floorMod(i, ARCADE_BAY) != 0;
+			final int uCell = f.u(face.x(i), face.z(i));
 			final int vCell = f.v(face.x(i), face.z(i));
 			final boolean innerSide = side && !f.head() && vCell > site.vStart() && vCell < site.vEnd();
+			// leave the slab row at the footbridge mouth open so PlanBridges lays its deck across the threshold
+			final boolean bridgeMouth = !f.head() && site.bridge() && uCell == site.platformWall(layout)
+					&& Math.abs(vCell - site.bridgeV()) <= bridgeHalf();
 			for (int y = Math.max(1, m.bottom()); y <= m.height(); y++) {
-				if (openGround && y < StationGeometry.UPPER_FLOOR_Y || arcade && arcadeOpening(y) || innerSide && y < roofY()) {
+				if (openGround && y < StationGeometry.UPPER_FLOOR_Y || arcade && arcadeOpening(y) || innerSide && y < roofY()
+						|| bridgeMouth && y == StationGeometry.UPPER_FLOOR_Y) {
 					continue;
 				}
 				final int r = Math.floorMod(y - 1, fa.storey());
-				final boolean band = r == 0 && y > 1 || y == m.height();
+				final boolean slabBand = !f.head() && uCell == site.platformWall(layout) && y == StationGeometry.UPPER_FLOOR_Y;
+				final boolean band = r == 0 && y > 1 || y == m.height() || slabBand;
 				final boolean glass = column && !band && glassAt(fa, y, m.height());
 				String id;
 				String state = "";
