@@ -109,9 +109,9 @@ public final class StationDescriptionParser {
 	private static final Map<String, StationStyle> STYLE_WORDS = Map.ofEntries(Map.entry("modern", StationStyle.MODERN),
 			Map.entry("contemporary", StationStyle.MODERN), Map.entry("generic", StationStyle.MODERN), Map.entry("default", StationStyle.MODERN),
 			Map.entry("simple", StationStyle.MODERN), Map.entry("standard", StationStyle.MODERN), Map.entry("dutch", StationStyle.DUTCH),
-			Map.entry("netherlands", StationStyle.DUTCH), Map.entry("holland", StationStyle.DUTCH), Map.entry("ns", StationStyle.DUTCH),
-			Map.entry("utrecht", StationStyle.DUTCH), Map.entry("leidsche", StationStyle.DUTCH), Map.entry("amsterdam", StationStyle.DUTCH),
-			Map.entry("rotterdam", StationStyle.DUTCH), Map.entry("german", StationStyle.GERMAN_SBAHN), Map.entry("germany", StationStyle.GERMAN_SBAHN),
+			Map.entry("netherlands", StationStyle.DUTCH), Map.entry("holland", StationStyle.DUTCH), Map.entry("nl", StationStyle.DUTCH),
+			Map.entry("ns", StationStyle.DUTCH), Map.entry("utrecht", StationStyle.DUTCH), Map.entry("leidsche", StationStyle.DUTCH),
+			Map.entry("amsterdam", StationStyle.DUTCH), Map.entry("rotterdam", StationStyle.DUTCH), Map.entry("german", StationStyle.GERMAN_SBAHN), Map.entry("germany", StationStyle.GERMAN_SBAHN),
 			Map.entry("db", StationStyle.GERMAN_SBAHN), Map.entry("sbahn", StationStyle.GERMAN_SBAHN), Map.entry("hamburg", StationStyle.GERMAN_SBAHN),
 			Map.entry("munich", StationStyle.GERMAN_SBAHN), Map.entry("munchen", StationStyle.GERMAN_SBAHN), Map.entry("berlin", StationStyle.GERMAN_SBAHN),
 			Map.entry("frankfurt", StationStyle.GERMAN_SBAHN), Map.entry("metro", StationStyle.METRO), Map.entry("subway", StationStyle.METRO),
@@ -282,6 +282,7 @@ public final class StationDescriptionParser {
 		private boolean small;
 		private boolean large;
 		private StationStyle style;
+		private boolean dutchStyle;
 		private boolean roofNone;
 		private RoofType roof;
 		private boolean weakRoof;
@@ -2054,6 +2055,7 @@ public final class StationDescriptionParser {
 		private void setStyle(StationStyle value, int i) {
 			if (style == null) {
 				style = value;
+				dutchStyle = value == StationStyle.DUTCH;
 				note(i, styleName(value) + " style");
 			} else if (style != value) {
 				warn("style given twice; using " + styleName(style));
@@ -2487,6 +2489,17 @@ public final class StationDescriptionParser {
 			options = options.withType(deepType).withDepth(depthAsked).withTile(tile == null ? "" : tile);
 		}
 
+		/** True when the words name a Dutch style, operator or city look (not an era's default or a Belgian city's platforms). */
+		private boolean dutchLook() {
+			if (dutchStyle) {
+				return true;
+			}
+			if (!looks.isEmpty()) {
+				return STYLE_WORDS.get(looks.get(0).word()) == StationStyle.DUTCH;
+			}
+			return operator == Operator.NS;
+		}
+
 		/** The real city station whose sheet the words ask for ("real coventry"), or empty: one city word and no real station named. */
 		private String sheetName() {
 			return cityStationName != null && (real == null || real == RealStation.NONE) && looks.size() == 1 && !mixing ? cityStationName : "";
@@ -2868,10 +2881,12 @@ public final class StationDescriptionParser {
 				} else {
 					final StationScale own = Landmarks.ownScale(name, sheetName());
 					final int platformed = StationGeometry.platformedTracks(sized);
-					final StationScale auto = own != null ? own : StationScale.forSize(true, platformed);
+					final boolean dutch = dutchLook();
+					final StationScale auto = own != null ? own : StationScale.forSize(true, platformed, dutch);
 					builder.scale(auto);
 					defaulted.add(auto.label() + " station building (" + (own != null ? "the real station's size"
-							: "default for " + platformed + (platformed == 1 ? " track" : " tracks") + " at platforms") + ")");
+							: "default for " + platformed + (platformed == 1 ? " track" : " tracks") + " at platforms"
+									+ (dutch && auto == StationScale.GRAND && platformed < StationScale.GRAND_BUILDING_TRACKS ? " on a Dutch station" : "")) + ")");
 				}
 			}
 			// a bigger through station (a city or grand building) gives every platform wide enough two ways down from its footbridge, so
