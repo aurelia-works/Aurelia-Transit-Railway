@@ -1188,8 +1188,8 @@ abstract class PlanFurniture extends PlanRoofs {
 						if (archway && y <= StationGeometry.WALK_Y + 2) {
 							continue;
 						}
-						// dark timber panelling two blocks high, plaster above, and a cream picture rail a storey's height up
-						put(Role.WALL, u, y, vPart, intoHall, y <= StationGeometry.WALK_Y + 1 ? UK_WAINSCOT
+						// dark timber panelling up to a cream picture rail a storey's height up, plaster above it
+						put(Role.WALL, u, y, vPart, intoHall, y <= StationGeometry.WALK_Y + 2 ? UK_WAINSCOT
 								: y == StationGeometry.WALK_Y + 3 ? UK_DRESSED_TRIM : b.interiorWall());
 					}
 				}
