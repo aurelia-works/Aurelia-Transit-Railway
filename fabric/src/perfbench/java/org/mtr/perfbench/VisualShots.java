@@ -49,6 +49,8 @@ public final class VisualShots implements ClientModInitializer {
 	private final List<String> steps = new ArrayList<>();
 	private final List<String> results = new ArrayList<>();
 	private int ticks;
+	private String perfName;
+	private final List<Integer> perfSamples = new ArrayList<>();
 	private int index;
 	private int waitUntil = START_TICKS;
 
@@ -71,11 +73,35 @@ public final class VisualShots implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(this::tick);
 	}
 
+	private void logPerf() {
+		final java.util.IntSummaryStatistics stats = perfSamples.stream().mapToInt(Integer::intValue).summaryStatistics();
+		long gpu = -1;
+		try {
+			final java.lang.reflect.Field field = Class.forName("com.aurelia.lod.AureliaClient").getDeclaredField("farLod");
+			field.setAccessible(true);
+			final Object renderer = field.get(null);
+			gpu = (long) renderer.getClass().getMethod("gpuBytes").invoke(renderer);
+		} catch (ReflectiveOperationException | RuntimeException ignored) {
+		}
+		LOGGER.info("perf {}: fps mean {} min {} max {} over {} s, ms/frame {}, lod gpu bytes {}", perfName,
+				String.format(Locale.ROOT, "%.1f", stats.getAverage()), stats.getMin(), stats.getMax(), stats.getCount(),
+				String.format(Locale.ROOT, "%.2f", 1000.0 / Math.max(1.0, stats.getAverage())), gpu);
+		perfName = null;
+	}
+
 	private void tick(MinecraftClient client) {
 		if (client.player == null || client.world == null) {
 			return;
 		}
 		ticks++;
+		if (perfName != null) {
+			if (ticks % 20 == 0) {
+				perfSamples.add(client.getCurrentFps());
+			}
+			if (ticks >= waitUntil) {
+				logPerf();
+			}
+		}
 		if (ticks < waitUntil) {
 			return;
 		}
@@ -103,6 +129,8 @@ public final class VisualShots implements ClientModInitializer {
 			switch (parts[0].toLowerCase(Locale.ROOT)) {
 				case "wait" -> waitUntil = ticks + Integer.parseInt(arg.strip());
 				case "cmd" -> runCommand(client, arg);
+				// ccmd: a client command (no slash), e.g. "aurelialod reload"
+				case "ccmd" -> client.player.networkHandler.sendChatCommand(arg.strip());
 				case "tp" -> {
 					final String[] p = arg.split(" ");
 					runCommand(client, String.format(Locale.ROOT, "tp @s %s %s %s %s %s", p[0], p[1], p[2], p[3], p[4]));
@@ -123,6 +151,13 @@ public final class VisualShots implements ClientModInitializer {
 					waitUntil = ticks + settleTicks * 2;
 				}
 				case "settle" -> settleTicks = Integer.parseInt(arg.strip());
+				case "perf" -> {
+					// perf NAME SECONDS: mean fps over that time and the far LOD's GPU bytes, logged
+					final String[] p = arg.strip().split("\\s+");
+					perfName = p[0];
+					perfSamples.clear();
+					waitUntil = ticks + 20 * Integer.parseInt(p[1]);
+				}
 				case "view" -> client.options.getViewDistance().setValue(Integer.parseInt(arg.strip()));
 				case "hud" -> client.options.hudHidden = arg.strip().equals("off");
 				case "fov" -> client.options.getFov().setValue(Integer.parseInt(arg.strip()));
@@ -172,6 +207,19 @@ public final class VisualShots implements ClientModInitializer {
 					client.options.getGuiScale().setValue(Integer.parseInt(arg.strip()));
 					client.onResolutionChanged();
 				}
+				case "frames" -> {
+					// frames <name> <count> <ticks apart> x0 y0 z0 yaw0 pitch0 x1 y1 z1 yaw1 pitch1: a camera move shot frame by frame
+					steps.addAll(index, frameSteps(arg.strip().split("\\s+")));
+				}
+				case "shotq" -> {
+					// a frame of a sequence: saved like shot, without shot's wait
+					ScreenshotRecorder.saveScreenshot(client.runDirectory, "vis-" + arg.strip().replaceAll("[^A-Za-z0-9_-]+", "_") + ".png",
+							client.getFramebuffer(), message -> {
+							});
+					waitUntil = ticks + 1;
+				}
+				case "earthpoint" -> earthPoint(client, arg.strip().split("\\s+"));
+				case "line" -> FilmLine.run(client.getServer(), arg.strip());
 				case "quit" -> {
 					finish(client);
 					return;
@@ -201,6 +249,8 @@ public final class VisualShots implements ClientModInitializer {
 			case "menu" -> com.aureliatransit.architecture.client.AtrMenuScreen.open(null, words.length > 1
 					? com.aureliatransit.architecture.client.AtrMenuScreen.Tab.valueOf(words[1].toUpperCase(Locale.ROOT))
 					: com.aureliatransit.architecture.client.AtrMenuScreen.Tab.BUILD);
+			case "editor" -> client.setScreen(new com.aureliatransit.architecture.client.StationEditorScreen(net.minecraft.util.Hand.MAIN_HAND,
+					arg.substring(words[0].length()).strip()));
 			case "close" -> client.setScreen(null);
 			default -> throw new IllegalArgumentException("unknown screen " + arg);
 		}
@@ -315,5 +365,44 @@ public final class VisualShots implements ClientModInitializer {
 		}
 		LOGGER.info("Visual shots done: {} steps", results.size());
 		client.scheduleStop();
+	}
+
+	/** The tp and shotq steps of a {@code frames} move: eased in and out, the frames numbered from 0000. */
+	static List<String> frameSteps(String[] p) {
+		final String name = p[0];
+		final int count = Integer.parseInt(p[1]);
+		final int apart = Integer.parseInt(p[2]);
+		final double[] from = new double[5];
+		final double[] to = new double[5];
+		for (int i = 0; i < 5; i++) {
+			from[i] = Double.parseDouble(p[3 + i]);
+			to[i] = Double.parseDouble(p[8 + i]);
+		}
+		final List<String> out = new ArrayList<>();
+		out.add("settle " + apart);
+		for (int f = 0; f < count; f++) {
+			final double t = count == 1 ? 0 : (double) f / (count - 1);
+			final double e = t * t * (3 - 2 * t);
+			final double[] at = new double[5];
+			for (int i = 0; i < 5; i++) {
+				at[i] = from[i] + (to[i] - from[i]) * e;
+			}
+			out.add(String.format(Locale.ROOT, "tp %.3f %.3f %.3f %.2f %.2f", at[0], at[1], at[2], at[3], at[4]));
+			out.add(String.format(Locale.ROOT, "shotq %s-%04d", name, f));
+		}
+		return out;
+	}
+
+	/** {@code earthpoint x y z}: an Earthworks wrench click on that block, as the player. */
+	private static void earthPoint(MinecraftClient client, String[] p) {
+		final MinecraftServer server = client.getServer();
+		final UUID id = client.player.getUuid();
+		final net.minecraft.util.math.BlockPos pos = new net.minecraft.util.math.BlockPos(Integer.parseInt(p[0]), Integer.parseInt(p[1]), Integer.parseInt(p[2]));
+		server.execute(() -> {
+			final ServerPlayerEntity player = server.getPlayerManager().getPlayer(id);
+			if (player != null) {
+				com.aureliatransit.architecture.earthworks.world.EarthworksCommand.point(player, pos);
+			}
+		});
 	}
 }
