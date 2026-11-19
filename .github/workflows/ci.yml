@@ -54,6 +54,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      # Loom's Minecraft download and remap takes ~18 min cold; this job saves the Gradle cache on every run, the test jobs
+      # only read it (twelve jobs saving the same cache cost 16 to 36 s each on master)
       - uses: ./.github/actions/setup
         with:
           cache-read-only: 'false'
@@ -85,11 +87,7 @@ jobs:
         shard: ['1/6', '2/6', '3/6', '4/6', '5/6', '6/6']
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: ./.github/actions/setup
-        with:
-          cache-read-only: 'true'
       - name: ATA unit tests, shard ${{ matrix.shard }}
         run: ./gradlew setupFiles :fabric:ataTest -Pata.tests.exclude="$SLOW_UNIT_TESTS" -Pata.tests.shard=${{ matrix.shard }}
       # Per-class times, for rebalancing the shards (tools/ci/ata_test_times.py)
@@ -123,16 +121,11 @@ jobs:
             tests: '*RealCitiesATest'
           - name: '*CityLandmarksTest'
             tests: '*CityLandmarksTest'
-          - name: '*StationAuditTest (part 1)'
-            tests: '*StationAuditTest.everyPlannablePlanPassesExceptIslandsReachedAtGrade'
-          - name: '*StationAuditTest (others)'
+          - name: '*StationAuditTest'
             tests: '*StationAuditTest'
-            skip: '*StationAuditTest.everyPlannablePlanPassesExceptIslandsReachedAtGrade'
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-        with:
-          cache-read-only: 'true'
       - name: ${{ matrix.name }}
         env:
           TESTS: ${{ matrix.tests }}
@@ -156,8 +149,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-        with:
-          cache-read-only: 'true'
       - name: Game tests ${{ matrix.classes }}
         run: ./gradlew setupFiles :fabric:runGameTest '-Pata.gametests=${{ matrix.classes }}' --stacktrace
   # The one check to require. A skipped job passes only when "changes" said docs only; a failed or cancelled job never does.

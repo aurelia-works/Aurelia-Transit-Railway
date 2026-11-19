@@ -1,4 +1,9 @@
 name: Setup
+description: Java 21 (Zulu) and Gradle with its cache, the same in every CI job
+inputs:
+  cache-read-only:
+    description: "'false' saves the Gradle cache after the job; the test jobs only read it"
+    default: 'true'
 runs:
   using: composite
   steps:
@@ -9,6 +14,3 @@ runs:
     - uses: gradle/actions/setup-gradle@v4
       with:
         cache-read-only: ${{ inputs.cache-read-only }}
-inputs:
-  cache-read-only:
-    default: 'true'
