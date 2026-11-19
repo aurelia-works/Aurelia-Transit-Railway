@@ -1197,16 +1197,15 @@ abstract class PlanFurniture extends PlanRoofs {
 			}
 			fence(uGate, StationGeometry.WALK_Y, v, LocalDir.PLUS_U);
 		}
-		// Moulded cream plaster threshold architrave at y = 5 above the gate line, with a compact 3-wide flush departure board at y = 4
+		// Moulded cream plaster threshold architrave above the gate line, with one small flush departure screen under it over the
+		// wide gate (a suburban booking hall's screen, not a concourse wall of boards)
 		for (int v = vHallLo; v <= vHallHi; v++) {
 			if (!taken(uGate, StationGeometry.UPPER_FLOOR_Y - 1, v)) {
 				put(Role.BUILDING_ROOF, uGate, StationGeometry.UPPER_FLOOR_Y - 1, v, LocalDir.MINUS_U, UK_DRESSED_TRIM);
 			}
 		}
-		for (int v = vEntr - 1; v <= vEntr + 1; v++) {
-			if (taken(uGate, StationGeometry.UPPER_FLOOR_Y, v)) {
-				put(Role.FIXTURE, uGate, StationGeometry.UPPER_FLOOR_Y - 2, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
-			}
+		if (taken(uGate, StationGeometry.UPPER_FLOOR_Y, vEntr)) {
+			put(Role.FIXTURE, uGate, StationGeometry.UPPER_FLOOR_Y - 2, vEntr, LocalDir.MINUS_U, CONCOURSE_BOARD);
 		}
 
 		// Subtle tactile guidance line from street doorway to the wide gate
