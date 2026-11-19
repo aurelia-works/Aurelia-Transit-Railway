@@ -222,10 +222,11 @@ abstract class PlanFitOut extends PlanLandmark {
 					if (side == archHalf && archHalf >= 1) {
 						final LocalDir jamb = x < x0 ? f.dir(PlanLandmark.Dir.LEFT) : f.dir(PlanLandmark.Dir.RIGHT);
 						cells.put(new Cell(f.u(x, 0), door + 1, f.v(x, 0)),
-								new PlannedBlock(f.u(x, 0), door + 1, f.v(x, 0), Role.WALL, ARCH_STAIR, jamb, "", "half=top,shape=straight"));
+								new PlannedBlock(f.u(x, 0), door + 1, f.v(x, 0), Role.WALL, ARCH_SPRINGER, jamb, "", ""));
 					} else {
-						// the fanlight over the door: plain glass under the arch, so the head reads round rather than as a framed box
-						face(f.u(x, 0), door + 1, f.v(x, 0), out, Role.WINDOW, FRONT_GLASS);
+						// the keystone over the glazed fanlight
+						cells.put(new Cell(f.u(x, 0), door + 1, f.v(x, 0)), new PlannedBlock(f.u(x, 0), door + 1, f.v(x, 0), Role.WALL,
+								ARCH_CROWN, f.dir(PlanLandmark.Dir.LEFT), "", ""));
 					}
 					face(f.u(x, 0), canopyY, f.v(x, 0), out, Role.WALL, porchFrame());
 				}
@@ -504,6 +505,8 @@ abstract class PlanFitOut extends PlanLandmark {
 
 	/** The cream stair that rounds a heritage doorway's top corners. */
 	static final String ARCH_STAIR = "minecraft:smooth_sandstone_stairs";
+	private static final String ARCH_SPRINGER = "aurelia_transit_architecture:uk_stucco_arch_springer";
+	private static final String ARCH_CROWN = "aurelia_transit_architecture:uk_stucco_arch_crown";
 
 	/** The entrance portal's jambs, the piers just inside them and the canopy posts: a heritage look's stucco, else dark steel. */
 	private String porchFrame() {

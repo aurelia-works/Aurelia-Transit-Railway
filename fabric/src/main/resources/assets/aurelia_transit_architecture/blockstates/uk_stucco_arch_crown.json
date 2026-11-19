@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "aurelia_transit_architecture:block/uk_stucco_arch_crown"
+    },
+    "facing=east": {
+      "model": "aurelia_transit_architecture:block/uk_stucco_arch_crown",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "aurelia_transit_architecture:block/uk_stucco_arch_crown",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "aurelia_transit_architecture:block/uk_stucco_arch_crown",
+      "y": 270
+    }
+  }
+}

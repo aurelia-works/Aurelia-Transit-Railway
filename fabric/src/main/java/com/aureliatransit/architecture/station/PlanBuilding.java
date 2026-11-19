@@ -518,7 +518,9 @@ abstract class PlanBuilding extends PlanPlatforms {
 	private static final String UK_LINTEL = "aurelia_transit_architecture:uk_window_lintel";
 	private static final String UK_SILL = "aurelia_transit_architecture:uk_window_sill";
 	private static final String UK_SLATE_RIDGE = "aurelia_transit_architecture:uk_slate_ridge";
-	private static final String ARCH_SHOULDER = "minecraft:smooth_sandstone_stairs";
+	// a round arch head: a springer either side of the opening, solid toward its facing, and a keystone crown between them
+	private static final String ARCH_SHOULDER = "aurelia_transit_architecture:uk_stucco_arch_springer";
+	private static final String ARCH_CROWN = "aurelia_transit_architecture:uk_stucco_arch_crown";
 
 	/**
 	 * Victorian Italianate suburban station house after Teddington (1863, LSWR, Historic England 1410351): a symmetric
@@ -577,8 +579,9 @@ abstract class PlanBuilding extends PlanPlatforms {
 		if (lift == null || vEntr + 1 < lift.vMin() || vEntr - 1 > lift.vMax()) {
 			platformDoorway(uP, vEntr, b.window());
 			if (platformBesideBuilding()) {
-				cells.put(new Cell(uP, 4, vEntr - 1), new PlannedBlock(uP, 4, vEntr - 1, Role.WALL, ARCH_SHOULDER, LocalDir.MINUS_V, "", "half=top,shape=straight"));
-				cells.put(new Cell(uP, 4, vEntr + 1), new PlannedBlock(uP, 4, vEntr + 1, Role.WALL, ARCH_SHOULDER, LocalDir.PLUS_V, "", "half=top,shape=straight"));
+				cells.put(new Cell(uP, 4, vEntr - 1), new PlannedBlock(uP, 4, vEntr - 1, Role.WALL, ARCH_SHOULDER, LocalDir.MINUS_V, "", ""));
+				cells.put(new Cell(uP, 4, vEntr + 1), new PlannedBlock(uP, 4, vEntr + 1, Role.WALL, ARCH_SHOULDER, LocalDir.PLUS_V, "", ""));
+				cells.put(new Cell(uP, 4, vEntr), new PlannedBlock(uP, 4, vEntr, Role.WALL, ARCH_CROWN, LocalDir.PLUS_V, "", ""));
 			}
 		}
 		// Secondary platform doorways only in outer flanking rooms, keeping the central booking hall symmetric
@@ -662,7 +665,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 							put(Role.WINDOW, uFront, y, v, LocalDir.MINUS_U, b.window());
 						} else if (y == 4) {
 							final LocalDir jamb = rel == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
-							put(Role.WALL, uFront, y, v, jamb, ARCH_SHOULDER, "half=top,shape=straight");
+							put(Role.WALL, uFront, y, v, jamb, ARCH_SHOULDER);
 						} else {
 							put(Role.WALL, uFront, y, v, LocalDir.MINUS_U, UK_DRESSED);
 						}
@@ -693,7 +696,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 						put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
 					} else if (y == 4) {
 						final LocalDir jamb = rel == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
-						put(Role.WALL, uP, y, v, jamb, ARCH_SHOULDER, "half=top,shape=straight");
+						put(Role.WALL, uP, y, v, jamb, ARCH_SHOULDER);
 					} else {
 						put(Role.WALL, uP, y, v, LocalDir.PLUS_U, b.wall());
 					}
@@ -705,7 +708,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 					} else if (windowRow(y)) {
 						// the top light's corners filled by the arch head, as on the porch windows
 						final LocalDir jamb = rel == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
-						put(Role.WALL, uP, y, v, jamb, ARCH_SHOULDER, "half=top,shape=straight");
+						put(Role.WALL, uP, y, v, jamb, ARCH_SHOULDER);
 					} else {
 						put(Role.WALL, uP, y, v, LocalDir.PLUS_U, UK_LINTEL);
 					}
@@ -895,7 +898,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 							put(Role.WINDOW, u0, y, v, LocalDir.MINUS_U, b.window());
 						} else {
 							cells.put(new Cell(u0, y, v), new PlannedBlock(u0, y, v, Role.WALL, ARCH_SHOULDER,
-									local == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V, "", "half=top,shape=straight"));
+									local == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V, "", ""));
 						}
 					} else {
 						put(Role.WALL, u0, y, v, LocalDir.MINUS_U, b.wall());
@@ -909,17 +912,17 @@ abstract class PlanBuilding extends PlanPlatforms {
 								put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
 							} else {
 								cells.put(new Cell(uP, y, v), new PlannedBlock(uP, y, v, Role.WALL, ARCH_SHOULDER,
-										local == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V, "", "half=top,shape=straight"));
+										local == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V, "", ""));
 							}
 						} else {
 							put(Role.WALL, uP, y, v, LocalDir.PLUS_U, b.wall());
 						}
 					} else if (y == 4) {
 						if (v == doorMid) {
-							put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
+							cells.put(new Cell(uP, y, v), new PlannedBlock(uP, y, v, Role.WALL, ARCH_CROWN, LocalDir.PLUS_V, "", ""));
 						} else {
 							cells.put(new Cell(uP, y, v), new PlannedBlock(uP, y, v, Role.WALL, ARCH_SHOULDER,
-									v < doorMid ? LocalDir.MINUS_V : LocalDir.PLUS_V, "", "half=top,shape=straight"));
+									v < doorMid ? LocalDir.MINUS_V : LocalDir.PLUS_V, "", ""));
 						}
 					}
 				}

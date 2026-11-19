@@ -61,6 +61,12 @@ public final class StationBlocksUk {
 			new ShapedBlock(ModBlocks.metal(), union(box(5.5, 0, 5.5, 10.5, 9.5, 10.5), box(4.5, 9.5, 4.5, 11.5, 16, 11.5))));
 	public static final Block UK_ARCHED_BOOTH_WINDOW = ModBlocks.register("uk_arched_booth_window", BlockFamily.STATIONS_UK, RenderKind.TRANSLUCENT,
 			new FacingShapedBlock(ModBlocks.glass(), Placement.TOWARD_PLAYER, BOOTH_SHAPE));
+	// round stucco arch heads over doorways and windows: a springer either side of the opening (solid toward its facing) and a
+	// keystone crown over a three-wide doorway, glazed under the curve
+	public static final Block UK_STUCCO_ARCH_SPRINGER = ModBlocks.register("uk_stucco_arch_springer", BlockFamily.STATIONS_UK, RenderKind.TRANSLUCENT,
+			new FacingShapedBlock(ModBlocks.paving(MapColor.PALE_YELLOW).nonOpaque(), Placement.TOWARD_PLAYER, FULL));
+	public static final Block UK_STUCCO_ARCH_CROWN = ModBlocks.register("uk_stucco_arch_crown", BlockFamily.STATIONS_UK, RenderKind.TRANSLUCENT,
+			new FacingShapedBlock(ModBlocks.paving(MapColor.PALE_YELLOW).nonOpaque(), Placement.TOWARD_PLAYER, FULL));
 	public static final Block UK_WOOD_WAINSCOT = ModBlocks.register("uk_wood_wainscot", BlockFamily.STATIONS_UK, RenderKind.SOLID,
 			new Block(ModBlocks.paving(MapColor.BROWN)));
 	public static final Block UK_BOOKING_HALL_TILE = ModBlocks.register("uk_booking_hall_tile", BlockFamily.STATIONS_UK, RenderKind.SOLID,

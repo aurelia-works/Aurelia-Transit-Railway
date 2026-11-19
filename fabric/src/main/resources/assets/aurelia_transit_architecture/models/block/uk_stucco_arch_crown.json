@@ -1,0 +1,253 @@
+{
+  "parent": "block/block",
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "minecraft:block/sandstone_top",
+    "stucco": "minecraft:block/sandstone_top",
+    "glass": "aurelia_transit_architecture:block/uk_sash_window"
+  },
+  "elements": [
+    {
+      "from": [
+        7.5,
+        0,
+        0
+      ],
+      "to": [
+        8.5,
+        14.0,
+        16
+      ],
+      "faces": {
+        "west": {
+          "uv": [
+            3,
+            3,
+            13,
+            13
+          ],
+          "texture": "#glass"
+        },
+        "east": {
+          "uv": [
+            3,
+            3,
+            13,
+            13
+          ],
+          "texture": "#glass"
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        14.0,
+        0
+      ],
+      "to": [
+        16.0,
+        16,
+        16
+      ],
+      "faces": {
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            2.0
+          ],
+          "texture": "#stucco",
+          "cullface": "west"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            2.0
+          ],
+          "texture": "#stucco",
+          "cullface": "east"
+        },
+        "down": {
+          "uv": [
+            0.0,
+            0,
+            16.0,
+            16
+          ],
+          "texture": "#stucco"
+        },
+        "up": {
+          "uv": [
+            0.0,
+            0,
+            16.0,
+            16
+          ],
+          "texture": "#stucco",
+          "cullface": "up"
+        },
+        "north": {
+          "uv": [
+            0.0,
+            0,
+            16.0,
+            2.0
+          ],
+          "texture": "#stucco",
+          "cullface": "north"
+        },
+        "south": {
+          "uv": [
+            0.0,
+            0,
+            16.0,
+            2.0
+          ],
+          "texture": "#stucco",
+          "cullface": "south"
+        }
+      }
+    },
+    {
+      "from": [
+        -0.5,
+        10,
+        6.5
+      ],
+      "to": [
+        16.5,
+        14.0,
+        9.5
+      ],
+      "faces": {
+        "west": {
+          "uv": [
+            6.5,
+            2.0,
+            9.5,
+            6
+          ],
+          "texture": "#stucco"
+        },
+        "east": {
+          "uv": [
+            6.5,
+            2.0,
+            9.5,
+            6
+          ],
+          "texture": "#stucco"
+        },
+        "down": {
+          "uv": [
+            -0.5,
+            6.5,
+            16.5,
+            9.5
+          ],
+          "texture": "#stucco"
+        },
+        "up": {
+          "uv": [
+            -0.5,
+            6.5,
+            16.5,
+            9.5
+          ],
+          "texture": "#stucco"
+        },
+        "north": {
+          "uv": [
+            -0.5,
+            2.0,
+            16.5,
+            6
+          ],
+          "texture": "#stucco"
+        },
+        "south": {
+          "uv": [
+            -0.5,
+            2.0,
+            16.5,
+            6
+          ],
+          "texture": "#stucco"
+        }
+      }
+    },
+    {
+      "from": [
+        -0.5,
+        14.0,
+        6
+      ],
+      "to": [
+        16.5,
+        16,
+        10
+      ],
+      "faces": {
+        "west": {
+          "uv": [
+            6,
+            0,
+            10,
+            2.0
+          ],
+          "texture": "#stucco"
+        },
+        "east": {
+          "uv": [
+            6,
+            0,
+            10,
+            2.0
+          ],
+          "texture": "#stucco"
+        },
+        "down": {
+          "uv": [
+            -0.5,
+            6,
+            16.5,
+            10
+          ],
+          "texture": "#stucco"
+        },
+        "up": {
+          "uv": [
+            -0.5,
+            6,
+            16.5,
+            10
+          ],
+          "texture": "#stucco",
+          "cullface": "up"
+        },
+        "north": {
+          "uv": [
+            -0.5,
+            0,
+            16.5,
+            2.0
+          ],
+          "texture": "#stucco"
+        },
+        "south": {
+          "uv": [
+            -0.5,
+            0,
+            16.5,
+            2.0
+          ],
+          "texture": "#stucco"
+        }
+      }
+    }
+  ]
+}
