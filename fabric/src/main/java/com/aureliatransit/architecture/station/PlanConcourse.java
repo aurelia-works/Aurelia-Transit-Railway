@@ -44,7 +44,7 @@ abstract class PlanConcourse extends PlanHead {
 		final int vE = layout.headEnd();
 		final int door = headDoor();
 		final int depth = vE - vL;
-		final int gateV = headGateV();
+		final int gateV = clearGateRow(headGateV(), door, vL);
 		final int inner = u1 - u0 - 1;
 		// the gate line: banks of gates with a wide gate in the middle of each, one on the walk from the entrance and in a big
 		// hall one more each side, glass fence between them and out to the side walls (Jah 10-20: one long bank across the
@@ -305,6 +305,30 @@ abstract class PlanConcourse extends PlanHead {
 	int headGateV() {
 		final int vE = layout.headEnd();
 		return vE - Math.max(8, (vE - length) * 2 / 5);
+	}
+
+	/**
+	 * The gate row, moved up to four rows toward the platforms past a wall standing over the door line: on a wide head a
+	 * landmark's tower front can fall on the gate row (Mumbai on 18 tracks), which leaves the gate signs and hall boards
+	 * nothing to hang from.
+	 */
+	int clearGateRow(int gateV, int door, int vL) {
+		for (int v = gateV; v >= Math.max(vL + 6, gateV - 4); v--) {
+			if (!wallOverGate(door, v)) {
+				return v;
+			}
+		}
+		return gateV;
+	}
+
+	private boolean wallOverGate(int u, int v) {
+		for (int y = StationGeometry.WALK_Y + 3; y <= StationGeometry.WALK_Y + 8; y++) {
+			final PlannedBlock block = at(u, y, v);
+			if (block != null && block.role() == Role.WALL) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
