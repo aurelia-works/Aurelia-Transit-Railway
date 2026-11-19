@@ -648,6 +648,9 @@ abstract class PlanBuilding extends PlanPlatforms {
 			final boolean sashPair = (rel == 2 || rel == 3) && v > vHouseS + 1 && v < vHouseE - 1 && v != vProjLo && v != vProjHi;
 			final boolean centerDoorBay = Math.abs(v - vEntr) <= 2;
 			final boolean porchFlankArch = inProj && !centerDoorBay && sashPair;
+			// the platform front's ground-storey windows are round-headed in cream stucco surrounds (geograph 2670756)
+			final boolean platJamb = !inProj && !platQuoin && (rel == 1 || rel == 4) && v > vHouseS + 1 && v < vHouseE - 1
+					&& Math.abs(v - vEntr) > 3;
 
 			for (int y = 1; y < StationGeometry.UPPER_FLOOR_Y; y++) {
 				// Street front ground storey: Teddington's projecting 3-bay porch front is dressed in cream rusticated stucco (geograph 6134993)
@@ -697,11 +700,17 @@ abstract class PlanBuilding extends PlanPlatforms {
 				} else if (sashPair && !centerDoorBay) {
 					if (y == 1) {
 						put(Role.WALL, uP, y, v, LocalDir.PLUS_U, UK_SILL);
-					} else if (windowRow(y)) {
+					} else if (windowRow(y) && windowRow(y + 1)) {
 						put(Role.WINDOW, uP, y, v, LocalDir.PLUS_U, b.window());
+					} else if (windowRow(y)) {
+						// the top light's corners filled by the arch head, as on the porch windows
+						final LocalDir jamb = rel == 2 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
+						put(Role.WALL, uP, y, v, jamb, ARCH_SHOULDER, "half=top,shape=straight");
 					} else {
 						put(Role.WALL, uP, y, v, LocalDir.PLUS_U, UK_LINTEL);
 					}
+				} else if (platJamb && y >= 2 && windowRow(y)) {
+					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, UK_DRESSED);
 				} else {
 					put(Role.WALL, uP, y, v, LocalDir.PLUS_U, b.wall());
 				}

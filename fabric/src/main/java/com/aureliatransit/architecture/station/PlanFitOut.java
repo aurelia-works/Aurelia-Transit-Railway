@@ -318,8 +318,11 @@ abstract class PlanFitOut extends PlanLandmark {
 	static final int BOLLARD_PITCH = 3;
 	/** How far the canopy and the glass front reach past each jamb of the doorway, at least: a wide portal gets wider wings. */
 	static final int CANOPY_WING = 2;
-	/** How far a heritage porch's canopy reaches either side of the doorway's middle: over the bays beside the door's. */
-	static final int HERITAGE_WING = StationGeometry.BAY + 1;
+	/**
+	 * How far a heritage porch's canopy reaches either side of the doorway's middle: across the whole projecting centre of a
+	 * wide front (three bays, {@code entranceV ± 9} in {@link PlanBuilding}), as Teddington's canopy spans its projection.
+	 */
+	static final int HERITAGE_WING = StationGeometry.BAY + 3;
 
 	/**
 	 * The forecourt past the ramps (z = -RAMP_LENGTH-1 .. -APRON): the street's own ground, left as it is (paving it would dig

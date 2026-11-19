@@ -432,6 +432,30 @@ abstract class PlanFurniture extends PlanRoofs {
 	/** Cells the hall's upper slab is opened over the walk in from the street door (see {@code sideHall}). */
 	static final int HALL_OPEN_DEPTH = 4;
 
+	/** Poster cases at eye height on a hall's solid walls ({@code uS..uP} by {@code vS..vE}), not beside a doorway or a window. */
+	void hallPosters(int uS, int uP, int vS, int vE) {
+		final int y = StationGeometry.WALK_Y + 1;
+		for (int u = uS + 1; u <= uP - 1; u++) {
+			for (int v = vS + 1; v <= vE - 1; v++) {
+				for (final LocalDir dir : LocalDir.values()) {
+					final int wu = u + ConcourseFit.du(dir);
+					final int wv = v + ConcourseFit.dv(dir);
+					final boolean alongV = dir == LocalDir.PLUS_U || dir == LocalDir.MINUS_U;
+					if (Math.floorMod(alongV ? v - vS : u - uS, HALL_POSTER_PITCH) != 2 || !solidWall(wu, wv)
+							|| !solidWall(wu + (alongV ? 0 : 1), wv + (alongV ? 1 : 0))
+							|| !solidWall(wu - (alongV ? 0 : 1), wv - (alongV ? 1 : 0))) {
+						continue;
+					}
+					final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, v);
+					if (floor != null && floor.role().flatFloor() && !taken(u, StationGeometry.WALK_Y, v) && !taken(u, y, v)
+							&& !cleared(u, StationGeometry.WALK_Y, v)) {
+						put(Role.FIXTURE, u, y, v, dir.opposite(), PlanFitOut.INFO_CASE);
+					}
+				}
+			}
+		}
+	}
+
 	/**
 	 * What a real hall has past its counters and gates (Utrecht and Rotterdam Centraal): a timber slat ceiling hung under the
 	 * slab with lines of light in it, poster cases at eye height along the solid walls, and "Trains" departure boards hung
@@ -454,27 +478,7 @@ abstract class PlanFurniture extends PlanRoofs {
 			put(Role.FIXTURE, boardU, sign, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
 			put(Role.FIXTURE, boardU, sign - 1, v, LocalDir.MINUS_U, CONCOURSE_BOARD);
 		}
-		// poster cases on the solid walls, not beside a doorway or a window
-		final int y = StationGeometry.WALK_Y + 1;
-		for (int u = uS + 1; u <= uP - 1; u++) {
-			for (int v = vS + 1; v <= vE - 1; v++) {
-				for (final LocalDir dir : LocalDir.values()) {
-					final int wu = u + ConcourseFit.du(dir);
-					final int wv = v + ConcourseFit.dv(dir);
-					final boolean alongV = dir == LocalDir.PLUS_U || dir == LocalDir.MINUS_U;
-					if (Math.floorMod(alongV ? v - vS : u - uS, HALL_POSTER_PITCH) != 2 || !solidWall(wu, wv)
-							|| !solidWall(wu + (alongV ? 0 : 1), wv + (alongV ? 1 : 0))
-							|| !solidWall(wu - (alongV ? 0 : 1), wv - (alongV ? 1 : 0))) {
-						continue;
-					}
-					final PlannedBlock floor = at(u, StationGeometry.PLATFORM_Y, v);
-					if (floor != null && floor.role().flatFloor() && !taken(u, StationGeometry.WALK_Y, v) && !taken(u, y, v)
-							&& !cleared(u, StationGeometry.WALK_Y, v)) {
-						put(Role.FIXTURE, u, y, v, dir.opposite(), PlanFitOut.INFO_CASE);
-					}
-				}
-			}
-		}
+		hallPosters(uS, uP, vS, vE);
 		// over each doorway out to the platform, the platform's number on the wall above the door head
 		final String beyond = layout.platforms().stream().filter(band -> band.uMin() == layout.buildingWidth()).findFirst()
 				.map(layout::platformNumbers).filter(numbers -> !numbers.isEmpty()).map(TrackLayout::platformsText).orElse("");
@@ -1313,6 +1317,8 @@ abstract class PlanFurniture extends PlanRoofs {
 			}
 		}
 
+		// poster cases along the booking hall's solid side walls, as in any staffed suburban booking hall
+		hallPosters(uS, uGate, vHallLo - 1, vHallHi + 1);
 		// Heritage analogue clock over the street entrance arch inside the hall, plus upstairs board
 		put(Role.FIXTURE, uS + 1, 4, vEntr, LocalDir.PLUS_U, ANALOG_CLOCK);
 		put(Role.FIXTURE, (uS + uP) / 2, StationGeometry.UPPER_WALK_Y + 1, vHouseS + 1, LocalDir.PLUS_V, CONCOURSE_BOARD);
