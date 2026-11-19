@@ -1138,11 +1138,14 @@ abstract class PlanFurniture extends PlanRoofs {
 
 	private static final String UK_ARCHED_BOOTH = "aurelia_transit_architecture:uk_arched_booth_window";
 	private static final String UK_WAINSCOT = "aurelia_transit_architecture:uk_wood_wainscot";
+	private static final String UK_NAVY_FASCIA = "aurelia_transit_architecture:uk_navy_fascia";
 	private static final String UK_DRESSED_TRIM = "aurelia_transit_architecture:uk_stucco_dressed";
 	/** The booking hall's white plaster moulded cornice, an upside-down stair against the wall under the ceiling. */
 	private static final String HALL_CORNICE = "minecraft:smooth_quartz_stairs";
 	/** The booking hall ceiling's coffer beams, white plaster like its cornice and the panels between them. */
 	private static final String HALL_BEAM = "minecraft:smooth_quartz_slab";
+	/** The booking hall ceiling's plaster panels. */
+	private static final String HALL_PLASTER = "minecraft:smooth_quartz";
 	/** A wall board of train times in a booking hall. */
 	private static final String INFO_BOARD = "aurelia_transit_architecture:station_info_board";
 	private static final String ANALOG_CLOCK = "aurelia_transit_architecture:station_analog_clock";
@@ -1317,7 +1320,8 @@ abstract class PlanFurniture extends PlanRoofs {
 								: v == vHallLo || v == vHouseS + 1 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
 						put(Role.BUILDING_ROOF, u, ceilY, v, wall, HALL_CORNICE, "half=top,shape=straight");
 					} else {
-						put(Role.BUILDING_ROOF, u, ceilY, v, LocalDir.PLUS_V, b.interiorWall());
+						// the coffers' plaster panels, the same white as the beams and cornice round them
+						put(Role.BUILDING_ROOF, u, ceilY, v, LocalDir.PLUS_V, HALL_PLASTER);
 					}
 				}
 			}
@@ -1412,7 +1416,9 @@ abstract class PlanFurniture extends PlanRoofs {
 			final boolean clad = stepY > 0
 					? (y <= stepY + 1 || y >= Math.min(StationGeometry.BUILDING_ROOF_Y - 1, stepY + 5))
 					: (y <= StationGeometry.WALK_Y + 1 || y == StationGeometry.BUILDING_ROOF_Y - 1);
-			put(clad ? Role.WALL : Role.WINDOW, u, y, v, out, clad ? panel : b.bridgeWall());
+			// a navy fascia runs up the slope over the glazing (geograph 4331043)
+			final boolean fascia = stepY > 0 && y == stepY + 5 && y < StationGeometry.BUILDING_ROOF_Y - 1;
+			put(clad ? Role.WALL : Role.WINDOW, u, y, v, out, fascia ? UK_NAVY_FASCIA : clad ? panel : b.bridgeWall());
 		} else {
 			put(Role.WINDOW, u, y, v, out, b.bridgeWall());
 		}
