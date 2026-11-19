@@ -32,10 +32,6 @@ public enum DashboardMode {
 		this.idealButtonWidth = idealButtonWidth;
 	}
 
-	public boolean isMtrMode() {
-		return transportMode != null;
-	}
-
 	public String labelKey() {
 		return KEY_PREFIX + id;
 	}
