@@ -263,8 +263,8 @@ public final class StylePalette {
 			case SANDSTONE, CLINKER, CONCRETE, TOKYO, ZURICH, MILAN, BANGKOK -> "steel";
 			case MODERN, BERLIN, HONG_KONG, BEIJING, KUALA_LUMPUR -> "white";
 			case MUMBAI -> "green";
-			// Teddington's platform canopies stand on blue-painted steel
-			case VICTORIAN -> "blue";
+			// Teddington's platform canopies stand on pale grey-painted steel Warren trusses under a white fascia (geograph 2670756)
+			case VICTORIAN -> "white";
 			case ART_DECO -> "white";
 			case MODERNIST -> "steel";
 			case NONE -> switch (style) {

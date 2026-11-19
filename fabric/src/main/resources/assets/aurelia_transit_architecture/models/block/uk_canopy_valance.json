@@ -1,10 +1,10 @@
 {
   "parent": "block/block",
   "textures": {
-    "particle": "aurelia_transit_architecture:block/uk_canopy_green",
+    "particle": "aurelia_transit_architecture:block/uk_white_render",
     "top": "aurelia_transit_architecture:block/uk_canopy_lead",
     "under": "aurelia_transit_architecture:block/uk_timber_canopy_under",
-    "paint": "aurelia_transit_architecture:block/uk_canopy_green",
+    "paint": "aurelia_transit_architecture:block/uk_white_render",
     "valance": "aurelia_transit_architecture:block/uk_valance_cutout"
   },
   "elements": [
