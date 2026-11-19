@@ -30,6 +30,9 @@ abstract class PlanRoofs extends PlanColumns {
 			final int from = canopyFrom(band);
 			final int to = canopyTo(band);
 			final String girder = spec.building() == BuildingStyle.VICTORIAN ? ROOF_TRUSS : palette.blockId(Role.BEAM);
+			// a Victorian canopy's lattice trusses run across at the columns only; along the platform it is carried on plain
+			// light girders, as at Teddington (geograph 2670756), not a second lattice
+			final String alongGirder = palette.blockId(Role.BEAM);
 			final String kind = "kind=" + palette.girderKind();
 			final CanopyShape shape = spec.canopy();
 			final RoofPiece[] across = acrossProfile(shape, lines, from, to);
@@ -85,7 +88,7 @@ abstract class PlanRoofs extends PlanColumns {
 								// the edge girder rests on the arm's end: past an arm cut short it would hang over the stairwell on
 								// nothing, unless it is framed into the far wall
 								if (reach > 0 && framed.contains(u + step * (reach - 1))) {
-									put(Role.BEAM, u + step * reach, y - 1, v, LocalDir.PLUS_V, girder, kind);
+									put(Role.BEAM, u + step * reach, y - 1, v, LocalDir.PLUS_V, alongGirder, kind);
 								}
 							}
 						}
@@ -103,7 +106,7 @@ abstract class PlanRoofs extends PlanColumns {
 						}
 						for (final int a : butterfly ? new int[]{u, u - purlinLeft[i], u + purlinRight[i]} : new int[]{u, u - armLeft[i], u + armRight[i]}) {
 							if (!framed.contains(a)) {
-								put(Role.BEAM, a, y - 1, v, LocalDir.PLUS_V, girder, kind);
+								put(Role.BEAM, a, y - 1, v, LocalDir.PLUS_V, alongGirder, kind);
 							}
 						}
 					}

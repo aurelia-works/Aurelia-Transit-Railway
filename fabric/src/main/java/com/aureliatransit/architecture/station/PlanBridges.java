@@ -80,8 +80,10 @@ abstract class PlanBridges extends PlanConcourse {
 					// the building's recessed light: a full block with the light underneath, so the walkway has no pit
 					put(Role.BRIDGE_DECK, u, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.PLUS_V, b.light());
 				} else {
+					// a heritage bridge's deck shows its red-painted plate girders along both sides (Teddington, geograph 2126008)
+					final boolean side = v == wallLo || v == wallHi;
 					put(Role.BRIDGE_DECK, u, StationGeometry.UPPER_FLOOR_Y, v, LocalDir.PLUS_V,
-							heritagePanel != null ? "aurelia_transit_architecture:uk_navy_fascia" : b.deck());
+							heritagePanel == null ? b.deck() : side ? HERITAGE_GIRDER : "aurelia_transit_architecture:uk_navy_fascia");
 				}
 			}
 		}
@@ -376,6 +378,8 @@ abstract class PlanBridges extends PlanConcourse {
 
 	/** The solid block under a real station's broad stairs, their side walls and the walls closing the space under its floor. */
 	static final String PLATEAU_WALL = ata("metro_pale_concrete");
+	/** A heritage footbridge's side plate girders, painted red. */
+	static final String HERITAGE_GIRDER = "minecraft:red_concrete";
 
 	/** The station's name along the longest free run of the bridge's roof edge on row {@code v}, facing {@code out}. */
 	/** Cells of free fascia below which a bridge carries no name. */

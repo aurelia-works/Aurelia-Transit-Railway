@@ -434,6 +434,11 @@ abstract class PlanFurniture extends PlanRoofs {
 
 	/** Poster cases at eye height on a hall's solid walls ({@code uS..uP} by {@code vS..vE}), not beside a doorway or a window. */
 	void hallPosters(int uS, int uP, int vS, int vE) {
+		hallPosters(uS, uP, vS, vE, HALL_POSTER_PITCH);
+	}
+
+	/** {@link #hallPosters(int, int, int, int)} with a case every {@code pitch} cells along each wall. */
+	void hallPosters(int uS, int uP, int vS, int vE, int pitch) {
 		final int y = StationGeometry.WALK_Y + 1;
 		for (int u = uS + 1; u <= uP - 1; u++) {
 			for (int v = vS + 1; v <= vE - 1; v++) {
@@ -441,7 +446,7 @@ abstract class PlanFurniture extends PlanRoofs {
 					final int wu = u + ConcourseFit.du(dir);
 					final int wv = v + ConcourseFit.dv(dir);
 					final boolean alongV = dir == LocalDir.PLUS_U || dir == LocalDir.MINUS_U;
-					if (Math.floorMod(alongV ? v - vS : u - uS, HALL_POSTER_PITCH) != 2 || !solidWall(wu, wv)
+					if (Math.floorMod(alongV ? v - vS : u - uS, pitch) != 2 % pitch || !solidWall(wu, wv)
 							|| !solidWall(wu + (alongV ? 0 : 1), wv + (alongV ? 1 : 0))
 							|| !solidWall(wu - (alongV ? 0 : 1), wv - (alongV ? 1 : 0))) {
 						continue;
@@ -1181,7 +1186,9 @@ abstract class PlanFurniture extends PlanRoofs {
 						if (archway && y <= StationGeometry.WALK_Y + 2) {
 							continue;
 						}
-						put(Role.WALL, u, y, vPart, intoHall, y == StationGeometry.WALK_Y ? UK_WAINSCOT : b.interiorWall());
+						// a dark timber dado, plaster walls, and a cream picture rail a storey's height up
+						put(Role.WALL, u, y, vPart, intoHall, y == StationGeometry.WALK_Y ? UK_WAINSCOT
+								: y == StationGeometry.WALK_Y + 3 ? UK_DRESSED_TRIM : b.interiorWall());
 					}
 				}
 			}
@@ -1328,7 +1335,7 @@ abstract class PlanFurniture extends PlanRoofs {
 		}
 
 		// poster cases along the booking hall's solid side walls, as in any staffed suburban booking hall
-		hallPosters(uS, uGate, vHallLo - 1, vHallHi + 1);
+		hallPosters(uS, uGate, vHallLo - 1, vHallHi + 1, 2);
 		// a train-times board on the solid wall beside the gate line, facing the street door
 		for (final int vBoard : new int[]{vEntr - 3, vEntr + 3}) {
 			if (!taken(uGate - 1, StationGeometry.WALK_Y + 1, vBoard) && !taken(uGate - 1, StationGeometry.WALK_Y, vBoard)
