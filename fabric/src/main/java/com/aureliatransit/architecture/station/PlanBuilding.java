@@ -558,10 +558,8 @@ abstract class PlanBuilding extends PlanPlatforms {
 		// Reserve street entrance arch (3-wide clear doorway centred on vEntr; outer cells become stucco arch piers)
 		final int clearDoor = Math.min(door, 1);
 		for (int v = vEntr - clearDoor; v <= vEntr + clearDoor; v++) {
-			for (int y = 1; y <= 3; y++) {
-				keepClear(uS, y, v);
-			}
-			if (heritage && y == 4) {
+			// a heritage doorway's arch head is one row taller
+			for (int y = 1; y <= (heritage ? 4 : 3); y++) {
 				keepClear(uS, y, v);
 			}
 		}
