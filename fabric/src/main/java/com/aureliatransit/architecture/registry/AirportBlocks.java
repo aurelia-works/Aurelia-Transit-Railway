@@ -4,12 +4,15 @@ import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.DeparturesBoardBlock;
 import com.aureliatransit.architecture.block.FacingShapedBlock;
 import com.aureliatransit.architecture.block.JetBridgeBlock;
+import com.aureliatransit.architecture.block.JetBridgeDeckBlock;
 import com.aureliatransit.architecture.block.JoiningSeatBlock;
 import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.block.QueuePostBlock;
 import com.aureliatransit.architecture.block.ShapedBlock;
+import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.MapColor;
+import net.minecraft.block.piston.PistonBehavior;
 import net.minecraft.util.shape.VoxelShape;
 
 import static com.aureliatransit.architecture.util.Shapes.box;
@@ -71,6 +74,10 @@ public final class AirportBlocks {
 			new DeparturesBoardBlock(ModBlocks.metal().luminance(state -> 10), Placement.TOWARD_PLAYER, BOARD), TIP + "departures_board");
 	public static final Block JET_BRIDGE = ModBlocks.register("jet_bridge", BlockFamily.AIRPORT, RenderKind.SOLID,
 			new JetBridgeBlock(ModBlocks.metal(), Placement.AWAY_FROM_PLAYER, CAB), TIP + "jet_bridge");
+	/** Laid and lifted by a docked jet bridge, never by hand: no item, unbreakable, invisible. */
+	public static final Block JET_BRIDGE_DECK = ModBlocks.registerWithoutItem("jet_bridge_deck",
+			new JetBridgeDeckBlock(AbstractBlock.Settings.create().strength(-1f, 3600000f).dropsNothing().noBlockBreakParticles().nonOpaque()
+					.allowsSpawning((state, world, pos, type) -> false).pistonBehavior(PistonBehavior.BLOCK)));
 	public static final Block WINDSOCK = ModBlocks.register("windsock", BlockFamily.AIRPORT, RenderKind.CUTOUT,
 			new FacingShapedBlock(ModBlocks.metal(), Placement.AWAY_FROM_PLAYER, SOCK));
 	public static final Block TERMINAL_TERRAZZO = ModBlocks.register("terminal_terrazzo", BlockFamily.AIRPORT, RenderKind.SOLID,

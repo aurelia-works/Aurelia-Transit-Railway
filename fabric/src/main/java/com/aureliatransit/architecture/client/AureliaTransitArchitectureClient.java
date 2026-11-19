@@ -7,6 +7,7 @@ import com.aureliatransit.architecture.station.world.AirportWrenchItem;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.client.airport.AirportClient;
+import com.aureliatransit.architecture.client.bridge.BridgeClient;
 import com.aureliatransit.architecture.client.interactive.InteractiveClient;
 import com.aureliatransit.architecture.client.live.LiveClient;
 import com.aureliatransit.architecture.client.timetable.PocketTimetableClient;
@@ -38,6 +39,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		FreePlacementRender.init();
 		LiveClient.init();
 		AirportClient.init();
+		BridgeClient.init();
 		InteractiveClient.init();
 		WayfindingLogicClient.init();
 		WayfindingClient.init();

@@ -1,6 +1,7 @@
 package com.aureliatransit.architecture.station.world;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
+import com.aureliatransit.architecture.bridge.world.RailBridges;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
 import com.aureliatransit.architecture.station.StationRecipe;
 import net.minecraft.block.BlockState;
@@ -173,7 +174,7 @@ public class StationWrenchItem extends Item {
 		} else {
 			player.sendMessage(Text.literal(mode == WrenchMode.EARTHWORKS
 					? "Earthworks: click point A and point B with the wrench, then pick a tool in the wrench menu."
-					: "The bridge tools are in the wrench menu.").formatted(Formatting.YELLOW), true);
+					: "Bridges: click a rail's two nodes with the wrench; sneak-click to change the style.").formatted(Formatting.YELLOW), true);
 		}
 	}
 
@@ -231,12 +232,16 @@ public class StationWrenchItem extends Item {
 				} else {
 					StationActions.plan(server, mode.words(description(context.getStack())), context.getBlockPos());
 				}
+			} else if (mode == WrenchMode.BRIDGE) {
+				if (player.isSneaking()) {
+					RailBridges.cycleStyle(server, context.getStack());
+				} else {
+					RailBridges.click(server, context.getStack(), context.getBlockPos());
+				}
 			} else if (player.isSneaking()) {
 				server.sendMessage(mode.label(), true);
-			} else if (mode == WrenchMode.EARTHWORKS) {
-				com.aureliatransit.architecture.earthworks.world.EarthworksCommand.point(server, context.getBlockPos());
 			} else {
-				server.sendMessage(Text.literal("Open the wrench menu for the bridge tools.").formatted(Formatting.YELLOW), true);
+				com.aureliatransit.architecture.earthworks.world.EarthworksCommand.point(server, context.getBlockPos());
 			}
 		}
 		// success on both sides, so use() (the screen) does not also fire
@@ -258,6 +263,8 @@ public class StationWrenchItem extends Item {
 		} else if (player instanceof ServerPlayerEntity server && StationActions.allowed(server)
 				&& (mode == WrenchMode.STATION || mode == WrenchMode.AIRPORT)) {
 			StationActions.preview(server);
+		} else if (player instanceof ServerPlayerEntity server && StationActions.allowed(server) && mode == WrenchMode.BRIDGE) {
+			RailBridges.cycleStyle(server, stack);
 		}
 		return TypedActionResult.success(stack, world.isClient);
 	}

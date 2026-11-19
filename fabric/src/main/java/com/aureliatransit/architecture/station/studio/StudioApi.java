@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station.studio;
 
+import com.aureliatransit.architecture.bridge.span.BridgeMember;
 import com.aureliatransit.architecture.station.AirportPresets;
 import com.aureliatransit.architecture.station.BlockFamilies;
 import com.aureliatransit.architecture.station.BuildingStyle;
@@ -678,6 +679,7 @@ public final class StudioApi {
 		final List<String> modelJson = new ArrayList<>();
 		final StringBuilder cells = new StringBuilder();
 		final StringBuilder moving = new StringBuilder();
+		final StringBuilder decals = new StringBuilder();
 		for (final PlannedBlock block : plan.blocks()) {
 			if (block.blockId().equals(com.aureliatransit.architecture.station.StylePalette.MTR_ESCALATOR_STEP)) {
 				// MTR's step model is the same both ways along its axis, so the page is told which way each step moves
@@ -689,11 +691,17 @@ public final class StudioApi {
 						.append(frame.x(block.u() + du, block.v() + dv) - x).append(',').append(frame.z(block.u() + du, block.v() + dv) - z);
 			}
 			final Heading heading = frame.heading(block.front());
+			// a bridge member block shows the block it stands in for, and its paint is drawn flat over the ground
+			final boolean members = block.blockId().equals(MEMBER_BLOCK) && !block.text().isEmpty();
+			final String shownId = members ? BridgeMember.skinOf(block.text()) : block.blockId();
+			if (members) {
+				paintDecals(decals, block, frame, heading);
+			}
 			// the finished shapes: an escalator draws its slope and landings, not a flight of default landing blocks
-			final String state = Connections.finishedState(block, at, full, frame);
-			final String key = BlockModels.key(block.blockId(), heading, state);
+			final String state = members ? "" : Connections.finishedState(block, at, full, frame);
+			final String key = BlockModels.key(shownId, heading, state);
 			final int model = modelIndex.computeIfAbsent(key, k -> {
-				modelJson.add("{\"id\":" + Json.quote(block.blockId()) + ",\"state\":" + Json.quote(state) + ",\"model\":" + models.describe(block.blockId(), heading, state) + "}");
+				modelJson.add("{\"id\":" + Json.quote(shownId) + ",\"state\":" + Json.quote(state) + ",\"model\":" + models.describe(shownId, heading, state) + "}");
 				return modelJson.size() - 1;
 			});
 			if (cells.length() > 0) {
@@ -804,6 +812,7 @@ public final class StudioApi {
 		out.append(",\"models\":[").append(String.join(",", modelJson)).append(']');
 		out.append(",\"cells\":[").append(cells).append(']');
 		out.append(",\"moving\":[").append(moving).append(']');
+		out.append(",\"decals\":[").append(decals).append(']');
 		out.append(",\"ms\":").append((planned - started) / 1_000_000);
 		return out.append('}').toString();
 	}
@@ -862,6 +871,26 @@ public final class StudioApi {
 	/** {@code block}'s state with the joins it gets in the game ({@link Connections}); {@code at} maps {@link #cell} keys to blocks. */
 	public static String withConnections(PlannedBlock block, Map<Long, PlannedBlock> at, Connections.FullFace full) {
 		return Connections.state(block, at, full);
+	}
+
+	private static final String MEMBER_BLOCK = "aurelia_transit_architecture:bridge_member";
+
+	/**
+	 * A bridge member block's paint strips, as the game draws them: x0, z0, x1, z1, top y and width, in the page's block
+	 * coordinates. The block faces the plan's +v; +u is to its right.
+	 */
+	private static void paintDecals(StringBuilder decals, PlannedBlock block, LocalFrame frame, Heading forward) {
+		final Heading right = forward.right();
+		final int x = frame.x(block.u(), block.v());
+		final int z = frame.z(block.u(), block.v());
+		for (final BridgeMember local : BridgeMember.unpack(block.text())) {
+			if (local.material() != BridgeMember.Material.PAINT) {
+				continue;
+			}
+			final BridgeMember m = local.placed(right.dx(), right.dz(), forward.dx(), forward.dz());
+			decals.append(decals.length() == 0 ? "" : ",").append(x + m.x0()).append(',').append(z + m.z0()).append(',').append(x + m.x1())
+					.append(',').append(z + m.z1()).append(',').append(block.y() + m.y0()).append(',').append(m.thickness());
+		}
 	}
 
 	public static long cell(int x, int y, int z) {

@@ -60,6 +60,9 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 		}
 	}
 
+	/** Rows from a stand's centreline to the boarding bridge's wall nearest the plane: the A320's fuselage is 2.5 either side. */
+	public static final int FUSELAGE_CLEAR = 3;
+
 	/** A runway this wide or wider has room for a plane's route and a game-scale terminal at 20 blocks (13 m) and up. */
 	public static final int REGIONAL_WIDTH = 20;
 	/** A runway this wide or wider (30 m at 1.5 blocks a metre) is a full-size airport's, with the real dimensions. */
@@ -270,6 +273,15 @@ public record AirportGeometry(AirportSpec spec, int width, int length, int roadU
 	/** Where an aircraft's nose stops on stand: past the boarding bridge, or well in from the apron's edge without a terminal. */
 	public int stopU() {
 		return spec.terminal() ? terminalU1 + dims.bridge() + 3 : apronU0 + 10;
+	}
+
+	/**
+	 * The row of a stand's gate door and boarding bridge: beside the plane, on its left (-v, the pilot's left on a nose-in stand),
+	 * so the bridge reaches the forward left door instead of the nose. The tube's wall nearest the plane is {@link #FUSELAGE_CLEAR}
+	 * rows from the stand's centreline, just clear of MTR's A320, whose doors sit 2.5 blocks out from its centreline.
+	 */
+	public int bridgeV(int stand) {
+		return stand - FUSELAGE_CLEAR - 1 - dims.bridgeWidth() / 2;
 	}
 
 	/** The column of a runway holding position: 14 cells outside the runway edge at game scale (about 85 m), further on a real-size field. */

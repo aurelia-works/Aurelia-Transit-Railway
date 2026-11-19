@@ -62,7 +62,8 @@ final class TerminalBuilding {
 		}
 		final int gateHalf = air.dims().bridgeWidth() / 2;
 		for (final int stand : air.standV()) {
-			for (int v = stand - gateHalf; v <= stand + gateHalf; v++) {
+			final int gate = air.bridgeV(stand);
+			for (int v = gate - gateHalf; v <= gate + gateHalf; v++) {
 				if (v >= v0 && v <= v1) {
 					openings.add(DrawnShape.key(u1, v));
 				}

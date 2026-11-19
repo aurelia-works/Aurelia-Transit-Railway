@@ -1764,6 +1764,47 @@
 	const AXES = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
 
 	// One model's geometry, split by texture: { texturePath: BufferGeometry } in block units (0..1), rotated by its variant.
+	// Paint the game draws flat over the ground (a taxiway's curved lines): x0, z0, x1, z1, top y, width per strip
+	function addDecals(d) {
+		if (!d.length) {
+			return;
+		}
+		const pos = [];
+		const uv = [];
+		const col = [];
+		for (let i = 0; i < d.length; i += 6) {
+			const [x0, z0, x1, z1, y, w] = d.slice(i, i + 6);
+			const len = Math.hypot(x1 - x0, z1 - z0);
+			if (len < 1e-4) {
+				continue;
+			}
+			const ux = (x1 - x0) / len;
+			const uz = (z1 - z0) / len;
+			const ax = -uz * w / 2;
+			const az = ux * w / 2;
+			const sx = x0 - ux * 0.03;
+			const sz = z0 - uz * 0.03;
+			const ex = x1 + ux * 0.03;
+			const ez = z1 + uz * 0.03;
+			const c = [[sx - ax, sz - az, 0, 0], [sx + ax, sz + az, 1, 0], [ex + ax, ez + az, 1, 1], [ex - ax, ez - az, 0, 1]];
+			for (const k of [0, 2, 1, 0, 3, 2]) {
+				pos.push(c[k][0], y, c[k][1]);
+				uv.push(c[k][2], c[k][3]);
+				col.push(1, 1, 1);
+			}
+		}
+		const geo = new THREE.BufferGeometry();
+		geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+		geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+		geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+		geo.computeVertexNormals();
+		const mesh = new THREE.Mesh(geo, material("minecraft/block/yellow_concrete", 0xe6b422, false));
+		mesh.userData = { layer: LAYER_OF.PLATFORM_SURFACE || "structure" };
+		mesh.frustumCulled = false;
+		station.add(mesh);
+		meshes.push(mesh);
+	}
+
 	function modelGeometry(model) {
 		const groups = new Map();
 		for (const part of model.parts) {
@@ -2016,6 +2057,7 @@
 				meshes.push(mesh);
 			}
 		}
+		addDecals(plan.decals || []);
 		const size = bounds.getSize(new THREE.Vector3());
 		sizeGround();
 		makeGlows(lights);
@@ -2444,7 +2486,7 @@
 		}
 		const r = canvas.getBoundingClientRect();
 		ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
-		const hit = ray.intersectObjects(meshes.filter((m) => m.visible), false).find((h) => {
+		const hit = ray.intersectObjects(meshes.filter((m) => m.visible && m.isInstancedMesh), false).find((h) => {
 			if (!renderer.clippingPlanes.length) {
 				return true;
 			}

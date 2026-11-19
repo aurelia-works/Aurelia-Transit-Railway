@@ -49,6 +49,7 @@ public final class ModBlocks {
 	}
 
 	private static final List<Entry> ENTRIES = new ArrayList<>();
+	private static final List<String> WITHOUT_ITEM = new ArrayList<>();
 
 	private static final String TIP = "tooltip." + AureliaTransitArchitecture.MOD_ID + ".";
 	private static final String TIP_EDITABLE = TIP + "editable";
@@ -298,6 +299,18 @@ public final class ModBlocks {
 
 	public static List<Entry> entries() {
 		return Collections.unmodifiableList(ENTRIES);
+	}
+
+	/** Registers a block that only code places: no item and no creative tab, so it is left out of {@link #entries()}. */
+	static Block registerWithoutItem(String id, Block block) {
+		Registry.register(Registries.BLOCK, AureliaTransitArchitecture.id(id), block);
+		WITHOUT_ITEM.add(id);
+		return block;
+	}
+
+	/** Ids of the blocks registered by {@link #registerWithoutItem}. */
+	public static List<String> withoutItems() {
+		return Collections.unmodifiableList(WITHOUT_ITEM);
 	}
 
 	public static void init() {

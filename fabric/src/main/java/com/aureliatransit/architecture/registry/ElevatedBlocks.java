@@ -2,6 +2,7 @@ package com.aureliatransit.architecture.registry;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.AxisShapedBlock;
+import com.aureliatransit.architecture.block.BridgeMemberBlock;
 import com.aureliatransit.architecture.block.FacingShapedBlock;
 import com.aureliatransit.architecture.block.ShapedBlock;
 import com.aureliatransit.architecture.block.Placement;
@@ -31,9 +32,10 @@ import com.aureliatransit.architecture.block.elevated.UtilityRunBlock;
 import com.aureliatransit.architecture.block.elevated.ViaductBeamBlock;
 import com.aureliatransit.architecture.block.elevated.ViaductBraceBlock;
 import com.aureliatransit.architecture.block.elevated.ViaductColumnBlock;
+import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
-import com.aureliatransit.architecture.text.SignStyle;
 import net.minecraft.block.MapColor;
+import com.aureliatransit.architecture.text.SignStyle;
 
 import static com.aureliatransit.architecture.util.Shapes.box;
 import static com.aureliatransit.architecture.util.Shapes.union;
@@ -154,6 +156,13 @@ public final class ElevatedBlocks {
 	/** A tubular overhead line cantilever from a mast to the hanger over the track: root, span and tip pieces. */
 	public static final Block CATENARY_ARM = ModBlocks.register("catenary_arm", BlockFamily.CATENARY, RenderKind.CUTOUT,
 			new CatenaryArmBlock(ModBlocks.metal().nonOpaque()), TIP_STYLE, TIP + "catenary_arm");
+
+	/**
+	 * Placed by the wrench's bridge builder, never by hand: no item. Draws a rail bridge's stays, cables, truss diagonals and
+	 * overhead line, and the block it stands in for. Breaks like concrete and drops nothing.
+	 */
+	public static final Block BRIDGE_MEMBER = ModBlocks.registerWithoutItem("bridge_member",
+			new BridgeMemberBlock(AbstractBlock.Settings.create().mapColor(MapColor.STONE_GRAY).strength(1.8f, 6f).dropsNothing().nonOpaque()));
 
 	public static void init() {
 		// Class loading registers everything declared here.
