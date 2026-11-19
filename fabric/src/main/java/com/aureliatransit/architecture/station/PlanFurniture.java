@@ -1234,13 +1234,14 @@ abstract class PlanFurniture extends PlanRoofs {
 		for (int u = uOff0; u <= uOff1; u++) {
 			final boolean pilaster = u == uOff0 || u == uOff1;
 			put(Role.WALL, u, StationGeometry.WALK_Y, vCounter, towardHall, UK_WAINSCOT);
+			// the booking office's front is a dark timber screen round its arched windows, capped by a cream rail level with the
+			// hall's picture rail
 			if (pilaster) {
-				put(Role.WALL, u, StationGeometry.WALK_Y + 1, vCounter, towardHall, UK_DRESSED_TRIM);
-				put(Role.WALL, u, StationGeometry.WALK_Y + 2, vCounter, towardHall, UK_DRESSED_TRIM);
+				put(Role.WALL, u, StationGeometry.WALK_Y + 1, vCounter, towardHall, UK_WAINSCOT);
 			} else {
 				put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, vCounter, towardHall, UK_ARCHED_BOOTH);
-				put(Role.WALL, u, StationGeometry.WALK_Y + 2, vCounter, towardHall, UK_DRESSED_TRIM);
 			}
+			put(Role.WALL, u, StationGeometry.WALK_Y + 2, vCounter, towardHall, UK_WAINSCOT);
 			put(Role.WALL, u, StationGeometry.WALK_Y + 3, vCounter, towardHall, UK_DRESSED_TRIM);
 			final int vBack = vCounter + officeSide;
 			if (vBack > vHouseS && vBack < vHouseE) {
