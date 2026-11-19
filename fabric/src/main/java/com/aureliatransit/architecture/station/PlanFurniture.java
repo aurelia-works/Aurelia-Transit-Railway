@@ -1136,6 +1136,8 @@ abstract class PlanFurniture extends PlanRoofs {
 	private static final String UK_DRESSED_TRIM = "aurelia_transit_architecture:uk_stucco_dressed";
 	/** The booking hall's cream moulded cornice, an upside-down stair against the wall under the ceiling. */
 	private static final String HALL_CORNICE = "minecraft:smooth_sandstone_stairs";
+	/** A wall board of train times in a booking hall. */
+	private static final String INFO_BOARD = "aurelia_transit_architecture:station_info_board";
 	private static final String ANALOG_CLOCK = "aurelia_transit_architecture:station_analog_clock";
 
 	/**
@@ -1327,6 +1329,21 @@ abstract class PlanFurniture extends PlanRoofs {
 
 		// poster cases along the booking hall's solid side walls, as in any staffed suburban booking hall
 		hallPosters(uS, uGate, vHallLo - 1, vHallHi + 1);
+		// a train-times board on the solid wall beside the gate line, facing the street door
+		for (final int vBoard : new int[]{vEntr - 3, vEntr + 3}) {
+			if (!taken(uGate - 1, StationGeometry.WALK_Y + 1, vBoard) && !taken(uGate - 1, StationGeometry.WALK_Y, vBoard)
+					&& solidWall(uGate, vBoard)) {
+				putText(Role.FIXTURE, uGate - 1, StationGeometry.WALK_Y + 1, vBoard, LocalDir.MINUS_U, INFO_BOARD, "NONE:Train times");
+				break;
+			}
+		}
+		// the station's name on a board over the platform doorway, as on Teddington's platform front (geograph 2670756)
+		final boolean platformAlongside = layout.platforms().stream().anyMatch(band -> band.uMin() == layout.buildingWidth());
+		final int nameY = StationGeometry.WALK_Y + 4;
+		if (platformAlongside && !spec.name().isEmpty() && !taken(uP + 1, nameY, vEntr)
+				&& at(uP, nameY, vEntr) != null && at(uP, nameY, vEntr).role() == Role.WALL) {
+			putText(Role.FIXTURE, uP + 1, nameY, vEntr, LocalDir.PLUS_U, PlanFitOut.SHOP_SIGN, "NONE:" + spec.name());
+		}
 		// Heritage analogue clock on the wall above the street entrance arch inside the hall (clear of the fanlight), plus upstairs board
 		put(Role.FIXTURE, uS + 1, 5, vEntr, LocalDir.PLUS_U, ANALOG_CLOCK);
 		put(Role.FIXTURE, (uS + uP) / 2, StationGeometry.UPPER_WALK_Y + 1, vHouseS + 1, LocalDir.PLUS_V, CONCOURSE_BOARD);

@@ -201,6 +201,7 @@ abstract class PlanFitOut extends PlanLandmark {
 		final StylePalette.Building b = palette.building();
 		final LocalDir out = f.dir(PlanLandmark.Dir.OUT);
 		final int door = StationGeometry.DOOR_HEIGHT;
+		final int canopyY = canopyY();
 		// a heritage porch spans the projecting central bays of the front, as Teddington's canopy runs across its three middle bays
 		final int heritageReach = site.building() && site.vEnd() - site.vStart() < 30 ? 3 : HERITAGE_WING;
 		final int wide = Math.max(half + 1 + Math.max(CANOPY_WING, half), palette.heritagePorch() != null ? heritageReach : 0);
@@ -214,7 +215,7 @@ abstract class PlanFitOut extends PlanLandmark {
 			for (int x = x0 - (archHalf + 1); x <= x0 + (archHalf + 1); x++) {
 				final int side = Math.abs(x - x0);
 				if (side == archHalf + 1) {
-					for (int y = 1; y <= CANOPY_Y - 1; y++) {
+					for (int y = 1; y <= canopyY - 1; y++) {
 						face(f.u(x, 0), y, f.v(x, 0), out, Role.WALL, porchFrame());
 					}
 				} else {
@@ -226,7 +227,7 @@ abstract class PlanFitOut extends PlanLandmark {
 						// the fanlight over the door: plain glass under the arch, so the head reads round rather than as a framed box
 						face(f.u(x, 0), door + 1, f.v(x, 0), out, Role.WINDOW, FRONT_GLASS);
 					}
-					face(f.u(x, 0), CANOPY_Y, f.v(x, 0), out, Role.WALL, porchFrame());
+					face(f.u(x, 0), canopyY, f.v(x, 0), out, Role.WALL, porchFrame());
 				}
 			}
 		} else {
@@ -239,8 +240,8 @@ abstract class PlanFitOut extends PlanLandmark {
 					continue;
 				}
 				final boolean post = side == half + 1 || side == wide;
-				for (int y = side <= half ? door + 1 : 1; y <= CANOPY_Y; y++) {
-					final boolean glass = !post && y < CANOPY_Y;
+				for (int y = side <= half ? door + 1 : 1; y <= canopyY; y++) {
+					final boolean glass = !post && y < canopyY;
 					face(f.u(x, 0), y, f.v(x, 0), out, glass ? Role.WINDOW : Role.WALL, glass ? FRONT_GLASS : porchFrame());
 				}
 			}
@@ -258,11 +259,11 @@ abstract class PlanFitOut extends PlanLandmark {
 					final LocalDir edgeDir = frontEdge ? out : x < x0 ? f.dir(PlanLandmark.Dir.LEFT) : f.dir(PlanLandmark.Dir.RIGHT);
 					final String block = frontEdge || sideEdge ? heritage[1]
 							: z == -1 && Math.floorMod(x - x0, 6) == 0 ? CANOPY_LIGHT : heritage[0];
-					put(Role.BUILDING_ROOF, f.u(x, z), CANOPY_Y, f.v(x, z), edgeDir, block);
+					put(Role.BUILDING_ROOF, f.u(x, z), canopyY, f.v(x, z), edgeDir, block);
 				} else {
 					final String block = z == -CANOPY_DEPTH ? CANOPY_EDGE
 							: Math.floorMod(x - x0, 2) == 0 ? CANOPY_LIGHT : CANOPY;
-					put(Role.BUILDING_ROOF, f.u(x, z), CANOPY_Y, f.v(x, z), out, block);
+					put(Role.BUILDING_ROOF, f.u(x, z), canopyY, f.v(x, z), out, block);
 				}
 			}
 		}
@@ -272,8 +273,8 @@ abstract class PlanFitOut extends PlanLandmark {
 		if (!spec.name().isEmpty()) {
 			final int nameHalf = heritage != null ? 1 : half;
 			for (int x = x0 - nameHalf; x <= x0 + nameHalf; x++) {
-				if (taken(f.u(x, 0), CANOPY_Y + 1, f.v(x, 0))) {
-					putText(Role.FIXTURE, f.u(x, -1), CANOPY_Y + 1, f.v(x, -1), out, LETTERING, spec.name());
+				if (taken(f.u(x, 0), canopyY + 1, f.v(x, 0))) {
+					putText(Role.FIXTURE, f.u(x, -1), canopyY + 1, f.v(x, -1), out, LETTERING, spec.name());
 				}
 			}
 			if (heritage == null) {
@@ -431,10 +432,10 @@ abstract class PlanFitOut extends PlanLandmark {
 			// Teddington's porch is cantilevered on stucco wall brackets at its two ends, clear of the round arches under it
 			final LocalDir intoWall = f.dir(PlanLandmark.Dir.IN);
 			for (final int bx : new int[]{x0 - wide, x0 + wide}) {
-				final PlannedBlock backing = at(f.u(bx, 0), CANOPY_Y - 1, f.v(bx, 0));
+				final PlannedBlock backing = at(f.u(bx, 0), canopyY() - 1, f.v(bx, 0));
 				if (Math.abs(bx - x0) <= wide && inside(f, bx, -1) && backing != null && backing.role() == Role.WALL
-						&& !backing.blockId().equals(ARCH_STAIR) && !taken(f.u(bx, -1), CANOPY_Y - 1, f.v(bx, -1))) {
-					put(Role.WALL, f.u(bx, -1), CANOPY_Y - 1, f.v(bx, -1), intoWall, ARCH_STAIR, "half=top,shape=straight");
+						&& !backing.blockId().equals(ARCH_STAIR) && !taken(f.u(bx, -1), canopyY() - 1, f.v(bx, -1))) {
+					put(Role.WALL, f.u(bx, -1), canopyY() - 1, f.v(bx, -1), intoWall, ARCH_STAIR, "half=top,shape=straight");
 				}
 			}
 			for (int x = x0 - 1; x <= x0 + 1; x++) {
@@ -486,6 +487,14 @@ abstract class PlanFitOut extends PlanLandmark {
 			return false;
 		}
 		return pierUp(u, v, out, porchFrame());
+	}
+
+	/**
+	 * The entrance canopy's height: a block higher over a heritage arch, so the round heads of the door and its flanking
+	 * windows show under the valance as at Teddington, where the canopy runs above the arches.
+	 */
+	private int canopyY() {
+		return heritageArch() ? CANOPY_Y + 1 : CANOPY_Y;
 	}
 
 	/** Whether the street doorway is a heritage arch in the stucco (see {@link #ARCH_STAIR}). */
