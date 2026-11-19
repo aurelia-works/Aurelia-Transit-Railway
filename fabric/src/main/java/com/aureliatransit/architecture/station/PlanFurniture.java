@@ -1348,18 +1348,21 @@ abstract class PlanFurniture extends PlanRoofs {
 
 		// poster cases along the booking hall's solid side walls, as in any staffed suburban booking hall
 		hallPosters(uS, uGate, vHallLo - 1, vHallHi + 1, 2);
-		// the street wall's inside panelled in dark timber, as the side walls: to the sills under the windows, two blocks
-		// high elsewhere, clear of the doorway and whatever already stands against it
+		// the street wall's inside panelled in dark timber to the picture rail, as the side walls: to the sills under the
+		// windows, clear of the doorway and whatever already stands against it
 		for (int v = vHallLo; v <= vHallHi; v++) {
 			if (Math.abs(v - vEntr) <= h + 1) {
 				continue;
 			}
-			for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 1; y++) {
+			for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 3; y++) {
 				final PlannedBlock wall = at(uS, y, v);
-				if (wall == null || wall.role() != Role.WALL || taken(uS + 1, y, v) || cleared(uS + 1, y, v)) {
+				if (wall == null || wall.role() != Role.WALL || wall.blockId().equals(ARCH_SHOULDER) || wall.blockId().equals(ARCH_CROWN)
+						|| cleared(uS + 1, y, v)) {
 					break;
 				}
-				put(Role.WALL, uS + 1, y, v, LocalDir.PLUS_U, UK_WAINSCOT);
+				if (!taken(uS + 1, y, v)) {
+					put(Role.WALL, uS + 1, y, v, LocalDir.PLUS_U, y == StationGeometry.WALK_Y + 3 ? UK_DRESSED_TRIM : UK_WAINSCOT);
+				}
 			}
 		}
 		// a train-times board on the solid wall beside the gate line, facing the street door

@@ -222,7 +222,7 @@ abstract class PlanFitOut extends PlanLandmark {
 					if (side == archHalf && archHalf >= 1) {
 						final LocalDir jamb = x < x0 ? f.dir(PlanLandmark.Dir.LEFT) : f.dir(PlanLandmark.Dir.RIGHT);
 						cells.put(new Cell(f.u(x, 0), door + 1, f.v(x, 0)),
-								new PlannedBlock(f.u(x, 0), door + 1, f.v(x, 0), Role.WALL, ARCH_SPRINGER, jamb, "", ""));
+								new PlannedBlock(f.u(x, 0), door + 1, f.v(x, 0), Role.WALL, ARCH_SHOULDER, jamb, "", ""));
 					} else {
 						// the keystone over the glazed fanlight
 						cells.put(new Cell(f.u(x, 0), door + 1, f.v(x, 0)), new PlannedBlock(f.u(x, 0), door + 1, f.v(x, 0), Role.WALL,
@@ -435,7 +435,8 @@ abstract class PlanFitOut extends PlanLandmark {
 			for (final int bx : new int[]{x0 - wide, x0 + wide}) {
 				final PlannedBlock backing = at(f.u(bx, 0), canopyY() - 1, f.v(bx, 0));
 				if (Math.abs(bx - x0) <= wide && inside(f, bx, -1) && backing != null && backing.role() == Role.WALL
-						&& !backing.blockId().equals(ARCH_STAIR) && !taken(f.u(bx, -1), canopyY() - 1, f.v(bx, -1))) {
+						&& !backing.blockId().equals(ARCH_STAIR) && !backing.blockId().equals(ARCH_SHOULDER)
+						&& !taken(f.u(bx, -1), canopyY() - 1, f.v(bx, -1))) {
 					put(Role.WALL, f.u(bx, -1), canopyY() - 1, f.v(bx, -1), intoWall, ARCH_STAIR, "half=top,shape=straight");
 				}
 			}
@@ -505,8 +506,6 @@ abstract class PlanFitOut extends PlanLandmark {
 
 	/** The cream stair that rounds a heritage doorway's top corners. */
 	static final String ARCH_STAIR = "minecraft:smooth_sandstone_stairs";
-	private static final String ARCH_SPRINGER = "aurelia_transit_architecture:uk_stucco_arch_springer";
-	private static final String ARCH_CROWN = "aurelia_transit_architecture:uk_stucco_arch_crown";
 
 	/** The entrance portal's jambs, the piers just inside them and the canopy posts: a heritage look's stucco, else dark steel. */
 	private String porchFrame() {

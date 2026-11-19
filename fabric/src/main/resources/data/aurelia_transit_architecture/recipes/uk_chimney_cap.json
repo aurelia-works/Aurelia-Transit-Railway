@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": {
+    "item": "aurelia_transit_architecture:uk_yellow_stock_brick"
+  },
+  "result": "aurelia_transit_architecture:uk_chimney_cap",
+  "count": 1
+}

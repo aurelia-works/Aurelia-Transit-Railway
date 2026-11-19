@@ -131,8 +131,10 @@ abstract class PlanBridges extends PlanConcourse {
 			// roof over the corridor and the stairs: a pitched slate gable roof on open heritage bridges (geograph 4331043)
 			final boolean pitchedBridge = heritagePanel != null && spec.roof() != RoofType.HALL;
 			if (pitchedBridge) {
-				final String stair = "minecraft:deepslate_tile_stairs";
-				final String solid = "minecraft:deepslate_tiles";
+				// the footbridge slated like the station house
+				final String[] tiles = bridgeTiles();
+				final String stair = tiles[0];
+				final String solid = tiles[1];
 				final String ridge = "aurelia_transit_architecture:uk_slate_ridge";
 				for (int u = from; u <= to; u++) {
 					for (int v = wallLo; v <= wallHi; v++) {
@@ -358,7 +360,7 @@ abstract class PlanBridges extends PlanConcourse {
 		final int end = canopyOver(band, flight)
 				? (Math.max(1, StationGeometry.CANOPY_Y - 2) > 1 ? flight.stepV(Math.max(1, StationGeometry.CANOPY_Y - 2) - 1) : flight.landingV())
 				: flight.stepV(1);
-		final String stair = "minecraft:deepslate_tile_stairs";
+		final String stair = bridgeTiles()[0];
 		final String ridge = "aurelia_transit_architecture:uk_slate_ridge";
 		for (int v = top; v != end + side; v += side) {
 			for (int u = left; u <= right; u++) {
@@ -374,6 +376,12 @@ abstract class PlanBridges extends PlanConcourse {
 				}
 			}
 		}
+	}
+
+	/** A heritage footbridge's roof tiles: the station house's slate, or dark slate tiles where the look has none. */
+	private String[] bridgeTiles() {
+		final String[] tiles = pitchedRoof();
+		return tiles != null ? tiles : new String[]{"minecraft:deepslate_tile_stairs", "minecraft:deepslate_tiles"};
 	}
 
 	/** The solid block under a real station's broad stairs, their side walls and the walls closing the space under its floor. */

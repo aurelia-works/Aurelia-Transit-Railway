@@ -519,8 +519,9 @@ abstract class PlanBuilding extends PlanPlatforms {
 	private static final String UK_SILL = "aurelia_transit_architecture:uk_window_sill";
 	private static final String UK_SLATE_RIDGE = "aurelia_transit_architecture:uk_slate_ridge";
 	// a round arch head: a springer either side of the opening, solid toward its facing, and a keystone crown between them
-	private static final String ARCH_SHOULDER = "aurelia_transit_architecture:uk_stucco_arch_springer";
-	private static final String ARCH_CROWN = "aurelia_transit_architecture:uk_stucco_arch_crown";
+	static final String ARCH_SHOULDER = "aurelia_transit_architecture:uk_stucco_arch_springer";
+	static final String ARCH_CROWN = "aurelia_transit_architecture:uk_stucco_arch_crown";
+	private static final String CHIMNEY_CAP = "aurelia_transit_architecture:uk_chimney_cap";
 
 	/**
 	 * Victorian Italianate suburban station house after Teddington (1863, LSWR, Historic England 1410351): a symmetric
@@ -1044,7 +1045,7 @@ abstract class PlanBuilding extends PlanPlatforms {
 			}
 		}
 
-		// Six yellow-stock-brick chimney stacks with a slim stucco necking course and terracotta chimney pots
+		// Six yellow-stock-brick chimney stacks with corbelled caps and terracotta chimney pots
 		final int capY = top + 1 + (maxH + 1) / 2 + 2;
 		final int midV = (vProjLo + vProjHi) / 2;
 		final int[] chimVs = vHouseE - vHouseS >= 28
@@ -1056,8 +1057,10 @@ abstract class PlanBuilding extends PlanPlatforms {
 					continue;
 				}
 				for (int y = top + 1; y <= capY; y++) {
-					put(Role.BUILDING_ROOF, cu, y, cv, LocalDir.PLUS_V, b.wall());
-					put(Role.BUILDING_ROOF, cu, y, cv + 1, LocalDir.PLUS_V, b.wall());
+					// the top course corbels out under the pots (geograph 6134993)
+					final String course = y == capY ? CHIMNEY_CAP : b.wall();
+					put(Role.BUILDING_ROOF, cu, y, cv, LocalDir.PLUS_V, course);
+					put(Role.BUILDING_ROOF, cu, y, cv + 1, LocalDir.PLUS_V, course);
 				}
 				put(Role.BUILDING_ROOF, cu, capY + 1, cv, LocalDir.PLUS_V, "minecraft:flower_pot");
 				put(Role.BUILDING_ROOF, cu, capY + 1, cv + 1, LocalDir.PLUS_V, "minecraft:flower_pot");
@@ -1168,7 +1171,9 @@ abstract class PlanBuilding extends PlanPlatforms {
 	static String[] roofTiles(BuildingStyle style) {
 		return switch (style) {
 			case ANTWERP, BEAUX_ARTS -> new String[]{"minecraft:oxidized_cut_copper_stairs", "minecraft:oxidized_cut_copper"};
-			case AMSTERDAM, GOTHIC_BRICK, SANDSTONE, CLINKER, TOKYO, ZURICH, VICTORIAN -> new String[]{"minecraft:deepslate_tile_stairs", "minecraft:deepslate_tiles"};
+			case AMSTERDAM, GOTHIC_BRICK, SANDSTONE, CLINKER, TOKYO, ZURICH -> new String[]{"minecraft:deepslate_tile_stairs", "minecraft:deepslate_tiles"};
+			// Welsh slate weathered to a mid grey, as on Teddington's hipped roofs (geograph 6134993)
+			case VICTORIAN -> new String[]{"minecraft:stone_brick_stairs", "minecraft:stone_bricks"};
 			// Mumbai's red clay tiles
 			case MUMBAI -> new String[]{"minecraft:brick_stairs", "minecraft:bricks"};
 			case NONE, MODERN, CONCRETE, PARIS, MILAN, BERLIN, HONG_KONG, BEIJING, BANGKOK, KUALA_LUMPUR, ART_DECO, MODERNIST -> null;

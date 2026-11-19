@@ -67,6 +67,9 @@ public final class StationBlocksUk {
 			new FacingShapedBlock(ModBlocks.paving(MapColor.PALE_YELLOW).nonOpaque(), Placement.TOWARD_PLAYER, FULL));
 	public static final Block UK_STUCCO_ARCH_CROWN = ModBlocks.register("uk_stucco_arch_crown", BlockFamily.STATIONS_UK, RenderKind.TRANSLUCENT,
 			new FacingShapedBlock(ModBlocks.paving(MapColor.PALE_YELLOW).nonOpaque(), Placement.TOWARD_PLAYER, FULL));
+	// a chimney stack's top, two brick courses corbelled out on every side under the pots
+	public static final Block UK_CHIMNEY_CAP = ModBlocks.register("uk_chimney_cap", BlockFamily.STATIONS_UK, RenderKind.SOLID,
+			new ShapedBlock(ModBlocks.paving(MapColor.PALE_YELLOW).nonOpaque(), FULL));
 	public static final Block UK_WOOD_WAINSCOT = ModBlocks.register("uk_wood_wainscot", BlockFamily.STATIONS_UK, RenderKind.SOLID,
 			new Block(ModBlocks.paving(MapColor.BROWN)));
 	public static final Block UK_BOOKING_HALL_TILE = ModBlocks.register("uk_booking_hall_tile", BlockFamily.STATIONS_UK, RenderKind.SOLID,
