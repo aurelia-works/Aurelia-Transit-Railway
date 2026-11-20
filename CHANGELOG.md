@@ -22,6 +22,7 @@ Public beta. Back up your world before trying it. Drawn tracks and the station a
 ### Fixed
 - The airport entrance canopy stands on columns on the footway, never in the road, and the car park rows start at the car park's own edge (#124).
 - The dashboard opens on dedicated servers (#117).
+- The Controls screen lists the ATR wrench, menu, panel and riding keys under an "Aurelia Transit Railway" heading instead of a raw key name (#127).
 
 ## 1.0.3 (4.0.5+atr.1.0.3), Minecraft 1.20.1, Fabric
 
