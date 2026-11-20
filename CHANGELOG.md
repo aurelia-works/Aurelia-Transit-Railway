@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- Escalators have brushed-steel side panels under the handrail, from the deck up to the rail and round the curved ends. This applies to every MTR escalator, including ones already placed in a world.
+
 ## 1.0.3 (4.0.5+atr.1.0.3), Minecraft 1.20.1, Fabric
 
 ### Added
