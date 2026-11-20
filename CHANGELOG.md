@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-## 1.1.0-beta.1 (4.0.5+atr.1.1.0-beta.1), Minecraft 1.20.1, Fabric
+## 1.1.0 public beta (4.0.5+atr.1.1.0), Minecraft 1.20.1, Fabric
 
 Public beta. Back up your world before trying it. Drawn tracks and the station and airport editor screen (E1, E2) have not been tried in game yet.
 

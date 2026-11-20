@@ -1,4 +1,4 @@
-# ATR 1.1.0-beta.1: notes for testers
+# ATR 1.1.0 public beta: notes for testers
 
 Thanks for trying Aurelia Transit Railway before it goes public. This is a beta: things will break, and that is what we want to hear about.
 
@@ -6,7 +6,7 @@ Thanks for trying Aurelia Transit Railway before it goes public. This is a beta:
 1. Minecraft **1.20.1** with **Fabric Loader** 0.16 or newer and **Fabric API** for 1.20.1.
 2. **Back up your world first.** Better still, test in a copy of it.
 3. Take any `mtr` jar (Minecraft Transit Railway or an older ATR) out of `mods`. Do not run both.
-4. Put `ATR-fabric-4.0.5+atr.1.1.0-beta.1-mc1.20.1.jar` in `mods`.
+4. Put `ATR-fabric-4.0.5+atr.1.1.0-mc1.20.1.jar` in `mods`.
 
 MTR add-ons (Joban Client Mod, MAGIC, Tianjin, London Underground) should keep working. Tell us if one does not.
 
