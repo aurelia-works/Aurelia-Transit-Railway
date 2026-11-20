@@ -330,6 +330,7 @@
 	"gui.aurelia.panel.block_entities": "Block entities drawn: %s (warn at %s)",
 	"gui.aurelia.open_panel": "Open...",
 	"key.aurelia.open_panel": "Open Aurelia panel",
+	"key.categories.mtr": "Aurelia Transit Railway",
 	"gui.aurelia.panel.tab.builder": "Builder",
 	"gui.aurelia.builder.width": "Width: %s",
 	"gui.aurelia.builder.height": "Height: %s",

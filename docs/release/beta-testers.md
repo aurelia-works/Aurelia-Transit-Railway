@@ -3,7 +3,7 @@
 Thanks for trying Aurelia Transit Railway before it goes public. This is a beta: things will break, and that is what we want to hear about.
 
 ## Install
-1. Minecraft **1.20.1** with **Fabric Loader** 0.16 or newer and **Fabric API** for 1.20.1.
+1. Minecraft **1.20.1** with **Fabric Loader** 0.20.1 or newer (the version this build was tested with) and **Fabric API** for 1.20.1.
 2. **Back up your world first.** Better still, test in a copy of it.
 3. Take any `mtr` jar (Minecraft Transit Railway or an older ATR) out of `mods`. Do not run both.
 4. Put `ATR-fabric-4.0.5+atr.1.1.0-mc1.20.1.jar` in `mods`.
@@ -11,7 +11,7 @@ Thanks for trying Aurelia Transit Railway before it goes public. This is a beta:
 MTR add-ons (Joban Client Mod, MAGIC, Tianjin, London Underground) should keep working. Tell us if one does not.
 
 ## What to try
-Take the **ATR Wrench** from the creative tab. Press **V**, or sneak and scroll, to change its mode. Press **M** for the ATR menu. The Aurelia panel has no key by default: set one under Controls, MTR category.
+Take the **ATR Wrench** from the creative tab. Press **V**, or sneak and scroll, to change its mode. Press **M** for the ATR menu. The Aurelia panel has no key by default: set one under Controls, in the Aurelia Transit Railway section.
 - **Station**: plan a station in front of you, look at it in Station Studio, build it, then undo it. Try a big one (up to 32 tracks) and a small one.
 - **Airport**: plan an airport, and walk from a gate through a jet bridge onto a parked plane.
 - **Bridge**: click a rail's two nodes and build a viaduct, a truss, an arch viaduct, a suspension span or a tunnel portal.
