@@ -2,8 +2,27 @@
 
 ## Unreleased
 
+## 1.1.0 public beta (4.0.5+atr.1.1.0), Minecraft 1.20.1, Fabric
+
+Public beta. Back up your world before trying it. Drawn tracks and the station and airport editor screen (E1, E2) have not been tried in game yet.
+
+### Added
+- The wrench builds bridges along a laid rail: box-girder viaducts on bearings, steel trusses, brick arch viaducts, cable-stayed and suspension spans, tunnel portals, and overhead-line masts with wire. Tower and pylon lamps flash at night (#115).
+- Jet bridges dock at the A320 and A350 front door, so you can walk onto the plane. Planes taxi in nose first and are pushed back off the stand, and taxiway curves get smooth yellow lines (#115).
+- Stations can have up to 32 tracks, the real-station presets use their real track counts, and preset templates can be edited (#116).
+- One transit dashboard for rail, road, boat, cable car and plane replaces the separate train, bus and car screens. The old dashboard items still load (#117).
+- Station descriptions can be up to 2400 characters, numbers can be written as words ("twenty four"), and Studio keeps the words typed after a preset name (#123).
+
 ### Changed
-- Escalators have brushed-steel side panels under the handrail, from the deck up to the rail and round the curved ends. This applies to every MTR escalator, including ones already placed in a world.
+- Escalators have brushed-steel side panels under the handrail, from the deck up to the rail and round the curved ends. This applies to every MTR escalator, including ones already placed in a world (#126).
+- A station building takes its size from real stations with the same number of platformed tracks: up to 3 gets a small block, 4 or 5 a city building, 6 or more a grand one (#112). Dutch 4-track halls are grand again, and landmark fronts follow their photos more closely (#118).
+- Station Studio has a new layout: one navigation bar, a seed board with locks and quick presets, a grouped camera bar and a tidier checks panel (#119). Screen readers hear counts and status changes, and the labels are plainer (#125).
+- Deep stations follow their real depth and length: Angel is 27 m deep, Canary Wharf is full length (#120).
+
+### Fixed
+- The airport entrance canopy stands on columns on the footway, never in the road, and the car park rows start at the car park's own edge (#124).
+- The dashboard opens on dedicated servers (#117).
+- The Controls screen lists the ATR wrench, menu, panel and riding keys under an "Aurelia Transit Railway" heading instead of a raw key name (#127).
 
 ## 1.0.3 (4.0.5+atr.1.0.3), Minecraft 1.20.1, Fabric
 
