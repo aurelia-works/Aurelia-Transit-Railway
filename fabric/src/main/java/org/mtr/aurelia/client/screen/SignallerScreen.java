@@ -30,8 +30,8 @@ public final class SignallerScreen extends Screen {
 	private final Screen parent;
 	private TextFieldWidget search;
 	private SimpleListWidget<Route> lines;
-	/** Rebuilt on the next tick, not inside the list's own click. */
-	private boolean refreshPending;
+	/** The list last drawn. The server's answer replaces the set, so a new set means redraw (on a tick, not inside a click). */
+	private java.util.Set<Long> shown;
 
 	public SignallerScreen(Screen parent) {
 		super(Text.translatable("gui.aurelia.signaller.title"));
@@ -51,6 +51,7 @@ public final class SignallerScreen extends Screen {
 	}
 
 	private void refresh() {
+		shown = JunctionPriority.signallerRoutes();
 		final String query = search.getText().toLowerCase(Locale.ROOT).strip();
 		final List<Route> routes = new ArrayList<>(MtrBridge.dashboardData().routes);
 		routes.sort(Comparator.comparing(route -> MtrBridge.displayName(route.getName()).toLowerCase(Locale.ROOT)));
@@ -72,23 +73,13 @@ public final class SignallerScreen extends Screen {
 		if (route == null || JunctionPriority.isExpress(route) || client == null || client.player == null || !client.player.hasPermissionLevel(2)) {
 			return;
 		}
-		final boolean first = !JunctionPriority.signallerRoutes().contains(route.getId());
-		EngineClient.requestFirst(route.getId(), first);
-		// shown at once; the server's list replaces it a moment later
-		final List<Long> next = new ArrayList<>(JunctionPriority.signallerRoutes());
-		if (first) {
-			next.add(route.getId());
-		} else {
-			next.remove(route.getId());
-		}
-		JunctionPriority.setSignallerRoutes(next);
-		refreshPending = true;
+		// the list redraws when the server sends the new set back
+		EngineClient.requestFirst(route.getId(), !JunctionPriority.signallerRoutes().contains(route.getId()));
 	}
 
 	@Override
 	public void tick() {
-		if (refreshPending) {
-			refreshPending = false;
+		if (shown != JunctionPriority.signallerRoutes()) {
 			refresh();
 		}
 	}
