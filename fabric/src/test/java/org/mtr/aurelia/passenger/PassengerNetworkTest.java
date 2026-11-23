@@ -10,8 +10,11 @@ import org.mtr.core.data.TransportMode;
 import org.mtr.core.tool.Angle;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.mod.passenger.PassengerNetwork;
+import org.mtr.mod.passenger.PassengerRoutes;
 import org.mtr.mod.passenger.PassengerService;
 
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -117,5 +120,37 @@ public final class PassengerNetworkTest {
 		Assertions.assertTrue(waiting > 0);
 		network.retain(Set.of(), PassengerService.platformsToKeep(data));
 		Assertions.assertEquals(waiting, network.waitingAt(platform.getId()));
+	}
+
+	/**
+	 * Two lines meet at B: A - B on one, B - C on the other. A passenger from A to C rides to B, waits on the other
+	 * line's platform there, and rides on to C. With changing off, nobody at A heads for C.
+	 */
+	@Test
+	public void passengersChangeTrainsWhereTwoLinesMeet() {
+		final long platformB2 = 22;
+		final long train2 = 200;
+		final Map<Long, Long> stationOfPlatform = Map.of(PLATFORM_A, A, PLATFORM_B, B, platformB2, B, PLATFORM_C, C);
+		final Map<Long, long[]> direct = Map.of(PLATFORM_A, new long[]{B}, platformB2, new long[]{C});
+		Assertions.assertFalse(Arrays.stream(PassengerRoutes.build(stationOfPlatform, direct, 0).destinations(PLATFORM_A)).anyMatch(station -> station == C));
+		final PassengerRoutes routes = PassengerRoutes.build(stationOfPlatform, direct, PassengerRoutes.MAX_CHANGES);
+		Assertions.assertEquals(new PassengerRoutes.Leg(PLATFORM_A, B), routes.leg(A, C));
+
+		final PassengerNetwork network = new PassengerNetwork();
+		network.spawn(PLATFORM_A, routes, A, 1, SETTINGS, 0, new Random(5));
+		Assertions.assertTrue(network.waitingAt(PLATFORM_A) > 0);
+		for (int i = 0; i < 20; i++) {
+			network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 2, SETTINGS, true, routes, 0);
+			network.exchange(TRAIN, PLATFORM_B, B, Set.of(), 2, SETTINGS, true, routes, 0);
+		}
+		// some were for B and left there; the rest wait for the B - C line
+		Assertions.assertTrue(network.changedTotal() > 0);
+		Assertions.assertEquals(network.changedTotal(), network.waitingAt(platformB2));
+		for (int i = 0; i < 20; i++) {
+			network.exchange(train2, platformB2, B, Set.of(C), 2, SETTINGS, true, routes, 0);
+			network.exchange(train2, PLATFORM_C, C, Set.of(), 2, SETTINGS, true, routes, 0);
+		}
+		Assertions.assertEquals(0, network.waitingAt(platformB2));
+		Assertions.assertEquals(0, network.total());
 	}
 }
