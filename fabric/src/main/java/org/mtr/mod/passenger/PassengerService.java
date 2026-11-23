@@ -178,7 +178,7 @@ public final class PassengerService {
 			final int maxChanges = EngineSettings.enabled(EngineFeature.PASSENGER_CHANGES) ? PassengerRoutes.MAX_CHANGES : 0;
 			final PassengerRoutes routes = PassengerRoutes.build(stationOfPlatform, destinationsByPlatform(simulator), maxChanges);
 			final Random random = new Random();
-			routes.destinationsByPlatform().keySet().forEach(platformId -> network.spawn(platformId, routes, stationOfPlatform.get(platformId), minutes, current, now, random));
+			routes.destinationsByPlatform().keySet().forEach(platformId -> network.spawn(platformId, routes, minutes, current, now, random));
 			network.expire(now);
 
 			final Set<Long> vehicleIds = new HashSet<>();

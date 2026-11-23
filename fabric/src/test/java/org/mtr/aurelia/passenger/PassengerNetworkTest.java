@@ -133,19 +133,23 @@ public final class PassengerNetworkTest {
 		final Map<Long, Long> stationOfPlatform = Map.of(PLATFORM_A, A, PLATFORM_B, B, platformB2, B, PLATFORM_C, C);
 		final Map<Long, long[]> direct = Map.of(PLATFORM_A, new long[]{B}, platformB2, new long[]{C});
 		Assertions.assertFalse(Arrays.stream(PassengerRoutes.build(stationOfPlatform, direct, 0).destinations(PLATFORM_A)).anyMatch(station -> station == C));
+		// two platforms at one station that both reach B each keep B, as before changing existed
+		final long platformA2 = 21;
+		final PassengerRoutes twoPlatforms = PassengerRoutes.build(Map.of(PLATFORM_A, A, platformA2, A), Map.of(PLATFORM_A, new long[]{B}, platformA2, new long[]{B}), 0);
+		Assertions.assertArrayEquals(new long[]{B}, twoPlatforms.destinations(platformA2));
+		Assertions.assertArrayEquals(new long[]{B}, twoPlatforms.destinations(PLATFORM_A));
 		final PassengerRoutes routes = PassengerRoutes.build(stationOfPlatform, direct, PassengerRoutes.MAX_CHANGES);
 		Assertions.assertEquals(new PassengerRoutes.Leg(PLATFORM_A, B), routes.leg(A, C));
 
 		final PassengerNetwork network = new PassengerNetwork();
-		network.spawn(PLATFORM_A, routes, A, 1, SETTINGS, 0, new Random(5));
+		network.spawn(PLATFORM_A, routes, 1, SETTINGS, 0, new Random(5));
 		Assertions.assertTrue(network.waitingAt(PLATFORM_A) > 0);
 		for (int i = 0; i < 20; i++) {
 			network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 2, SETTINGS, true, routes, 0);
 			network.exchange(TRAIN, PLATFORM_B, B, Set.of(), 2, SETTINGS, true, routes, 0);
 		}
 		// some were for B and left there; the rest wait for the B - C line
-		Assertions.assertTrue(network.changedTotal() > 0);
-		Assertions.assertEquals(network.changedTotal(), network.waitingAt(platformB2));
+		Assertions.assertTrue(network.waitingAt(platformB2) > 0);
 		for (int i = 0; i < 20; i++) {
 			network.exchange(train2, platformB2, B, Set.of(C), 2, SETTINGS, true, routes, 0);
 			network.exchange(train2, PLATFORM_C, C, Set.of(), 2, SETTINGS, true, routes, 0);

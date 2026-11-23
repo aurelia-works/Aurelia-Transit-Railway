@@ -19,14 +19,15 @@ public final class PassengerRoutes {
 
 	/** The most changes a trip may have when changing is on. */
 	public static final int MAX_CHANGES = 2;
-	public static final PassengerRoutes NONE = new PassengerRoutes(Map.of(), Map.of());
-
 	private final Map<Long, Map<Long, Leg>> legsByStation;
-	private final Map<Long, long[]> destinationsByPlatform;
+	/** Per platform: each station a passenger starting there can go to, and where they get off this first train. */
+	private final Map<Long, Map<Long, Long>> legsByPlatform;
+	private final Map<Long, long[]> destinationsByPlatform = new HashMap<>();
 
-	private PassengerRoutes(Map<Long, Map<Long, Leg>> legsByStation, Map<Long, long[]> destinationsByPlatform) {
+	private PassengerRoutes(Map<Long, Map<Long, Leg>> legsByStation, Map<Long, Map<Long, Long>> legsByPlatform) {
 		this.legsByStation = legsByStation;
-		this.destinationsByPlatform = destinationsByPlatform;
+		this.legsByPlatform = legsByPlatform;
+		legsByPlatform.forEach((platformId, legs) -> destinationsByPlatform.put(platformId, legs.keySet().stream().mapToLong(Long::longValue).toArray()));
 	}
 
 	/**
@@ -44,7 +45,14 @@ public final class PassengerRoutes {
 		});
 
 		final Map<Long, Map<Long, Leg>> legsByStation = new HashMap<>();
-		final Map<Long, List<Long>> destinations = new HashMap<>();
+		// every platform keeps all the stations its own route reaches, as without changing
+		final Map<Long, Map<Long, Long>> legsByPlatform = new HashMap<>();
+		directByPlatform.forEach((platformId, stations) -> {
+			final Map<Long, Long> legs = legsByPlatform.computeIfAbsent(platformId, id -> new HashMap<>());
+			for (final long stationId : stations) {
+				legs.put(stationId, stationId);
+			}
+		});
 		platformsAt.forEach((start, startPlatforms) -> {
 			final Map<Long, Leg> legs = new HashMap<>();
 			// breadth first, so the trip with the fewest changes is found first
@@ -74,17 +82,20 @@ public final class PassengerRoutes {
 				}
 			}
 			legsByStation.put(start, legs);
-			legs.forEach((destination, leg) -> destinations.computeIfAbsent(leg.platformId(), id -> new ArrayList<>()).add(destination));
+			// a station only reached by changing starts from the platform the search picked
+			legs.forEach((destination, leg) -> legsByPlatform.computeIfAbsent(leg.platformId(), id -> new HashMap<>()).putIfAbsent(destination, leg.stationId()));
 		});
-
-		final Map<Long, long[]> destinationsByPlatform = new HashMap<>();
-		destinations.forEach((platformId, list) -> destinationsByPlatform.put(platformId, list.stream().mapToLong(Long::longValue).toArray()));
-		return new PassengerRoutes(legsByStation, destinationsByPlatform);
+		return new PassengerRoutes(legsByStation, legsByPlatform);
 	}
 
 	/** Every station a passenger starting at this platform can get to; their first train leaves from here. */
 	public long[] destinations(long platformId) {
 		return destinationsByPlatform.getOrDefault(platformId, new long[0]);
+	}
+
+	/** Where a passenger starting at this platform for this destination gets off their first train. */
+	public long firstLeg(long platformId, long destinationStationId) {
+		return legsByPlatform.getOrDefault(platformId, Map.of()).getOrDefault(destinationStationId, destinationStationId);
 	}
 
 	/** The next train from this station towards the destination, or null when there is no way there. */

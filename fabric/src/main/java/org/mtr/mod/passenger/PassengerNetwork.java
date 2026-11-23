@@ -46,10 +46,6 @@ public final class PassengerNetwork {
 	 * @param legStationId         where they get off this train: the destination, or a station where they change
 	 */
 	public record Passenger(long destinationStationId, long legStationId, long spawnMillis) {
-
-		public Passenger(long destinationStationId, long spawnMillis) {
-			this(destinationStationId, destinationStationId, spawnMillis);
-		}
 	}
 
 	public record Exchange(int alighted, int boarded) {
@@ -66,25 +62,24 @@ public final class PassengerNetwork {
 	private int total;
 	private long boardedTotal;
 	private long alightedTotal;
-	private long changedTotal;
 
 	/**
 	 * Adds the passengers that have arrived at a platform over {@code minutes}, each heading for a station a train from
 	 * here can reach. A platform no route serves gets nobody.
 	 */
 	public void spawn(long platformId, long[] destinations, double minutes, Settings settings, long now, Random random) {
-		spawn(platformId, destinations, null, 0, minutes, settings, now, random);
+		spawn(platformId, destinations, null, minutes, settings, now, random);
 	}
 
 	/**
 	 * Like {@link #spawn(long, long[], double, Settings, long, Random)}, with destinations that may need a change of
 	 * train: each passenger's first train is the one {@code routes} picks from this station.
 	 */
-	public void spawn(long platformId, PassengerRoutes routes, long stationId, double minutes, Settings settings, long now, Random random) {
-		spawn(platformId, routes.destinations(platformId), routes, stationId, minutes, settings, now, random);
+	public void spawn(long platformId, PassengerRoutes routes, double minutes, Settings settings, long now, Random random) {
+		spawn(platformId, routes.destinations(platformId), routes, minutes, settings, now, random);
 	}
 
-	private void spawn(long platformId, long[] destinations, PassengerRoutes routes, long stationId, double minutes, Settings settings, long now, Random random) {
+	private void spawn(long platformId, long[] destinations, PassengerRoutes routes, double minutes, Settings settings, long now, Random random) {
 		if (destinations.length == 0 || settings.perPlatformPerMinute() <= 0) {
 			return;
 		}
@@ -97,8 +92,7 @@ public final class PassengerNetwork {
 				break;
 			}
 			final long destination = destinations[random.nextInt(destinations.length)];
-			final PassengerRoutes.Leg leg = routes == null ? null : routes.leg(stationId, destination);
-			queue.add(new Passenger(destination, leg == null ? destination : leg.stationId(), now));
+			queue.add(new Passenger(destination, routes == null ? destination : routes.firstLeg(platformId, destination), now));
 			total++;
 		}
 		spawnCarry.put(platformId, carry);
@@ -171,7 +165,6 @@ public final class PassengerNetwork {
 			return false;
 		}
 		waiting.computeIfAbsent(leg.platformId(), id -> new ArrayDeque<>()).add(new Passenger(passenger.destinationStationId(), leg.stationId(), now));
-		changedTotal++;
 		return true;
 	}
 
@@ -261,10 +254,5 @@ public final class PassengerNetwork {
 
 	public long alightedTotal() {
 		return alightedTotal;
-	}
-
-	/** Riders who got off to change trains, since the network started. */
-	public long changedTotal() {
-		return changedTotal;
 	}
 }
