@@ -1463,6 +1463,10 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	/** Under the switches: how long the engine takes per tick in this dimension, and how much of its time that is. */
 	private void renderEngineLag(DrawContext context) {
 		final int y = top + Math.min(org.mtr.mod.engine.EngineFeature.values().length, engineVisible()) * ROW + 4;
+		if (client == null || client.player == null || !client.player.hasPermissionLevel(2)) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.engine.operators"), centerX(), y + 2, 0xAAAAAA);
+			return;
+		}
 		final org.mtr.mod.engine.EngineLag.Reading lag = org.mtr.aurelia.client.EngineClient.lag();
 		if (lag == null) {
 			final boolean on = org.mtr.aurelia.client.EngineClient.enabled(org.mtr.mod.engine.EngineFeature.LAG_READOUT);
