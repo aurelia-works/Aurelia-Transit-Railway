@@ -29,7 +29,8 @@ import java.util.regex.Pattern;
  * closed after the shot. Without a
  * wrench in hand, {@code open=wrench} opens the screen anyway with {@code recipe=<encoded choices>} (or the defaults), for its
  * live preview; its actions then do nothing. {@code wait=<ticks>} waits longer before the shot (the preview plans and meshes in
- * the background). {@code use}
+ * the background). {@code useitem} right-clicks the air with the
+ * main-hand item, and {@code use}
  * right-clicks the block under the crosshair with the main-hand item first, like a player would, and any screen that opens is
  * in the shot, then closed; {@code click=<x>,<y>} (GUI pixels, repeatable) left-clicks the open screen {@code clickat=<ticks>}
  * after the request, {@code cmd=<command>} (rest of the line, no slash) runs a chat command first, and {@code record=<frames>} saves that many more numbered shots, one per tick, before closing. {@code studio} starts Station Studio without opening a browser (its address is in the log), so a
@@ -150,9 +151,17 @@ final class DevScreenshots {
 		final Matcher record = RECORD.matcher(content);
 		recordLeft = record.find() ? Math.min(400, Integer.parseInt(record.group(1))) : 0;
 		recordFrame = 0;
-		if (content.contains("use") && client.crosshairTarget instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK) {
+		if (content.contains("use") && !content.contains("useitem") && client.crosshairTarget instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK) {
 			client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hit);
 			closeScreen = true;
+			final Matcher longer = WAIT.matcher(content);
+			wait = longer.find() ? Math.max(1, Math.min(400, Integer.parseInt(longer.group(1)))) : SCREEN_SETTLE_TICKS;
+			return;
+		}
+		if (content.contains("useitem")) {
+			// right-clicks the air with the main-hand item, so the server side of its use runs too
+			client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
+			closeScreen = client.currentScreen != null;
 			final Matcher longer = WAIT.matcher(content);
 			wait = longer.find() ? Math.max(1, Math.min(400, Integer.parseInt(longer.group(1)))) : SCREEN_SETTLE_TICKS;
 			return;

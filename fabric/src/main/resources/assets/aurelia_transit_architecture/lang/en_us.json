@@ -877,6 +877,8 @@
   "screen.aurelia_transit_architecture.card_history.minutes_ago": "%s min ago",
   "screen.aurelia_transit_architecture.card_history.hours_ago": "%s h ago",
   "screen.aurelia_transit_architecture.card_history.days_ago": "%s d ago",
+  "screen.aurelia_transit_architecture.card_history.balance": "Balance",
+  "screen.aurelia_transit_architecture.card_history.top_up": "Top up soon",
   "screen.aurelia_transit_architecture.card_history.kept": "Keeps your last %s taps",
   "tooltip.aurelia_transit_architecture.transit_card.load": "Top up with /card load <amount>",
   "tooltip.aurelia_transit_architecture.wall_mounted": "Sticks to the wall you aim at",

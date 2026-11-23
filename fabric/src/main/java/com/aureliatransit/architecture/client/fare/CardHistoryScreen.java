@@ -39,6 +39,8 @@ public final class CardHistoryScreen extends Screen {
 	private static final long SHINE_MILLIS = 650;
 	/** After this long without a tap out, a journey shows as not tapped out instead of travelling. */
 	private static final long TRAVELLING_MILLIS = 3 * 3_600_000L;
+	/** Below this the balance shows red: MTR's base fare is $2 plus $1 a zone, so a longer trip may not fit. */
+	private static final int LOW_BALANCE = 5;
 
 	private final ItemStack stack;
 	private final long opened = AureliaMotion.now();
@@ -233,16 +235,29 @@ public final class CardHistoryScreen extends Screen {
 		return String.format("%04d", Math.floorMod(hash, 10_000));
 	}
 
+	/** Balance big, then today's spend and the journey count side by side; a low balance turns red with a nudge to top up. */
 	private void stats(DrawContext context, int x, int y, List<CardHistory.Tap> taps, List<Journey> journeys, long now) {
-		context.drawText(textRenderer, Text.translatable(KEY + ".spent_today"), x, y, AureliaPalette.TEXT_DIM, false);
+		final Integer balance = CardBalanceClient.recent();
+		final boolean low = balance != null && balance < LOW_BALANCE;
+		context.drawText(textRenderer, Text.translatable(KEY + ".balance"), x, y, AureliaPalette.TEXT_DIM, false);
+		final Text shown = balance == null ? Text.literal("-") : Text.literal((balance < 0 ? "-" : "") + Text.translatable(KEY + ".fare", Math.abs(balance)).getString());
 		final var matrices = context.getMatrices();
 		matrices.push();
 		matrices.translate(x, y + 12, 0);
 		matrices.scale(2, 2, 1);
-		context.drawText(textRenderer, Text.translatable(KEY + ".fare", CardHistory.spentOnDay(taps, now)), 0, 0, AureliaPalette.FG, false);
+		context.drawText(textRenderer, shown, 0, 0, low ? AureliaPalette.WARN : AureliaPalette.FG, false);
 		matrices.pop();
-		context.drawText(textRenderer, Text.translatable(KEY + ".journeys"), x, y + 40, AureliaPalette.TEXT_DIM, false);
-		context.drawText(textRenderer, Integer.toString(journeys.size()), x, y + 52, AureliaPalette.FG, false);
+		if (low) {
+			final Text topUp = Text.translatable(KEY + ".top_up");
+			final int px = x + 2 * textRenderer.getWidth(shown) + 6;
+			final int pw = textRenderer.getWidth(topUp) + 8;
+			AureliaChrome.rounded(context, px, y + 14, pw, 12, 6, AureliaChrome.fade(AureliaPalette.WARN, 0.18F));
+			context.drawText(textRenderer, topUp, px + 4, y + 16, AureliaPalette.WARN, false);
+		}
+		context.drawText(textRenderer, Text.translatable(KEY + ".spent_today"), x, y + 40, AureliaPalette.TEXT_DIM, false);
+		context.drawText(textRenderer, Text.translatable(KEY + ".fare", CardHistory.spentOnDay(taps, now)), x, y + 52, AureliaPalette.FG, false);
+		context.drawText(textRenderer, Text.translatable(KEY + ".journeys"), x + 76, y + 40, AureliaPalette.TEXT_DIM, false);
+		context.drawText(textRenderer, Integer.toString(journeys.size()), x + 76, y + 52, AureliaPalette.FG, false);
 	}
 
 	private void empty(DrawContext context, int left, int top, int bottom) {

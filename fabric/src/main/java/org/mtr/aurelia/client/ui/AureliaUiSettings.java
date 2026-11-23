@@ -24,7 +24,8 @@ public final class AureliaUiSettings {
 		SIDING("siding"),
 		OPTIONS("options"),
 		PANEL("panel"),
-		KEY_BOX("key_box");
+		KEY_BOX("key_box"),
+		TAP_POPUP("tap_popup");
 
 		public final String key;
 

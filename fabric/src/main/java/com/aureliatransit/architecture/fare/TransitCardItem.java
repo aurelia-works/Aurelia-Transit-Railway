@@ -44,7 +44,11 @@ public class TransitCardItem extends Item {
 		if (world.isClient) {
 			openScreen.accept(player.getStackInHand(hand));
 		} else {
-			player.sendMessage(FareText.balance(MtrFareContract.balance(world, player)), true);
+			final int balance = MtrFareContract.balance(world, player);
+			player.sendMessage(FareText.balance(balance), true);
+			if (MtrFareContract.available() && player instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
+				CardBalanceSync.send(serverPlayer, balance);
+			}
 		}
 		return TypedActionResult.success(player.getStackInHand(hand), world.isClient);
 	}
