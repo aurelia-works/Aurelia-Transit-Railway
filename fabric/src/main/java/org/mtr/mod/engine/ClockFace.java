@@ -3,7 +3,7 @@ package org.mtr.mod.engine;
 /**
  * Departures at the same minutes past every hour. MTR spaces in-game departures from the previous one, carrying the
  * gap over from the hour before, so the minutes drift whenever the frequency changes. Here every departure falls on a
- * whole number of gaps after midnight: a gap that divides an hour (every 5, 10, 15, 20 or 30 minutes) gives the same
+ * whole number of gaps after midnight: a gap that divides an hour (every 12, 15, 20, 30 or 60 minutes; MTR allows at most five an hour) gives the same
  * minutes every hour, and any other gap repeats every four hours, MTR's frequency span.
  */
 public final class ClockFace {
