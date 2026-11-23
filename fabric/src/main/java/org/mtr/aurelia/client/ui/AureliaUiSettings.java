@@ -25,7 +25,8 @@ public final class AureliaUiSettings {
 		OPTIONS("options"),
 		PANEL("panel"),
 		KEY_BOX("key_box"),
-		TAP_POPUP("tap_popup");
+		TAP_POPUP("tap_popup"),
+		TRAIN_PICKER("train_picker");
 
 		public final String key;
 
