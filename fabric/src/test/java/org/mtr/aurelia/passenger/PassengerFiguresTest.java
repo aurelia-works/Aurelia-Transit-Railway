@@ -38,8 +38,10 @@ public final class PassengerFiguresTest {
 
 	@Test
 	public void missingKeysKeepTheCheapDefaults() {
-		Assertions.assertFalse(PassengerDrawSettings.DEFAULT.draw(), "drawing stays off until an operator turns it on");
+		Assertions.assertTrue(PassengerDrawSettings.DEFAULT.draw(), "people are drawn by default; the server decides whether there are any");
 		Assertions.assertFalse(PassengerNetwork.Settings.DEFAULT.enabled(), "passengers stay off in an old world");
+		Assertions.assertFalse(PassengerNetwork.Settings.forFirstLoad(PassengerNetwork.Settings.NEW_WORLD_TICKS).enabled(), "passengers stay off in an old world");
+		Assertions.assertTrue(PassengerNetwork.Settings.forFirstLoad(0).enabled(), "a new world starts with passengers");
 		final PassengerDrawSettings.Values read = PassengerDrawSettings.from(new JsonObject());
 		Assertions.assertEquals(PassengerDrawSettings.DEFAULT, read);
 

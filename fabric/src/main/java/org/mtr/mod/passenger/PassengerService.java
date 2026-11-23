@@ -457,7 +457,12 @@ public final class PassengerService {
 	}
 
 	private static State state(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(State::fromNbt, () -> new State(PassengerNetwork.Settings.DEFAULT), FILE);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(State::fromNbt, () -> {
+			// saved straight away, so the choice made on first load sticks when the world is older next time
+			final State state = new State(PassengerNetwork.Settings.forFirstLoad(server.getOverworld().getTime()));
+			state.markDirty();
+			return state;
+		}, FILE);
 	}
 
 	private static final class State extends PersistentState {
