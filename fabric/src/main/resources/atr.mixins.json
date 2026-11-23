@@ -20,6 +20,7 @@
 		"HillSlowdownMixin",
 		"ClockFaceTimetableMixin",
 		"TerminusCatchUpMixin",
+		"JunctionPriorityMixin",
 		"NameColorDataBaseSchemaAccessor",
 		"SidingPathFinderAccessor",
 		"SidingPathFinderRouteControlMixin"

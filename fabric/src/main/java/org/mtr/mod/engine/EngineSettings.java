@@ -57,6 +57,7 @@ public final class EngineSettings {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			enabled = defaults();
 			EngineLag.clear();
+			JunctionPriority.clear();
 		});
 		// once a second, operators get the lag of the dimension they are in
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
