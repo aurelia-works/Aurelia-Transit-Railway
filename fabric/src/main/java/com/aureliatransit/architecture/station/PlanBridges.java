@@ -101,7 +101,8 @@ abstract class PlanBridges extends PlanConcourse {
 					}
 				}
 				for (int y = StationGeometry.UPPER_WALK_Y; y <= StationGeometry.BUILDING_ROOF_Y - 1; y++) {
-					final boolean low = y <= StationGeometry.UPPER_WALK_Y + 1;
+					// a doorway three high onto each flight, so the glass over it is not at head height (TK, 11-23)
+					final boolean low = y <= StationGeometry.UPPER_WALK_Y + 2;
 					if (!(low && exitLo)) {
 						put(Role.WINDOW, u, y, wallLo, LocalDir.MINUS_V, b.bridgeWall());
 					}

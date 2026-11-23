@@ -101,6 +101,24 @@ class WalkThroughFixesTest {
 		}
 	}
 
+	/** TK (tester, 2026-11-23): the second escalator ran up like the first, so nothing took people down to the platform. */
+	@Test
+	void theSecondEscalatorRunsDown() {
+		final StationSpec spec = StationDescriptionParser.parse("4 tracks island 12 wide 100 long footbridge escalators stairs both ways").spec();
+		final TrackLayout layout = StationGeometry.layout(spec);
+		final StationLayout site = StationLayout.of(spec, layout);
+		long reverse = 0;
+		for (final TrackLayout.PlatformBand band : layout.platforms()) {
+			reverse += site.reverseEscalator(band) != null ? 1 : 0;
+		}
+		assertTrue(reverse > 0, "this island has a second escalator");
+		final StationPlan plan = StationPlanner.plan(spec);
+		final long downSteps = plan.blocks().stream()
+				.filter(b -> b.blockId().equals(StylePalette.MTR_ESCALATOR_STEP) && b.state().contains("direction=false"))
+				.count();
+		assertEquals(2L * (StationLayout.ESCALATOR_TOP + 1) * reverse, downSteps, "every second escalator runs down");
+	}
+
 	@Test
 	void aSecondFlightFromTheOtherSideCanBeAnEscalator() {
 		final StationSpec spec = StationDescriptionParser.parse("4 tracks island 12 wide 100 long footbridge escalators stairs both ways").spec();

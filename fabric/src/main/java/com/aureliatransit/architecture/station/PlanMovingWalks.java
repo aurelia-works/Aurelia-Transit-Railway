@@ -23,20 +23,20 @@ abstract class PlanMovingWalks extends PlanBridges {
 			if (columns.isEmpty()) {
 				continue;
 			}
-			escalator(columns, site.stairSide(), site.stairWallV());
-			// the second flight, on the corridor's other side, is an escalator too
+			escalator(columns, site.stairSide(), site.stairWallV(), true);
+			// the second flight, on the corridor's other side, is an escalator too, running down
 			final StationLayout.Flight reverse = site.reverseEscalator(band);
 			if (reverse != null) {
-				escalator(reverse.columns(), reverse.side(), reverse.wallV());
+				escalator(reverse.columns(), reverse.side(), reverse.wallV(), false);
 			}
 		}
 	}
 
 	/**
-	 * An up escalator on {@code columns} from the corridor wall at {@code wallV} down towards {@code side}: its top landing
-	 * in the wall row at deck level, the bottom landing at platform level, a clear row at its foot.
+	 * An escalator on {@code columns} from the corridor wall at {@code wallV} down towards {@code side}, running up or down:
+	 * its top landing in the wall row at deck level, the bottom landing at platform level, a clear row at its foot.
 	 */
-	void escalator(List<Integer> columns, int side, int wallV) {
+	void escalator(List<Integer> columns, int side, int wallV, boolean runsUp) {
 		final LocalDir up = side > 0 ? LocalDir.MINUS_V : LocalDir.PLUS_V;
 		// MTR's left half is on the left looking up the escalator; +U is to the right of +V
 		final int left = up == LocalDir.PLUS_V ? columns.get(0) : columns.get(1);
@@ -45,7 +45,7 @@ abstract class PlanMovingWalks extends PlanBridges {
 			final int y = StationLayout.escalatorY(i);
 			for (final int u : columns) {
 				final String half = u == left ? "left" : "right";
-				put(Role.ESCALATOR, u, y, v, up, StylePalette.MTR_ESCALATOR_STEP, "side=" + half + ",direction=true,status=true");
+				put(Role.ESCALATOR, u, y, v, up, StylePalette.MTR_ESCALATOR_STEP, "side=" + half + ",direction=" + runsUp + ",status=true");
 				put(Role.ESCALATOR, u, y + 1, v, up, StylePalette.MTR_ESCALATOR_SIDE, "side=" + half);
 				for (int below = StationGeometry.WALK_Y; below < y; below++) {
 					put(Role.BRIDGE_PIER, u, below, v, up, palette.building().pier());
