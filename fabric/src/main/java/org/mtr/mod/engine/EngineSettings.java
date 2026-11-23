@@ -1,6 +1,7 @@
 package org.mtr.mod.engine;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -10,6 +11,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.World;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -34,7 +36,12 @@ public final class EngineSettings {
 	}
 
 	public static void registerServer() {
-		ServerLifecycleEvents.SERVER_STARTED.register(server -> enabled = state(server).values.clone());
+		// as soon as the overworld exists, before MTR's simulators build any paths
+		ServerWorldEvents.LOAD.register((server, world) -> {
+			if (world.getRegistryKey() == World.OVERWORLD) {
+				enabled = state(server).values.clone();
+			}
+		});
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> enabled = defaults());
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> send(handler.getPlayer()));
 		ServerPlayNetworking.registerGlobalReceiver(SET, (server, player, handler, buf, response) -> {

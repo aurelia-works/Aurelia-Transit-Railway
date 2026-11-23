@@ -45,7 +45,13 @@ public abstract class PlaneTurnaroundMixin {
 				final long dwell = PlaneTurnaround.dwellMillis(pathData.getDwellTime(), planeLength);
 				if (dwell != pathData.getDwellTime()) {
 					final PathDataSchemaAccessor accessor = (PathDataSchemaAccessor) pathData;
-					pathMainRoute.set(i, new PathData(pathData.getRail(), pathData.getSavedRailBaseId(), dwell, pathData.getStopIndex(), pathData.getStartDistance(), pathData.getEndDistance(), accessor.atr$startPosition(), accessor.atr$startAngle(), accessor.atr$endPosition(), accessor.atr$endAngle()));
+					final PathData longer = new PathData(pathData.getRail(), pathData.getSavedRailBaseId(), dwell, pathData.getStopIndex(), pathData.getStartDistance(), pathData.getEndDistance(), accessor.atr$startPosition(), accessor.atr$startAngle(), accessor.atr$endPosition(), accessor.atr$endAngle());
+					// this constructor leaves the speed limit at 0 (1 km/h) and the shape to the rail; keep the original's
+					final PathDataSchemaAccessor copy = (PathDataSchemaAccessor) longer;
+					copy.atr$setShape(accessor.atr$shape());
+					copy.atr$setVerticalRadius(accessor.atr$verticalRadius());
+					copy.atr$setSpeedLimit(accessor.atr$speedLimit());
+					pathMainRoute.set(i, longer);
 				}
 			}
 		}
