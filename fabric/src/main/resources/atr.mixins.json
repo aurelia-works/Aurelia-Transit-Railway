@@ -12,6 +12,8 @@
 		"CancelledRunMixin",
 		"DepotRouteControlMixin",
 		"SidingRouteControlMixin",
+		"PlaneTurnaroundMixin",
+		"PathDataSchemaAccessor",
 		"SidingPathFinderAccessor",
 		"SidingPathFinderRouteControlMixin"
 	],

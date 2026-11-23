@@ -81,7 +81,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen implements DashboardParentAccess {
 
-	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS, MAP, VEHICLES}
+	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS, MAP, VEHICLES, ENGINE}
 
 	private static final int BUTTON_WIDTH = 200;
 	private static final int VALUE_WIDTH = 80;
@@ -109,7 +109,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	/** Riding and driving, then the network, then building, then this client's look and speed. */
 	private static final Tab[][] GROUPS = {
 			{Tab.RIDING, Tab.DRIVING, Tab.VEHICLES, Tab.PANTOGRAPH, Tab.TRAIN_SOUND, Tab.SOUND},
-			{Tab.ROUTES, Tab.TOOLS, Tab.PASSENGERS, Tab.ZIP, Tab.MAP},
+			{Tab.ROUTES, Tab.TOOLS, Tab.PASSENGERS, Tab.ENGINE, Tab.ZIP, Tab.MAP},
 			{Tab.ARCHITECTURE, Tab.BUILD, Tab.BUILDER},
 			{Tab.RENDERING, Tab.LOOK, Tab.PACKS}
 	};
@@ -196,6 +196,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	/** Vehicles tab: the colour picker paints the hire bikes instead of the cars. */
 	private boolean paintBikes;
 	private int drivingFirst;
+	private int engineFirst;
 	private int mapFirst;
 	private static final int MAP_ROWS = 10;
 	private static final int DRIVING_ROWS = 7;
@@ -241,6 +242,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			case PACKS -> initPacks();
 			case MAP -> initMap();
 			case VEHICLES -> initVehicles();
+			case ENGINE -> initEngine();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions(contentRight - 100, height - 24, 100, 20).build());
 	}
@@ -1177,6 +1179,14 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			}
 			return true;
 		}
+		if (tab == Tab.ENGINE) {
+			final int newFirstRow = Math.max(0, Math.min(org.mtr.mod.engine.EngineFeature.values().length - visibleRows(), engineFirst - (int) Math.signum(amount)));
+			if (newFirstRow != engineFirst) {
+				engineFirst = newFirstRow;
+				clearAndInit();
+			}
+			return true;
+		}
 		if (tab == Tab.DRIVING) {
 			final int newFirstRow = Math.max(0, Math.min(DRIVING_ROWS - visibleRows(), drivingFirst - (int) Math.signum(amount)));
 			if (newFirstRow != drivingFirst) {
@@ -1254,6 +1264,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			case BUILD -> scrollLine(context, buildFirst, visibleRows(), BUILD_ROWS);
 			case PASSENGERS -> scrollLine(context, passengerFirst, passengerVisible(), PASSENGER_ROWS);
 			case MAP -> scrollLine(context, mapFirst, visibleRows(), MAP_ROWS);
+			case ENGINE -> scrollLine(context, engineFirst, visibleRows(), org.mtr.mod.engine.EngineFeature.values().length);
 			default -> {
 			}
 		}
@@ -1421,6 +1432,28 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 
 	private int mapY(int row) {
 		return top + (row - mapFirst) * ROW;
+	}
+
+	/** One switch per engine feature. Only operators can change them; the server ignores anyone else. */
+	private void initEngine() {
+		final org.mtr.mod.engine.EngineFeature[] features = org.mtr.mod.engine.EngineFeature.values();
+		engineFirst = Math.max(0, Math.min(engineFirst, features.length - visibleRows()));
+		final int left = columnLeft();
+		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		for (int row = engineFirst; row < Math.min(features.length, engineFirst + visibleRows()); row++) {
+			final org.mtr.mod.engine.EngineFeature feature = features[row];
+			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(engineLabel(feature, org.mtr.aurelia.client.EngineClient.enabled(feature)), b -> {
+				final boolean next = !org.mtr.aurelia.client.EngineClient.enabled(feature);
+				org.mtr.aurelia.client.EngineClient.request(feature, next);
+				b.setMessage(engineLabel(feature, next));
+			}).dimensions(left, top + (row - engineFirst) * ROW, BUTTON_WIDTH, 20).build());
+			button.setTooltip(Tooltip.of(Text.translatable(feature.langKey() + ".tooltip")));
+			button.active = operator;
+		}
+	}
+
+	private static Text engineLabel(org.mtr.mod.engine.EngineFeature feature, boolean on) {
+		return Text.translatable(feature.langKey(), ScreenTexts.onOrOff(on));
 	}
 
 	private boolean drivingRow(int row) {
