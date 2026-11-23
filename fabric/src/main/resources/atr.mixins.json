@@ -16,6 +16,7 @@
 		"PathDataSchemaAccessor",
 		"BoardingDwellMixin",
 		"VehicleSchemaAccessor",
+		"EngineLagMixin",
 		"SidingPathFinderAccessor",
 		"SidingPathFinderRouteControlMixin"
 	],
