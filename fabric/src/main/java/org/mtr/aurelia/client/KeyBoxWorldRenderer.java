@@ -1,5 +1,6 @@
 package org.mtr.aurelia.client;
 
+import org.mtr.aurelia.keybox.KeysOut;
 import org.mtr.mapping.holder.BlockState;
 import org.mtr.mapping.holder.Direction;
 import org.mtr.mapping.holder.Identifier;
@@ -42,7 +43,13 @@ public final class KeyBoxWorldRenderer {
 		if (world == null || InitClient.findDepot(entity.getPos2()) == null) {
 			return false;
 		}
-		final boolean[] on = {entity.getDispenseBasicDriverKey(), entity.getDispenseAdvancedDriverKey(), entity.getDispenseGuardKey()};
+		// a key that is out with a driver leaves its hook empty until it runs out
+		final long now = System.currentTimeMillis();
+		final KeysOut out = (KeysOut) entity;
+		final boolean[] on = {
+				entity.getDispenseBasicDriverKey() && !out.atr$keyOut(KeysOut.BASIC, now),
+				entity.getDispenseAdvancedDriverKey() && !out.atr$keyOut(KeysOut.ADVANCED, now),
+				entity.getDispenseGuardKey() && !out.atr$keyOut(KeysOut.GUARD, now)};
 		final int[] colors = {color(Items.BASIC_DRIVER_KEY.get()), color(Items.ADVANCED_DRIVER_KEY.get()), color(Items.GUARD_KEY.get())};
 		if (!on[0] && !on[1] && !on[2]) {
 			return true;

@@ -10,6 +10,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.mtr.aurelia.client.ui.AureliaChrome;
+import org.mtr.aurelia.keybox.KeysOut;
 import org.mtr.aurelia.client.ui.AureliaMotion;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.core.data.Depot;
@@ -58,6 +59,9 @@ public final class KeyBoxScreen extends Screen {
 	private static final long HOVER_MILLIS = 120;
 	private static final long[] STEPS = minutes(15, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1440);
 
+	/** The line under a key that is out with a driver. */
+	private static final int OUT_TEXT = 0xFFE8B04A;
+
 	private final BlockPos blockPos;
 	private final Key[] keys;
 	private final long opened = AureliaMotion.now();
@@ -75,12 +79,19 @@ public final class KeyBoxScreen extends Screen {
 		boolean on;
 		long hungAt;
 		float hover;
+		/** When the last key this box dropped comes back (epoch millis); until then its hook is empty. */
+		final long backAt;
 
-		Key(org.mtr.mapping.holder.Item item, String name, boolean on, long hungAt) {
+		Key(org.mtr.mapping.holder.Item item, String name, boolean on, long hungAt, long backAt) {
 			this.item = (ItemDriverKey) item.data;
 			this.name = Text.translatable("gui.aurelia.key_box.name." + name);
 			this.on = on;
 			this.hungAt = hungAt;
+			this.backAt = backAt;
+		}
+
+		boolean out() {
+			return on && backAt > System.currentTimeMillis();
 		}
 	}
 
@@ -90,10 +101,11 @@ public final class KeyBoxScreen extends Screen {
 		timeout = blockEntity.getTimeout();
 		// once the door is open, the keys already in the box drop onto their hooks one after another
 		final long settle = opened + DOOR_DELAY + DOOR_MILLIS * 2 / 3;
+		final KeysOut out = (KeysOut) blockEntity;
 		keys = new Key[]{
-				new Key(Items.BASIC_DRIVER_KEY.get(), "basic", blockEntity.getDispenseBasicDriverKey(), settle),
-				new Key(Items.ADVANCED_DRIVER_KEY.get(), "advanced", blockEntity.getDispenseAdvancedDriverKey(), settle + 80),
-				new Key(Items.GUARD_KEY.get(), "guard", blockEntity.getDispenseGuardKey(), settle + 160),
+				new Key(Items.BASIC_DRIVER_KEY.get(), "basic", blockEntity.getDispenseBasicDriverKey(), settle, out.atr$keyBackAt(KeysOut.BASIC)),
+				new Key(Items.ADVANCED_DRIVER_KEY.get(), "advanced", blockEntity.getDispenseAdvancedDriverKey(), settle + 80, out.atr$keyBackAt(KeysOut.ADVANCED)),
+				new Key(Items.GUARD_KEY.get(), "guard", blockEntity.getDispenseGuardKey(), settle + 160, out.atr$keyBackAt(KeysOut.GUARD)),
 		};
 	}
 
@@ -228,6 +240,11 @@ public final class KeyBoxScreen extends Screen {
 		final int centre = x + slotWidth() / 2;
 		final int nameY = y + CABINET_HEIGHT - 28;
 		drawCentred(context, key.name, centre, nameY, key.on ? 0xFFFFFFFF : AureliaPalette.TEXT_DIM, slotWidth() - 10);
+		if (key.out()) {
+			// a driver has this key: say when it comes back
+			drawCentred(context, Text.translatable("gui.aurelia.key_box.out", shortDuration(key.backAt - System.currentTimeMillis())), centre, nameY + 11, OUT_TEXT, slotWidth() - 10);
+			return;
+		}
 		final Text ability = Text.translatable(key.on || key.hover > 0.5F ? abilityKey(key.item) : "gui.aurelia.key_box.add");
 		drawCentred(context, ability, centre, nameY + 11, key.on ? 0xFFB9C9DE : AureliaChrome.fade(AureliaPalette.TEXT_DIM, 0.8F), slotWidth() - 10);
 	}
@@ -241,7 +258,7 @@ public final class KeyBoxScreen extends Screen {
 		context.fill(centre - 1, rodY + 7, centre + 3, rodY + 9, STEEL);
 		final int color = key.item.color;
 		final long since = AureliaMotion.now() - key.hungAt;
-		if (!key.on) {
+		if (!key.on || key.out()) {
 			drawKey(context, centre, rodY + 6, 0, color, 0.16F + 0.14F * key.hover);
 		} else if (since >= 0) {
 			final float drop = 1 - AureliaMotion.easeOutBack(AureliaMotion.progress(key.hungAt, DROP_MILLIS));
@@ -438,6 +455,13 @@ public final class KeyBoxScreen extends Screen {
 			}
 		}
 		return Math.min(timeout, STEPS[0]);
+	}
+
+	/** "1h 29m" or "29m", short enough for the line under a key. */
+	private static Text shortDuration(long millis) {
+		final long minutes = Math.max(1, (Math.max(0, millis) + 59_999) / 60000);
+		return minutes < 60 ? Text.translatable("gui.aurelia.key_box.short_m", minutes)
+				: Text.translatable("gui.aurelia.key_box.short_hm", minutes / 60, minutes % 60);
 	}
 
 	private static Text duration(long millis) {

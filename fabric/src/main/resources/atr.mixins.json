@@ -13,7 +13,8 @@
 		"DepotRouteControlMixin",
 		"SidingRouteControlMixin",
 		"SidingPathFinderAccessor",
-		"SidingPathFinderRouteControlMixin"
+		"SidingPathFinderRouteControlMixin",
+		"KeyBoxKeysOutMixin"
 	],
 	"client": [
 		"BlockEntityCounterMixin",
