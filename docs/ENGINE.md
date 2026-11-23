@@ -22,7 +22,8 @@ The fork's build needs JDK 21 to run. The jar it makes runs on Java 17.
 ## How the first build was checked against the jar MTR shipped
 
 - Classes and methods match. The differences:
-  - Helper code that Java adds automatically.
+  - Helper code that Java adds automatically. The new jar has no `Outer$1` helper classes (9 of them, such as
+    `Depot$1`). They are empty: Java 8 needed them to reach private constructors of inner classes, Java 11 and later don't.
   - Inner code (lambdas) nested in other lambdas is named after its method instead of `lambda$null$`, with the same
     numbers. The numbers change only in `MessagePackWriter`.
   - Six data classes have public fields again, as in the old jar (`Vector`, `LatLon`, `Connection`,
