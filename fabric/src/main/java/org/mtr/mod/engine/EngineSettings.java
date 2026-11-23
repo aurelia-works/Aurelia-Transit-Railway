@@ -39,7 +39,7 @@ public final class EngineSettings {
 		// as soon as the overworld exists, before MTR's simulators build any paths
 		ServerWorldEvents.LOAD.register((server, world) -> {
 			if (world.getRegistryKey() == World.OVERWORLD) {
-				enabled = state(server).values.clone();
+				enabled = state(world).values.clone();
 			}
 		});
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> enabled = defaults());
@@ -104,7 +104,11 @@ public final class EngineSettings {
 	}
 
 	private static State state(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(State::fromNbt, () -> new State(defaults()), FILE);
+		return state(server.getOverworld());
+	}
+
+	private static State state(net.minecraft.server.world.ServerWorld overworld) {
+		return overworld.getPersistentStateManager().getOrCreate(State::fromNbt, () -> new State(defaults()), FILE);
 	}
 
 	private static final class State extends PersistentState {
