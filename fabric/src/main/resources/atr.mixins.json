@@ -17,6 +17,7 @@
 		"BoardingDwellMixin",
 		"VehicleSchemaAccessor",
 		"EngineLagMixin",
+		"HillSlowdownMixin",
 		"SidingPathFinderAccessor",
 		"SidingPathFinderRouteControlMixin"
 	],
