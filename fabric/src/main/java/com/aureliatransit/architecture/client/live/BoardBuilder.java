@@ -159,7 +159,7 @@ final class BoardBuilder {
 		// the window
 		b.m.rect(windowL, y0 + 2, windowR - windowL, bodyH - 4, st.rowBand(), BoardModel.LAYER_BAND);
 		if (list.isEmpty()) {
-			b.idle(Font.DEFAULT, Font.DEFAULT, y0 + 2, bodyH - 4);
+			b.idleInWindow(Font.DEFAULT, Font.DEFAULT, y0 + 2, bodyH - 4, windowL + 3, windowR - 3);
 			messageStrip(b, Font.DEFAULT);
 			return;
 		}
@@ -1084,11 +1084,38 @@ final class BoardBuilder {
 			return snapshot.station() == null ? Tr.t("board_configure") : Tr.t("term_no_departures");
 		}
 
-		/** The two idle lines, centred in the given band. */
+		/** The two idle lines, centred across the whole board. */
 		void idle(Font bold, Font regular, float top, float height) {
+			idleLines(bold, regular, top, height, MARGIN, vw - MARGIN, true);
+		}
+
+		/**
+		 * The idle lines inside a window between {@code left} and {@code right} (Japan platform), each shrunk until it fits,
+		 * so they don't run over the clock beside it. The board's side already shows the platform number, so a "Platform 5"
+		 * first line is left out and only the second line shows.
+		 */
+		void idleInWindow(Font bold, Font regular, float top, float height, float left, float right) {
+			final boolean platformLine = snapshot.station() != null && !concourse && !hereName.isEmpty();
+			idleLines(bold, regular, top, height, left, right, !platformLine);
+		}
+
+		private void idleLines(Font bold, Font regular, float top, float height, float left, float right, boolean first) {
+			final float cx = (left + right) / 2;
+			final float avail = right - left;
+			if (!first) {
+				centreShrunk(idleSecond(), regular, cx, top + Math.max(0, (height - 7) / 2), 0.8F, avail, style.dim());
+				return;
+			}
 			final float y = top + Math.max(0, (height - 18) / 2);
-			centre(idleFirst(), bold, vw / 2, y, 1, style.text());
-			centre(idleSecond(), regular, vw / 2, y + 10, 0.8F, style.dim());
+			centreShrunk(idleFirst(), bold, cx, y, 1, avail, style.text());
+			centreShrunk(idleSecond(), regular, cx, y + 10, 0.8F, avail, style.dim());
+		}
+
+		/** {@code text} centred on {@code cx} at size {@code k}, or smaller if that is wider than {@code avail}. */
+		private void centreShrunk(String text, Font font, float cx, float y, float k, float avail, int color) {
+			final float full = w(text, font, 1);
+			final float scale = full <= 0 ? k : Math.min(k, avail / full);
+			put(text, font, cx - full * scale / 2, y + 7 * (k - scale) / 2, scale, color);
 		}
 
 		/** A station name as the boards show it (suffixes applied). */
