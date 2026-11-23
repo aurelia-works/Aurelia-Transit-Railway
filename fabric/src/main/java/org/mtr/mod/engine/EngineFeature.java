@@ -15,7 +15,9 @@ public enum EngineFeature {
 	/** The Engine tab shows how long the simulation takes per tick; off, the server stops sending it. */
 	LAG_READOUT("lag_readout"),
 	/** Trains climbing a hill go a little slower and pull away more gently. */
-	HILL_SLOWDOWN("hill_slowdown");
+	HILL_SLOWDOWN("hill_slowdown"),
+	/** Departures at the same minutes every hour, and late trains catch up at the end of the line. */
+	TIMETABLE("timetable");
 
 	public final String key;
 
