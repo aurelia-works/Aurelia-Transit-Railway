@@ -47,11 +47,13 @@ public abstract class AureliaDashboardMixin implements DashboardCameraAccess {
 	private void toggleButtons() {
 	}
 
+	// No field initialisers: with MAGIC also mixing into DashboardScreen they were left unrun and the dashboard crashed.
+	// Both fields are filled on first use instead (DashboardMixinStateTest).
 	@Unique
-	private final DashboardTabBar atr$tabBar = new DashboardTabBar();
+	private DashboardTabBar atr$tabBar;
 
 	@Unique
-	private List<?> atr$modeTabs = Collections.emptyList();
+	private List<?> atr$modeTabs;
 
 	@ModifyArg(method = "render", at = @At(value = "INVOKE", target = "Lorg/mtr/mapping/mapper/GuiDrawing;drawRectangle(DDDDI)V"), index = 4)
 	private int atr$panelColour(int color) {
@@ -73,12 +75,15 @@ public abstract class AureliaDashboardMixin implements DashboardCameraAccess {
 
 	@Override
 	public DashboardTabBar atr$tabBar() {
+		if (this.atr$tabBar == null) {
+			this.atr$tabBar = new DashboardTabBar();
+		}
 		return this.atr$tabBar;
 	}
 
 	@Override
 	public List<?> atr$modeTabs() {
-		return this.atr$modeTabs;
+		return this.atr$modeTabs == null ? Collections.emptyList() : this.atr$modeTabs;
 	}
 
 	@Override
