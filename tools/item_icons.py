@@ -159,8 +159,7 @@ def station_codex():
 	canvas = Image.new("RGBA", (BIG, BIG), (0, 0, 0, 0))
 	page_mask = mask_of(lambda d: d.polygon(pages, fill=255))
 	paint(canvas, page_mask, gradient((BIG, BIG), hexc("FFF8E8"), hexc("D8C9A4"), 60))
-	page_lines = mask_of(lambda d: [d.line((424 + i * 0, 96 + i * 18, 450, 110 + i * 18), fill=255, width=4) for i in range(0)]
-			+ [d.line((410, y, 450, y + 40), fill=255, width=5) for y in range(110, 450, 32)]
+	page_lines = mask_of(lambda d: [d.line((410, y, 450, y + 40), fill=255, width=5) for y in range(110, 450, 32)]
 			+ [d.line((x, 456, x + 40, 482), fill=255, width=5) for x in range(110, 420, 34)])
 	paint(canvas, ImageChops.multiply(page_lines, page_mask), hexc("B9A985") + (255,))
 	paint(canvas, rim(page_mask, SS), hexc("9C8B66") + (255,))

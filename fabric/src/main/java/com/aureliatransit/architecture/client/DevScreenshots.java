@@ -31,7 +31,8 @@ import java.util.regex.Pattern;
  * live preview; its actions then do nothing. {@code wait=<ticks>} waits longer before the shot (the preview plans and meshes in
  * the background). {@code use}
  * right-clicks the block under the crosshair with the main-hand item first, like a player would, and any screen that opens is
- * in the shot, then closed. {@code studio} starts Station Studio without opening a browser (its address is in the log), so a
+ * in the shot, then closed; {@code click=<x>,<y>} (GUI pixels, repeatable) left-clicks that screen {@code clickat=<ticks>}
+ * after the right-click. {@code studio} starts Station Studio without opening a browser (its address is in the log), so a
  * script can drive it. Inert in a normal game.
  */
 final class DevScreenshots {
@@ -44,12 +45,18 @@ final class DevScreenshots {
 	private static final Pattern PAGE = Pattern.compile("page=(\\d+)");
 	private static final Pattern RECIPE = Pattern.compile("recipe=(\\S+)");
 	private static final Pattern WAIT = Pattern.compile("wait=(\\d+)");
+	private static final Pattern CLICK = Pattern.compile("click=(\\d+),(\\d+)");
+	private static final Pattern CLICK_AT = Pattern.compile("clickat=(\\d+)");
 
 	private static String pending;
 	private static boolean restoreHud;
 	private static Integer restoreFov;
 	private static boolean closeScreen;
 	private static int wait;
+	/** Left clicks, in GUI pixels, sent to the open screen {@link #clickAt} ticks after a {@code use} request. */
+	private static final java.util.List<int[]> clicks = new java.util.ArrayList<>();
+	private static int clickAt;
+	private static int elapsed;
 
 	private DevScreenshots() {
 	}
@@ -63,6 +70,12 @@ final class DevScreenshots {
 
 	private static void tick(MinecraftClient client) {
 		if (pending != null) {
+			if (!clicks.isEmpty() && ++elapsed >= clickAt && client.currentScreen != null) {
+				for (final int[] click : clicks) {
+					client.currentScreen.mouseClicked(click[0], click[1], 0);
+				}
+				clicks.clear();
+			}
 			if (--wait > 0) {
 				return;
 			}
@@ -110,6 +123,13 @@ final class DevScreenshots {
 		if (content.contains("use") && client.crosshairTarget instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK) {
 			client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hit);
 			closeScreen = true;
+			final Matcher click = CLICK.matcher(content);
+			while (click.find()) {
+				clicks.add(new int[]{Integer.parseInt(click.group(1)), Integer.parseInt(click.group(2))});
+			}
+			final Matcher at = CLICK_AT.matcher(content);
+			clickAt = at.find() ? Integer.parseInt(at.group(1)) : SCREEN_SETTLE_TICKS;
+			elapsed = 0;
 			final Matcher longer = WAIT.matcher(content);
 			wait = longer.find() ? Math.max(1, Math.min(400, Integer.parseInt(longer.group(1)))) : SCREEN_SETTLE_TICKS;
 			return;

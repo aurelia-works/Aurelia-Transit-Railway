@@ -130,7 +130,10 @@ public final class KeyBoxScreen extends Screen {
 		context.drawTextWithShadow(textRenderer, title, left + 10, top + 8, TEXT);
 		final Depot depot = InitClient.findDepot(blockPos);
 		final Text where = depot == null ? Text.translatable("gui.aurelia.key_box.no_depot") : Text.literal(depot.getName());
-		context.drawTextWithShadow(textRenderer, where, left + PANEL_WIDTH - 10 - textRenderer.getWidth(where), top + 8, depot == null ? WARN : DIM);
+		// a long depot name shrinks to the space the title leaves
+		final int room = PANEL_WIDTH - 28 - textRenderer.getWidth(title);
+		final int whereWidth = Math.min(room, textRenderer.getWidth(where));
+		drawCentred(context, where, left + PANEL_WIDTH - 10 - whereWidth / 2, top + 8, depot == null ? WARN : DIM, room);
 
 		// the rod the hooks hang from
 		final int rodY = cardY() + 12;
