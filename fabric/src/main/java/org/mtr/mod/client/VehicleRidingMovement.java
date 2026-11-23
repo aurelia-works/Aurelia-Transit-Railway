@@ -407,7 +407,7 @@ public class VehicleRidingMovement {
 		if (ridingVehicleId != 0) {
 			final boolean brake = pressingBrakeTicks == 1 || protectionBrake;
 			final boolean doors = pressingDoorsTicks == 1 || aureliaDoorRequest;
-			InitClient.REGISTRY_CLIENT.sendPacketToServer(PacketUpdateVehicleRidingEntities.create(ridingSidingId, ridingVehicleId, dismount ? -1 : ridingVehicleCarNumber, ridingVehicleX, ridingVehicleY, ridingVehicleZ, isOnGangway, isHoldingDriverKey, !protectionBrake && pressingAccelerateTicks == 1, brake, doors, !protectionBrake && pressingAtoTicks == 1, doorOverrideTicks > 1));
+			InitClient.REGISTRY_CLIENT.sendPacketToServer(PacketUpdateVehicleRidingEntities.create(ridingSidingId, ridingVehicleId, dismount ? -1 : ridingVehicleCarNumber, ridingVehicleX, ridingVehicleY, ridingVehicleZ, isOnGangway, isHoldingDriverKey, !protectionBrake && pressingAccelerateTicks == 1, brake, doors, !protectionBrake && pressingAtoTicks == 1));
 			aureliaDoorRequest = false;
 			sendPositionUpdateTime = 0;
 		}
