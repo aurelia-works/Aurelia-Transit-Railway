@@ -31,6 +31,7 @@
 		"DashboardItemMixin",
 		"DashboardMapMixin",
 		"DashboardOpenMixin",
+		"KeyBoxOpenMixin",
 		"AureliaFieldMixin",
 		"AureliaShortSliderMixin",
 		"AureliaSliderMixin",

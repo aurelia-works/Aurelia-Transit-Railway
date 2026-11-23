@@ -23,7 +23,8 @@ public final class AureliaUiSettings {
 		DEPOT("depot"),
 		SIDING("siding"),
 		OPTIONS("options"),
-		PANEL("panel");
+		PANEL("panel"),
+		KEY_BOX("key_box");
 
 		public final String key;
 

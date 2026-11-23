@@ -110,7 +110,8 @@ final class DevScreenshots {
 		if (content.contains("use") && client.crosshairTarget instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK) {
 			client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hit);
 			closeScreen = true;
-			wait = SCREEN_SETTLE_TICKS;
+			final Matcher longer = WAIT.matcher(content);
+			wait = longer.find() ? Math.max(1, Math.min(400, Integer.parseInt(longer.group(1)))) : SCREEN_SETTLE_TICKS;
 			return;
 		}
 		if (content.contains("studio")) {
