@@ -14,6 +14,8 @@
 		"SidingRouteControlMixin",
 		"PlaneTurnaroundMixin",
 		"PathDataSchemaAccessor",
+		"BoardingDwellMixin",
+		"VehicleSchemaAccessor",
 		"SidingPathFinderAccessor",
 		"SidingPathFinderRouteControlMixin"
 	],

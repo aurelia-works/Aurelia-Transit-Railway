@@ -9,7 +9,9 @@ public enum EngineFeature {
 	/** An airplane stays at the gate as long as a real turnaround takes for its size. */
 	PLANE_TURNAROUND("plane_turnaround"),
 	/** Passengers go anywhere the network reaches, changing trains up to twice; off, they ride one train only. */
-	PASSENGER_CHANGES("passenger_changes");
+	PASSENGER_CHANGES("passenger_changes"),
+	/** A train keeps its doors open while people are still getting on and off, up to a limit. */
+	BOARDING_DWELL("boarding_dwell");
 
 	public final String key;
 

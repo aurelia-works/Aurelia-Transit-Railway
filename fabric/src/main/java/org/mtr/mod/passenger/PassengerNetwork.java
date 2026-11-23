@@ -48,7 +48,10 @@ public final class PassengerNetwork {
 	public record Passenger(long destinationStationId, long legStationId, long spawnMillis) {
 	}
 
-	public record Exchange(int alighted, int boarded) {
+	/**
+	 * @param more someone was still waiting to get off or on when this second's moves ran out
+	 */
+	public record Exchange(int alighted, int boarded, boolean more) {
 	}
 
 	/** A passenger who waits this long gives up and goes home. */
@@ -117,7 +120,7 @@ public final class PassengerNetwork {
 	 */
 	public Exchange exchange(long vehicleId, long platformId, long stationId, Set<Long> upcomingStations, int cars, Settings settings, boolean doorsOpen, PassengerRoutes routes, long now) {
 		if (!doorsOpen) {
-			return new Exchange(0, 0);
+			return new Exchange(0, 0, false);
 		}
 		final List<Passenger> onboard = riding.computeIfAbsent(vehicleId, id -> new ArrayList<>());
 		int moves = Math.max(1, cars) * MOVES_PER_CAR;
@@ -152,7 +155,28 @@ public final class PassengerNetwork {
 			}
 		}
 		boardedTotal += boarded;
-		return new Exchange(alighted, boarded);
+		return new Exchange(alighted, boarded, moves == 0 && (stillToAlight(onboard, stationId, upcomingStations) || stillToBoard(queue, stationId, upcomingStations, onboard.size() < capacity)));
+	}
+
+	private static boolean stillToAlight(List<Passenger> onboard, long stationId, Set<Long> upcomingStations) {
+		for (final Passenger passenger : onboard) {
+			if (passenger.legStationId() == stationId || !upcomingStations.contains(passenger.legStationId())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean stillToBoard(ArrayDeque<Passenger> queue, long stationId, Set<Long> upcomingStations, boolean room) {
+		if (queue == null || !room) {
+			return false;
+		}
+		for (final Passenger passenger : queue) {
+			if (passenger.legStationId() != stationId && upcomingStations.contains(passenger.legStationId())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** A rider off at a station short of their destination waits for their next train; false when they leave instead. */
