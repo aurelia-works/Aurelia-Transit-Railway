@@ -25,14 +25,14 @@ import java.util.regex.Pattern;
  * containing {@code nohud} hides the HUD and chat for that shot, and {@code fov=<degrees>} sets the field of view for it.
  * Both are restored afterwards. {@code open=menu} opens the one ATR menu, {@code open=wrench} opens the wrench screen for the
  * wrench in the main hand, and
- * {@code open=book page=<n>} the written book in the main hand at that page, {@code open=codex} the Station Codex, {@code open=airport_wrench} the airport wrench; the screen is
+ * {@code open=book page=<n>} the written book in the main hand at that page, {@code open=codex} the Station Codex, {@code open=card slot=<n>} the history of the transit card in that inventory slot, {@code open=airport_wrench} the airport wrench; the screen is
  * closed after the shot. Without a
  * wrench in hand, {@code open=wrench} opens the screen anyway with {@code recipe=<encoded choices>} (or the defaults), for its
  * live preview; its actions then do nothing. {@code wait=<ticks>} waits longer before the shot (the preview plans and meshes in
  * the background). {@code use}
  * right-clicks the block under the crosshair with the main-hand item first, like a player would, and any screen that opens is
- * in the shot, then closed; {@code click=<x>,<y>} (GUI pixels, repeatable) left-clicks that screen {@code clickat=<ticks>}
- * after the right-click. {@code studio} starts Station Studio without opening a browser (its address is in the log), so a
+ * in the shot, then closed; {@code click=<x>,<y>} (GUI pixels, repeatable) left-clicks the open screen {@code clickat=<ticks>}
+ * after the request, {@code cmd=<command>} (rest of the line, no slash) runs a chat command first, and {@code record=<frames>} saves that many more numbered shots, one per tick, before closing. {@code studio} starts Station Studio without opening a browser (its address is in the log), so a
  * script can drive it. Inert in a normal game.
  */
 final class DevScreenshots {
@@ -47,6 +47,9 @@ final class DevScreenshots {
 	private static final Pattern WAIT = Pattern.compile("wait=(\\d+)");
 	private static final Pattern CLICK = Pattern.compile("click=(\\d+),(\\d+)");
 	private static final Pattern CLICK_AT = Pattern.compile("clickat=(\\d+)");
+	private static final Pattern RECORD = Pattern.compile("record=(\\d+)");
+	private static final Pattern SLOT = Pattern.compile("slot=(\\d+)");
+	private static final Pattern COMMAND = Pattern.compile("cmd=([^\\n]+)");
 
 	private static String pending;
 	private static boolean restoreHud;
@@ -57,6 +60,9 @@ final class DevScreenshots {
 	private static final java.util.List<int[]> clicks = new java.util.ArrayList<>();
 	private static int clickAt;
 	private static int elapsed;
+	/** Frames still to save, one per tick, for a {@code record=<frames>} request; the files are numbered. */
+	private static int recordLeft;
+	private static int recordFrame;
 
 	private DevScreenshots() {
 	}
@@ -79,8 +85,17 @@ final class DevScreenshots {
 			if (--wait > 0) {
 				return;
 			}
-			ScreenshotRecorder.saveScreenshot(client.runDirectory, pending + ".png", client.getFramebuffer(), message -> {
-			});
+			final boolean recording = recordLeft > 0 || recordFrame > 0;
+			ScreenshotRecorder.saveScreenshot(client.runDirectory, (recording ? pending + String.format("_%03d", recordFrame) : pending) + ".png",
+					client.getFramebuffer(), message -> {
+					});
+			if (recordLeft > 0) {
+				recordLeft--;
+				recordFrame++;
+				wait = 1;
+				return;
+			}
+			recordFrame = 0;
 			if (restoreHud) {
 				client.options.hudHidden = false;
 			}
@@ -120,16 +135,24 @@ final class DevScreenshots {
 			restoreFov = client.options.getFov().getValue();
 			client.options.getFov().setValue(Math.max(30, Math.min(110, Integer.parseInt(fov.group(1)))));
 		}
+		final Matcher command = COMMAND.matcher(content);
+		if (command.find()) {
+			client.player.networkHandler.sendChatCommand(command.group(1).strip());
+		}
+		clicks.clear();
+		final Matcher click = CLICK.matcher(content);
+		while (click.find()) {
+			clicks.add(new int[]{Integer.parseInt(click.group(1)), Integer.parseInt(click.group(2))});
+		}
+		final Matcher at = CLICK_AT.matcher(content);
+		clickAt = at.find() ? Integer.parseInt(at.group(1)) : SCREEN_SETTLE_TICKS;
+		elapsed = 0;
+		final Matcher record = RECORD.matcher(content);
+		recordLeft = record.find() ? Math.min(400, Integer.parseInt(record.group(1))) : 0;
+		recordFrame = 0;
 		if (content.contains("use") && client.crosshairTarget instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK) {
 			client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hit);
 			closeScreen = true;
-			final Matcher click = CLICK.matcher(content);
-			while (click.find()) {
-				clicks.add(new int[]{Integer.parseInt(click.group(1)), Integer.parseInt(click.group(2))});
-			}
-			final Matcher at = CLICK_AT.matcher(content);
-			clickAt = at.find() ? Integer.parseInt(at.group(1)) : SCREEN_SETTLE_TICKS;
-			elapsed = 0;
 			final Matcher longer = WAIT.matcher(content);
 			wait = longer.find() ? Math.max(1, Math.min(400, Integer.parseInt(longer.group(1)))) : SCREEN_SETTLE_TICKS;
 			return;
@@ -141,7 +164,8 @@ final class DevScreenshots {
 		wait = closeScreen ? SCREEN_SETTLE_TICKS : restoreHud || restoreFov != null ? HUD_SETTLE_TICKS : 1;
 		final Matcher longer = WAIT.matcher(content);
 		if (longer.find()) {
-			wait = Math.max(wait, Math.min(400, Integer.parseInt(longer.group(1))));
+			// a recording starts when asked, so it catches the screen opening; a single shot waits at least the usual time
+			wait = recordLeft > 0 ? Math.max(1, Math.min(400, Integer.parseInt(longer.group(1)))) : Math.max(wait, Math.min(400, Integer.parseInt(longer.group(1))));
 		}
 	}
 
@@ -158,6 +182,13 @@ final class DevScreenshots {
 			}
 		} else if (content.contains("open=codex")) {
 			CodexScreen.open();
+		} else if (content.contains("open=card")) {
+			final Matcher slot = SLOT.matcher(content);
+			final ItemStack card = client.player.getInventory().getStack(slot.find() ? Integer.parseInt(slot.group(1)) : client.player.getInventory().selectedSlot);
+			if (!card.isOf(com.aureliatransit.architecture.registry.ModItems.TRANSIT_CARD)) {
+				return false;
+			}
+			com.aureliatransit.architecture.fare.TransitCardItem.openScreen.accept(card);
 		} else if (content.contains("open=airport_wrench")) {
 			AirportWrenchScreen.open(Hand.MAIN_HAND);
 		} else if (content.contains("open=book")) {

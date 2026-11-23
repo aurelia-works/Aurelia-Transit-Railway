@@ -247,21 +247,53 @@ def key_box_door():
 	for x in range(5, 11):
 		img.putpixel((x, 1), hexc("F2C230") + (255,))
 	# light streaks across the glass
-	# two short glints in the top-left of the glass, the way light catches a pane
-	for x, y in ((3, 6), (4, 5), (5, 4), (3, 8), (4, 7)):
-		img.putpixel((x, y), (206, 228, 242, 255))
+	# the glass's own top edge catches the light; the pane itself stays clear
+	for x in range(2, 14):
+		img.putpixel((x, 3), (196, 220, 236, 255))
 	return img
 
 
 def key_box_back():
 	"""The cabinet's back wall, seen through the glass: darker steel with a hook rail and three hooks."""
 	img = brushed(11, hexc("5E656D"), hexc("3E444B"), hexc("6F767E"), hexc("30353A"))
-	for x in range(2, 14):
+	for x in range(2, 15):
 		img.putpixel((x, 4), STEEL_LIGHT + (255,))
 		img.putpixel((x, 5), STEEL_DARK + (255,))
 	for x in (4, 8, 12):
-		img.putpixel((x - 1 if x == 12 else x, 6), STEEL_LIGHT + (255,))
+		img.putpixel((x, 6), STEEL_LIGHT + (255,))
 	return img
+
+
+def hanging_key():
+	"""An upright key for the key box, ring at the top so it hangs from a hook. Pale, so the key's colour tints it."""
+	w, h = 16, 24
+	big_w, big_h = w * SS, h * SS
+	canvas = Image.new("RGBA", (big_w, big_h), (0, 0, 0, 0))
+
+	def m(fn):
+		mask = Image.new("L", (big_w, big_h), 0)
+		fn(ImageDraw.Draw(mask))
+		return mask
+
+	cx = big_w / 2
+	ring = m(lambda d: d.ellipse((cx - 5.5 * SS, 0.5 * SS, cx + 5.5 * SS, 11.5 * SS), fill=255))
+	hole = m(lambda d: d.ellipse((cx - 2 * SS, 3 * SS, cx + 2 * SS, 7 * SS), fill=255))
+	shank = m(lambda d: d.rectangle((cx - 1.5 * SS, 10 * SS, cx + 1.5 * SS, 23 * SS), fill=255))
+	collar = m(lambda d: d.rectangle((cx - 3 * SS, 10.5 * SS, cx + 3 * SS, 12.5 * SS), fill=255))
+	teeth = m(lambda d: [d.rectangle((cx + 1 * SS, y * SS, cx + x * SS, (y + 1.6) * SS), fill=255) for y, x in ((15, 4), (18, 4.6), (20.6, 3.6))])
+	shape = ImageChops.subtract(ImageChops.lighter(ImageChops.lighter(ImageChops.lighter(ring, shank), collar), teeth), hole)
+	canvas.paste(gradient((big_w, big_h), (250, 250, 250), (168, 168, 168), 60).convert("RGBA"), (0, 0), shape)
+	# a bright line down the shank's left side, a darker rim all round
+	canvas.paste((255, 255, 255, 255), (0, 0), ImageChops.multiply(m(lambda d: d.rectangle((cx - 1.5 * SS, 12 * SS, cx - 0.6 * SS, 22 * SS), fill=255)), shape))
+	edge = ImageChops.subtract(shape, shape.filter(ImageFilter.MinFilter(SS + 1)))
+	canvas.paste((128, 128, 128, 255), (0, 0), edge)
+	small = canvas.resize((w, h), Image.LANCZOS)
+	px = small.load()
+	for y in range(h):
+		for x in range(w):
+			r, g, b, a = px[x, y]
+			px[x, y] = (r, g, b, 255) if a >= 110 else (0, 0, 0, 0)
+	return small
 
 
 def main():
@@ -280,6 +312,10 @@ def main():
 				("key_box_door", key_box_door()), ("key_box_back", key_box_back())):
 			img.save(os.path.join(MTR_BLOCKS, name + ".png"))
 			print("wrote", name)
+		gui = os.path.join(ROOT, "aurelia", "textures", "gui")
+		os.makedirs(gui, exist_ok=True)
+		hanging_key().save(os.path.join(gui, "key_box_key.png"))
+		print("wrote key_box_key")
 
 
 if __name__ == "__main__":
