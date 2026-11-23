@@ -21,7 +21,7 @@ public final class AnnouncerVoice {
 		}
 		final VoiceCatalog.Voice voice = current();
 		if (voice != null && NeuralVoice.ready(voice)) {
-			NeuralVoice.say(voice, VoiceSettings.speed(), text, volume());
+			NeuralVoice.say(voice, VoiceSettings.speed(), text, volume(), () -> MinecraftClient.getInstance().execute(() -> Narrator.getNarrator().say(text, true)));
 		} else {
 			Narrator.getNarrator().say(text, true);
 		}

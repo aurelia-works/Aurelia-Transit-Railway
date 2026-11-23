@@ -43,7 +43,6 @@ public final class NeuralVoice {
 
 	/** Only touched on the worker thread. */
 	private static Clip playing;
-	private static boolean warned;
 
 	private NeuralVoice() {
 	}
@@ -63,20 +62,25 @@ public final class NeuralVoice {
 	}
 
 	/**
-	 * @param volume the player's Master x Voice volume, 0 to 1
+	 * @param volume   the player's Master x Voice volume, 0 to 1
+	 * @param fallback says the line with the computer's voice when the engine or the sound output fails
 	 */
-	public static void say(VoiceCatalog.Voice voice, double speed, String text, float volume) {
+	public static void say(VoiceCatalog.Voice voice, double speed, String text, float volume, Runnable fallback) {
 		final long ticket = LATEST.incrementAndGet();
 		WORKER.execute(() -> {
+			if (ticket != LATEST.get()) {
+				// a newer line came in while this one waited: skip it
+				return;
+			}
 			try {
 				final Path wav = render(voice, speed, text);
-				if (wav != null && ticket == LATEST.get()) {
+				if (ticket == LATEST.get()) {
 					play(wav, volume);
 				}
 			} catch (Exception e) {
-				if (!warned) {
-					warned = true;
-					AureliaClient.LOGGER.warn("[ATR voice] could not speak; check config/aurelia/voice", e);
+				AureliaClient.LOGGER.warn("[ATR voice] could not speak, the computer's voice reads it instead; check config/aurelia/voice", e);
+				if (ticket == LATEST.get()) {
+					fallback.run();
 				}
 			}
 		});
@@ -121,6 +125,9 @@ public final class NeuralVoice {
 		final Clip clip = AudioSystem.getClip();
 		try (AudioInputStream stream = AudioSystem.getAudioInputStream(wav.toFile())) {
 			clip.open(stream);
+		} catch (Exception e) {
+			clip.close();
+			throw e;
 		}
 		if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
 			final FloatControl gain = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);

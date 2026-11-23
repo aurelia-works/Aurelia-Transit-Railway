@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.HexFormat;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +32,7 @@ public final class VoiceInstaller {
 	public enum Status {IDLE, DOWNLOADING, FAILED}
 
 	private static final String READY = ".ready";
+	private static final long STALL_MILLIS = 60_000;
 	private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(runnable -> {
 		final Thread thread = new Thread(runnable, "ATR voice download");
 		thread.setDaemon(true);
@@ -53,8 +55,16 @@ public final class VoiceInstaller {
 		return total <= 0 ? 0 : (int) Math.min(100, done * 100 / total);
 	}
 
+	/** Installed when its marker names the checksum this build pins, so a changed pin downloads it again. */
 	public static boolean installed(Path root, VoiceCatalog.Download download) {
-		return download != null && Files.isRegularFile(root.resolve(download.folder()).resolve(READY));
+		if (download == null) {
+			return false;
+		}
+		try {
+			return download.sha256().equals(Files.readString(root.resolve(download.folder()).resolve(READY)).strip());
+		} catch (IOException e) {
+			return false;
+		}
 	}
 
 	/** Bytes still to download for the engine and this voice. */
@@ -89,19 +99,40 @@ public final class VoiceInstaller {
 		Files.createDirectories(root);
 		final Path archive = root.resolve(download.folder() + ".tar.bz2.part");
 		try {
-			final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
-			final HttpResponse<InputStream> response = client.send(HttpRequest.newBuilder(URI.create(download.url())).build(), HttpResponse.BodyHandlers.ofInputStream());
+			final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).connectTimeout(Duration.ofSeconds(20)).build();
+			final HttpResponse<InputStream> response = client.send(HttpRequest.newBuilder(URI.create(download.url())).timeout(Duration.ofSeconds(30)).build(), HttpResponse.BodyHandlers.ofInputStream());
 			if (response.statusCode() != 200) {
 				throw new IOException("HTTP " + response.statusCode() + " for " + download.url());
 			}
 			final MessageDigest digest = MessageDigest.getInstance("SHA-256");
 			try (InputStream in = response.body(); OutputStream out = Files.newOutputStream(archive)) {
-				final byte[] buffer = new byte[1 << 16];
-				int read;
-				while ((read = in.read(buffer)) >= 0) {
-					digest.update(buffer, 0, read);
-					out.write(buffer, 0, read);
-					done += read;
+				// a download that stops sending for a minute is closed, so the button offers a retry
+				final java.util.concurrent.atomic.AtomicLong lastRead = new java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis());
+				final Thread watchdog = new Thread(() -> {
+					try {
+						while (!Thread.currentThread().isInterrupted()) {
+							Thread.sleep(5_000);
+							if (System.currentTimeMillis() - lastRead.get() > STALL_MILLIS) {
+								in.close();
+								return;
+							}
+						}
+					} catch (InterruptedException | IOException ignored) {
+					}
+				}, "ATR voice download watchdog");
+				watchdog.setDaemon(true);
+				watchdog.start();
+				try {
+					final byte[] buffer = new byte[1 << 16];
+					int read;
+					while ((read = in.read(buffer)) >= 0) {
+						lastRead.set(System.currentTimeMillis());
+						digest.update(buffer, 0, read);
+						out.write(buffer, 0, read);
+						done += read;
+					}
+				} finally {
+					watchdog.interrupt();
 				}
 			}
 			final String sha256 = HexFormat.of().formatHex(digest.digest());
