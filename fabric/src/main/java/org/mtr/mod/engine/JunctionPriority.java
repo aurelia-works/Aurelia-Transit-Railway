@@ -16,7 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * <li>a train standing on track the express has claimed is in front of it and never gives way;</li>
  * <li>a train gives way for at most {@link #MAX_YIELD_MILLIS} in one go.</li>
  * </ul>
- * Claims are written and read from MTR's simulation threads, one per dimension, so they sit in a concurrent map.
+ * Express means a line of MTR's "High Speed" route type, or a line the signaller picked in the Engine tab. Claims are
+ * written and read from MTR's simulation threads, one per dimension, so they sit in a concurrent map.
  */
 public final class JunctionPriority {
 
@@ -32,13 +33,27 @@ public final class JunctionPriority {
 	private static final long CLAIM_LIFE_MILLIS = 1_000;
 
 	private static final Map<Long, Claim> CLAIMS = new ConcurrentHashMap<>();
+	/** Route ids the signaller lets go first, saved with the world. Replaced, never changed in place. */
+	private static volatile Set<Long> signallerRoutes = Set.of();
 
 	private JunctionPriority() {
 	}
 
-	/** Express: a line of MTR's "High Speed" route type. */
 	public static boolean isPriority(Route route) {
-		return route != null && route.getRouteType() == RouteType.HIGH_SPEED;
+		return route != null && (isExpress(route) || signallerRoutes.contains(route.getId()));
+	}
+
+	/** A line of MTR's "High Speed" route type: always goes first. */
+	public static boolean isExpress(Route route) {
+		return route.getRouteType() == RouteType.HIGH_SPEED;
+	}
+
+	public static Set<Long> signallerRoutes() {
+		return signallerRoutes;
+	}
+
+	public static void setSignallerRoutes(Collection<Long> routeIds) {
+		signallerRoutes = Set.copyOf(routeIds);
 	}
 
 	public static double lookAheadMeters(double speedMetersPerMillisecond) {
@@ -76,6 +91,7 @@ public final class JunctionPriority {
 
 	public static void clear() {
 		CLAIMS.clear();
+		signallerRoutes = Set.of();
 	}
 
 	private record Claim(Set<?> rails, long stamp) {

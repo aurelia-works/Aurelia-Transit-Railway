@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import org.mtr.mod.engine.EngineFeature;
 import org.mtr.mod.engine.EngineLag;
 import org.mtr.mod.engine.EngineSettings;
+import org.mtr.mod.engine.JunctionPriority;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -34,10 +35,15 @@ public final class EngineClient {
 				lagAt = System.currentTimeMillis();
 			});
 		});
+		ClientPlayNetworking.registerGlobalReceiver(EngineSettings.FIRST, (client, handler, buf, response) -> {
+			final java.util.List<Long> read = EngineSettings.readFirst(buf);
+			client.execute(() -> JunctionPriority.setSignallerRoutes(read));
+		});
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			values = new EnumMap<>(EngineFeature.class);
 			lag = EngineLag.Reading.NONE;
 			lagAt = 0;
+			JunctionPriority.setSignallerRoutes(java.util.List.of());
 		});
 	}
 
@@ -49,6 +55,13 @@ public final class EngineClient {
 	/** The last lag reading, or null when none came in the last few seconds (readout off, or not an operator). */
 	public static EngineLag.Reading lag() {
 		return System.currentTimeMillis() - lagAt < 3000 ? lag : null;
+	}
+
+	/** Lets a line go first at junctions, or not. The server checks the player is an operator. */
+	public static void requestFirst(long routeId, boolean first) {
+		if (ClientPlayNetworking.canSend(EngineSettings.FIRST_SET)) {
+			ClientPlayNetworking.send(EngineSettings.FIRST_SET, EngineSettings.requestFirst(routeId, first));
+		}
 	}
 
 	public static void request(EngineFeature feature, boolean value) {

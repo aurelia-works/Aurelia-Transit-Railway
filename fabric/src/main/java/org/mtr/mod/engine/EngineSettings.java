@@ -26,6 +26,10 @@ public final class EngineSettings {
 	public static final Identifier SYNC = new Identifier("mtr", "atr_engine");
 	public static final Identifier SET = new Identifier("mtr", "atr_engine_set");
 	public static final Identifier LAG = new Identifier("mtr", "atr_engine_lag");
+	/** Server to client: the lines the signaller lets go first. */
+	public static final Identifier FIRST = new Identifier("mtr", "atr_engine_first");
+	/** Client to server: let one line go first, or not. */
+	public static final Identifier FIRST_SET = new Identifier("mtr", "atr_engine_first_set");
 	private static final String FILE = "atr_engine";
 
 	private static volatile boolean[] enabled = defaults();
@@ -51,7 +55,9 @@ public final class EngineSettings {
 		// as soon as the overworld exists, before MTR's simulators build any paths
 		ServerWorldEvents.LOAD.register((server, world) -> {
 			if (world.getRegistryKey() == World.OVERWORLD) {
-				enabled = state(world).values.clone();
+				final State state = state(world);
+				enabled = state.values.clone();
+				JunctionPriority.setSignallerRoutes(state.firstRoutes);
 			}
 		});
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
@@ -73,7 +79,15 @@ public final class EngineSettings {
 				});
 			}
 		});
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> send(handler.getPlayer()));
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			send(handler.getPlayer());
+			sendFirst(handler.getPlayer());
+		});
+		ServerPlayNetworking.registerGlobalReceiver(FIRST_SET, (server, player, handler, buf, response) -> {
+			final long routeId = buf.readLong();
+			final boolean first = buf.readBoolean();
+			server.execute(() -> setFirst(server, player, routeId, first));
+		});
 		ServerPlayNetworking.registerGlobalReceiver(SET, (server, player, handler, buf, response) -> {
 			final int ordinal = buf.readVarInt();
 			final boolean value = buf.readBoolean();
@@ -87,6 +101,24 @@ public final class EngineSettings {
 		buf.writeVarInt(feature.ordinal());
 		buf.writeBoolean(value);
 		return buf;
+	}
+
+	/** Client: asks the server to let a line go first at junctions, or not. */
+	public static PacketByteBuf requestFirst(long routeId, boolean first) {
+		final PacketByteBuf buf = PacketByteBufs.create();
+		buf.writeLong(routeId);
+		buf.writeBoolean(first);
+		return buf;
+	}
+
+	/** Client: reads what {@link #sendFirst} wrote. */
+	public static java.util.List<Long> readFirst(PacketByteBuf buf) {
+		final int count = buf.readVarInt();
+		final java.util.List<Long> routeIds = new java.util.ArrayList<>(count);
+		for (int i = 0; i < count; i++) {
+			routeIds.add(buf.readLong());
+		}
+		return routeIds;
 	}
 
 	/** Client: reads what {@link #send} wrote. Unknown keys from a newer server are skipped. */
@@ -116,6 +148,28 @@ public final class EngineSettings {
 		server.getPlayerManager().getPlayerList().forEach(EngineSettings::send);
 	}
 
+	private static void setFirst(MinecraftServer server, ServerPlayerEntity player, long routeId, boolean first) {
+		if (!player.hasPermissionLevel(2)) {
+			return;
+		}
+		final State state = state(server);
+		if (first ? state.firstRoutes.add(routeId) : state.firstRoutes.remove(routeId)) {
+			state.markDirty();
+			JunctionPriority.setSignallerRoutes(state.firstRoutes);
+			server.getPlayerManager().getPlayerList().forEach(EngineSettings::sendFirst);
+		}
+	}
+
+	private static void sendFirst(ServerPlayerEntity player) {
+		final PacketByteBuf buf = PacketByteBufs.create();
+		final java.util.Set<Long> routeIds = JunctionPriority.signallerRoutes();
+		buf.writeVarInt(routeIds.size());
+		for (final long routeId : routeIds) {
+			buf.writeLong(routeId);
+		}
+		ServerPlayNetworking.send(player, FIRST, buf);
+	}
+
 	private static void send(ServerPlayerEntity player) {
 		final PacketByteBuf buf = PacketByteBufs.create();
 		final boolean[] values = enabled;
@@ -138,15 +192,21 @@ public final class EngineSettings {
 	}
 
 	private static State state(net.minecraft.server.world.ServerWorld overworld) {
-		return overworld.getPersistentStateManager().getOrCreate(State::fromNbt, () -> new State(defaults()), FILE);
+		return overworld.getPersistentStateManager().getOrCreate(State::fromNbt, () -> new State(defaults(), new java.util.HashSet<>()), FILE);
 	}
 
 	private static final class State extends PersistentState {
 
-		private final boolean[] values;
+		/** Its own key, apart from the feature keys. */
+		private static final String FIRST_ROUTES = "signaller_first_routes";
 
-		private State(boolean[] values) {
+		private final boolean[] values;
+		/** Route ids the signaller lets go first. */
+		private final java.util.Set<Long> firstRoutes;
+
+		private State(boolean[] values, java.util.Set<Long> firstRoutes) {
 			this.values = values;
+			this.firstRoutes = firstRoutes;
 		}
 
 		/** A missing key is a feature added after the file was written: it starts on. */
@@ -157,7 +217,11 @@ public final class EngineSettings {
 					values[feature.ordinal()] = nbt.getBoolean(feature.key);
 				}
 			}
-			return new State(values);
+			final java.util.Set<Long> firstRoutes = new java.util.HashSet<>();
+			for (final long routeId : nbt.getLongArray(FIRST_ROUTES)) {
+				firstRoutes.add(routeId);
+			}
+			return new State(values, firstRoutes);
 		}
 
 		@Override
@@ -165,6 +229,7 @@ public final class EngineSettings {
 			for (final EngineFeature feature : EngineFeature.values()) {
 				nbt.putBoolean(feature.key, values[feature.ordinal()]);
 			}
+			nbt.putLongArray(FIRST_ROUTES, firstRoutes.stream().mapToLong(Long::longValue).toArray());
 			return nbt;
 		}
 	}

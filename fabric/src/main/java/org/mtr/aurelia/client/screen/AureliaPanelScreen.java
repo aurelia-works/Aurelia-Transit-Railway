@@ -1180,7 +1180,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			return true;
 		}
 		if (tab == Tab.ENGINE) {
-			final int newFirstRow = Math.max(0, Math.min(org.mtr.mod.engine.EngineFeature.values().length - engineVisible(), engineFirst - (int) Math.signum(amount)));
+			final int newFirstRow = Math.max(0, Math.min(engineRows() - engineVisible(), engineFirst - (int) Math.signum(amount)));
 			if (newFirstRow != engineFirst) {
 				engineFirst = newFirstRow;
 				clearAndInit();
@@ -1265,7 +1265,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			case PASSENGERS -> scrollLine(context, passengerFirst, passengerVisible(), PASSENGER_ROWS);
 			case MAP -> scrollLine(context, mapFirst, visibleRows(), MAP_ROWS);
 			case ENGINE -> {
-				scrollLine(context, engineFirst, engineVisible(), org.mtr.mod.engine.EngineFeature.values().length);
+				scrollLine(context, engineFirst, engineVisible(), engineRows());
 				renderEngineLag(context);
 			}
 			default -> {
@@ -1437,10 +1437,10 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		return top + (row - mapFirst) * ROW;
 	}
 
-	/** One switch per engine feature. Only operators can change them; the server ignores anyone else. */
+	/** One switch per engine feature, then the signaller. Only operators can change them; the server ignores anyone else. */
 	private void initEngine() {
 		final org.mtr.mod.engine.EngineFeature[] features = org.mtr.mod.engine.EngineFeature.values();
-		engineFirst = Math.max(0, Math.min(engineFirst, features.length - engineVisible()));
+		engineFirst = Math.max(0, Math.min(engineFirst, engineRows() - engineVisible()));
 		final int left = columnLeft();
 		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
 		for (int row = engineFirst; row < Math.min(features.length, engineFirst + engineVisible()); row++) {
@@ -1453,6 +1453,18 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			button.setTooltip(Tooltip.of(Text.translatable(feature.langKey() + ".tooltip")));
 			button.active = operator;
 		}
+		final int signallerRow = features.length;
+		if (signallerRow >= engineFirst && signallerRow < engineFirst + engineVisible()) {
+			final ButtonWidget signaller = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.signaller.open"), b -> client.setScreen(new SignallerScreen(this)))
+					.dimensions(left, top + (signallerRow - engineFirst) * ROW, BUTTON_WIDTH, 20).build());
+			signaller.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.signaller.open.tooltip")));
+			signaller.active = operator;
+		}
+	}
+
+	/** The feature switches and the signaller button. */
+	private static int engineRows() {
+		return org.mtr.mod.engine.EngineFeature.values().length + 1;
 	}
 
 	/** Switch rows, leaving two lines under them for the lag readout. */
@@ -1462,7 +1474,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 
 	/** Under the switches: how long the engine takes per tick in this dimension, and how much of its time that is. */
 	private void renderEngineLag(DrawContext context) {
-		final int y = top + Math.min(org.mtr.mod.engine.EngineFeature.values().length, engineVisible()) * ROW + 4;
+		final int y = top + Math.min(engineRows(), engineVisible()) * ROW + 4;
 		if (client == null || client.player == null || !client.player.hasPermissionLevel(2)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.engine.operators"), centerX(), y + 2, 0xAAAAAA);
 			return;
