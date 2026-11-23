@@ -3,7 +3,7 @@
 `libs/Transport-Simulation-Core-0.0.1.jar` is MTR's simulation engine (Transport Simulation Core): trains, depots,
 signals, departures and saved data. Since 2026-11-23 we build it ourselves from our fork,
 [aurelia-works/Transport-Simulation-Core](https://github.com/aurelia-works/Transport-Simulation-Core), on branch
-`atr/engine`. That branch starts at upstream commit `ecde724` (2025-10-14), the commit the jar MTR shipped came from.
+`atr`. That branch starts at upstream commit `ecde724` (2025-10-14), the commit the jar MTR shipped came from.
 
 ## Rebuilding the jar
 
@@ -12,7 +12,7 @@ copies (`org.mtr.libraries.*`), swaps the few Java 21 calls for Java 17 forms, a
 public fields, as the old jar had them. It then compiles for Java 17 against ATR's own `libs/Shadow-Libraries-*.jar`.
 
 ```sh
-cd <fork checkout, branch atr/engine>
+cd <fork checkout, branch atr>
 ./gradlew generateJavaSchemaClasses atrJar -PatrLibs=<ATR repo>/libs
 cp build/atr/libs/Transport-Simulation-Core-0.0.1.jar <ATR repo>/libs/
 ```
@@ -38,7 +38,7 @@ The fork's build needs JDK 21 to run. The jar it makes runs on Java 17.
 
 ## Rules
 
-- Any change to the engine goes on the fork's `atr/engine` branch. Then rebuild this jar in the same ATR PR.
+- Any change to the engine goes to the fork's `atr` branch as a PR. Then rebuild this jar in the same ATR PR.
 - Old worlds must load unchanged, and MTR add-ons must keep working. Keep method names, keep public fields public,
   and don't add lambdas before existing ones in classes that ATR mixins target (`Siding`, `Depot`, `Vehicle`,
   `VehicleExtraData`, `PathData`, `SidingPathFinder`).
