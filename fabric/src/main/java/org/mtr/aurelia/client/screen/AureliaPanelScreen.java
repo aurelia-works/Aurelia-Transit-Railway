@@ -82,7 +82,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends Screen implements DashboardParentAccess {
 
-	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS, MAP, VEHICLES}
+	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS, MAP, VEHICLES, ENGINE}
 
 	private static final int BUTTON_WIDTH = 200;
 	private static final int VALUE_WIDTH = 80;
@@ -110,7 +110,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	/** Riding and driving, then the network, then building, then this client's look and speed. */
 	private static final Tab[][] GROUPS = {
 			{Tab.RIDING, Tab.DRIVING, Tab.VEHICLES, Tab.PANTOGRAPH, Tab.TRAIN_SOUND, Tab.SOUND},
-			{Tab.ROUTES, Tab.TOOLS, Tab.PASSENGERS, Tab.ZIP, Tab.MAP},
+			{Tab.ROUTES, Tab.TOOLS, Tab.PASSENGERS, Tab.ENGINE, Tab.ZIP, Tab.MAP},
 			{Tab.ARCHITECTURE, Tab.BUILD, Tab.BUILDER},
 			{Tab.RENDERING, Tab.LOOK, Tab.PACKS}
 	};
@@ -187,6 +187,11 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private static final AureliaUiSettings.ScreenId[] LOOK_IDS = AureliaUiSettings.ScreenId.values();
 	private static final Text LOOK_HINT = Text.translatable("gui.aurelia.look.hint");
 	private int trainSoundFirst;
+	/** The Sound tab's download / test button, relabelled while a download runs. */
+	private ButtonWidget voiceAction;
+	@Nullable
+	private org.mtr.aurelia.client.voice.VoiceInstaller.Status voiceShownStatus;
+	private int voiceShownPercent = -1;
 	private static final int TRAIN_SOUND_ROWS = 15;
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
@@ -197,8 +202,9 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	/** Vehicles tab: the colour picker paints the hire bikes instead of the cars. */
 	private boolean paintBikes;
 	private int drivingFirst;
+	private int engineFirst;
 	private int mapFirst;
-	private static final int MAP_ROWS = 10;
+	private static final int MAP_ROWS = 11;
 	private static final int DRIVING_ROWS = 7;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
 	private static final int PASSENGER_ROWS = 17;
@@ -240,6 +246,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			case PACKS -> initPacks();
 			case MAP -> initMap();
 			case VEHICLES -> initVehicles();
+			case ENGINE -> initEngine();
 		}
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> close()).dimensions(contentRight - 100, height - 24, 100, 20).build());
 	}
@@ -358,6 +365,77 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			b.setMessage(melodiesLabel());
 		}).dimensions(left, top + ROW * 2, BUTTON_WIDTH, 20).build());
 		melodies.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.melodies.tooltip")));
+		initVoice(left);
+	}
+
+	/** Our own announcer voice: which voice (or the computer's), how fast, and the download or a test line. */
+	private void initVoice(int left) {
+		final String language = org.mtr.aurelia.client.voice.AnnouncerVoice.gameLanguage();
+		final ButtonWidget voice = addDrawableChild(ButtonWidget.builder(voiceLabel(language), b -> {
+			cycleVoice(language);
+			b.setMessage(voiceLabel(language));
+			voiceAction.setMessage(voiceActionLabel());
+		}).dimensions(left, top + ROW * 5, BUTTON_WIDTH, 20).build());
+		voice.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.voice.tooltip")));
+		voice.active = language != null;
+		addDrawableChild(new RangeSlider(left, top + ROW * 6, org.mtr.aurelia.client.voice.VoiceSettings.MIN_SPEED, org.mtr.aurelia.client.voice.VoiceSettings.MAX_SPEED, 0.05,
+				org.mtr.aurelia.client.voice.VoiceSettings::speed, org.mtr.aurelia.client.voice.VoiceSettings::setSpeed,
+				value -> Text.translatable("gui.aurelia.voice.speed", String.format(java.util.Locale.ROOT, "%.2f", value))));
+		voiceAction = addDrawableChild(ButtonWidget.builder(voiceActionLabel(), b -> voiceAction()).dimensions(left, top + ROW * 7, BUTTON_WIDTH, 20).build());
+		voiceAction.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.voice.action.tooltip")));
+	}
+
+	/** Computer's voice, then each of our voices for the game's language, round again. */
+	private static void cycleVoice(String language) {
+		if (language == null) {
+			return;
+		}
+		final java.util.List<org.mtr.aurelia.client.voice.VoiceCatalog.Voice> voices = org.mtr.aurelia.client.voice.VoiceCatalog.voices(language);
+		if (!org.mtr.aurelia.client.voice.VoiceSettings.ours()) {
+			org.mtr.aurelia.client.voice.VoiceSettings.setOurs(true);
+			org.mtr.aurelia.client.voice.VoiceSettings.setVoice(voices.get(0));
+			return;
+		}
+		final int index = voices.indexOf(org.mtr.aurelia.client.voice.VoiceSettings.voice(language));
+		if (index + 1 < voices.size()) {
+			org.mtr.aurelia.client.voice.VoiceSettings.setVoice(voices.get(index + 1));
+		} else {
+			org.mtr.aurelia.client.voice.VoiceSettings.setOurs(false);
+		}
+	}
+
+	private static Text voiceLabel(String language) {
+		final org.mtr.aurelia.client.voice.VoiceCatalog.Voice voice = org.mtr.aurelia.client.voice.AnnouncerVoice.current();
+		return Text.translatable("gui.aurelia.voice", voice == null ? Text.translatable(language == null ? "gui.aurelia.voice.no_language" : "gui.aurelia.voice.computer") : Text.literal(voice.name()));
+	}
+
+	private Text voiceActionLabel() {
+		final org.mtr.aurelia.client.voice.VoiceCatalog.Voice voice = org.mtr.aurelia.client.voice.AnnouncerVoice.current();
+		final org.mtr.aurelia.client.voice.VoiceCatalog.Download engine = org.mtr.aurelia.client.voice.NeuralVoice.engine();
+		if (voice == null) {
+			return Text.translatable("gui.aurelia.voice.test");
+		} else if (engine == null) {
+			return Text.translatable("gui.aurelia.voice.unsupported");
+		} else if (org.mtr.aurelia.client.voice.VoiceInstaller.status() == org.mtr.aurelia.client.voice.VoiceInstaller.Status.DOWNLOADING) {
+			return Text.translatable("gui.aurelia.voice.downloading", org.mtr.aurelia.client.voice.VoiceInstaller.percent());
+		} else if (org.mtr.aurelia.client.voice.NeuralVoice.ready(voice)) {
+			return Text.translatable("gui.aurelia.voice.test");
+		}
+		final long megabytes = Math.max(1, org.mtr.aurelia.client.voice.VoiceInstaller.bytesNeeded(org.mtr.aurelia.client.voice.NeuralVoice.root(), engine, voice) / 1_000_000);
+		return Text.translatable(org.mtr.aurelia.client.voice.VoiceInstaller.status() == org.mtr.aurelia.client.voice.VoiceInstaller.Status.FAILED ? "gui.aurelia.voice.retry" : "gui.aurelia.voice.download", megabytes);
+	}
+
+	/** Downloads the voice when it is missing, otherwise says a test line in the game's language. */
+	private void voiceAction() {
+		final org.mtr.aurelia.client.voice.VoiceCatalog.Voice voice = org.mtr.aurelia.client.voice.AnnouncerVoice.current();
+		final org.mtr.aurelia.client.voice.VoiceCatalog.Download engine = org.mtr.aurelia.client.voice.NeuralVoice.engine();
+		if (voice != null && engine != null && !org.mtr.aurelia.client.voice.NeuralVoice.ready(voice)) {
+			org.mtr.aurelia.client.voice.VoiceInstaller.install(org.mtr.aurelia.client.voice.NeuralVoice.root(), engine, voice);
+		} else if (!org.mtr.mod.client.TtsVolume.muted()) {
+			final String language = org.mtr.aurelia.client.voice.AnnouncerVoice.gameLanguage();
+			org.mtr.aurelia.client.voice.AnnouncerVoice.say(org.mtr.aurelia.client.voice.VoiceCatalog.SAMPLES.getOrDefault(language == null ? "en" : language, org.mtr.aurelia.client.voice.VoiceCatalog.SAMPLES.get("en")));
+		}
+		voiceAction.setMessage(voiceActionLabel());
 	}
 
 	/**
@@ -1228,6 +1306,14 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			}
 			return true;
 		}
+		if (tab == Tab.ENGINE) {
+			final int newFirstRow = Math.max(0, Math.min(org.mtr.mod.engine.EngineFeature.values().length - visibleRows(), engineFirst - (int) Math.signum(amount)));
+			if (newFirstRow != engineFirst) {
+				engineFirst = newFirstRow;
+				clearAndInit();
+			}
+			return true;
+		}
 		if (tab == Tab.DRIVING) {
 			final int newFirstRow = Math.max(0, Math.min(DRIVING_ROWS - visibleRows(), drivingFirst - (int) Math.signum(amount)));
 			if (newFirstRow != drivingFirst) {
@@ -1257,6 +1343,16 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+		if (tab == Tab.SOUND && voiceAction != null) {
+			// the download's progress and its end show on the button; the label checks files on disk, so only when they change
+			final org.mtr.aurelia.client.voice.VoiceInstaller.Status status = org.mtr.aurelia.client.voice.VoiceInstaller.status();
+			final int percent = org.mtr.aurelia.client.voice.VoiceInstaller.percent();
+			if (status != voiceShownStatus || percent != voiceShownPercent) {
+				voiceShownStatus = status;
+				voiceShownPercent = percent;
+				voiceAction.setMessage(voiceActionLabel());
+			}
+		}
 		renderBackground(context);
 		renderChrome(context);
 		if (tab == Tab.RENDERING) {
@@ -1305,6 +1401,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			case BUILD -> scrollLine(context, buildFirst, visibleRows(), BUILD_ROWS);
 			case PASSENGERS -> scrollLine(context, passengerFirst, passengerVisible(), PASSENGER_ROWS);
 			case MAP -> scrollLine(context, mapFirst, visibleRows(), MAP_ROWS);
+			case ENGINE -> scrollLine(context, engineFirst, visibleRows(), org.mtr.mod.engine.EngineFeature.values().length);
 			default -> {
 			}
 		}
@@ -1436,20 +1533,21 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		mapToggle(left, 4, "gui.aurelia.map.rails", MapSettings::rails, MapSettings::toggleRails);
 		mapToggle(left, 5, "gui.aurelia.map.stations", MapSettings::stations, MapSettings::toggleStations);
 		mapToggle(left, 6, "gui.aurelia.map.trains", MapSettings::trains, MapSettings::toggleTrains);
-		if (mapRow(7)) {
-			addDrawableChild(new RangeSlider(left, mapY(7), 0, MapSettings.HUE_MAX, 10, MapSettings::railHue,
+		mapToggle(left, 7, "gui.aurelia.map.busy", MapSettings::busy, MapSettings::toggleBusy);
+		if (mapRow(8)) {
+			addDrawableChild(new RangeSlider(left, mapY(8), 0, MapSettings.HUE_MAX, 10, MapSettings::railHue,
 					value -> MapSettings.setRailHue((int) value), value -> Text.translatable("gui.aurelia.map.rail_hue", value.intValue())));
 		}
-		if (mapRow(8)) {
-			addDrawableChild(new RangeSlider(left, mapY(8), MapSettings.SCAN_MIN, MapSettings.SCAN_MAX, 1, MapSettings::scanPerTick,
+		if (mapRow(9)) {
+			addDrawableChild(new RangeSlider(left, mapY(9), MapSettings.SCAN_MIN, MapSettings.SCAN_MAX, 1, MapSettings::scanPerTick,
 					value -> MapSettings.setScanPerTick((int) value), value -> Text.translatable("gui.aurelia.map.scan", value.intValue())))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.map.scan.tooltip")));
 		}
-		if (mapRow(9)) {
+		if (mapRow(10)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.map.open"), b -> {
 				close();
 				MapClient.open(client);
-			}).dimensions(left, mapY(9), BUTTON_WIDTH, 20).build()).active = MapClient.map() != null;
+			}).dimensions(left, mapY(10), BUTTON_WIDTH, 20).build()).active = MapClient.map() != null;
 		}
 	}
 
@@ -1472,6 +1570,28 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 
 	private int mapY(int row) {
 		return top + (row - mapFirst) * ROW;
+	}
+
+	/** One switch per engine feature. Only operators can change them; the server ignores anyone else. */
+	private void initEngine() {
+		final org.mtr.mod.engine.EngineFeature[] features = org.mtr.mod.engine.EngineFeature.values();
+		engineFirst = Math.max(0, Math.min(engineFirst, features.length - visibleRows()));
+		final int left = columnLeft();
+		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		for (int row = engineFirst; row < Math.min(features.length, engineFirst + visibleRows()); row++) {
+			final org.mtr.mod.engine.EngineFeature feature = features[row];
+			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(engineLabel(feature, org.mtr.aurelia.client.EngineClient.enabled(feature)), b -> {
+				final boolean next = !org.mtr.aurelia.client.EngineClient.enabled(feature);
+				org.mtr.aurelia.client.EngineClient.request(feature, next);
+				b.setMessage(engineLabel(feature, next));
+			}).dimensions(left, top + (row - engineFirst) * ROW, BUTTON_WIDTH, 20).build());
+			button.setTooltip(Tooltip.of(Text.translatable(feature.langKey() + ".tooltip")));
+			button.active = operator;
+		}
+	}
+
+	private static Text engineLabel(org.mtr.mod.engine.EngineFeature feature, boolean on) {
+		return Text.translatable(feature.langKey(), ScreenTexts.onOrOff(on));
 	}
 
 	private boolean drivingRow(int row) {

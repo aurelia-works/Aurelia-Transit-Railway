@@ -12,10 +12,15 @@
 		"CancelledRunMixin",
 		"DepotRouteControlMixin",
 		"SidingRouteControlMixin",
+		"PlaneTurnaroundMixin",
+		"PathDataSchemaAccessor",
 		"SidingPathFinderAccessor",
-		"SidingPathFinderRouteControlMixin"
+		"SidingPathFinderRouteControlMixin",
+		"KeyBoxKeysOutMixin"
 	],
 	"client": [
+		"TrainPickerOpenMixin",
+		"VehicleSelectorScreenAccessor",
 		"BlockEntityCounterMixin",
 		"DebugHudMixin",
 		"DriverSpeedMessageMixin",
@@ -31,6 +36,8 @@
 		"DashboardItemMixin",
 		"DashboardMapMixin",
 		"DashboardOpenMixin",
+		"KeyBoxOpenMixin",
+		"KeyBoxRenderMixin",
 		"AureliaFieldMixin",
 		"AureliaShortSliderMixin",
 		"AureliaSliderMixin",

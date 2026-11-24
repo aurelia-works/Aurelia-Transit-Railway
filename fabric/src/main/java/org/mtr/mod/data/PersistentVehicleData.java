@@ -64,18 +64,32 @@ public final class PersistentVehicleData {
 	 */
 	public void update(double newRailProgress, double totalVehicleLength) {
 		railProgressSmoothingAdjustment = newRailProgress - smoothedRailProgress;
-		if (Math.abs(railProgressSmoothingAdjustment) > totalVehicleLength - 1) {
+		if (Math.abs(railProgressSmoothingAdjustment) > Math.max(totalVehicleLength - 1, 10)) {
 			railProgressSmoothingAdjustment = 0;
 		}
 	}
 
+	/**
+	 * MTR 4.0.5 shape, kept for add-ons: smooths without the 4.0.6 clamp at the stopping point.
+	 */
 	public double getSmoothedRailProgress(double railProgress, double adjustmentAmount) {
+		return getSmoothedRailProgress(railProgress, adjustmentAmount, null);
+	}
+
+	public double getSmoothedRailProgress(double railProgress, double adjustmentAmount, @Nullable Double maxClamp) {
 		if (railProgressSmoothingAdjustment > 0) {
 			railProgressSmoothingAdjustment = Math.max(railProgressSmoothingAdjustment - adjustmentAmount, 0);
 		} else if (railProgressSmoothingAdjustment < 0) {
 			railProgressSmoothingAdjustment = Math.min(railProgressSmoothingAdjustment + adjustmentAmount, 0);
 		}
+
 		smoothedRailProgress = railProgress - railProgressSmoothingAdjustment;
+
+		if (maxClamp != null && smoothedRailProgress > maxClamp) {
+			smoothedRailProgress = maxClamp;
+			railProgressSmoothingAdjustment = 0;
+		}
+
 		return smoothedRailProgress;
 	}
 

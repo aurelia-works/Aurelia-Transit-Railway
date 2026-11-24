@@ -4,6 +4,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
 import org.mtr.aurelia.map.MapCamera;
@@ -11,6 +12,8 @@ import org.mtr.aurelia.map.MapRegion;
 import org.mtr.core.tool.Vector;
 import org.mtr.mod.client.MinecraftClientData;
 import org.mtr.mod.data.VehicleExtension;
+
+import java.util.Map;
 
 /**
  * Draws a map view into a screen rectangle: the explored ground, then the rails, stations and trains the Map tab
@@ -47,6 +50,9 @@ public final class MapView {
 			}
 			if (MapSettings.rails()) {
 				drawRails(context, network, left, top, width, height, camera, big ? 2 : 1);
+			}
+			if (MapSettings.stations() && MapSettings.busy()) {
+				drawBusy(context, client.textRenderer, network, left, top, width, height, camera, big);
 			}
 		}
 		if (MapSettings.trains()) {
@@ -139,6 +145,49 @@ public final class MapView {
 				context.drawCenteredTextWithShadow(text, name, (x1 + x2) / 2, Math.max(y1, (y1 + y2) / 2 - 4), 0xFFFFFF);
 			}
 		}
+	}
+
+	/**
+	 * A three-bar meter and "Quiet", "Busy" or "Packed" under each station's name on the big map; on the minimap, or zoomed
+	 * out, a dot in the colour of the level at the station's corner.
+	 */
+	private static void drawBusy(DrawContext context, TextRenderer text, SeenNetwork network, int left, int top, int width, int height, MapCamera camera, boolean big) {
+		final Map<Long, BusyMeter.Level> levels = BusyMeter.levels();
+		if (levels.isEmpty()) {
+			return;
+		}
+		final boolean labels = big && camera.scale() >= LABEL_SCALE;
+		network.stationsById().forEach((id, area) -> {
+			final BusyMeter.Level level = levels.get(id);
+			if (level == null) {
+				return;
+			}
+			final int x1 = (int) Math.floor(camera.screenX(area.minX(), left, width));
+			final int y1 = (int) Math.floor(camera.screenY(area.minZ(), top, height));
+			final int x2 = (int) Math.ceil(camera.screenX(area.maxX() + 1, left, width));
+			final int y2 = (int) Math.ceil(camera.screenY(area.maxZ() + 1, top, height));
+			if (x2 < left || y2 < top || x1 > left + width || y1 > top + height) {
+				return;
+			}
+			if (labels) {
+				final String word = Text.translatable(level.key).getString();
+				final int pillWidth = text.getWidth(word) + 20;
+				final int pillX = (x1 + x2) / 2 - pillWidth / 2;
+				final int pillY = Math.max(y1, (y1 + y2) / 2 - 4) + 11;
+				context.fill(pillX, pillY, pillX + pillWidth, pillY + 11, 0xC0101317);
+				context.fill(pillX, pillY + 10, pillX + pillWidth, pillY + 11, level.color);
+				for (int bar = 0; bar < 3; bar++) {
+					final int barHeight = 3 + bar * 2;
+					context.fill(pillX + 4 + bar * 3, pillY + 9 - barHeight, pillX + 6 + bar * 3, pillY + 9, bar < level.bars ? level.color : 0x50FFFFFF);
+				}
+				context.drawText(text, word, pillX + 16, pillY + 2, 0xFFFFFFFF, false);
+			} else {
+				final int size = big ? 4 : 3;
+				final int dotX = Math.max(x1, Math.min(x2, x1 + (x2 - x1) * 3 / 4));
+				context.fill(dotX - size / 2 - 1, y1 - size / 2 - 1, dotX - size / 2 + size + 1, y1 - size / 2 + size + 1, OUTLINE);
+				context.fill(dotX - size / 2, y1 - size / 2, dotX - size / 2 + size, y1 - size / 2 + size, level.color);
+			}
+		});
 	}
 
 	private static void drawTrains(DrawContext context, int left, int top, int width, int height, MapCamera camera, int size) {

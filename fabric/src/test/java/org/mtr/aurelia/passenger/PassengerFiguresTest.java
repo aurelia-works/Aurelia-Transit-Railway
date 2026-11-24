@@ -38,8 +38,10 @@ public final class PassengerFiguresTest {
 
 	@Test
 	public void missingKeysKeepTheCheapDefaults() {
-		Assertions.assertFalse(PassengerDrawSettings.DEFAULT.draw(), "drawing stays off until an operator turns it on");
+		Assertions.assertTrue(PassengerDrawSettings.DEFAULT.draw(), "people are drawn by default; the server decides whether there are any");
 		Assertions.assertFalse(PassengerNetwork.Settings.DEFAULT.enabled(), "passengers stay off in an old world");
+		Assertions.assertFalse(PassengerNetwork.Settings.forFirstLoad(PassengerNetwork.Settings.NEW_WORLD_TICKS).enabled(), "passengers stay off in an old world");
+		Assertions.assertTrue(PassengerNetwork.Settings.forFirstLoad(0).enabled(), "a new world starts with passengers");
 		final PassengerDrawSettings.Values read = PassengerDrawSettings.from(new JsonObject());
 		Assertions.assertEquals(PassengerDrawSettings.DEFAULT, read);
 
@@ -70,6 +72,48 @@ public final class PassengerFiguresTest {
 		for (int i = 0; i < 8; i++) {
 			Assertions.assertTrue(spots[i * 3 + 2] >= 2 && spots[i * 3 + 2] < 6, "figure " + i + " z " + spots[i * 3 + 2]);
 			Assertions.assertEquals(65, spots[i * 3 + 1], 0.01, "figure " + i);
+		}
+	}
+
+	/** A platform at ground level, as in a flat world: the floor is the same height both sides, only one side is platform blocks. */
+	@Test
+	public void figuresStandOnPlatformBlocksWhenTheFloorIsLevel() {
+		final PassengerFigures.Ground ground = new PassengerFigures.Ground() {
+			@Override
+			public double top(double x, double z, int railY) {
+				return 64;
+			}
+
+			@Override
+			public boolean platform(double x, double z, int railY) {
+				return z >= 2 && z < 6;
+			}
+		};
+		final double[] spots = new double[8 * 3];
+		PassengerFigures.spots(0, 64, 0, 32, 64, 0, 8, ground, spots);
+		for (int i = 0; i < 8; i++) {
+			Assertions.assertTrue(spots[i * 3 + 2] >= 2 && spots[i * 3 + 2] < 6, "figure " + i + " z " + spots[i * 3 + 2]);
+		}
+	}
+
+	/** No platform blocks, but screen doors along one edge: people wait behind the doors, where the train opens. */
+	@Test
+	public void figuresWaitBehindTheScreenDoors() {
+		final PassengerFigures.Ground ground = new PassengerFigures.Ground() {
+			@Override
+			public double top(double x, double z, int railY) {
+				return z >= 2 && z < 3 ? Double.NaN : 64;
+			}
+
+			@Override
+			public boolean platform(double x, double z, int railY) {
+				return z >= 2 && z < 3;
+			}
+		};
+		final double[] spots = new double[8 * 3];
+		PassengerFigures.spots(0, 64, 0, 32, 64, 0, 8, ground, spots);
+		for (int i = 0; i < 8; i++) {
+			Assertions.assertTrue(spots[i * 3 + 2] >= 3, "figure " + i + " z " + spots[i * 3 + 2]);
 		}
 	}
 

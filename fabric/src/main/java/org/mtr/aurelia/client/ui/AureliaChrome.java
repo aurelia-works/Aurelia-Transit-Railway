@@ -5,7 +5,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
 
 /**
- * Flat rectangles for the Aurelia look. Every method takes the context and numbers it already has.
+ * Flat and rounded rectangles for the Aurelia look. Every method takes the context and numbers it already has.
  * Nothing is constructed here: tick labels come from {@link #NUMBERS}.
  */
 public final class AureliaChrome {
@@ -105,5 +105,64 @@ public final class AureliaChrome {
 			return 1;
 		}
 		return value;
+	}
+
+	/** A filled rectangle with rounded corners of {@code radius} GUI pixels, drawn row by row so it needs no texture. */
+	public static void rounded(DrawContext context, int x, int y, int w, int h, int radius, int color) {
+		if (w <= 0 || h <= 0) {
+			return;
+		}
+		final int r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
+		context.fill(x, y + r, x + w, y + h - r, color);
+		for (int row = 0; row < r; row++) {
+			final double dy = r - row - 0.5;
+			final int inset = (int) Math.round(r - Math.sqrt(Math.max(0, r * r - dy * dy)));
+			context.fill(x + inset, y + row, x + w - inset, y + row + 1, color);
+			context.fill(x + inset, y + h - row - 1, x + w - inset, y + h - row, color);
+		}
+	}
+
+	/** A rounded outline one pixel wide. */
+	public static void roundedFrame(DrawContext context, int x, int y, int w, int h, int radius, int color) {
+		final int r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
+		context.fill(x + r, y, x + w - r, y + 1, color);
+		context.fill(x + r, y + h - 1, x + w - r, y + h, color);
+		context.fill(x, y + r, x + 1, y + h - r, color);
+		context.fill(x + w - 1, y + r, x + w, y + h - r, color);
+		for (int row = 0; row < r; row++) {
+			final double dy = r - row - 0.5;
+			final int inset = (int) Math.round(r - Math.sqrt(Math.max(0, r * r - dy * dy)));
+			final int next = row + 1 < r ? (int) Math.round(r - Math.sqrt(Math.max(0, r * r - (dy - 1) * (dy - 1)))) : inset;
+			final int span = Math.max(1, inset - next);
+			context.fill(x + inset - span + 1, y + row, x + inset + 1, y + row + 1, color);
+			context.fill(x + w - inset - 1, y + row, x + w - inset + span - 1, y + row + 1, color);
+			context.fill(x + inset - span + 1, y + h - row - 1, x + inset + 1, y + h - row, color);
+			context.fill(x + w - inset - 1, y + h - row - 1, x + w - inset + span - 1, y + h - row, color);
+		}
+	}
+
+	/** A soft shadow under a rounded panel: a few widening layers, darkest nearest the panel, a little lower than it. */
+	public static void shadow(DrawContext context, int x, int y, int w, int h, int radius) {
+		for (int i = 4; i >= 1; i--) {
+			rounded(context, x - i, y - i + 2, w + 2 * i, h + 2 * i, radius + i, (0x16 + (4 - i) * 0x0C) << 24);
+		}
+	}
+
+	/** {@code color} with its alpha multiplied by {@code alpha} (0 to 1). */
+	public static int fade(int color, float alpha) {
+		final int a = Math.round(((color >>> 24) & 0xFF) * Math.max(0, Math.min(1, alpha)));
+		return (a << 24) | (color & 0xFFFFFF);
+	}
+
+	/** A colour part way from {@code from} to {@code to}, alpha included. */
+	public static int mix(int from, int to, float t) {
+		final float u = Math.max(0, Math.min(1, t));
+		int out = 0;
+		for (int shift = 0; shift < 32; shift += 8) {
+			final int a = (from >>> shift) & 0xFF;
+			final int b = (to >>> shift) & 0xFF;
+			out |= Math.round(a + (b - a) * u) << shift;
+		}
+		return out;
 	}
 }
