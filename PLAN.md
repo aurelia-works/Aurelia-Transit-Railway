@@ -1,12 +1,12 @@
 # ATR plan to V1
 
-Current as of 2026-11-13. The brief for the run to V1 is Jah's `ATR-GOAL.md`, which is not in the repo. Old handoffs are in `docs/handoffs/`; the long per-phase notes of finished phases are in this file's git history.
+Phase statuses are as of 2026-11-13 (later merges such as #115 may be missing). Jah's scope decisions of 2026-11-24 are applied below. The brief for the run to V1 is Jah's `ATR-GOAL.md`, which is not in the repo. Old handoffs are in `docs/handoffs/`; the long per-phase notes of finished phases are in this file's git history.
 
 ## What ATR is
 - A drop-in replacement for MTR 4.0.5 on Minecraft 1.20.1 Fabric: mod id `mtr`, block and item ids, the save format and the 4.0.5 methods add-ons hook (`DropInSignaturesTest`) never change. 1.20.1 only.
 - Generators for stations, airports, bridges, earthworks and rails. Stations and airports should look like real ones, not like valid block plans.
 - Light: it has to run well on old PCs.
-- Audience: Jah's Aurelia Metropolis server first, then public (Modrinth, CurseForge, GitHub). Public launch only after the in-game test pass (T) and the trailer (TR).
+- Audience: Jah's Aurelia Metropolis server first, then public (Modrinth, CurseForge, GitHub). Public launch only after the in-game test pass (T) and the re-filmed trailer (TR), which is the last item before launch.
 
 ## Rules for every phase
 - Anything visible ships at 9/10 or better, judged from same-camera before and after shots by the builder and by a blind reviewer. A PR lists what keeps each part under 9.5.
@@ -24,6 +24,16 @@ Current as of 2026-11-13. The brief for the run to V1 is Jah's `ATR-GOAL.md`, wh
 - Builds go anywhere and every build can be undone, also after a restart. Big jobs build over time.
 - The preview is a hologram of the real blocks.
 
+## Scope decisions (Jah, 2026-11-24)
+- Cut: the planning orchestrator AI in Studio (PF keeps only the shared, versioned plan format), staff rooms (SR), the bike garage (BG), the in-game map and minimap (L4), and LOD, landscape and shader work.
+- Train operator features: only AWS/TPWS stays. Crew roles (L1), the driver, freight and cars (L2's drivable cars) are cut.
+- Neural voice: English only. No other languages.
+- Trainline: no standalone phone app. Its features go into the journey planner (L3) and the station boards.
+- Dashboards: keep both. The MTR 4.1-style map dashboard stays, and Jahmeer's new dashboard is brought into the mod.
+- Stratos roads (#147): Jahmeer owns it now (Indus handed it over). Out of ATR scope; the PR stays open.
+- Last item: re-film the trailer (TR). The public launch waits for it.
+- Cut features that are already merged are only taken off the plan here. Whether their code leaves the jar is a separate decision.
+
 ## Phases
 
 | # | Phase | Status |
@@ -35,7 +45,9 @@ Current as of 2026-11-13. The brief for the run to V1 is Jah's `ATR-GOAL.md`, wh
 | E1, E2, E3 | Editor screen, drawn tracks as MTR rails, drawn platforms and buildings | merged (#76, #78, #83). E1 and E2 have not been tested in game |
 | EW1, EW2 | Saved undo for every build, earthworks | merged (#66, #77) |
 | AE | Airports in the editor | merged (#92, terminal buildings #95, curved taxiways #97) |
-| L1, L2, L3, L4 | Crew roles, drivable cars and bike share, journey planner, in-game map | merged (#79, #91, #93, #80, #81) |
+| L3 | Journey planner | merged (#80). Trainline's features fold in here and into the station boards |
+| L2 | Bike share on station racks | merged (#93) |
+| L1, L2 cars, L4 | Crew roles, drivable road cars, in-game map and minimap | merged (#79, #91, #81); cut from scope 2026-11-24, no code removed yet |
 | DM | Train-door markers on platforms | merged (#98) |
 | BS | Bus station at the station front | merged (#99) |
 | E3+ | Street entrance, hall, gates and wing waiting rooms | merged (#96) |
@@ -45,13 +57,11 @@ Current as of 2026-11-13. The brief for the run to V1 is Jah's `ATR-GOAL.md`, wh
 | SC | Station size classes: halt, local, hub, terminal | not started |
 | JB | Jet bridges from the gates to the parked planes | a pier cab that extends to a stopped plane exists (#26). Jah asked on 2026-11-11 for a bridge at every contact stand; not checked against that yet |
 | AF | Airport passenger flow: check-in, security, shops, gates, baggage reclaim | not started |
-| SR | Staff rooms behind locked doors | not started |
-| BG | Bike garage under the station square | not started |
-| PF | One shared, versioned plan format and a planning orchestrator in Studio (`ATR-GOAL.md` step 4) | not started |
+| PF | One shared, versioned plan format for Studio and the game (`ATR-GOAL.md` step 4) | not started |
 | LV | ATR Liveries pack: NS SLT rebuild, then the other trains | in progress in the ATR-Liveries repo (350 LNR, 450 SWR, VIRM done) |
 | T0 | Guided look with Jah at the picks-round work | not done |
 | T | Full in-game test pass, two players | not started |
-| TR | Trailer; editor and earthworks construction shots lead | recorder (#58) and scripted shots (#63) merged; trailer not started |
+| TR | Re-film the trailer; editor and earthworks construction shots lead. Last item; gates the public launch | recorder (#58) and scripted shots (#63) merged; re-film not started |
 
 ## Open phases
 
@@ -67,18 +77,16 @@ Current as of 2026-11-13. The brief for the run to V1 is Jah's `ATR-GOAL.md`, wh
 - SC: the planner picks a class from the spec. A halt gets a shelter and a ticket machine; a hub or terminal gets the full building, concourse and extras. Done when: one shot per class, side by side.
 - JB: each contact stand gets a jet bridge from its gate to the plane's door height. Done when: a shot of a parked A320 at a bridge.
 - AF: the terminal interior is laid out in walking order: check-in hall, security lanes, airside shops, gate lounges; arrivals through baggage reclaim to landside. Done when: a shot walk through the terminal in that order.
-- SR: every station building gets a staff-only area behind a locked door, out of the passenger route. Done when: a shot of the door and rooms.
-- BG: hub and terminal stations get a bike garage with racks in rows, a ramp or stair down and an entrance from the square. Done when: a shot of the garage.
 
-### PF. Plan format and Studio orchestrator
+### PF. Plan format
 - Studio and the game use one versioned plan format, so the Studio preview is exactly what gets built. Old saved designs still load.
-- A planning orchestrator in Studio turns a request in plain words into a plan by calling the deterministic planners in turn (layout, track geometry, style, circulation, accessibility, validation), shows where they conflict and reruns only the part that changed. The AI only reads the request and proposes; Studio works fully without it.
 
 ### LV. ATR Liveries
 - Gaps no 1.20.1 MTR 4 pack covers: NS VIRM and SLT; UK Class 350/450, 153/156/170, 321/507/508; London Underground S Stock and 2024 Stock; Stepford County Railway classes. Models and textures are built in Blockbench, each with a harsh reviewer pass and a sound profile. Jah reviews each train.
 
 ### T. Test pass
-- Everything shipped since v1.0.2 checked in game, including two players: pantographs, Station Studio, sitting, chimes and pitch, timetables, passengers, zip lines, the Aurelia UI and every phase above. E1 and E2 first. Bug list cleared.
+- Everything shipped since v1.0.2 checked in game, including two players: pantographs, Station Studio, sitting, chimes and pitch, timetables, passengers, zip lines, the Aurelia UI and every phase above that is still in scope. E1 and E2 first. Bug list cleared.
 
-### TR. Trailer
+### TR. Trailer (re-film)
+- The trailer is re-filmed. It is the last item on the plan, and the public launch waits for it and for T.
 - The dev-only camera recorder makes the clips; it never ships in the release jar. A bench world with ATR-built stations, clips of every headline, and the measured numbers from `docs/perf-launch.md` on screen.
