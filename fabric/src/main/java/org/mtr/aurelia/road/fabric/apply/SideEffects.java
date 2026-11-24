@@ -5,13 +5,13 @@
 package org.mtr.aurelia.road.fabric.apply;
 
 import net.minecraft.server.MinecraftServer;
+import org.mtr.aurelia.road.fabric.track.TrackWriter;
 import org.mtr.aurelia.road.spi.SideEffectWriter;
 
 /**
  * Who carries out the operations' side effects on this server: the hidden MTR track. In Stratos another mod supplied
- * the writer through an entrypoint; inside ATR the roads and MTR are one mod, so the track writer is wired in directly
- * once it is ported. Until then nothing can be carried out ({@link SideEffectWriter#UNAVAILABLE}): the server doesn't
- * offer track, and roads keep their node aids.
+ * the writer through an entrypoint; inside ATR the roads and MTR are one mod, so it is always the {@link TrackWriter},
+ * and every server offers track.
  *
  * <p>One writer per server, made on first use and dropped when it stops. Server thread only.
  */
@@ -26,7 +26,7 @@ public final class SideEffects {
     public static synchronized SideEffectWriter writer(MinecraftServer minecraft) {
         if (server != minecraft) {
             server = minecraft;
-            writer = SideEffectWriter.UNAVAILABLE;
+            writer = new TrackWriter(minecraft);
         }
         return writer;
     }

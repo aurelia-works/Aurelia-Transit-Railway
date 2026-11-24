@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import org.mtr.aurelia.road.undo.SideEffect;
 
 /**
- * Carries out an operation's side effects (task G-9) in the game: MTR track through {@code stratos_transit} (T-2). The
+ * Carries out an operation's side effects (task G-9) in the game: MTR track (T-2; in ATR the {@code TrackWriter}). The
  * answers are futures because MTR answers a few ticks later (spike S14). Called on the server thread; the futures may
  * complete on any thread.
  */
@@ -24,7 +24,7 @@ public interface SideEffectWriter {
         ALREADY_THERE,
         /** Removing: it is gone already, or what is there now is a player's (T-2: a rail with a style), which is left. */
         NOT_THERE,
-        /** Nothing in this game can carry it out (no Stratos Transit, or no MTR). */
+        /** Nothing in this game can carry it out (no MTR). */
         UNAVAILABLE,
         /** It was tried and went wrong ({@link Result#reason}). */
         FAILED
@@ -51,7 +51,7 @@ public interface SideEffectWriter {
         return true;
     }
 
-    /** A writer for a game that can't carry out any side effect (without Stratos Transit). */
+    /** A writer for a game that can't carry out any side effect (without MTR; tests). */
     SideEffectWriter UNAVAILABLE = new SideEffectWriter() {
         @Override
         public CompletableFuture<List<Result>> make(String dimension, List<SideEffect> effects) {

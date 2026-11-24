@@ -58,7 +58,7 @@ public final class Protocol {
     public static final String WORLD_READ_ONLY = "WORLD_READ_ONLY";
 
     /**
-     * The capability a server's {@code Hello} lists when it can build hidden MTR track (T-2: Stratos Transit is loaded).
+     * The capability a server's {@code Hello} lists when it can build hidden MTR track (T-2; every ATR server can).
      * The client offers the Track node aid only then (owner, 2026-10-08).
      */
     public static final String CAPABILITY_TRACK = "track";
