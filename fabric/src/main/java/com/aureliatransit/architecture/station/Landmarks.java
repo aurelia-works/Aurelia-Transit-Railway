@@ -272,16 +272,19 @@ public final class Landmarks {
 			.shed(new Shed(ShedProfile.GABLE, 1, 0.3, 0, "aurelia_transit_architecture:glass_wall", "minecraft:spruce_planks", 0.45, 1.0,
 					"green", "aurelia_transit_architecture:roma_travertine"))
 			.skin(PARIS_LIMESTONE)
-			.facade(new Facade(Window.RECT, 4, 2, 6, 2, 3, 3, 0, true))
-			// the middle pavilion: the giant thermal window, the clock, Ionic pilasters, pediment and city statues
+			// the middle pavilion: the giant thermal window, the clock, Ionic pilasters, pediment and city statues. The window
+			// is clear from the entrance to its head: the pilasters only frame it, and the pavilion's wall round it is plain and
+			// flush (no windows, sills, string courses or pilasters across the glass: in-game tour 11-24, it read as a square grid)
+			.facade(new Facade(Window.NONE, 4, 2, 6, 2, 3, 3, 0, false))
 			.clock(0, 24, -1, 2)
 			.skin(glazing(PARIS_LIMESTONE))
 			.arch(0, 0, 9, 5, 18, false)
 			.skin(PARIS_LIMESTONE)
-			.colonnade(-12, 12, -1, 28, 6, "minecraft:smooth_quartz")
+			.colonnade(-12, 12, -1, 28, 24, "minecraft:smooth_quartz")
 			.gable(0, 0, 13, 31, 7, false)
 			.pinnacles(-12, 12, 0, 31, 6, "minecraft:smooth_quartz", "minecraft:chiseled_quartz_block")
 			.volume(-13, 13, 0, 14, 30, Roof.FLAT, 1, true, false)
+			.facade(new Facade(Window.RECT, 4, 2, 6, 2, 3, 3, 0, true))
 			// the corner pavilions and the wings under mansards across the full head, the hall behind
 			.volume(-END, -END + 10, 0, 14, 30, Roof.MANSARD, 3, true, true)
 			.volume(END - 10, END, 0, 14, 30, Roof.MANSARD, 3, true, true)
