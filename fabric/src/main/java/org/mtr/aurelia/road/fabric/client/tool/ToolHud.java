@@ -501,7 +501,7 @@ public final class ToolHud {
      */
     private static int mouseButton(DrawContext graphics, MinecraftClient minecraft, TextRenderer font, HudModel.Action action, boolean live, int x, int y) {
         InputUtil.Key key = KeyBindingHelper.getBoundKeyOf(binding(minecraft, action));
-        if (key.getType() == InputUtil.Type.MOUSE && (key.getCode() == 0 || key.getCode() == 1)) {
+        if (key.getCategory() == InputUtil.Type.MOUSE && (key.getCode() == 0 || key.getCode() == 1)) {
             HubIcon icon = key.getCode() == 0 ? HubIcon.MOUSE_LEFT : HubIcon.MOUSE_RIGHT;
             icon.draw(graphics, x, y + 1, HubIcon.TINY, live ? 0xFFFFFFFF : OFF);
             return HubIcon.TINY;

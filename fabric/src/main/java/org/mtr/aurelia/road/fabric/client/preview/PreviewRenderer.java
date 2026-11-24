@@ -536,7 +536,7 @@ public final class PreviewRenderer implements PreviewSink {
         if (!this.whiteReady) {
             NativeImage image = new NativeImage(16, 16, false);
             image.fillRect(0, 0, 16, 16, 0xFFFFFFFF);
-            MinecraftClient.getInstance().getTextureManager().register(WHITE, new NativeImageBackedTexture(image));
+            MinecraftClient.getInstance().getTextureManager().registerTexture(WHITE, new NativeImageBackedTexture(image));
             this.whiteReady = true;
         }
     }
@@ -562,7 +562,7 @@ public final class PreviewRenderer implements PreviewSink {
             rgb[i] = this.refused ? REFUSED_RGB : colour(mesh.states().get(i));
         }
         this.faceBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
-        this.entityBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.NEW_ENTITY);
+        this.entityBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL);
         for (SectionMesh.Face face : mesh.faces()) {
             addFace(face.x() - ax, face.y() - ay, face.z() - az, face.side(), rgb[face.state()], face.height8());
         }
