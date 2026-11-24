@@ -93,6 +93,12 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
         return limits.palettes().byId(params.paletteId()).map(palette -> List.of(palette.snapshotId())).orElse(List.of());
     }
 
+    /** Council r4: the dashes the road's joins call for, worked out here, not the client's ({@link RoadPlanner#settled}). */
+    @Override
+    public RoadPlanParams settle(RoadPlanParams params, List<OperationRecord> placed) {
+        return RoadPlanner.settled(params, roads(placed));
+    }
+
     /** A straight or curved road with an end that joins another road (R-5), or (R-7) a rebuild or delete of a placed road. */
     @Override
     public boolean usesPlaced(RoadPlanParams params) {

@@ -115,15 +115,6 @@ public final class RoadJoins {
     }
 
     /**
-     * Whether end {@code port} of the placed road {@code road} is joined already, so a new road there would make a
-     * junction (Slice D): that end of the road itself joins a road still placed, or another placed road joins it
-     * ({@link RoadGraph#taken}).
-     */
-    public static boolean taken(UUID road, int port, Map<UUID, RoadPlanParams> placed) {
-        return RoadGraph.of(placed).taken(road, port);
-    }
-
-    /**
      * An end of another road drawn onto end {@code index} of the road being edited (R-10+): that road's id
      * ({@code road}), which of its ends ({@code roadEnd}), and its port there ({@code port}, with its dash phase).
      */
@@ -241,7 +232,7 @@ public final class RoadJoins {
 
     /**
      * As {@link #refusal(RoadPlanParams, RoadProfile, Map)}, for an edited road that the ends {@code incoming} join
-     * (R-10+): its dashes must be {@link #editDashes}'.
+     * (R-10+). Its dashes aren't checked: the planner gives it {@link #settledDashes}.
      */
     static Optional<RoadPlanner.Outcome> refusal(RoadPlanParams params, RoadProfile profile, Map<UUID, RoadPlanParams> placed,
             List<Incoming> incoming) {
@@ -250,6 +241,7 @@ public final class RoadJoins {
             RoadPlanParams road = placed.get(key);
             return road == null ? Optional.empty() : ports(road);
         });
+        RoadGraph graph = RoadGraph.of(placed); // G-10: which ends are joined already
         List<RoadPlanParams.End> ends = params.ends();
         for (int i = 0; i < ends.size(); i++) {
             RoadPlanParams.End end = ends.get(i);
@@ -280,7 +272,7 @@ public final class RoadJoins {
             if (end.heading() != wanted) {
                 return refused(PORT_MISMATCH, Map.of());
             }
-            if (taken(road, index, placed)) {
+            if (graph.taken(road, index)) { // a second road there would make a junction (Slice D)
                 return refused(Protocol.NOT_AVAILABLE_YET, Map.of("feature", "junction"));
             }
             RoadProfile other = RoadProfiles.byId(port.profileId()).orElseThrow(); // its ports exist, so its profile does
@@ -294,10 +286,19 @@ public final class RoadJoins {
                 return refused(SIDE_MISMATCH, Map.of());
             }
         }
-        if (!params.dashes().equals(editDashes(params, portsOf, incoming))) {
-            return refused(PORT_MISMATCH, Map.of());
-        }
         return Optional.empty();
+    }
+
+    /**
+     * The dashes the planner gives {@code params} (council r4): {@link #editDashes}' from the roads standing
+     * ({@code placed}) and the ends {@code incoming} drawn onto it, whatever the request says. A client that doesn't know
+     * every joined road works out other dashes; the server's are the ones planned and recorded.
+     */
+    public static RoadPlanParams.Dashes settledDashes(RoadPlanParams params, Map<UUID, RoadPlanParams> placed, List<Incoming> incoming) {
+        return editDashes(params, id -> {
+            RoadPlanParams road = placed.get(id);
+            return road == null ? Optional.empty() : ports(road);
+        }, incoming);
     }
 
     /** Whether every lane of {@code profile} is shared by both directions (the alley's), so its driving side changes nothing. */

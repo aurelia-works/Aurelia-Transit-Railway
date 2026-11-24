@@ -71,6 +71,15 @@ public interface PlanModule<P> {
     }
 
     /**
+     * {@code params} as the server records and plans them, given the records {@code placed} (as for
+     * {@link #plan(Object, WorldLimits, List)}; empty when {@link #usesPlaced} is false): what the server works out for
+     * itself replaces what the client sent. By default {@code params} unchanged.
+     */
+    default P settle(P params, List<OperationRecord> placed) {
+        return params;
+    }
+
+    /**
      * {@code params} as the JSON object text an operation record keeps (task G-9), enough to plan it again. Modules
      * override it with readable fields (roads: {@code RoadParamsJson}); by default it is the protocol encoding in base64.
      */

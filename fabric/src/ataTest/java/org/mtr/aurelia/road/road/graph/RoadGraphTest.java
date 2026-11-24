@@ -6,6 +6,7 @@ package org.mtr.aurelia.road.road.graph;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -24,6 +25,8 @@ import org.mtr.aurelia.road.road.RoadJoins;
 import org.mtr.aurelia.road.road.RoadPlanParams;
 import org.mtr.aurelia.road.road.RoadPlanParams.End;
 import org.mtr.aurelia.road.road.RoadPlanner;
+import org.mtr.aurelia.road.road.nodes.PlacedRoads;
+import org.mtr.aurelia.road.road.tool.JoinableRoads;
 
 /**
  * G-10's road graph and R-10+'s edit of a joined road: joins appear and go with the roads standing (a deleted road's
@@ -112,5 +115,38 @@ class RoadGraphTest {
         Map<UUID, RoadPlanParams> after = RoadHistory.params(RoadHistory.resolve(undone));
         assertEquals(a, after.get(A));
         assertTrue(RoadGraph.of(after).taken(A, 1));
+    }
+
+    /**
+     * A client that doesn't know B (another player's road, or one without a node aid) sends A's edit with the dashes it
+     * worked out without B. The server works the dashes out itself from the roads standing, so the edit isn't refused.
+     */
+    @Test
+    void anEditPlansWithTheServersDashesNotTheClients() {
+        Map<UUID, RoadPlanParams> placed = twoRoads();
+        RoadPlanParams a = placed.get(A);
+        RoadPlanParams moved = a.withEnds(List.of(End.at(-10, 64, 0, Heading.E), a.ends().get(1)));
+        RoadPlanParams blind = moved.withDashes(RoadJoins.editDashes(moved, id -> Optional.empty(), List.of()));
+        RoadPlanParams.Dashes server = RoadJoins.editDashes(moved, id -> Optional.empty(), RoadJoins.incoming(A, placed));
+        assertNotEquals(server, blind.dashes()); // the client's dashes really are wrong
+        RoadPlanParams request = RoadPlanParams.edit(RoadPlanParams.Tool.REBUILD, A, blind, Optional.empty());
+        PlanResult result = RoadPlanner.plan(request, WorldLimits.OVERWORLD, placed);
+        assertTrue(result.isPlanned(), () -> "refused " + result.code());
+        assertEquals(server, RoadPlanner.settled(request, placed).dashes()); // and the record keeps the server's
+    }
+
+    /** The road tools keep the graph between aims, and still see a road undone or redone since (no stale graph). */
+    @Test
+    void theToolsGraphFollowsUndoAndRedo() {
+        RoadPlanParams a = twoRoads().get(A);
+        PlacedRoads placed = new PlacedRoads();
+        placed.placed(A, a, RoadPlanner.plan(a, WorldLimits.OVERWORLD).plan().orElseThrow());
+        JoinableRoads joins = new JoinableRoads(placed::roads);
+        assertEquals(Optional.of(A), joins.near(31, 64, 0).map(JoinableRoads.Join::road));
+        assertEquals(Optional.of(A), joins.near(31, 64, 1).map(JoinableRoads.Join::road)); // same roads: the kept graph
+        placed.undone(A);
+        assertEquals(Optional.empty(), joins.near(31, 64, 0).map(JoinableRoads.Join::road));
+        placed.redone(A);
+        assertEquals(Optional.of(A), joins.near(31, 64, 0).map(JoinableRoads.Join::road));
     }
 }
