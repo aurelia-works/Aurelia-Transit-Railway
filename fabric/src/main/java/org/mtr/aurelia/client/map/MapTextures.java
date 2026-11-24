@@ -5,10 +5,9 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
 import org.mtr.aurelia.map.MapRegion;
+import org.mtr.libraries.it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * One GPU texture per explored region, uploaded again when the region changed. Uploads are rationed per frame
@@ -18,7 +17,7 @@ public final class MapTextures {
 
 	private static final int UPLOADS_PER_FRAME = 3;
 
-	private final Map<Long, Entry> textures = new HashMap<>();
+	private final Long2ObjectOpenHashMap<Entry> textures = new Long2ObjectOpenHashMap<>();
 	private int uploadsLeft;
 
 	private static final class Entry {
@@ -78,7 +77,7 @@ public final class MapTextures {
 	}
 
 	public void clear() {
-		for (final long key : textures.keySet().toArray(new Long[0])) {
+		for (final long key : textures.keySet().toLongArray()) {
 			drop(key);
 		}
 	}
