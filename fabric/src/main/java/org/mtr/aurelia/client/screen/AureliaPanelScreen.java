@@ -186,6 +186,11 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private static final AureliaUiSettings.ScreenId[] LOOK_IDS = AureliaUiSettings.ScreenId.values();
 	private static final Text LOOK_HINT = Text.translatable("gui.aurelia.look.hint");
 	private int trainSoundFirst;
+	/** The Sound tab's download / test button, relabelled while a download runs. */
+	private ButtonWidget voiceAction;
+	@Nullable
+	private org.mtr.aurelia.client.voice.VoiceInstaller.Status voiceShownStatus;
+	private int voiceShownPercent = -1;
 	private static final int TRAIN_SOUND_ROWS = 15;
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
@@ -359,6 +364,77 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			b.setMessage(melodiesLabel());
 		}).dimensions(left, top + ROW * 2, BUTTON_WIDTH, 20).build());
 		melodies.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.tools.melodies.tooltip")));
+		initVoice(left);
+	}
+
+	/** Our own announcer voice: which voice (or the computer's), how fast, and the download or a test line. */
+	private void initVoice(int left) {
+		final String language = org.mtr.aurelia.client.voice.AnnouncerVoice.gameLanguage();
+		final ButtonWidget voice = addDrawableChild(ButtonWidget.builder(voiceLabel(language), b -> {
+			cycleVoice(language);
+			b.setMessage(voiceLabel(language));
+			voiceAction.setMessage(voiceActionLabel());
+		}).dimensions(left, top + ROW * 5, BUTTON_WIDTH, 20).build());
+		voice.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.voice.tooltip")));
+		voice.active = language != null;
+		addDrawableChild(new RangeSlider(left, top + ROW * 6, org.mtr.aurelia.client.voice.VoiceSettings.MIN_SPEED, org.mtr.aurelia.client.voice.VoiceSettings.MAX_SPEED, 0.05,
+				org.mtr.aurelia.client.voice.VoiceSettings::speed, org.mtr.aurelia.client.voice.VoiceSettings::setSpeed,
+				value -> Text.translatable("gui.aurelia.voice.speed", String.format(java.util.Locale.ROOT, "%.2f", value))));
+		voiceAction = addDrawableChild(ButtonWidget.builder(voiceActionLabel(), b -> voiceAction()).dimensions(left, top + ROW * 7, BUTTON_WIDTH, 20).build());
+		voiceAction.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.voice.action.tooltip")));
+	}
+
+	/** Computer's voice, then each of our voices for the game's language, round again. */
+	private static void cycleVoice(String language) {
+		if (language == null) {
+			return;
+		}
+		final java.util.List<org.mtr.aurelia.client.voice.VoiceCatalog.Voice> voices = org.mtr.aurelia.client.voice.VoiceCatalog.voices(language);
+		if (!org.mtr.aurelia.client.voice.VoiceSettings.ours()) {
+			org.mtr.aurelia.client.voice.VoiceSettings.setOurs(true);
+			org.mtr.aurelia.client.voice.VoiceSettings.setVoice(voices.get(0));
+			return;
+		}
+		final int index = voices.indexOf(org.mtr.aurelia.client.voice.VoiceSettings.voice(language));
+		if (index + 1 < voices.size()) {
+			org.mtr.aurelia.client.voice.VoiceSettings.setVoice(voices.get(index + 1));
+		} else {
+			org.mtr.aurelia.client.voice.VoiceSettings.setOurs(false);
+		}
+	}
+
+	private static Text voiceLabel(String language) {
+		final org.mtr.aurelia.client.voice.VoiceCatalog.Voice voice = org.mtr.aurelia.client.voice.AnnouncerVoice.current();
+		return Text.translatable("gui.aurelia.voice", voice == null ? Text.translatable(language == null ? "gui.aurelia.voice.no_language" : "gui.aurelia.voice.computer") : Text.literal(voice.name()));
+	}
+
+	private Text voiceActionLabel() {
+		final org.mtr.aurelia.client.voice.VoiceCatalog.Voice voice = org.mtr.aurelia.client.voice.AnnouncerVoice.current();
+		final org.mtr.aurelia.client.voice.VoiceCatalog.Download engine = org.mtr.aurelia.client.voice.NeuralVoice.engine();
+		if (voice == null) {
+			return Text.translatable("gui.aurelia.voice.test");
+		} else if (engine == null) {
+			return Text.translatable("gui.aurelia.voice.unsupported");
+		} else if (org.mtr.aurelia.client.voice.VoiceInstaller.status() == org.mtr.aurelia.client.voice.VoiceInstaller.Status.DOWNLOADING) {
+			return Text.translatable("gui.aurelia.voice.downloading", org.mtr.aurelia.client.voice.VoiceInstaller.percent());
+		} else if (org.mtr.aurelia.client.voice.NeuralVoice.ready(voice)) {
+			return Text.translatable("gui.aurelia.voice.test");
+		}
+		final long megabytes = Math.max(1, org.mtr.aurelia.client.voice.VoiceInstaller.bytesNeeded(org.mtr.aurelia.client.voice.NeuralVoice.root(), engine, voice) / 1_000_000);
+		return Text.translatable(org.mtr.aurelia.client.voice.VoiceInstaller.status() == org.mtr.aurelia.client.voice.VoiceInstaller.Status.FAILED ? "gui.aurelia.voice.retry" : "gui.aurelia.voice.download", megabytes);
+	}
+
+	/** Downloads the voice when it is missing, otherwise says a test line in the game's language. */
+	private void voiceAction() {
+		final org.mtr.aurelia.client.voice.VoiceCatalog.Voice voice = org.mtr.aurelia.client.voice.AnnouncerVoice.current();
+		final org.mtr.aurelia.client.voice.VoiceCatalog.Download engine = org.mtr.aurelia.client.voice.NeuralVoice.engine();
+		if (voice != null && engine != null && !org.mtr.aurelia.client.voice.NeuralVoice.ready(voice)) {
+			org.mtr.aurelia.client.voice.VoiceInstaller.install(org.mtr.aurelia.client.voice.NeuralVoice.root(), engine, voice);
+		} else if (!org.mtr.mod.client.TtsVolume.muted()) {
+			final String language = org.mtr.aurelia.client.voice.AnnouncerVoice.gameLanguage();
+			org.mtr.aurelia.client.voice.AnnouncerVoice.say(org.mtr.aurelia.client.voice.VoiceCatalog.SAMPLES.getOrDefault(language == null ? "en" : language, org.mtr.aurelia.client.voice.VoiceCatalog.SAMPLES.get("en")));
+		}
+		voiceAction.setMessage(voiceActionLabel());
 	}
 
 	/**
@@ -1206,6 +1282,16 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+		if (tab == Tab.SOUND && voiceAction != null) {
+			// the download's progress and its end show on the button; the label checks files on disk, so only when they change
+			final org.mtr.aurelia.client.voice.VoiceInstaller.Status status = org.mtr.aurelia.client.voice.VoiceInstaller.status();
+			final int percent = org.mtr.aurelia.client.voice.VoiceInstaller.percent();
+			if (status != voiceShownStatus || percent != voiceShownPercent) {
+				voiceShownStatus = status;
+				voiceShownPercent = percent;
+				voiceAction.setMessage(voiceActionLabel());
+			}
+		}
 		renderBackground(context);
 		renderChrome(context);
 		if (tab == Tab.RENDERING) {
