@@ -24,14 +24,14 @@ public final class CrossingRule {
 	/** Whether {@code trains} close a crossing at {@code x, y, z} (the block's centre). */
 	public static boolean closes(List<List<double[]>> trains, double x, double y, double z) {
 		for (final List<double[]> train : trains) {
-			if (closes(train, x, y, z)) {
+			if (closesFor(train, x, y, z)) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	static boolean closes(List<double[]> train, double x, double y, double z) {
+	static boolean closesFor(List<double[]> train, double x, double y, double z) {
 		double nearest = Double.MAX_VALUE;
 		double head = Double.MAX_VALUE;
 		for (int i = 0; i < train.size(); i++) {
