@@ -169,9 +169,10 @@ public final class VisualShots implements ClientModInitializer {
 				case "click" -> {
 					// a left click at GUI-scaled x y on the open screen
 					final String[] at = arg.strip().split("\\s+");
+					final int button = at.length > 2 ? Integer.parseInt(at[2]) : 0;
 					if (client.currentScreen != null) {
-						client.currentScreen.mouseClicked(Double.parseDouble(at[0]), Double.parseDouble(at[1]), 0);
-						client.currentScreen.mouseReleased(Double.parseDouble(at[0]), Double.parseDouble(at[1]), 0);
+						client.currentScreen.mouseClicked(Double.parseDouble(at[0]), Double.parseDouble(at[1]), button);
+						client.currentScreen.mouseReleased(Double.parseDouble(at[0]), Double.parseDouble(at[1]), button);
 					}
 				}
 				case "mouse" -> {
