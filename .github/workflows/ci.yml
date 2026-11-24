@@ -67,6 +67,12 @@ jobs:
       - name: Build the jar
         if: github.event_name == 'push'
         run: ./gradlew setupFiles build -x runGameTest -x ataTest
+      # The test shards only read the cache, and this job never resolves ATA's test classpath, so the two jars only ATA's
+      # tests use (junit-jupiter-params, fabric-loader-junit; fabric/build.gradle) were fetched cold in all fourteen of
+      # them, which is where the Maven download flakes came from
+      - name: Warm the cache with ATA's test dependencies
+        if: github.event_name == 'push'
+        run: ./gradlew setupFiles :fabric:compileAtaTestJava
       - name: Keep the jar
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
