@@ -32,6 +32,7 @@ public final class ExploredMap {
 
 	public static final int MAX_LOADED = 160;
 	private static final String SUFFIX = ".atrmap";
+	private static final String TILE_SUFFIX = ".atrtile";
 	private static final ExecutorService DISK = Executors.newSingleThreadExecutor(runnable -> {
 		final Thread thread = new Thread(runnable, "ATR map disk");
 		thread.setDaemon(true);
@@ -196,6 +197,34 @@ public final class ExploredMap {
 		DISK.execute(() -> done.accept(read(file, regionX, regionZ)));
 	}
 
+	/**
+	 * Reads a region's overview tile on the disk thread and hands it (null when there is none) to {@code done} there. The
+	 * small tile file written with each save is read when it is there; otherwise the tile is made from the region file
+	 * and written for next time, so a map saved before tiles existed pays that once.
+	 */
+	public void readTileOnDiskThread(int regionX, int regionZ, Consumer<int[]> done) {
+		final Path file = file(regionX, regionZ);
+		final Path tile = tileFile(regionX, regionZ);
+		DISK.execute(() -> {
+			if (Files.isRegularFile(tile)) {
+				try (InputStream in = Files.newInputStream(tile)) {
+					done.accept(MapRegionCodec.readTile(in, MapOverview.TILE));
+					return;
+				} catch (IOException e) {
+					// made again from the region below
+				}
+			}
+			final MapRegion region = read(file, regionX, regionZ);
+			if (region == null) {
+				done.accept(null);
+				return;
+			}
+			final int[] pixels = MapOverview.downsample(region, new int[MapOverview.TILE * MapOverview.TILE]);
+			writeTile(tile, pixels);
+			done.accept(pixels);
+		});
+	}
+
 	/** Hands every unsaved region to the disk thread. */
 	public void saveChanged() {
 		for (final MapRegion region : loaded.values()) {
@@ -244,6 +273,9 @@ public final class ExploredMap {
 		final int[] colors = region.copyColors();
 		final short[] heights = region.copyHeights();
 		final Path file = file(region.regionX, region.regionZ);
+		final Path tile = tileFile(region.regionX, region.regionZ);
+		final int regionX = region.regionX;
+		final int regionZ = region.regionZ;
 		DISK.execute(() -> {
 			try {
 				Files.createDirectories(file.getParent());
@@ -254,8 +286,22 @@ public final class ExploredMap {
 				Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 			} catch (IOException e) {
 				AureliaClient.LOGGER.warn("[ATR] map region {} could not be saved", file, e);
+				return;
 			}
+			writeTile(tile, MapOverview.downsample(new MapRegion(regionX, regionZ, colors, heights), new int[MapOverview.TILE * MapOverview.TILE]));
 		});
+	}
+
+	private static void writeTile(Path tile, int[] pixels) {
+		try {
+			final Path temp = tile.resolveSibling(tile.getFileName() + ".tmp");
+			try (OutputStream out = Files.newOutputStream(temp)) {
+				MapRegionCodec.writeTile(out, pixels, MapOverview.TILE);
+			}
+			Files.move(temp, tile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+		} catch (IOException e) {
+			AureliaClient.LOGGER.warn("[ATR] map tile {} could not be saved", tile, e);
+		}
 	}
 
 	@Nullable
@@ -270,6 +316,11 @@ public final class ExploredMap {
 
 	private Path file(int regionX, int regionZ) {
 		return folder.resolve("r." + regionX + "." + regionZ + SUFFIX);
+	}
+
+	/** The region's overview tile, beside its file. Its name does not match the region files' pattern, so listing ignores it. */
+	private Path tileFile(int regionX, int regionZ) {
+		return folder.resolve("t." + regionX + "." + regionZ + TILE_SUFFIX);
 	}
 
 	private static long parse(String name) {

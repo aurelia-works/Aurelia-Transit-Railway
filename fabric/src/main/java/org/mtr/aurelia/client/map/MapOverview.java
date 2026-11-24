@@ -23,7 +23,7 @@ public final class MapOverview {
 	public static final int PAGE = 1024;
 	public static final int PER_PAGE = (PAGE / TILE) * (PAGE / TILE);
 	private static final int STEP = MapRegion.SIZE / TILE;
-	/** 16 pages hold 4096 tiles (64 MB of GPU memory); past that the tile drawn longest ago is reused. */
+	/** 16 pages hold 4096 tiles (64 MB of GPU memory); past that, slots of tiles not on screen are reused in turn. */
 	private static final int MAX_PAGES = 16;
 	private static final int MAX_SLOTS = MAX_PAGES * PER_PAGE;
 	private static final int MAKES_PER_FRAME = 4;
@@ -48,6 +48,8 @@ public final class MapOverview {
 	@Nullable
 	private NativeImage staging;
 	private int used;
+	/** Where {@link #take} looks next once every slot is used. */
+	private int hand;
 	private int frame;
 	private int makesLeft;
 	/** Goes up on {@link #clear}, so tiles still being read for the previous map are thrown away. */
@@ -97,7 +99,7 @@ public final class MapOverview {
 			}
 		} else if (slot < 0 && reading.size() < MAX_READS && !unreadable.contains(key) && reading.add(key)) {
 			final int readGeneration = generation;
-			map.readOnDiskThread(regionX, regionZ, read -> arrived.add(new Tile(key, read == null ? null : downsample(read, new int[TILE * TILE]), readGeneration)));
+			map.readTileOnDiskThread(regionX, regionZ, read -> arrived.add(new Tile(key, read, readGeneration)));
 		}
 		if (slot >= 0) {
 			slotFrame[slot] = frame;
@@ -132,6 +134,7 @@ public final class MapOverview {
 		unreadable.clear();
 		arrived.clear();
 		used = 0;
+		hand = 0;
 		generation++;
 		if (staging != null) {
 			staging.close();
@@ -198,20 +201,18 @@ public final class MapOverview {
 		return slot;
 	}
 
-	/** A free slot, or the one drawn longest ago when all are used. */
+	/** A free slot; when all are used, the next one round from the last taken that was not drawn this frame. */
 	private int take() {
 		if (used < MAX_SLOTS) {
 			return used++;
 		}
-		int oldest = -1;
-		for (int slot = 0; slot < MAX_SLOTS; slot++) {
-			if (slotFrame[slot] != frame && (oldest < 0 || slotFrame[slot] - slotFrame[oldest] < 0)) {
-				oldest = slot;
+		for (int i = 0; i < MAX_SLOTS; i++) {
+			hand = (hand + 1) % MAX_SLOTS;
+			if (slotFrame[hand] != frame) {
+				slotOf.remove(slotKey[hand]);
+				return hand;
 			}
 		}
-		if (oldest >= 0) {
-			slotOf.remove(slotKey[oldest]);
-		}
-		return oldest;
+		return -1;
 	}
 }
