@@ -20,7 +20,7 @@ import net.minecraft.util.WorldSavePath;
 import org.mtr.aurelia.road.spi.Storage;
 
 /**
- * The core's {@link Storage} for one world save: files under {@code <world>/stratos/} (world-data-format §2). Writes go
+ * The core's {@link Storage} for one world save: files under {@code <world>/aurelia_roads/} (world-data-format §2). Writes go
  * to a temp file in {@code tmp/}, are flushed to disk (F-5) and are then renamed over the target, so a file is never
  * half-written (§5). The journal's segments (F-2+) are the one exception: append-only {@link Log logs}, created new and
  * flushed with {@code FileChannel.force}.
@@ -34,14 +34,14 @@ public final class FabricStorage implements Storage {
 
     /** The storage of {@code server}'s world save. */
     public static FabricStorage of(MinecraftServer server) {
-        return new FabricStorage(server.getSavePath(WorldSavePath.ROOT).resolve("stratos"));
+        return new FabricStorage(server.getSavePath(WorldSavePath.ROOT).resolve("aurelia_roads"));
     }
 
     public Path root() {
         return this.root;
     }
 
-    /** The real path for {@code path}, which must stay inside {@code <world>/stratos/}. */
+    /** The real path for {@code path}, which must stay inside {@code <world>/aurelia_roads/}. */
     private Path resolve(String path) {
         Path resolved = this.root.resolve(Storage.checkPath(path)).normalize();
         if (!resolved.startsWith(this.root) || resolved.equals(this.root)) {

@@ -17,7 +17,7 @@ import org.mtr.aurelia.road.spi.Storage;
 /**
  * Brings a world's Stratos data up to this Stratos's {@code formatVersion} (world-data-format §7; task F-5):
  * <ol>
- *   <li>copy everything under {@code stratos/} except {@code undo/}, {@code tmp/} and {@code migrations/} to
+ *   <li>copy everything under {@code aurelia_roads/} except {@code undo/}, {@code tmp/} and {@code migrations/} to
  *       {@code migrations/backup-v<from>-<UTC time>/}, then mark it finished ({@code backup.done}). If an earlier run
  *       stopped after its backup was finished, that backup is used again: the files may be half-migrated since;</li>
  *   <li>run each step {@code M(k → k+1)} in turn (every write atomic, through {@code tmp/});</li>

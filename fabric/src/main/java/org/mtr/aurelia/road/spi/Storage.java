@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Stratos's files inside a world, under {@code <world>/stratos/} (spec mod-suite-v1 §5, world-data-format §2). Paths are
+ * Stratos's files inside a world, under {@code <world>/aurelia_roads/} (spec mod-suite-v1 §5, world-data-format §2). Paths are
  * relative to that folder, with forward slashes, such as {@code undo/<operationId>/s.0.4.-2.bin}; {@link #checkPath}
  * refuses anything that could leave it. Writes are atomic: a temp file, flushed to disk, then a rename (world-data-format §5).
  *

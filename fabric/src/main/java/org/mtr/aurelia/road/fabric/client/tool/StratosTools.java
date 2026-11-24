@@ -126,7 +126,7 @@ public final class StratosTools {
             () -> StratosEditorClient.serverHas(Protocol.CAPABILITY_TRACK), GamePalettes::client);
 
     /** The road choices' file, under the game's config folder (UI-1a; owner, 2026-10-15); from UI-1c the preview's settings too. */
-    private static final String CHOICES_FILE = "stratos/client.json";
+    private static final String CHOICES_FILE = "aurelia/roads/client.json";
 
     /** The road choices and (UI-1c) the preview's settings last written to (or read from) {@link #choicesFile}. */
     private static RoadChoices savedChoices;
@@ -198,7 +198,7 @@ public final class StratosTools {
         return chosen;
     }
 
-    /** Where the road choices and (UI-1c) the preview's settings are kept across restarts: config/stratos/client.json. */
+    /** Where the road choices and (UI-1c) the preview's settings are kept across restarts: config/aurelia/roads/client.json. */
     public static Path choicesFile() {
         return FabricLoader.getInstance().getConfigDir().resolve(CHOICES_FILE);
     }

@@ -9,7 +9,7 @@ import org.mtr.aurelia.road.spi.Storage;
 
 /**
  * One step of the world-data format, {@code formatVersion} {@link #from()} to {@code from() + 1} (world-data-format §7;
- * task F-5): a pure function over the files under {@code stratos/}. {@link Migrations} backs the files up first and writes
+ * task F-5): a pure function over the files under {@code aurelia_roads/}. {@link Migrations} backs the files up first and writes
  * {@code meta.json} after the last step.
  *
  * <p>A step must be safe to run again over its own partial output: a crash before {@code meta.json} is written leaves

@@ -57,7 +57,7 @@ import org.mtr.aurelia.road.undo.Replacement;
 import org.mtr.aurelia.road.undo.SideEffect;
 
 /**
- * The server's side of the {@code stratos:main} protocol (editor-protocol §3, §5), the same on a dedicated server and in
+ * The server's side of the {@code aurelia:roads} protocol (editor-protocol §3, §5), the same on a dedicated server and in
  * singleplayer:
  * <ol>
  *   <li><b>Handshake:</b> {@code Hello} when a player's client can receive the channel, then {@code HelloResult}; editing
@@ -302,7 +302,7 @@ public final class EditorServer {
         return !this.permissions.has(player, NODE_LIMITS_BYPASS);
     }
 
-    /** The player's client can receive {@code stratos:main}: start the handshake with {@code Hello}. */
+    /** The player's client can receive {@code aurelia:roads}: start the handshake with {@code Hello}. */
     public void join(UUID player, MessageChannel channel) {
         Session old = this.sessions.put(player, new Session(channel));
         if (old != null) {

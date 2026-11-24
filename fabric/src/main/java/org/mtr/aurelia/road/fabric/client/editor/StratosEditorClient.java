@@ -43,7 +43,7 @@ import org.mtr.aurelia.road.fabric.client.nodes.StratosNodes;
 import org.mtr.aurelia.road.fabric.client.tool.StratosTools;
 
 /**
- * The client's end of {@code stratos:main}: frames core's {@link EditorClient} on Fabric's networking API, and tells the
+ * The client's end of {@code aurelia:roads}: frames core's {@link EditorClient} on Fabric's networking API, and tells the
  * player what happened: in the tool's HUD while a tool is in hand (R-1), otherwise in chat (refusals, from the lang file:
  * {@code stratos.road.reject.<code>} or {@code stratos.reject.<code>}) or the action bar (progress, undo and redo). From T-2
  * the server's {@code Notice}s too ({@code stratos.notice.<code>}: track that wasn't built or removed), after the answer

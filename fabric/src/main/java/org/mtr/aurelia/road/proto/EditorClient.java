@@ -39,7 +39,7 @@ import org.mtr.aurelia.road.spi.MessageChannel;
 import org.mtr.aurelia.road.undo.SideEffect;
 
 /**
- * The client's side of the {@code stratos:main} protocol (editor-protocol §3, §5): it answers the server's
+ * The client's side of the {@code aurelia:roads} protocol (editor-protocol §3, §5): it answers the server's
  * {@code Hello}, knows whether editing is on, works out a plan locally and sends it with its hash, sends undo and redo,
  * and passes every answer to its {@link Listener}s. Client thread only.
  *
