@@ -11,8 +11,10 @@ import java.util.List;
  *   <li>A train on the crossing or near it ({@link #ON_CROSSING}) closes it, moving or not.</li>
  *   <li>A moving train closes it when its path comes within {@link #ON_CROSSING} of the crossing and, at its speed and
  *       acceleration, it gets there within {@link #WARNING_SECONDS}: time for the arm to come down and stay down a while
- *       before the train. A train on another line, whose path never comes near, and a train standing at a platform
- *       further off do not close it.</li>
+ *       before the train. A train on another line, whose path never comes near, does not close it.</li>
+ *   <li>A train standing on its route closes it only when, starting from a standstill, it would get there too soon to
+ *       warn after it starts: then from the end of its dwell, so the arm is down when it arrives, and at once when it
+ *       stands at a signal (no telling when it goes). One parked off its route, or standing further off, does not.</li>
  * </ul>
  */
 public final class CrossingRule {
@@ -69,12 +71,12 @@ public final class CrossingRule {
 		if (nearest <= ON_CROSSING) {
 			return true;
 		}
-		if (!train.moving()) {
-			return false;
+		if (!train.moving() && Double.isInfinite(train.departsIn())) {
+			return false; // parked off its route
 		}
 		if (Double.isInfinite(train.speed())) {
 			// the speed and path could not be read: the old rule, wider, so a crossing still closes in time
-			return nearest <= UNKNOWN_APPROACH && head <= nearest + 0.5;
+			return train.moving() && nearest <= UNKNOWN_APPROACH && head <= nearest + 0.5;
 		}
 		final List<double[]> ahead = train.ahead();
 		if (ahead.isEmpty() || head - ahead.get(ahead.size() - 1)[3] > ON_CROSSING) {
@@ -82,7 +84,14 @@ public final class CrossingRule {
 		}
 		for (final double[] point : ahead) {
 			if (distance(point, x, y, z) <= ON_CROSSING) {
-				return seconds(point[3], train.speed(), train.acceleration()) <= WARNING_SECONDS;
+				final double travel = seconds(point[3], train.speed(), train.acceleration());
+				if (train.moving()) {
+					return travel <= WARNING_SECONDS;
+				}
+				if (travel > WARNING_SECONDS) {
+					return false; // once it starts there is still time to warn
+				}
+				return Double.isNaN(train.departsIn()) || train.departsIn() + travel <= WARNING_SECONDS;
 			}
 		}
 		return false;

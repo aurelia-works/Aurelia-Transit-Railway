@@ -40,6 +40,8 @@ public final class CargoVehicles {
 	private static final Field SPEED = schemaField("speed");
 	@Nullable
 	private static final Field RAIL_PROGRESS = schemaField("railProgress");
+	@Nullable
+	private static final Field ELAPSED_DWELL = schemaField("elapsedDwellTime");
 
 	private CargoVehicles() {
 	}
@@ -119,21 +121,39 @@ public final class CargoVehicles {
 		return points;
 	}
 
-	/** The train as a level crossing sees it; with no speed or path to read, it counts as moving fast with no path known. */
+	/**
+	 * The train as a level crossing sees it. MTR's units are metres and milliseconds; a crossing's are blocks and seconds.
+	 * With no speed or path to read, it counts as moving at an unknown speed with no path known.
+	 */
 	private static CrossingTrain crossingTrain(Vehicle vehicle, List<double[]> points) {
 		final boolean moving = vehicle.isMoving();
 		try {
-			if (SPEED == null || RAIL_PROGRESS == null) {
+			if (SPEED == null || RAIL_PROGRESS == null || ELAPSED_DWELL == null) {
 				throw new IllegalStateException("no speed field");
 			}
 			final double speed = Math.max(0, SPEED.getDouble(vehicle) * 1000); // m/ms to blocks per second
 			final double acceleration = Math.max(0, vehicle.vehicleExtraData.getAcceleration() * 1_000_000); // m/ms² to blocks/s²
 			final double progress = RAIL_PROGRESS.getDouble(vehicle);
+			final List<PathData> path = vehicle.vehicleExtraData.immutablePath;
+			final double departsIn = moving ? 0 : vehicle.getIsOnRoute() ? departsIn(path, progress, ELAPSED_DWELL.getLong(vehicle)) : Double.POSITIVE_INFINITY;
 			final double reach = Math.min(AHEAD_MAX_BLOCKS, speed * AHEAD_SECONDS + acceleration * AHEAD_SECONDS * AHEAD_SECONDS / 2 + AHEAD_STEP);
-			return new CrossingTrain(points, moving, speed, acceleration, moving ? ahead(vehicle.vehicleExtraData.immutablePath, progress, reach) : List.of());
+			return new CrossingTrain(points, moving, speed, acceleration, Double.isInfinite(departsIn) ? List.of() : ahead(path, progress, reach), departsIn);
 		} catch (Exception e) {
-			return new CrossingTrain(points, moving, Double.POSITIVE_INFINITY, 0, List.of());
+			return new CrossingTrain(points, moving, Double.POSITIVE_INFINITY, 0, List.of(), moving ? 0 : Double.POSITIVE_INFINITY);
 		}
+	}
+
+	/**
+	 * Seconds until a train standing at {@code progress} leaves: its stop's dwell less the time it has stood there
+	 * ({@code elapsedMillis}); NaN when it is not at a stop. The stop is the path piece it stands in or at the end of.
+	 */
+	static double departsIn(List<PathData> path, double progress, long elapsedMillis) {
+		for (final PathData pathData : path) {
+			if (pathData.getStartDistance() <= progress && progress <= pathData.getEndDistance() + 0.01 && pathData.getDwellTime() > 0) {
+				return Math.max(0, pathData.getDwellTime() - elapsedMillis) / 1000.0;
+			}
+		}
+		return Double.NaN;
 	}
 
 	/** Points every {@link #AHEAD_STEP} blocks along {@code path} from {@code progress} for {@code reach} blocks: {@code x, y, z, distance}. */
