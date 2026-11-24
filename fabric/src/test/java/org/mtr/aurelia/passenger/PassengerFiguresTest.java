@@ -75,6 +75,27 @@ public final class PassengerFiguresTest {
 		}
 	}
 
+	/** A platform at ground level, as in a flat world: the floor is the same height both sides, only one side is platform blocks. */
+	@Test
+	public void figuresStandOnPlatformBlocksWhenTheFloorIsLevel() {
+		final PassengerFigures.Ground ground = new PassengerFigures.Ground() {
+			@Override
+			public double top(double x, double z, int railY) {
+				return 64;
+			}
+
+			@Override
+			public boolean platform(double x, double z, int railY) {
+				return z >= 2 && z < 6;
+			}
+		};
+		final double[] spots = new double[8 * 3];
+		PassengerFigures.spots(0, 64, 0, 32, 64, 0, 8, ground, spots);
+		for (int i = 0; i < 8; i++) {
+			Assertions.assertTrue(spots[i * 3 + 2] >= 2 && spots[i * 3 + 2] < 6, "figure " + i + " z " + spots[i * 3 + 2]);
+		}
+	}
+
 	/** People gather at the stopped train's doors, and shuffle aside while its passengers get off. */
 	@Test
 	public void crowdWaitsByTheDoorsAndStepsAside() {

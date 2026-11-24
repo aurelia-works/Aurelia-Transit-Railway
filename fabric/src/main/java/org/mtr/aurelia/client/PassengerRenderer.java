@@ -35,6 +35,7 @@ import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair
 import org.mtr.mapping.holder.Box;
 import org.mtr.mod.block.BlockEscalatorSide;
 import org.mtr.mod.block.BlockEscalatorStep;
+import org.mtr.mod.block.PlatformHelper;
 import org.mtr.mod.client.CustomResourceLoader;
 import org.mtr.mod.client.MinecraftClientData;
 import org.mtr.mod.data.VehicleExtension;
@@ -263,7 +264,7 @@ public final class PassengerRenderer {
 					spotCache.clear();
 				}
 				final double[] found = new double[figures * 3];
-				final PassengerFigures.Ground ground = (x, z, railY) -> floor(world, x, z, railY);
+				final PassengerFigures.Ground ground = ground(world);
 				if (doors.length > 0) {
 					PassengerFigures.spotsAtDoors(x1, y1, z1, x2, y2, z2, doors, figures, ground, found);
 				} else {
@@ -311,25 +312,41 @@ public final class PassengerRenderer {
 		return strength;
 	}
 
-	/** The lowest place near the rail with something to stand on and room for a person above it. */
-	private double floor(World world, double x, double z, int railY) {
+	/** The floor beside a rail in this world, as people waiting see it. */
+	private PassengerFigures.Ground ground(World world) {
+		return new PassengerFigures.Ground() {
+			@Override
+			public double top(double x, double z, int railY) {
+				final int y = floorBlock(world, x, z, railY);
+				return y == Integer.MIN_VALUE ? Double.NaN : y + world.getBlockState(mutable.set(MathHelper.floor(x), y, MathHelper.floor(z))).getCollisionShape(world, mutable).getMax(Direction.Axis.Y);
+			}
+
+			@Override
+			public boolean platform(double x, double z, int railY) {
+				final int y = floorBlock(world, x, z, railY);
+				return y != Integer.MIN_VALUE && world.getBlockState(mutable.set(MathHelper.floor(x), y, MathHelper.floor(z))).getBlock() instanceof PlatformHelper;
+			}
+		};
+	}
+
+	/** The lowest block near the rail with something to stand on and room for a person above it, or {@code Integer.MIN_VALUE}. */
+	private int floorBlock(World world, double x, double z, int railY) {
 		final int blockX = MathHelper.floor(x);
 		final int blockZ = MathHelper.floor(z);
 		for (int y = railY - 2; y <= railY + 2; y++) {
-			final VoxelShape shape = world.getBlockState(mutable.set(blockX, y, blockZ)).getCollisionShape(world, mutable);
-			if (shape.isEmpty()) {
+			if (world.getBlockState(mutable.set(blockX, y, blockZ)).getCollisionShape(world, mutable).isEmpty()) {
 				continue;
 			}
 			final boolean room = world.getBlockState(mutable.set(blockX, y + 1, blockZ)).getCollisionShape(world, mutable).isEmpty()
 					&& world.getBlockState(mutable.set(blockX, y + 2, blockZ)).getCollisionShape(world, mutable).isEmpty();
 			if (room) {
-				return y + shape.getMax(Direction.Axis.Y);
+				return y;
 			}
 		}
-		return Double.NaN;
+		return Integer.MIN_VALUE;
 	}
 
-	/** Whether someone can stand with their feet in this block: {@link #floor}'s rule, plus nothing they would have to climb. */
+	/** Whether someone can stand with their feet in this block: {@link #floorBlock}'s rule, plus nothing they would have to climb. */
 	private boolean standable(int x, int y, int z) {
 		final VoxelShape below = world.getBlockState(mutable.set(x, y - 1, z)).getCollisionShape(world, mutable);
 		return !below.isEmpty() && below.getMax(Direction.Axis.Y) <= 1 && room(x, y, z) && room(x, y + 1, z);
@@ -428,7 +445,7 @@ public final class PassengerRenderer {
 			return null;
 		}
 		final double[] spot = new double[3];
-		PassengerFigures.spots(nearestLine[0], nearestLine[1], nearestLine[2], nearestLine[3], nearestLine[4], nearestLine[5], 1, (x, z, railY) -> floor(world, x, z, railY), spot);
+		PassengerFigures.spots(nearestLine[0], nearestLine[1], nearestLine[2], nearestLine[3], nearestLine[4], nearestLine[5], 1, ground(world), spot);
 		final int minX = MathHelper.floor(Math.min(nearestLine[0], nearestLine[3])) - settings.walkRange();
 		final int minZ = MathHelper.floor(Math.min(nearestLine[2], nearestLine[5])) - settings.walkRange();
 		final int sizeX = MathHelper.floor(Math.max(nearestLine[0], nearestLine[3])) + settings.walkRange() - minX + 1;
@@ -589,7 +606,7 @@ public final class PassengerRenderer {
 			final int people = Math.min(settings.maxWalkers(), Math.min(shown, change));
 			final double[] spots = new double[shown * 3];
 			final double[] doors = doorsAt(id, line[0], line[1], line[2], line[3], line[4], line[5], now);
-			final PassengerFigures.Ground ground = (x, z, railY) -> floor(world, x, z, railY);
+			final PassengerFigures.Ground ground = ground(world);
 			if (doors.length > 0) {
 				PassengerFigures.spotsAtDoors(line[0], line[1], line[2], line[3], line[4], line[5], doors, shown, ground, spots);
 			} else {
@@ -673,7 +690,7 @@ public final class PassengerRenderer {
 		}
 		final int shown = Math.max(people, Math.min(settings.maxPerPlace(), counts.waiting().getOrDefault(platform.getId(), 0)));
 		final double[] spots = new double[shown * 3];
-		PassengerFigures.spotsAtDoors(line[0], line[1], line[2], line[3], line[4], line[5], doorPairs(doors), shown, (x, z, railY) -> floor(world, x, z, railY), spots);
+		PassengerFigures.spotsAtDoors(line[0], line[1], line[2], line[3], line[4], line[5], doorPairs(doors), shown, ground(world), spots);
 		final long routeStart = System.nanoTime();
 		for (int i = 0; i < people && walks.size() < WALKS_MAX; i++) {
 			final int spot = shown - 1 - i;

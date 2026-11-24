@@ -80,6 +80,11 @@ public final class PassengerFigures {
 	public interface Ground {
 		/** @return the height of the floor at x, z, or NaN when there is none */
 		double top(double x, double z, int railY);
+
+		/** @return whether the floor at x, z is a platform block */
+		default boolean platform(double x, double z, int railY) {
+			return false;
+		}
 	}
 
 	/** Blocks from the camera to the nearest point of the platform, so standing on it counts as near however long it is. */
@@ -97,7 +102,7 @@ public final class PassengerFigures {
 
 	/**
 	 * Where {@code count} figures stand, written into {@code out} as x, y, z triples. They stand clear of the train on
-	 * the floor beside the rail: on the higher side when one side is a platform, on both sides of an island.
+	 * the floor beside the rail: on the side made of platform blocks, else the higher side, and on both sides of an island.
 	 */
 	public static void spots(double x1, double y1, double z1, double x2, double y2, double z2, int count, Ground ground, double[] out) {
 		final double dx = x2 - x1;
@@ -108,9 +113,8 @@ public final class PassengerFigures {
 		final int railY = (int) Math.floor(y1);
 		final double[] plus = edge(x1, z1, dx, dz, normalX, normalZ, ground, railY);
 		final double[] minus = edge(x1, z1, dx, dz, -normalX, -normalZ, ground, railY);
-		final double height = Math.max(plus == null ? Double.NEGATIVE_INFINITY : plus[1], minus == null ? Double.NEGATIVE_INFINITY : minus[1]);
-		final boolean usePlus = plus != null && plus[1] > height - 0.25;
-		final boolean useMinus = minus != null && minus[1] > height - 0.25;
+		final boolean usePlus = useSide(plus, minus);
+		final boolean useMinus = useSide(minus, plus);
 		final double[] noFloor = {EDGE_NEAREST, railY + 1};
 
 		for (int i = 0; i < count; i++) {
@@ -153,7 +157,7 @@ public final class PassengerFigures {
 		return top;
 	}
 
-	/** The first distance from the rail with a floor on this side, and its height, or null when this side has none. */
+	/** The first distance from the rail with a floor on this side, its height, and 1 when that floor is a platform block; null when this side has none. */
 	private static double[] edge(double x1, double z1, double dx, double dz, double sideX, double sideZ, Ground ground, int railY) {
 		for (int offset = EDGE_NEAREST; offset <= EDGE_FARTHEST; offset++) {
 			double height = Double.NaN;
@@ -164,10 +168,30 @@ public final class PassengerFigures {
 				}
 			}
 			if (!Double.isNaN(height)) {
-				return new double[]{offset, height};
+				boolean platform = false;
+				for (double t = 0.25; t < 1 && !platform; t += 0.25) {
+					platform = ground.platform(x1 + dx * t + sideX * offset, z1 + dz * t + sideZ * offset, railY);
+				}
+				return new double[]{offset, height, platform ? 1 : 0};
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Whether people wait on this side of the rail. When only one side is made of platform blocks, that side; otherwise
+	 * the higher side, or both when they are level, as on an island.
+	 */
+	private static boolean useSide(double[] side, double[] other) {
+		if (side == null) {
+			return false;
+		}
+		final boolean platform = side[2] > 0;
+		final boolean otherPlatform = other != null && other[2] > 0;
+		if (platform != otherPlatform) {
+			return platform;
+		}
+		return other == null || side[1] > other[1] - 0.25;
 	}
 
 	/**
@@ -190,9 +214,8 @@ public final class PassengerFigures {
 		final int railY = (int) Math.floor(y1);
 		final double[] plus = edge(x1, z1, dx, dz, normalX, normalZ, ground, railY);
 		final double[] minus = edge(x1, z1, dx, dz, -normalX, -normalZ, ground, railY);
-		final double height = Math.max(plus == null ? Double.NEGATIVE_INFINITY : plus[1], minus == null ? Double.NEGATIVE_INFINITY : minus[1]);
-		final boolean usePlus = plus != null && plus[1] > height - 0.25;
-		final boolean useMinus = minus != null && minus[1] > height - 0.25;
+		final boolean usePlus = useSide(plus, minus);
+		final boolean useMinus = useSide(minus, plus);
 		final double[] noFloor = {EDGE_NEAREST, railY + 1};
 		final int doorCount = doors.length / 2;
 
