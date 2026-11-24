@@ -14,7 +14,8 @@ import java.util.UUID;
 /**
  * The records of the {@code aurelia:roads} channel built so far: ids 0–9 of editor-protocol §4 (handshake, plan request,
  * accept and reject, apply progress, undo and redo), 17 ({@code Notice}, T-2), 18 ({@code YourRoads}, F-5), 19
- * ({@code Palettes}, R-9), 20–22 (world tasks, B-3) and 23 ({@code StratosBlocks}, UI-1c). Ids 10–16 (cancel, road-graph
+ * ({@code Palettes}, R-9), 20–22 (world tasks, B-3), 23 ({@code StratosBlocks}, UI-1c) and 24
+ * ({@code TrafficSide}, P9). Ids 10–16 (cancel, road-graph
  * data, transfers) arrive with the tasks that need them. {@link Messages} encodes and decodes them.
  *
  * <p>Every record checks its fields when it is made, with the same maximums the decoder enforces, so a record that
@@ -508,6 +509,23 @@ public sealed interface Message {
         @Override
         public int id() {
             return 23;
+        }
+
+        @Override
+        public Direction direction() {
+            return Direction.TO_CLIENT;
+        }
+    }
+
+    /**
+     * Id 24, server → client (P9): the world's driving side, which new roads take. Sent after the handshake when the world
+     * keeps to the right (left is what a client assumes until told), and to every player who can edit when it changes. A
+     * client from before P9 drops it as an unknown id and keeps building left-hand roads.
+     */
+    record TrafficSide(boolean rightHand) implements Message {
+        @Override
+        public int id() {
+            return 24;
         }
 
         @Override
