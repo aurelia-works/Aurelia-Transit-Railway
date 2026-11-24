@@ -70,4 +70,4 @@ RETURN:      <exactly what comes back: PR link, test result lines, files changed
 | `PLAN.md` | the plan to V1, phase list and status |
 
 `HANDOFF.md` (current state only, replaced not appended) and `SPEC.md` (per-feature spec, written by the lead before
-building) are written on the feature branch while work is open; they are not kept on `master`.
+building) are written while a task is open; neither is in the tree yet.
