@@ -1,19 +1,32 @@
 package org.mtr.atr.mixin;
 
+import net.minecraft.client.gui.DrawContext;
 import org.mtr.aurelia.client.AureliaClient;
 import org.mtr.aurelia.dashboard.DashboardLayout;
+import org.mtr.aurelia.dashboard.DashboardMapLayers;
 import org.mtr.aurelia.dashboard.DashboardMapState;
 import org.mtr.aurelia.dashboard.WidgetMapCameraAccess;
+import org.mtr.mapping.holder.ClientPlayerEntity;
+import org.mtr.mapping.holder.World;
 import org.mtr.mapping.mapper.ClickableWidgetExtension;
+import org.mtr.mapping.mapper.GraphicsHolder;
 import org.mtr.mod.screen.WidgetMap;
+import org.mtr.mod.screen.WorldMap;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Exposes {@link WidgetMap}'s center/zoom for unified dashboard mode switching and shifts top-right cursor coordinates
  * below the unified mode switcher bar so nothing overlaps at {@code 854x480} or {@code 1080p}.
+ * <p>
+ * The ground under MTR's overlays is ATR's explored map of the whole world ({@link DashboardMapLayers}). MTR's
+ * {@link WorldMap}, which only pictures the loaded chunks by reading them block by block on the render thread, now
+ * runs only for the "current Y" view, the one thing the explored map does not show.
  */
 @Mixin(value = WidgetMap.class, remap = false)
 public abstract class DashboardMapMixin extends ClickableWidgetExtension implements WidgetMapCameraAccess {
@@ -26,6 +39,9 @@ public abstract class DashboardMapMixin extends ClickableWidgetExtension impleme
 
 	@Shadow
 	private double centerY;
+
+	@Shadow
+	private boolean showStations;
 
 	protected DashboardMapMixin(int x, int y, int width, int height) {
 		super(x, y, width, height);
@@ -70,5 +86,35 @@ public abstract class DashboardMapMixin extends ClickableWidgetExtension impleme
 	)
 	private int atr$offsetMousePositionBelowBar(int y) {
 		return this.getY2() + DashboardLayout.MOUSE_COORDS_Y;
+	}
+
+	@Inject(method = "render", at = @At(value = "INVOKE", target = "Lorg/mtr/mod/screen/WorldMap;forEachTile(Ljava/util/function/Consumer;)V"))
+	private void atr$drawExploredGround(GraphicsHolder graphicsHolder, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+		final DrawContext context = ((GraphicsHolderDrawContext) (Object) graphicsHolder).atr$getDrawContext();
+		DashboardMapLayers.ground(context, this.getX2(), this.getY2(), this.width, this.height, this.centerX, this.centerY, this.scale);
+	}
+
+	@Redirect(method = "render", at = @At(value = "INVOKE", target = "Lorg/mtr/mod/screen/WorldMap;tick(Lorg/mtr/mapping/holder/World;Lorg/mtr/mapping/holder/ClientPlayerEntity;F)V"))
+	private void atr$scanOnlyForCurrentY(WorldMap map, World world, ClientPlayerEntity player, float delta) {
+		if (map.isMapOverlayMode(WorldMap.MapOverlayMode.CURRENT_Y)) {
+			map.tick(world, player, delta);
+		}
+	}
+
+	@Redirect(method = "setMapOverlayMode", at = @At(value = "INVOKE", target = "Lorg/mtr/mod/screen/WorldMap;updateMap(Lorg/mtr/mapping/holder/World;Lorg/mtr/mapping/holder/ClientPlayerEntity;)V"))
+	private void atr$rescanOnlyForCurrentY(WorldMap map, World world, ClientPlayerEntity player) {
+		if (map.isMapOverlayMode(WorldMap.MapOverlayMode.CURRENT_Y)) {
+			map.updateMap(world, player);
+		} else {
+			map.disposeImages();
+		}
+	}
+
+	@Inject(method = "render", at = @At(value = "INVOKE", target = "Lorg/mtr/mod/screen/WidgetMap;drawMousePositionText(Lorg/mtr/mapping/mapper/GraphicsHolder;Lorg/mtr/libraries/it/unimi/dsi/fastutil/doubles/DoubleDoubleImmutablePair;)V"))
+	private void atr$drawFarStations(GraphicsHolder graphicsHolder, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+		if (this.showStations) {
+			final DrawContext context = ((GraphicsHolderDrawContext) (Object) graphicsHolder).atr$getDrawContext();
+			DashboardMapLayers.farStations(context, this.getX2(), this.getY2(), this.width, this.height, this.centerX, this.centerY, this.scale);
+		}
 	}
 }
