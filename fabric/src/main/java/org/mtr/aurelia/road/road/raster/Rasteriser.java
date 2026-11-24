@@ -137,22 +137,10 @@ public final class Rasteriser {
         if (palette.kerbEdges()) {
             cells = withKerbs(cells);
         }
-        if (Boolean.getBoolean("stratos.debug.noLines") && (palette.lines(LineMarking.Colour.WHITE) || palette.lines(LineMarking.Colour.YELLOW))) {
-            cells = unpainted(cells); // debug (B-3's harness): a palette with line blocks paints nothing, as before B-2
-        } else if (palette.lines(LineMarking.Colour.WHITE) || palette.lines(LineMarking.Colour.YELLOW)) {
+        if (palette.lines(LineMarking.Colour.WHITE) || palette.lines(LineMarking.Colour.YELLOW)) {
             cells = withLines(cells, pieces, owned, palette);
         }
         return cells;
-    }
-
-    /** {@code cells} with no column painted: a road's markings left out (the redraw check's road placed before B-2). */
-    private static List<Map.Entry<BlockXZ, Cell>> unpainted(List<Map.Entry<BlockXZ, Cell>> cells) {
-        List<Map.Entry<BlockXZ, Cell>> plain = new ArrayList<>(cells.size());
-        for (Map.Entry<BlockXZ, Cell> entry : cells) {
-            Cell cell = entry.getValue();
-            plain.add(Map.entry(entry.getKey(), new Cell(cell.column().painted(Optional.empty(), OptionalInt.empty()), cell.top())));
-        }
-        return plain;
     }
 
     /**

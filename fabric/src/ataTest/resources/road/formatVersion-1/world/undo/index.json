@@ -1,0 +1,51 @@
+{
+  "operations": [
+    {
+      "id": "0b6c5d7e-1f2a-4b3c-8d4e-5f6a7b8c9d01",
+      "owner": "00000000-0000-0000-0000-00000000a11c",
+      "dataVersion": 3465,
+      "generation": 1,
+      "blocks": 20,
+      "bytes": 179,
+      "sections": [
+        [
+          0,
+          4,
+          0
+        ],
+        [
+          1,
+          4,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "0b6c5d7e-1f2a-4b3c-8d4e-5f6a7b8c9d02",
+      "owner": "00000000-0000-0000-0000-00000000a11c",
+      "dataVersion": 3465,
+      "generation": 1,
+      "blocks": 5,
+      "bytes": 84,
+      "sections": [
+        [
+          2,
+          4,
+          0
+        ]
+      ]
+    }
+  ],
+  "histories": [
+    {
+      "dimension": "minecraft:overworld",
+      "owner": "00000000-0000-0000-0000-00000000a11c",
+      "undo": [
+        "0b6c5d7e-1f2a-4b3c-8d4e-5f6a7b8c9d01"
+      ],
+      "redo": [
+        "0b6c5d7e-1f2a-4b3c-8d4e-5f6a7b8c9d02"
+      ]
+    }
+  ]
+}

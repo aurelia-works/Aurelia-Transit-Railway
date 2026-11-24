@@ -1,0 +1,34 @@
+{
+  "id": "0b6c5d7e-1f2a-4b3c-8d4e-5f6a7b8c9d01",
+  "dimension": "minecraft:overworld",
+  "module": "roads",
+  "tool": "STRAIGHT",
+  "params": {
+    "tool": "STRAIGHT",
+    "profileId": "city-17"
+  },
+  "planHash": "abababababababababababababababababababababababababababababababab",
+  "coreVersion": "0.1.0",
+  "author": "00000000-0000-0000-0000-00000000a11c",
+  "time": "2026-10-08T12:00:00Z",
+  "status": "APPLIED",
+  "undoAvailable": true,
+  "sections": [
+    {
+      "x": 0,
+      "y": 4,
+      "z": 0,
+      "hash": "fd94af96f227407865a9cc1bb66def684be4ba3daa053443c2eb0e35e8587c82"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "z": 0,
+      "hash": "bb9a25b7f85321fc0467fa4a85916284f075f627a4c67bc046e63d66d465fef6"
+    }
+  ],
+  "sideEffects": {
+    "planned": [],
+    "owned": []
+  }
+}
