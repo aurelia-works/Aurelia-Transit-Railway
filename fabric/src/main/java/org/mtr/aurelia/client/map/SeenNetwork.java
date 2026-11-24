@@ -61,6 +61,8 @@ public final class SeenNetwork {
 	private final Map<String, Line> rails = new HashMap<>();
 	private final Map<Long, Area> stations = new HashMap<>();
 	private boolean unsaved;
+	/** Goes up whenever a station is added, changed or forgotten, so a list built from them knows to rebuild. */
+	private int stationsVersion;
 
 	public SeenNetwork(Path folder) {
 		file = folder.resolve("network.json");
@@ -77,6 +79,10 @@ public final class SeenNetwork {
 
 	public Map<Long, Area> stationsById() {
 		return stations;
+	}
+
+	public int stationsVersion() {
+		return stationsVersion;
 	}
 
 	/** Takes in what MTR has now near {@code playerX, playerZ}. */
@@ -103,8 +109,9 @@ public final class SeenNetwork {
 		final Set<Long> presentStations = new HashSet<>();
 		addStations(data.stations, presentStations);
 		addStations(MinecraftClientData.getDashboardInstance().stations, presentStations);
-		if (!data.stations.isEmpty()) {
-			unsaved |= stations.entrySet().removeIf(entry -> !presentStations.contains(entry.getKey()) && inside(entry.getValue(), playerX, playerZ));
+		if (!data.stations.isEmpty() && stations.entrySet().removeIf(entry -> !presentStations.contains(entry.getKey()) && inside(entry.getValue(), playerX, playerZ))) {
+			unsaved = true;
+			stationsVersion++;
 		}
 	}
 
@@ -154,6 +161,7 @@ public final class SeenNetwork {
 			final Area area = new Area(station.getName(), station.getColor(), station.getMinX(), station.getMinZ(), station.getMaxX(), station.getMaxZ());
 			if (!area.equals(stations.put(station.getId(), area))) {
 				unsaved = true;
+				stationsVersion++;
 			}
 		}
 	}
