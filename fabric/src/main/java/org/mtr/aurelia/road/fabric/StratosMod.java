@@ -8,6 +8,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import org.mtr.aurelia.road.fabric.apply.ApplyService;
 import org.mtr.aurelia.road.fabric.block.StratosBlocks;
 import org.mtr.aurelia.road.fabric.net.EditorNetworking;
+import org.mtr.aurelia.road.fabric.paint.PaintSync;
 import org.mtr.aurelia.road.fabric.palette.GamePalettes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,7 @@ public final class StratosMod {
         StratosBlocks.register(); // before the palettes are read: the Stratos UK palette names these blocks
         ApplyService.register();
         GamePalettes.register();
+        PaintSync.register();
         EditorNetworking.register();
         LOGGER.info("[stratos] Stratos roads {} initialised", version());
     }

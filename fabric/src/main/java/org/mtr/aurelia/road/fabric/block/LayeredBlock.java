@@ -9,6 +9,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.entity.ai.pathing.NavigationType;
 import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.IntProperty;
 import net.minecraft.state.property.Properties;
@@ -18,6 +19,7 @@ import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import org.mtr.aurelia.road.fabric.net.EditorNetworking;
+import org.mtr.aurelia.road.fabric.paint.PaintStore;
 
 /**
  * A road surface in eighth-block layers (task B-1; ADR-0044): {@code layers} 1 to 8, one layer 125 mm, the same texture
@@ -49,6 +51,16 @@ public class LayeredBlock extends Block {
         if (!world.isClient && world.getServer() != null) {
             EditorNetworking.stratosBlockPlaced(world.getServer());
         }
+    }
+
+    /** Road paint lies on asphalt (PaintLines): when the block stops being this one, its paint goes too. */
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
+        if (world instanceof ServerWorld server && !newState.isOf(this)) {
+            PaintStore.of(server).remove(pos.asLong());
+        }
+        super.onStateReplaced(state, world, pos, newState, moved);
     }
 
     @Override
