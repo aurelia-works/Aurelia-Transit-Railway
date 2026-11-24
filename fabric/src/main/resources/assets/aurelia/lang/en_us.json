@@ -201,7 +201,7 @@
 	"gui.aurelia.voice": "Announcer voice: %s",
 	"gui.aurelia.voice.computer": "computer's own",
 	"gui.aurelia.voice.no_language": "computer's own (none for this language)",
-	"gui.aurelia.voice.tooltip": "Who reads spoken announcements. ATR's own voices follow Minecraft's language: English (Isabella, Lewis, Michael), Mandarin, Dutch, German, French, Spanish, Italian, Portuguese and Hindi. Other languages use the computer's own voice. Voices: Kokoro (Apache-2.0); Piper voices Ronnie, Thorsten and Davefx (CC0) and SIWIS (CC BY 4.0, University of Edinburgh). Engine: sherpa-onnx (Apache-2.0) with espeak-ng (GPL-3), downloaded separately, not part of ATR.",
+	"gui.aurelia.voice.tooltip": "Who reads spoken announcements. ATR's own voices are English (Isabella, Lewis, Michael) and speak when Minecraft's language is English. Other languages use the computer's own voice. Voices: Kokoro (Apache-2.0). Engine: sherpa-onnx (Apache-2.0) with espeak-ng (GPL-3), downloaded separately, not part of ATR.",
 	"gui.aurelia.voice.speed": "Voice speed: %sx",
 	"gui.aurelia.voice.download": "Download voice (%s MB)",
 	"gui.aurelia.voice.retry": "Download failed: try again (%s MB)",
