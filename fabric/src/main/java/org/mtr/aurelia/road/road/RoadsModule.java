@@ -29,7 +29,7 @@ import org.mtr.aurelia.road.road.palette.Palette;
 import org.mtr.aurelia.road.undo.OperationRecord;
 import org.mtr.aurelia.road.undo.Replacement;
 
-/** The roads module on the {@code stratos:main} channel: {@code module = roads}, parameters {@link RoadPlanParams}. */
+/** The roads module on the {@code aurelia:roads} channel: {@code module = roads}, parameters {@link RoadPlanParams}. */
 public final class RoadsModule implements PlanModule<RoadPlanParams> {
     public static final RoadsModule INSTANCE = new RoadsModule();
     public static final String ID = "roads";

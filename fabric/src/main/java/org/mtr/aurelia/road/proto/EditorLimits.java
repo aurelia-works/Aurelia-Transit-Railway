@@ -14,7 +14,7 @@ import org.mtr.aurelia.road.proto.Message.Limits;
  * and players with {@code stratos.limits.bypass}. 0 means no limit. Undo and redo are neither limited nor counted
  * (owner, 2026-10-12): they only reverse what the player was allowed to do.
  *
- * <p>The server keeps them in {@code config/stratos/server.json} ({@link #FILE}), written with {@link #DEFAULTS} on its
+ * <p>The server keeps them in {@code config/aurelia/roads/server.json} ({@link #FILE}), written with {@link #DEFAULTS} on its
  * first start. A missing key keeps its default.
  *
  * @param maxBlocksPerOperation the most blocks one plan may change ({@code VOLUME_LIMIT}); a rebuild counts its whole road
@@ -24,7 +24,7 @@ import org.mtr.aurelia.road.proto.Message.Limits;
  */
 public record EditorLimits(int maxBlocksPerOperation, int maxBlocksPerMinute, int planRequestsPerSecond, int planRequestBurst) {
     /** The file in the game's config folder. */
-    public static final String FILE = "stratos/server.json";
+    public static final String FILE = "aurelia/roads/server.json";
     /** No limits at all. */
     public static final EditorLimits NONE = new EditorLimits(0, 0, 0, 0);
     /** The defaults (owner, 2026-10-12: the spec's proposal; S12 showed a million blocks doesn't freeze the server). */

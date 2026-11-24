@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mtr.aurelia.road.geom.mtr.Angle;
 import org.mtr.aurelia.road.geom.mtr.MtrRails;
@@ -33,7 +32,6 @@ import org.mtr.aurelia.road.geom.mtr.Vector;
  * {@code count1 + count2} can differ from the oracle's by one ulp, which puts the same sample on the other piece.
  * So on a join the port's position is compared with both of MTR's piece values and must match the nearer within 1e-6.
  */
-@Tag("slow")
 class RailMathOracleTest {
     private static final long SEED = 20261002L;
     private static final int ANGLES = 16;
@@ -57,13 +55,6 @@ class RailMathOracleTest {
         Stats edgeStats = new Stats("edge cases");
         random.forEach(randomStats::add);
         edges.forEach(edgeStats::add);
-        System.out.println(String.join("\n", "",
-                "=== G-2: the RailMath port (StrictMath) vs MTR 4.0.5's org.mtr.core.data.RailMath ===",
-                String.format(Locale.ROOT, "Random: 16 x 16 heading pairs x %d endpoints within %d blocks (seed %d), dy cycling %s, QUADRATIC",
-                        ENDPOINTS_PER_PAIR, MAX_DISTANCE, SEED, java.util.Arrays.toString(HEIGHT_DIFFERENCES)),
-                randomStats.report(),
-                "Edge: 64 collinear straights, 512 start = end, 1,024 starts 29-30 million blocks out",
-                edgeStats.report(), ""));
 
         assertEquals(51_200, random.size(), "random case count (S5)");
         assertEquals(1_600, edges.size(), "edge case count (S5)");
@@ -158,10 +149,7 @@ class RailMathOracleTest {
     private static final class Stats {
         private final String name;
         private long cases;
-        private long oracleValid;
         private long validityAgree;
-        private long samples;
-        private long joinSamples;
         private long oneSidedNaN;
         private double maxDLen;
         private double maxDPosOnJoin;
@@ -185,7 +173,6 @@ class RailMathOracleTest {
 
             this.cases++;
             boolean oracleIsValid = oracleIsValid(oracle);
-            this.oracleValid += oracleIsValid ? 1 : 0;
             if (oracleIsValid == MtrRails.isValid(port)) {
                 this.validityAgree++;
             } else {
@@ -210,7 +197,6 @@ class RailMathOracleTest {
                     org.mtr.core.tool.Vector expected = oracle.getPosition(u, reverse);
                     Vector actual = port.getPosition(u, reverse);
                     double dPos = distance(expected.x(), expected.y(), expected.z(), actual.x(), actual.y(), actual.z());
-                    this.samples++;
                     if (dPos == Double.POSITIVE_INFINITY) {
                         this.oneSidedNaN++;
                     }
@@ -221,7 +207,6 @@ class RailMathOracleTest {
                         dPos = StrictMath.min(dPos, StrictMath.min(
                                 joinDistance(oracle, u - JOIN_PROBE, reverse, actual),
                                 joinDistance(oracle, u + JOIN_PROBE, reverse, actual)));
-                        this.joinSamples++;
                         if (dPos > this.maxDPosOnJoin) {
                             this.maxDPosOnJoin = dPos;
                             this.worstOnJoin = c;
@@ -242,14 +227,6 @@ class RailMathOracleTest {
                     () -> assertTrue(this.maxDLen <= TOLERANCE, this.name + ": max |dLen| " + this.maxDLen + " at " + this.worstLen),
                     () -> assertTrue(this.maxDPosElsewhere <= TOLERANCE, this.name + ": max |dPos| off the joins " + this.maxDPosElsewhere + " at " + this.worstElsewhere),
                     () -> assertTrue(this.maxDPosOnJoin <= TOLERANCE, this.name + ": max |dPos| on a join " + this.maxDPosOnJoin + " at " + this.worstOnJoin));
-        }
-
-        private String report() {
-            return String.format(Locale.ROOT,
-                    "  %s: %,d | MTR valid %,d | validity agreement %,d/%,d | getPosition samples %,d (one-sided NaN %,d)%n"
-                            + "  max |dLen| = %s | max |dPos| off the joins = %s (limit 1e-6) | on a join (%,d samples, either piece) = %s (limit 1e-6)",
-                    this.name, this.cases, this.oracleValid, this.validityAgree, this.cases, this.samples, this.oneSidedNaN,
-                    this.maxDLen, this.maxDPosElsewhere, this.joinSamples, this.maxDPosOnJoin);
         }
     }
 

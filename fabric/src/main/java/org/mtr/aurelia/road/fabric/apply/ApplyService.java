@@ -31,9 +31,8 @@ import org.mtr.aurelia.road.fabric.StratosMod;
  * all dimensions. Works the same on a dedicated server and in singleplayer. Server thread only.
  *
  * <p><b>Saved with the world (F-5):</b> when the server starts, the world's Stratos data ({@link WorldData}: records, undo
- * history, {@code meta.json}) is loaded, read-only if it is newer than this Stratos, and the {@code stratos_meta} record
- * ({@link StratosSavedData}) makes every world save write it. {@code -Dstratos.debug.undoMemoryBytes=<n>} lowers the
- * in-memory budget for undo images (the GameTests use 0, so every image goes through the disk).
+ * history, {@code meta.json}) is loaded, read-only if it is newer than this Stratos, and the {@code aurelia_roads_meta} record
+ * ({@link StratosSavedData}) makes every world save write it.
  *
  * <p><b>Side effects (T-2):</b> the operations' hidden track is carried out by the server's track writer
  * ({@link SideEffects}), after each operation's blocks.
@@ -71,7 +70,7 @@ public final class ApplyService {
     private static final List<Consumer<Recovery.Report>> REPAIR_LISTENERS = new ArrayList<>();
     /** The world's Stratos data, from the server's start until it has stopped (its last save needs it). */
     private static WorldData data;
-    /** The world's {@code stratos_meta} record, loaded with {@link #data}. */
+    /** The world's {@code aurelia_roads_meta} record, loaded with {@link #data}. */
     private static StratosSavedData saved;
     /** The "Stratos helper" thread (F-2b), made with {@link #data} and stopped with it. */
     private static HelperThread helper;
@@ -130,7 +129,7 @@ public final class ApplyService {
         return data;
     }
 
-    /** Whether the world has Stratos blocks, by the mark in its {@code stratos_meta} record (UI-1c). */
+    /** Whether the world has Stratos blocks, by the mark in its {@code aurelia_roads_meta} record (UI-1c). */
     public static boolean stratosBlocks(MinecraftServer server) {
         data(server);
         return saved.stratosBlocks();
@@ -182,16 +181,15 @@ public final class ApplyService {
 
     private static WorldData load(MinecraftServer server) {
         FabricWorldWriter.warmUp();
-        long memory = Long.getLong("stratos.debug.undoMemoryBytes", UndoStore.DEFAULT_MEMORY_BYTES);
         helper = new HelperThread();
         // The track writer (T-2): none until the MTR track writer is wired in.
-        WorldData.Settings settings = new WorldData.Settings(memory, UndoStore.DEFAULT_MAX_OPERATIONS, UndoStore.DEFAULT_MAX_BYTES, UUID::randomUUID,
+        WorldData.Settings settings = new WorldData.Settings(UndoStore.DEFAULT_MEMORY_BYTES, UndoStore.DEFAULT_MAX_OPERATIONS, UndoStore.DEFAULT_MAX_BYTES, UUID::randomUUID,
                 SideEffects.writer(server), Instant::now, SharedConstants.getGameVersion().getSaveVersion().getId(),
                 "stratos " + StratosMod.version(), helper);
         WorldData loaded = WorldData.load(FabricStorage.of(server), settings, Migrations.ALL, line -> StratosMod.LOGGER.warn(line));
         saved = server.getOverworld().getPersistentStateManager().getOrCreate(StratosSavedData::load, StratosSavedData::create, StratosSavedData.NAME);
         if (saved.formatVersion() > CoreInfo.FORMAT_VERSION) {
-            loaded.makeReadOnly(WorldData.ReadOnly.NEWER_FORMAT, "its stratos_meta record has formatVersion " + saved.formatVersion()
+            loaded.makeReadOnly(WorldData.ReadOnly.NEWER_FORMAT, "its aurelia_roads_meta record has formatVersion " + saved.formatVersion()
                     + "; this Stratos reads " + CoreInfo.FORMAT_VERSION);
         }
         saved.attach(loaded);

@@ -33,7 +33,7 @@ import org.mtr.aurelia.road.fabric.paint.PaintLines;
  * The palettes roads may use in this game (task R-9; owner, 2026-10-10).
  * <ul>
  *   <li><b>On the server,</b> read when it starts: Stratos's built-in palettes, then every {@code *.json} in
- *       {@code config/stratos/palettes/} (the folder is made if it isn't there), in file-name order. Each is resolved with
+ *       {@code config/aurelia/roads/palettes/} (the folder is made if it isn't there), in file-name order. Each is resolved with
  *       the game's block registry and state parser ({@link #GAME}): per role, the first candidate whose blocks the game
  *       has, every state written as the game writes it. A file with a problem is refused whole and logged; a file can't
  *       take a built-in palette's id, nor another file's. The world's snapshots ({@code WorldData.paletteSnapshots}) are
@@ -43,7 +43,7 @@ import org.mtr.aurelia.road.fabric.paint.PaintLines;
  */
 public final class GamePalettes {
     /** Where players and packs add palettes, inside the game's config folder. */
-    public static final String FOLDER = "stratos/palettes";
+    public static final String FOLDER = "aurelia/roads/palettes";
 
     /** What this game knows about blocks: its block registry, and its parser for states. */
     public static final BlockLookup GAME = new BlockLookup() {

@@ -16,7 +16,7 @@ import java.util.Properties;
  */
 public final class CoreInfo {
     /**
-     * The format of Stratos's files under {@code <world>/stratos/} (spec world-data-format §3; ADR-0028): an integer,
+     * The format of Stratos's files under {@code <world>/aurelia_roads/} (spec world-data-format §3; ADR-0028): an integer,
      * separate from the mod and protocol versions. Any change to any of those formats raises it and adds a migration
      * (F-5). Version 1 (G-9): operation records ({@code undo.OperationJson}) and undo images ({@code undo.UndoCodec}).
      * The handshake reports it ({@code Hello.formatVersion}).
@@ -28,16 +28,16 @@ public final class CoreInfo {
     private CoreInfo() {
     }
 
-    /** The core version, the Stratos version it was built with (such as {@code 0.1.0}). */
+    /** The Stratos core version this port was taken from (such as {@code 0.1.0}), from {@code core.properties}. */
     public static String version() {
         return VERSION;
     }
 
     private static String load() {
-        // Written by Gradle's processResources from the stratos.version property.
+        // A fixed file next to this class: the Stratos version the port was taken from.
         try (InputStream in = CoreInfo.class.getResourceAsStream("core.properties")) {
             if (in == null) {
-                throw new IllegalStateException("core.properties is missing from the core jar");
+                throw new IllegalStateException("core.properties is missing from the mod jar");
             }
             Properties properties = new Properties();
             properties.load(in);

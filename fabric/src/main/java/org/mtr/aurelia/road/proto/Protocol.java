@@ -5,7 +5,7 @@
 package org.mtr.aurelia.road.proto;
 
 /**
- * The fixed facts of the {@code stratos:main} protocol (editor-protocol §2–§4) and the reason codes core sends. Codes
+ * The fixed facts of the {@code aurelia:roads} protocol (editor-protocol §2–§4) and the reason codes core sends. Codes
  * double as i18n keys: protocol codes as {@code stratos.reject.<code in lowercase>}, road codes (roads-v1 §12) as
  * {@code stratos.road.reject.<code in lowercase>}.
  */
@@ -18,7 +18,7 @@ public final class Protocol {
     public static final int VERSION = 1;
 
     /** The channel id; the platform layer frames the records on it. */
-    public static final String CHANNEL = "stratos:main";
+    public static final String CHANNEL = "aurelia:roads";
 
     /** The largest client → server message: about 30 KiB, below Minecraft 1.20.1's 32 KiB (editor-protocol §2). */
     public static final int MAX_TO_SERVER_BYTES = 30_720;
