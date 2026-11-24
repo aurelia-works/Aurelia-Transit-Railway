@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Routes incoming dashboard open packets through {@link UnifiedDashboardClient}: legacy items open their starting
  * transport mode, while the primary Transit Dashboard (and ATR menu / panel entries) opens the last selected mode
- * (including Bus & Road).
+ * of the four.
  */
 @Mixin(value = ClientPacketHelper.class, remap = false)
 public abstract class DashboardOpenMixin {
