@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.gametest;
 
+import com.mojang.authlib.GameProfile;
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.TextSignBlock;
 import com.aureliatransit.architecture.earthworks.EarthJob;
@@ -48,6 +49,7 @@ import com.aureliatransit.architecture.station.world.StationSessions;
 import com.aureliatransit.architecture.station.world.StationZone;
 import com.aureliatransit.architecture.station.world.MtrStationContract;
 import com.aureliatransit.architecture.station.world.WorldSiteProbe;
+import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -79,7 +81,6 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.GameMode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1098,15 +1099,15 @@ public class StationGameTests implements FabricGameTest {
 		final ServerPlayerEntity player = context.createMockCreativeServerPlayerInWorld();
 		player.refreshPositionAndAngles(feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5, Direction.SOUTH.asRotation(), 0.0F);
 		final UUID id = player.getUuid();
-		final ServerCommandSource denied = player.getCommandSource().withLevel(0);
+		// creative mode alone counts (Operators.isOperatorOrCreative) and the mock player is always creative, so the refused
+		// player is a separate survival player
+		final ServerPlayerEntity survivor = survivalPlayer(world, feet);
+		final ServerCommandSource denied = survivor.getCommandSource().withLevel(0);
 		final ServerCommandSource op = player.getCommandSource().withLevel(2);
 		final CommandManager commands = world.getServer().getCommandManager();
 
-		// creative mode alone counts (Operators.isOperatorOrCreative), so the refused player plays in survival
-		player.changeGameMode(GameMode.SURVIVAL);
 		check(commands.executeWithPrefix(denied, "/ata_station plan " + SMALL) == 0, "a non-operator ran /ata_station plan");
-		check(StationSessions.pending(id) == null, "a non-operator got a pending plan");
-		player.changeGameMode(GameMode.CREATIVE);
+		check(StationSessions.pending(survivor.getUuid()) == null, "a non-operator got a pending plan");
 
 		check(commands.executeWithPrefix(op, "/ata_station plan " + SMALL + ", replace terrain") == 1, "plan failed");
 		// the survey has a tick's wall-clock budget: on a slow server it carries on next tick, and the plan is not there yet
@@ -1352,15 +1353,16 @@ public class StationGameTests implements FabricGameTest {
 		final BlockPos clicked = feet.offset(Direction.SOUTH, LocalFrame.GAP_IN_FRONT).down();
 		final StationSessions.Pending fromFeet = StationCommand.prepare(world, SMALL, feet, Heading.SOUTH);
 
-		// not an operator and not in creative mode (which counts on its own): nothing happens, and the screen packet does
-		// not even save the description
-		player.changeGameMode(GameMode.SURVIVAL);
+		// not an operator and not in creative mode (which counts on its own, and the mock player is always creative): nothing
+		// happens, and the screen packet does not even save the description
+		final ServerPlayerEntity survivor = survivalPlayer(world, feet);
+		survivor.setStackInHand(Hand.MAIN_HAND, wrench.copy());
+		check(!survivor.hasPermissionLevel(StationActions.PERMISSION_LEVEL), "the survival player is already an operator; this test needs one that is not");
+		click(survivor, clicked);
+		StationWrenchItem.perform(survivor, Hand.MAIN_HAND, StationWrenchItem.Action.PLAN, "4 track metro station", "");
+		check(StationSessions.pending(survivor.getUuid()) == null, "a non-operator planned with the wrench");
+		check(StationWrenchItem.description(survivor.getMainHandStack()).equals(SMALL), "a non-operator changed the wrench description");
 		check(!player.hasPermissionLevel(StationActions.PERMISSION_LEVEL), "the mock player is already an operator; this test needs one that is not");
-		click(player, clicked);
-		StationWrenchItem.perform(player, Hand.MAIN_HAND, StationWrenchItem.Action.PLAN, "4 track metro station", "");
-		check(StationSessions.pending(id) == null, "a non-operator planned with the wrench");
-		check(StationWrenchItem.description(player.getMainHandStack()).equals(SMALL), "a non-operator changed the wrench description");
-		player.changeGameMode(GameMode.CREATIVE);
 
 		// an explicit level: the test server's default operator level grants nothing
 		world.getServer().getPlayerManager().getOpList().add(new OperatorEntry(player.getGameProfile(), 4, false));
@@ -1408,6 +1410,13 @@ public class StationGameTests implements FabricGameTest {
 			Fixtures.removePlayer(context, player);
 			context.complete();
 		});
+	}
+
+	/** A survival player who is not an operator, standing on {@code feet} facing south. */
+	private static ServerPlayerEntity survivalPlayer(ServerWorld world, BlockPos feet) {
+		final ServerPlayerEntity survivor = FakePlayer.get(world, new GameProfile(UUID.randomUUID(), "survival-non-op"));
+		survivor.refreshPositionAndAngles(feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5, Direction.SOUTH.asRotation(), 0.0F);
+		return survivor;
 	}
 
 	private static void click(ServerPlayerEntity player, BlockPos clicked) {
