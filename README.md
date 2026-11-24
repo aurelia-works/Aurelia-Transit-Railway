@@ -21,8 +21,6 @@ _Aurelia Transit Railway_ (ATR) is a maintained fork of [Minecraft Transit Railw
 
 Releases are published on [this repository](https://github.com/aurelia-works/Aurelia-Transit-Railway/releases).
 
-<!-- TODO: add the ATR Modrinth page URL once the project exists. Do not link the upstream MTR Modrinth page as if it were ATR. -->
-
 ### What it is
 
 ATR keeps the MTR 4.0.5 transport simulation on 1.20.1: trains, boats, cable cars, and planes, with the 4.0 vehicle model, signalling, and station tools. Upstream MTR has moved on to newer Minecraft versions. This fork stays on 1.20.1 and adds Aurelia's rendering fixes, building tools, station blocks, and the web map.
