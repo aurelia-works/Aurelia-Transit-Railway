@@ -1,0 +1,28 @@
+{
+  "format": 1,
+  "id": "vanilla",
+  "dataVersion": 3465,
+  "roles": {
+    "surface": [
+      { "full": "minecraft:gray_concrete", "half": "minecraft:deepslate_tile_slab[type=bottom,waterlogged=false]" }
+    ],
+    "marking_white": [
+      { "full": "minecraft:white_concrete", "half": "minecraft:smooth_quartz_slab[type=bottom,waterlogged=false]" }
+    ],
+    "kerb": [
+      { "full": "minecraft:polished_andesite", "half": "minecraft:polished_andesite_slab[type=bottom,waterlogged=false]" }
+    ],
+    "footway": [
+      { "full": "minecraft:smooth_stone", "half": "minecraft:smooth_stone_slab[type=bottom,waterlogged=false]" }
+    ],
+    "gutter": [
+      { "full": "minecraft:polished_andesite", "half": "minecraft:polished_andesite_slab[type=bottom,waterlogged=false]" }
+    ],
+    "foundation": [
+      { "full": "minecraft:stone" }
+    ],
+    "node_marker": [
+      { "full": "minecraft:blue_wool" }
+    ]
+  }
+}

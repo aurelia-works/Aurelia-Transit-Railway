@@ -1,5 +1,6 @@
 package org.mtr.aurelia.dashboard;
 
+import org.mtr.aurelia.config.AureliaSettings;
 import org.mtr.libraries.com.google.gson.JsonElement;
 import org.mtr.libraries.com.google.gson.JsonObject;
 import org.mtr.libraries.com.google.gson.JsonParser;
@@ -7,12 +8,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Remembers the last selected mode of the primary Transit Dashboard in {@code config/aurelia/dashboard.json}.
- * Missing or unreadable files default cleanly to {@link DashboardMode#TRAIN}.
+ * Remembers the last selected mode of the primary Transit Dashboard, the {@code dashboard} section of
+ * {@code config/aurelia/settings.json} (formerly {@code dashboard.json}).
+ * Missing or unreadable sections default cleanly to {@link DashboardMode#TRAIN}.
  */
 public final class DashboardSettings {
 
@@ -40,17 +44,28 @@ public final class DashboardSettings {
 
 	public static DashboardMode load(Path dir) {
 		configDir = dir;
-		lastMode = read(dir);
+		AureliaSettings.load(dir);
+		lastMode = from(AureliaSettings.section(AureliaSettings.DASHBOARD));
 		return lastMode;
 	}
 
 	public static DashboardMode read(Path dir) {
-		final Path file = file(dir);
-		if (!Files.isRegularFile(file)) {
-			return DashboardMode.TRAIN;
-		}
+		AureliaSettings.load(dir);
+		return from(AureliaSettings.section(AureliaSettings.DASHBOARD));
+	}
+
+	public static void save(Path dir, DashboardMode mode) {
+		AureliaSettings.load(dir);
+		AureliaSettings.put(AureliaSettings.DASHBOARD, toJson(mode));
+	}
+
+	/** Reads the old {@code dashboard.json} into the section body settings.json keeps. */
+	public static JsonObject readLegacy(Path file) throws IOException {
+		return toJson(from(JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject()));
+	}
+
+	private static DashboardMode from(JsonObject json) {
 		try {
-			final JsonObject json = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
 			if (json.has("lastMode")) {
 				final JsonElement el = json.get("lastMode");
 				if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()) {
@@ -59,24 +74,14 @@ public final class DashboardSettings {
 			}
 			return DashboardMode.TRAIN;
 		} catch (Exception e) {
-			LOGGER.error("[ATR] dashboard.json could not be read; starting on Train mode", e);
+			LOGGER.error("[ATR] the dashboard section of settings.json could not be read; starting on Train mode", e);
 			return DashboardMode.TRAIN;
 		}
 	}
 
-	public static void save(Path dir, DashboardMode mode) {
-		try {
-			final Path file = file(dir);
-			Files.createDirectories(file.getParent());
-			final JsonObject json = new JsonObject();
-			json.addProperty("lastMode", (mode == null ? DashboardMode.TRAIN : mode).id);
-			Files.writeString(file, json.toString());
-		} catch (Exception e) {
-			LOGGER.error("[ATR] dashboard.json could not be saved", e);
-		}
-	}
-
-	private static Path file(Path dir) {
-		return dir.resolve("aurelia").resolve("dashboard.json");
+	private static JsonObject toJson(DashboardMode mode) {
+		final JsonObject json = new JsonObject();
+		json.addProperty("lastMode", (mode == null ? DashboardMode.TRAIN : mode).id);
+		return json;
 	}
 }

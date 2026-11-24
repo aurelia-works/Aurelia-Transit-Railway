@@ -20,6 +20,7 @@
 		"HillSlowdownMixin",
 		"ClockFaceTimetableMixin",
 		"TerminusCatchUpMixin",
+		"JunctionPriorityMixin",
 		"NameColorDataBaseSchemaAccessor",
 		"SidingPathFinderAccessor",
 		"SidingPathFinderRouteControlMixin",
@@ -49,7 +50,8 @@
 		"AureliaShortSliderMixin",
 		"AureliaSliderMixin",
 		"AureliaWidgetText",
-		"GraphicsHolderDrawContext"
+		"GraphicsHolderDrawContext",
+		"UnloadedChunkLightMixin"
 	],
 	"server": [],
 	"injectors": {

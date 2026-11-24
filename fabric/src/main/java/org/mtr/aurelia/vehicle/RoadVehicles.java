@@ -1,7 +1,6 @@
 package org.mtr.aurelia.vehicle;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -10,7 +9,6 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroups;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -44,7 +42,11 @@ public final class RoadVehicles {
 					.maxTrackingRange(10)
 					.trackingTickInterval(1)
 					.build("road_vehicle"));
-	public static final Item CAR_ITEM = Registry.register(Registries.ITEM, new Identifier("mtr", "road_car"), new RoadVehicleItem(RoadVehicleKind.CAR, new Item.Settings().maxCount(1)));
+	/**
+	 * The retired road car. It stays registered so old worlds and inventories keep the stack, but it no longer places a
+	 * car, has no recipe and is not in the creative tabs.
+	 */
+	public static final Item CAR_ITEM = Registry.register(Registries.ITEM, new Identifier("mtr", "road_car"), new RetiredCarItem(new Item.Settings().maxCount(1)));
 
 	private static RoadVehicleSettings serverSettings = RoadVehicleSettings.DEFAULT;
 	private static RoadVehicleSettings clientSettings = RoadVehicleSettings.DEFAULT;
@@ -53,7 +55,6 @@ public final class RoadVehicles {
 	}
 
 	public static void register() {
-		ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> entries.add(CAR_ITEM));
 		BikeShare.register();
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> serverSettings = RoadVehicleSettings.load(FabricLoader.getInstance().getConfigDir()));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> send(handler.player));
