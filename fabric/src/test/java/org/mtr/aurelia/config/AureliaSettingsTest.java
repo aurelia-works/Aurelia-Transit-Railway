@@ -114,4 +114,15 @@ public final class AureliaSettingsTest {
 		assertTrue(Files.isRegularFile(dir.resolve("map.json")));
 		assertFalse(Files.exists(dir.resolve("map.json.migrated-v1")));
 	}
+
+	/** One wrong-typed value in a hand-edited settings.json must not crash the game at start: that section falls back to its defaults. */
+	@Test
+	public void wrongTypedPassengerDrawValueFallsBackToDefaults(@TempDir Path config) throws Exception {
+		final Path dir = config.resolve("aurelia");
+		Files.createDirectories(dir);
+		Files.writeString(dir.resolve("settings.json"), "{\"version\":1,\"passenger_draw\":{\"draw\":false,\"drawDistance\":\"far\"}}", StandardCharsets.UTF_8);
+
+		PassengerDrawSettings.load(config);
+		assertEquals(PassengerDrawSettings.DEFAULT, PassengerDrawSettings.get());
+	}
 }

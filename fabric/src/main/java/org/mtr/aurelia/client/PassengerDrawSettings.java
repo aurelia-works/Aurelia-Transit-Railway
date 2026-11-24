@@ -40,7 +40,12 @@ public final class PassengerDrawSettings {
 
 	public static void load(Path configDir) {
 		AureliaSettings.load(configDir);
-		values = from(AureliaSettings.section(AureliaSettings.PASSENGER_DRAW));
+		try {
+			values = from(AureliaSettings.section(AureliaSettings.PASSENGER_DRAW));
+		} catch (Exception e) {
+			AureliaClient.LOGGER.error("[ATR] the passenger_draw section of settings.json could not be read; people drawing keeps its defaults", e);
+			values = DEFAULT;
+		}
 	}
 
 	/** Reads the old {@code passenger-draw.json} into the section body settings.json keeps. */
