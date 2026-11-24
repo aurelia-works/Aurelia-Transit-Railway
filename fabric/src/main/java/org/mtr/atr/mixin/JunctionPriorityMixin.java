@@ -13,6 +13,7 @@ import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.mtr.mod.engine.EngineFeature;
 import org.mtr.mod.engine.EngineSettings;
+import org.mtr.mod.engine.GiveWay;
 import org.mtr.mod.engine.JunctionPriority;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -30,14 +31,8 @@ import java.util.List;
 @Mixin(value = Vehicle.class, remap = false)
 public abstract class JunctionPriorityMixin {
 
-	/** A gap longer than this between two give-ways starts a new wait, so the cap counts one junction at a time. */
 	@Unique
-	private static final long NEW_WAIT_GAP_MILLIS = 5_000;
-
-	@Unique
-	private long atr$yieldingSince;
-	@Unique
-	private long atr$lastYield;
+	private final GiveWay atr$giveWay = new GiveWay();
 
 	/** An express train claims the track it will cover soon. */
 	@Inject(method = "simulate", at = @At("HEAD"))
@@ -89,10 +84,6 @@ public abstract class JunctionPriorityMixin {
 		final double railProgress = accessor.atr$railProgress();
 		final double speed = accessor.atr$speed();
 		final double stoppingDistance = 0.5 * speed * speed / vehicle.vehicleExtraData.getDeceleration();
-		if (path.get(currentIndex).getStartDistance() - railProgress <= stoppingDistance + 1) {
-			// too close to stop: as on a real railway, a signal is never put back in front of a train
-			return;
-		}
 		final ObjectArrayList<Rail> blockRails = new ObjectArrayList<>();
 		for (int i = currentIndex; i < path.size() && atr$overlaps(path.get(i).getSignalColors(), signalColors); i++) {
 			blockRails.add(path.get(i).getRail());
@@ -100,14 +91,8 @@ public abstract class JunctionPriorityMixin {
 		final int front = Utilities.getIndexFromConditionalList(path, railProgress);
 		final Rail ownRail = front >= 0 && front < path.size() ? path.get(front).getRail() : null;
 		final long now = System.currentTimeMillis();
-		if (!JunctionPriority.claimedByOther(vehicle.getId(), blockRails, ownRail, now)) {
-			return;
-		}
-		if (now - atr$lastYield > NEW_WAIT_GAP_MILLIS) {
-			atr$yieldingSince = now;
-		}
-		atr$lastYield = now;
-		if (now - atr$yieldingSince < JunctionPriority.MAX_YIELD_MILLIS) {
+		final boolean claimed = JunctionPriority.claimedByOther(vehicle.getId(), blockRails, ownRail, now);
+		if (atr$giveWay.hold(currentIndex, path.get(currentIndex).getStartDistance() - railProgress, stoppingDistance, claimed, now)) {
 			callback.setReturnValue(true);
 		}
 	}
