@@ -16,7 +16,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.mtr.aurelia.client.AureliaClient;
-import org.mtr.aurelia.client.ClientOperators;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.map.MapView;
 import org.mtr.aurelia.client.ui.AureliaChrome;
@@ -555,9 +554,8 @@ public final class RoadDashboardScreen extends Screen {
 		return null;
 	}
 
-	/** Uses {@code /atr_jump}, which operators and the single-player host can run. */
 	private boolean canTeleport() {
-		return ClientOperators.isOperator(client);
+		return client != null && client.player != null && client.player.hasPermissionLevel(2);
 	}
 
 	/** Uses {@code /give @s}, which requires operator permission level 2 (matching {@link AureliaPanelScreen}). */
@@ -611,7 +609,7 @@ public final class RoadDashboardScreen extends Screen {
 		if (selected == null || !canTeleport() || client == null || client.player == null) {
 			return;
 		}
-		client.player.networkHandler.sendCommand(String.format(Locale.ROOT, "atr_jump %.1f %.1f %.1f", selected.x(), selected.y() + 1.0, selected.z()));
+		client.player.networkHandler.sendCommand(String.format(Locale.ROOT, "tp @s %.1f %.1f %.1f", selected.x(), selected.y() + 1.0, selected.z()));
 		client.setScreen(null);
 	}
 
