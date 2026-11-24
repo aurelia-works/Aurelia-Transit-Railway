@@ -1,0 +1,27 @@
+{
+  "id": "0b6c5d7e-1f2a-4b3c-8d4e-5f6a7b8c9d02",
+  "dimension": "minecraft:overworld",
+  "module": "roads",
+  "tool": "CURVE",
+  "params": {
+    "tool": "CURVE"
+  },
+  "planHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+  "coreVersion": "0.1.0",
+  "author": "00000000-0000-0000-0000-00000000a11c",
+  "time": "2026-10-08T12:00:00Z",
+  "status": "UNDONE",
+  "undoAvailable": true,
+  "sections": [
+    {
+      "x": 2,
+      "y": 4,
+      "z": 0,
+      "hash": "2e146946a3539e513abe8c9833151fe2783a70526ac5eeb6eb301d59e0b8b8f1"
+    }
+  ],
+  "sideEffects": {
+    "planned": [],
+    "owned": []
+  }
+}

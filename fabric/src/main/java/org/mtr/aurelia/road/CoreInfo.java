@@ -28,16 +28,16 @@ public final class CoreInfo {
     private CoreInfo() {
     }
 
-    /** The core version, the Stratos version it was built with (such as {@code 0.1.0}). */
+    /** The Stratos core version this port was taken from (such as {@code 0.1.0}), from {@code core.properties}. */
     public static String version() {
         return VERSION;
     }
 
     private static String load() {
-        // Written by Gradle's processResources from the stratos.version property.
+        // A fixed file next to this class: the Stratos version the port was taken from.
         try (InputStream in = CoreInfo.class.getResourceAsStream("core.properties")) {
             if (in == null) {
-                throw new IllegalStateException("core.properties is missing from the core jar");
+                throw new IllegalStateException("core.properties is missing from the mod jar");
             }
             Properties properties = new Properties();
             properties.load(in);
