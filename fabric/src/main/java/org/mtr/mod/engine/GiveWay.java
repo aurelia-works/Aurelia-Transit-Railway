@@ -24,10 +24,14 @@ public final class GiveWay {
 	 * @return whether the train treats that signal as red
 	 */
 	public boolean hold(int signalIndex, double metersToSignal, double stoppingMeters, boolean claimed, long now) {
+		// the engine asks about every signal from the train's front onwards, so only an answer about the signal the
+		// train is waiting at ends the wait
 		final boolean waiting = signalIndex == this.signalIndex && now - last <= NEW_WAIT_GAP_MILLIS;
 		if (!claimed || !waiting && metersToSignal <= stoppingMeters + 1) {
 			// too close to stop: as on a real railway, a signal is never put back in front of a train
-			this.signalIndex = -1;
+			if (waiting) {
+				this.signalIndex = -1;
+			}
 			return false;
 		}
 		if (now - last > NEW_WAIT_GAP_MILLIS) {

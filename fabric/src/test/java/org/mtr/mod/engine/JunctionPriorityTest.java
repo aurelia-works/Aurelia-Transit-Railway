@@ -37,9 +37,12 @@ class JunctionPriorityTest {
 	@Test
 	void aTrainThatStartedGivingWayStaysHeldAtTheSignal() {
 		final GiveWay giveWay = new GiveWay();
+		// the engine asks about each signal from the train's front onwards; 6 is the train's own block, not claimed
 		// 22 m/s, 5 m outside its 30 m stopping distance: it can still stop, so it gives way
+		assertFalse(giveWay.hold(6, -3, 30, false, 1_000));
 		assertTrue(giveWay.hold(7, 35, 30, true, 1_000));
 		// a second later it has braked to within stopping distance of the signal, and the express is still coming
+		assertFalse(giveWay.hold(6, -14, 11.5, false, 2_000));
 		assertTrue(giveWay.hold(7, 12, 11.5, true, 2_000));
 		// standing at the signal
 		assertTrue(giveWay.hold(7, 0, 0, true, 3_000));
