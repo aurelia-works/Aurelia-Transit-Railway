@@ -57,14 +57,14 @@ import org.mtr.aurelia.road.tool.WorldTask;
 import org.mtr.aurelia.road.undo.SideEffect;
 import org.mtr.aurelia.road.fabric.StratosMod;
 import org.mtr.aurelia.road.fabric.client.editor.StratosEditorClient;
+import org.mtr.aurelia.road.fabric.client.hub.HubScreen;
 import org.mtr.aurelia.road.fabric.client.nodes.StratosNodes;
 import org.mtr.aurelia.road.fabric.client.preview.StratosPreview;
 import org.mtr.aurelia.road.fabric.net.EditorNetworking;
 import org.mtr.aurelia.road.fabric.palette.GamePalettes;
 
 /**
- * Crosshair tool mode (owner, 2026-10-05; spec mod-suite-v1 §6.2). In ATR the tool key takes the straight road tool
- * until the hub comes. While it's active and no
+ * Crosshair tool mode (owner, 2026-10-05; spec mod-suite-v1 §6.2). The hub (B) picks a tool. While it's active and no
  * screen is open:
  * <ul>
  *   <li>the game's use and attack clicks (right and left button by default) go to the tool;</li>
@@ -319,12 +319,7 @@ public final class StratosTools {
         boolean playing = client.currentScreen == null && client.player != null && client.world != null;
         while (TOOL_KEY.wasPressed()) {
             if (playing) {
-                // ATR: no hub yet, so the first press takes the straight road tool.
-                if (session.active().isEmpty() && session.last().isEmpty()) {
-                    select(StraightTool.ID);
-                } else {
-                    session.toggle();
-                }
+                session.toggle();
             }
         }
         boolean tooling = playing && session.active().isPresent();
@@ -467,7 +462,7 @@ public final class StratosTools {
      * bar instead.
      */
     public static boolean showInHud(Text text, boolean error) {
-        if (!toolActive()) {
+        if (!toolActive() && !(MinecraftClient.getInstance().currentScreen instanceof HubScreen)) {
             return false;
         }
         message = new Message(text, error, System.nanoTime() + MESSAGE_NANOS);
