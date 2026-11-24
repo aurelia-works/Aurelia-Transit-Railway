@@ -28,7 +28,7 @@ import org.mtr.aurelia.road.json.StrictJson;
  *   "migrations": [ { "from": 1, "to": 2, "at": "…", "backup": "migrations/backup-v1-20261008T100000Z" } ] }
  * }</pre>
  *
- * @param formatVersion the format of every file under {@code stratos/} ({@code CoreInfo.FORMAT_VERSION} when written)
+ * @param formatVersion the format of every file under {@code aurelia_roads/} ({@code CoreInfo.FORMAT_VERSION} when written)
  * @param dataVersion   the game's DataVersion when written (3465 for 1.20.1): block states in the files use it
  * @param worldId       random, made once
  * @param createdBy     the Stratos that first wrote the folder, such as {@code stratos 0.1.0+mc1.20.1}
