@@ -33,6 +33,7 @@ import org.mtr.aurelia.client.PassengerClient;
 import org.mtr.aurelia.client.ZipClient;
 import org.mtr.aurelia.client.PassengerDrawSettings;
 import org.mtr.aurelia.client.PassengerRenderer;
+import org.mtr.aurelia.client.RailToolSettings;
 import org.mtr.aurelia.client.RideClient;
 import org.mtr.aurelia.client.ScriptingHandshake;
 import org.mtr.aurelia.client.TrainView;
@@ -1052,6 +1053,11 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	 * Width and height sliders and the three part switches. Each change is written to the stack here and sent to the server.
 	 */
 	private void initBuilder() {
+		// Applies to the bridge, tunnel and tunnel wall creators too, so it shows without a Rail Builder in hand
+		addDrawableChild(ButtonWidget.builder(multiNodeLabel(), b -> {
+			RailToolSettings.toggleMultiNode();
+			b.setMessage(multiNodeLabel());
+		}).dimensions(columnLeft(), top, BUTTON_WIDTH, 20).tooltip(Tooltip.of(Text.translatable("gui.aurelia.builder.multi_node.tooltip"))).build());
 		final boolean offHand = !isRailBuilder(client.player.getMainHandStack()) && isRailBuilder(client.player.getOffHandStack());
 		final net.minecraft.item.ItemStack itemStack = offHand ? client.player.getOffHandStack() : client.player.getMainHandStack();
 		if (!isRailBuilder(itemStack)) {
@@ -1064,15 +1070,15 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			InitClient.REGISTRY_CLIENT.sendPacketToServer(new PacketUpdateRailBuilder(offHand, newSettings));
 			return newSettings;
 		};
-		addDrawableChild(new BuilderSlider(left, top, "gui.aurelia.builder.width", ItemRailBuilder.MIN_WIDTH, ItemRailBuilder.MAX_WIDTH, 2, ItemRailBuilder.read(itemStack).width(),
+		addDrawableChild(new BuilderSlider(left, top + ROW, "gui.aurelia.builder.width", ItemRailBuilder.MIN_WIDTH, ItemRailBuilder.MAX_WIDTH, 2, ItemRailBuilder.read(itemStack).width(),
 				value -> update.apply(settings -> new ItemRailBuilder.Settings(value, settings.height(), settings.deck(), settings.clear(), settings.walls())).apply(ItemRailBuilder.read(itemStack))));
-		addDrawableChild(new BuilderSlider(left, top + ROW, "gui.aurelia.builder.height", ItemRailBuilder.MIN_HEIGHT, ItemRailBuilder.MAX_HEIGHT, 1, ItemRailBuilder.read(itemStack).height(),
+		addDrawableChild(new BuilderSlider(left, top + ROW * 2, "gui.aurelia.builder.height", ItemRailBuilder.MIN_HEIGHT, ItemRailBuilder.MAX_HEIGHT, 1, ItemRailBuilder.read(itemStack).height(),
 				value -> update.apply(settings -> new ItemRailBuilder.Settings(settings.width(), value, settings.deck(), settings.clear(), settings.walls())).apply(ItemRailBuilder.read(itemStack))));
-		addBuilderToggle(left, top + ROW * 2, "gui.aurelia.builder.deck", itemStack, ItemRailBuilder.Settings::deck,
+		addBuilderToggle(left, top + ROW * 3, "gui.aurelia.builder.deck", itemStack, ItemRailBuilder.Settings::deck,
 				settings -> new ItemRailBuilder.Settings(settings.width(), settings.height(), !settings.deck(), settings.clear(), settings.walls()), update);
-		addBuilderToggle(left, top + ROW * 3, "gui.aurelia.builder.clear", itemStack, ItemRailBuilder.Settings::clear,
+		addBuilderToggle(left, top + ROW * 4, "gui.aurelia.builder.clear", itemStack, ItemRailBuilder.Settings::clear,
 				settings -> new ItemRailBuilder.Settings(settings.width(), settings.height(), settings.deck(), !settings.clear(), settings.walls()), update);
-		addBuilderToggle(left, top + ROW * 4, "gui.aurelia.builder.walls", itemStack, ItemRailBuilder.Settings::walls,
+		addBuilderToggle(left, top + ROW * 5, "gui.aurelia.builder.walls", itemStack, ItemRailBuilder.Settings::walls,
 				settings -> new ItemRailBuilder.Settings(settings.width(), settings.height(), settings.deck(), settings.clear(), !settings.walls()), update);
 	}
 
@@ -1081,6 +1087,10 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			final ItemRailBuilder.Settings settings = update.apply(flip).apply(ItemRailBuilder.read(itemStack));
 			b.setMessage(Text.translatable(key, ScreenTexts.onOrOff(get.apply(settings))));
 		}).dimensions(x, y, BUTTON_WIDTH, 20).build());
+	}
+
+	private static Text multiNodeLabel() {
+		return Text.translatable("gui.aurelia.builder.multi_node", ScreenTexts.onOrOff(RailToolSettings.multiNode()));
 	}
 
 	private static boolean isRailBuilder(net.minecraft.item.ItemStack itemStack) {
@@ -1391,7 +1401,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		} else if (tab == Tab.DRIVING) {
 			scrollLine(context, drivingFirst, visibleRows(), DRIVING_ROWS);
 		} else if (tab == Tab.BUILDER && !isRailBuilder(client.player.getMainHandStack()) && !isRailBuilder(client.player.getOffHandStack())) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), centerX(), top + 6, 0xAAAAAA);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.builder.hold"), centerX(), top + ROW + 6, 0xAAAAAA);
 		} else if (tab == Tab.PACKS) {
 			renderPacks(context);
 		}
