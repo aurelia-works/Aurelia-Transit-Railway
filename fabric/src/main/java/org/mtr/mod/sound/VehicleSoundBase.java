@@ -99,11 +99,14 @@ public abstract class VehicleSoundBase {
 
 		public static RunSoundInfo create(Rail railTail, Rail railHead, float blendLevel) {
 			final int tailIndex = getSoundIndex(railTail);
+			// a car of length 0 or a progress behind the tail's rail gives NaN or a value outside 0 to 1, which would turn
+			// into a negative volume; NaN counts as fully on the tail's rail
+			final float clampedBlendLevel = blendLevel > 0 ? Math.min(1, blendLevel) : 0;
 			// a car on one rail gets the same rail object twice; otherwise read both, which is cheaper than a full Rail.equals
 			if (railHead == railTail) {
-				return new RunSoundInfo(tailIndex, tailIndex, blendLevel);
+				return new RunSoundInfo(tailIndex, tailIndex, clampedBlendLevel);
 			} else {
-				return new RunSoundInfo(tailIndex, getSoundIndex(railHead), blendLevel);
+				return new RunSoundInfo(tailIndex, getSoundIndex(railHead), clampedBlendLevel);
 			}
 		}
 
