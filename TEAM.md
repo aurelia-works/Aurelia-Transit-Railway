@@ -6,7 +6,7 @@ compatibility invariants; it says who does what and how work is handed over.
 
 Repo facts the rules below depend on: ATR is a Fabric 1.20.1 mod built with Gradle (`./gradlew`). It is a drop-in
 replacement for Minecraft Transit Railway 4.0.5 and keeps that mod's id `mtr`, so MTR add-ons and old worlds must keep
-working. One Gradle module `fabric`, plus the `aureliamap` subproject.
+working. One Gradle module `fabric`, plus the separate `aureliamap/` Gradle build.
 CI runs on every pull request and `ci-ok` is the only check that matters.
 
 ## Roles
@@ -68,6 +68,6 @@ RETURN:      <exactly what comes back: PR link, test result lines, files changed
 |---|---|
 | `CLAUDE.md` | build commands, compatibility invariants, test rules |
 | `PLAN.md` | the plan to V1, phase list and status |
-| `PLAN-mtr41-port.md` | the MTR 4.1 port, phase by phase |
-| `HANDOFF.md` | current state only, replaced not appended |
-| `SPEC.md` | per-feature spec, written by the lead before building |
+
+`HANDOFF.md` (current state only, replaced not appended) and `SPEC.md` (per-feature spec, written by the lead before
+building) are written on the feature branch while work is open; they are not kept on `master`.
