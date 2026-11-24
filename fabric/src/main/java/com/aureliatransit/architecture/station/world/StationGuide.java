@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station.world;
 
+import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.registry.ModItems;
 import com.aureliatransit.architecture.station.RealStation;
 import com.aureliatransit.architecture.station.StationPresets;
@@ -152,7 +153,7 @@ public final class StationGuide {
 	}
 
 	static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
-		dispatcher.register(CommandManager.literal("ata_guide").requires(source -> source.hasPermissionLevel(StationActions.PERMISSION_LEVEL))
+		dispatcher.register(CommandManager.literal("ata_guide").requires(source -> Operators.isOperatorSource(source))
 				.executes(context -> {
 					context.getSource().getPlayerOrThrow().getInventory().offerOrDrop(codex());
 					context.getSource().sendFeedback(() -> Text.literal("Gave you the " + TITLE + "."), false);
@@ -162,7 +163,7 @@ public final class StationGuide {
 
 	/** On join: an operator who never had the Codex gets it once. Returns whether it was given. */
 	public static boolean welcome(ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(StationActions.PERMISSION_LEVEL) || !player.addCommandTag(GIVEN_TAG)) {
+		if (!Operators.isOperator(player) || !player.addCommandTag(GIVEN_TAG)) {
 			return false;
 		}
 		player.getInventory().offerOrDrop(codex());

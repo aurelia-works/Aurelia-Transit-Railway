@@ -1,5 +1,6 @@
 package org.mtr.aurelia.dashboard;
 
+import org.mtr.aurelia.client.ClientOperators;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -122,8 +123,7 @@ public final class UnifiedDashboardClient {
 			return false;
 		}
 		return DashboardPackets.isAllowed(
-				client.player.isCreative(),
-				client.player.hasPermissionLevel(2),
+				ClientOperators.isOperator(client),
 				DashboardPackets.hasDashboardItem(client.player)
 		);
 	}
