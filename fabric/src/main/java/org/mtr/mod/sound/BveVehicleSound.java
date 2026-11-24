@@ -36,6 +36,10 @@ public class BveVehicleSound extends VehicleSoundBase {
 	@Nullable
 	private VehicleSoundBase.RunSoundInfo pendingRunSound;
 
+	/** The run sounds given a volume on the last frame, so one that leaves the blend can be silenced once; -1 is none. */
+	private int playingRunIndexOld = -1;
+	private int playingRunIndexNew = -1;
+
 	private final VehicleLoopingSoundHolder vehicleLoopingSoundHolder;
 	private boolean hasBogieSample;
 	private double lastBogieX;
@@ -120,20 +124,21 @@ public class BveVehicleSound extends VehicleSoundBase {
 		final float runSoundBlendRatio = runSound == null ? 1 : runSound.blendLevel();
 		final float runVolume = Math.min(1, speedMetersPerSecond * 0.04F);
 		final float runPitch = speedMetersPerSecond * 0.04F;
-		for (final Int2ObjectMap.Entry<VehicleLoopingSoundInstance> entry : vehicleLoopingSoundHolder.soundLoopRun.int2ObjectEntrySet()) {
-			final int index = entry.getIntKey();
-			final float indexVolumeFactor;
-			if (runIndexOld == runIndexNew) {
-				indexVolumeFactor = index == runIndexOld ? 1 : 0;
-			} else if (index == runIndexOld) {
-				indexVolumeFactor = 1 - runSoundBlendRatio;
-			} else if (index == runIndexNew) {
-				indexVolumeFactor = runSoundBlendRatio;
-			} else {
-				indexVolumeFactor = 0;
-			}
-			entry.getValue().setData(runVolume * indexVolumeFactor, runPitch, blockPos);
+		// Only the two run sounds in the blend are updated each frame; one that just left the blend is silenced once
+		if (playingRunIndexOld != runIndexOld && playingRunIndexOld != runIndexNew) {
+			setRunSoundData(playingRunIndexOld, 0, 1, blockPos);
 		}
+		if (playingRunIndexNew != playingRunIndexOld && playingRunIndexNew != runIndexOld && playingRunIndexNew != runIndexNew) {
+			setRunSoundData(playingRunIndexNew, 0, 1, blockPos);
+		}
+		if (runIndexOld == runIndexNew) {
+			setRunSoundData(runIndexOld, runVolume, runPitch, blockPos);
+		} else {
+			setRunSoundData(runIndexOld, runVolume * (1 - runSoundBlendRatio), runPitch, blockPos);
+			setRunSoundData(runIndexNew, runVolume * runSoundBlendRatio, runPitch, blockPos);
+		}
+		playingRunIndexOld = runIndexOld;
+		playingRunIndexNew = runIndexNew;
 
 		// Simulation of circuit breaker in traction controller
 		float motorTarget = Math.signum(speedChange);
@@ -411,6 +416,13 @@ public class BveVehicleSound extends VehicleSoundBase {
 
 	private static int randomInt(int minInclusive, int maxExclusive) {
 		return new Random().nextInt(maxExclusive - minInclusive) + minInclusive;
+	}
+
+	private void setRunSoundData(int index, float volume, float pitch, BlockPos blockPos) {
+		final VehicleLoopingSoundInstance instance = vehicleLoopingSoundHolder.soundLoopRun.get(index);
+		if (instance != null) {
+			instance.setData(volume, pitch, blockPos);
+		}
 	}
 
 	/**
