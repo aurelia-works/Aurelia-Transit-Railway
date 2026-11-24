@@ -74,6 +74,8 @@ public final class JunctionPriority {
 	 * @param ownRail    the rail the train's front is on now
 	 * @return whether another train's live claim covers that block while the asking train is not standing on the claim
 	 */
+	// Rails match by identity: MTR hands every route the same Rail instance for the same pair of positions, out of
+	// Data.positionsToRail, so two lines on one track compare equal without this class knowing about equals().
 	public static boolean claimedByOther(long vehicleId, Collection<?> blockRails, Object ownRail, long now) {
 		for (final Map.Entry<Long, Claim> entry : CLAIMS.entrySet()) {
 			final Claim claim = entry.getValue();

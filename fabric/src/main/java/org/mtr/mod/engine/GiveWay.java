@@ -69,7 +69,7 @@ public final class GiveWay {
 					claimLostSince = now;
 				}
 				last = now;
-				if (now - claimLostSince < CLAIM_GRACE_MILLIS) {
+				if (now - claimLostSince < CLAIM_GRACE_MILLIS && now - since < JunctionPriority.MAX_YIELD_MILLIS) {
 					return true;
 				}
 				this.signalIndex = -1;
