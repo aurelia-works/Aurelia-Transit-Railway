@@ -119,6 +119,7 @@ public final class MapClient {
 		close();
 		map = new ExploredMap(folder, MapClient::dropped);
 		ServerTiles.start(dimension);
+		MapPins.use(folder);
 		network = new SeenNetwork(folder);
 		SCANNER.reset();
 		nextSave = System.currentTimeMillis() + SAVE_MILLIS;
@@ -133,6 +134,7 @@ public final class MapClient {
 			network.saveIfChanged();
 			network = null;
 		}
+		MapPins.use(null);
 		TEXTURES.clear();
 		OVERVIEW.clear();
 		ServerTiles.reset();
