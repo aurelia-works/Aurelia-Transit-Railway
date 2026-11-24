@@ -85,6 +85,12 @@ public class BveVehicleSound extends VehicleSoundBase {
 
 	@Override
 	public void playVehicleSound(VehicleSoundParameters parameters) {
+		if (parameters.runSound() == null) {
+			// the plain motor path: an add-on that subclassed this class before rail sound indices existed only
+			// overrode playMotorSound, so keep sending that path through it
+			super.playVehicleSound(parameters);
+			return;
+		}
 		final BlockPos blockPos = parameters.blockPos();
 		final float speed = parameters.speed();
 		final float speedChange = parameters.speedChange();

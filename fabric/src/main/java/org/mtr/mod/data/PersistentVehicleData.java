@@ -126,8 +126,9 @@ public final class PersistentVehicleData {
 				final double carLength = vehicleCar.getLength();
 				final double tailRailProgress = headRailProgress - carLength;
 
-				final int thisPathIndex = Utilities.getIndexFromConditionalList(vehicleExtraData.immutablePath, headRailProgress);
-				final int lastPathIndex = Utilities.getIndexFromConditionalList(vehicleExtraData.immutablePath, tailRailProgress);
+				// getElement wraps a negative index to the last rail, so a progress before the path must not stay negative
+				final int thisPathIndex = Math.max(0, Utilities.getIndexFromConditionalList(vehicleExtraData.immutablePath, headRailProgress));
+				final int lastPathIndex = Math.max(0, Utilities.getIndexFromConditionalList(vehicleExtraData.immutablePath, tailRailProgress));
 				final PathData thisPathData = Utilities.getElement(vehicleExtraData.immutablePath, thisPathIndex);
 				final PathData lastPathData = thisPathIndex == lastPathIndex ? thisPathData : Utilities.getElement(vehicleExtraData.immutablePath, lastPathIndex);
 				final float pathDelta = thisPathIndex == lastPathIndex ? 1 : (float) Math.min(1, (headRailProgress - lastPathData.getEndDistance()) / carLength);
