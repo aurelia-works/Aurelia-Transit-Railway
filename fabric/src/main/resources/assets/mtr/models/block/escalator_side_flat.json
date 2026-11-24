@@ -2,7 +2,8 @@
 	"parent": "block/block",
 	"textures": {
 		"particle": "mtr:block/escalator",
-		"steel": "aurelia_transit_architecture:block/steel_panel_brushed"
+		"steel": "aurelia_transit_architecture:block/steel_panel_brushed",
+		"glass": "aurelia_transit_architecture:block/low_iron_glass"
 	},
 	"elements": [
 		{
@@ -24,6 +25,7 @@
 				"up": { "uv": [ 7.5, 0, 11.5, 4 ], "texture": "#particle" }
 			}
 		},
-		{"name": "panel", "from": [0.0, 2.42, 13], "to": [16.0, 15.47, 14], "faces": {"north": {"uv": [0.0, 7, 16.0, 8], "texture": "#steel"}, "south": {"uv": [0.0, 7, 16.0, 8], "texture": "#steel"}, "east": {"uv": [0, 7, 1, 8], "texture": "#steel"}, "west": {"uv": [0, 7, 1, 8], "texture": "#steel"}, "up": {"uv": [0.0, 7, 16.0, 8], "texture": "#steel"}}}
+		{"name": "skirt", "from": [0.0, 2.42, 13], "to": [16.0, 4.42, 14], "faces": {"north": {"uv": [0.0, 7, 16.0, 8], "texture": "#steel"}, "south": {"uv": [0.0, 7, 16.0, 8], "texture": "#steel"}, "east": {"uv": [0, 7, 1, 8], "texture": "#steel"}, "west": {"uv": [0, 7, 1, 8], "texture": "#steel"}, "up": {"uv": [0.0, 7, 16.0, 8], "texture": "#steel"}}},
+		{"name": "glass", "from": [0.0, 4.42, 13], "to": [16.0, 15.47, 14], "faces": {"north": {"uv": [0.0, 7, 16.0, 8], "texture": "#glass"}, "south": {"uv": [0.0, 7, 16.0, 8], "texture": "#glass"}, "up": {"uv": [0.0, 7, 16.0, 8], "texture": "#glass"}}}
 	]
 }
