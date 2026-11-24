@@ -114,7 +114,10 @@ public final class PacketApplyRailAction extends PacketHandler {
 			}
 		}
 
-		PENDING.put(serverPlayerEntity.getUuid(), new long[]{first, last, System.currentTimeMillis()});
+		// Drop what has expired, so players who disconnect or never finish a click leave nothing behind
+		final long now = System.currentTimeMillis();
+		PENDING.values().removeIf(pending -> now - pending[2] > PENDING_MILLIS);
+		PENDING.put(serverPlayerEntity.getUuid(), new long[]{first, last, now});
 		final int expected = positions.size() - 1;
 		Init.sendMessageC2S(OperationProcessor.RAILS, minecraftServer, world, railsRequest, railsResponse -> {
 			int applied = 0;
