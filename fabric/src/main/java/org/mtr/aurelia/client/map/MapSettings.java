@@ -10,27 +10,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * This client's map switches, in {@code config/aurelia/map.json}: the minimap and its size, zoom and corner, which
- * network layers show, the rail colour, and how many chunks the map reads each tick. A missing file or key keeps the
- * default, so an old config folder loads unchanged. The Aurelia panel's Map tab sets these.
+ * This client's map switches, in {@code config/aurelia/map.json}: which network layers show, the rail colour, and how
+ * many chunks the map reads each tick. A missing file or key keeps the default, and keys no longer used (the removed
+ * minimap's) are ignored, so an old config folder loads unchanged. The Aurelia panel's Map tab sets these.
  */
 public final class MapSettings {
 
-	public static final int SIZE_MIN = 64;
-	public static final int SIZE_MAX = 200;
-	/** Minimap zoom in hundredths of a screen pixel per block. */
-	public static final int ZOOM_MIN = 25;
-	public static final int ZOOM_MAX = 400;
 	public static final int HUE_MAX = 360;
 	public static final int SCAN_MIN = 1;
 	public static final int SCAN_MAX = 16;
 
-	public enum Corner {TOP_RIGHT, TOP_LEFT, BOTTOM_RIGHT, BOTTOM_LEFT}
-
-	private static boolean minimap = true;
-	private static int size = 100;
-	private static int zoom = 100;
-	private static Corner corner = Corner.TOP_RIGHT;
 	private static boolean rails = true;
 	private static boolean stations = true;
 	private static boolean trains = true;
@@ -48,10 +37,6 @@ public final class MapSettings {
 		}
 		try {
 			final JsonObject json = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
-			minimap = json.has("minimap") ? json.get("minimap").getAsBoolean() : minimap;
-			size = json.has("size") ? clamp(json.get("size").getAsInt(), SIZE_MIN, SIZE_MAX) : size;
-			zoom = json.has("zoom") ? clamp(json.get("zoom").getAsInt(), ZOOM_MIN, ZOOM_MAX) : zoom;
-			corner = json.has("corner") ? Corner.values()[clamp(json.get("corner").getAsInt(), 0, Corner.values().length - 1)] : corner;
 			rails = json.has("rails") ? json.get("rails").getAsBoolean() : rails;
 			stations = json.has("stations") ? json.get("stations").getAsBoolean() : stations;
 			trains = json.has("trains") ? json.get("trains").getAsBoolean() : trains;
@@ -61,22 +46,6 @@ public final class MapSettings {
 		} catch (Exception e) {
 			AureliaClient.LOGGER.error("[ATR] map.json could not be read; the map keeps its defaults", e);
 		}
-	}
-
-	public static boolean minimap() {
-		return minimap;
-	}
-
-	public static int size() {
-		return size;
-	}
-
-	public static int zoom() {
-		return zoom;
-	}
-
-	public static Corner corner() {
-		return corner;
 	}
 
 	public static boolean rails() {
@@ -107,26 +76,6 @@ public final class MapSettings {
 	/** The rail colour, from the hue slider. */
 	public static int railColor() {
 		return 0xFF000000 | Color.HSBtoRGB(railHue / (float) HUE_MAX, 0.45F, 0.95F) & 0xFFFFFF;
-	}
-
-	public static void toggleMinimap() {
-		minimap = !minimap;
-		save();
-	}
-
-	public static void setSize(int value) {
-		size = clamp(value, SIZE_MIN, SIZE_MAX);
-		save();
-	}
-
-	public static void setZoom(int value) {
-		zoom = clamp(value, ZOOM_MIN, ZOOM_MAX);
-		save();
-	}
-
-	public static void nextCorner() {
-		corner = Corner.values()[(corner.ordinal() + 1) % Corner.values().length];
-		save();
 	}
 
 	public static void toggleRails() {
@@ -164,10 +113,6 @@ public final class MapSettings {
 			final Path file = file(FabricLoader.getInstance().getConfigDir());
 			Files.createDirectories(file.getParent());
 			final JsonObject json = new JsonObject();
-			json.addProperty("minimap", minimap);
-			json.addProperty("size", size);
-			json.addProperty("zoom", zoom);
-			json.addProperty("corner", corner.ordinal());
 			json.addProperty("rails", rails);
 			json.addProperty("stations", stations);
 			json.addProperty("trains", trains);
