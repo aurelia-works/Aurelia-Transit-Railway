@@ -1,7 +1,7 @@
 # TEAM.md — how this repo is built by agents
 
 This file is the operating agreement for **ATR**, Aurelia Transit Railway (`aurelia-works/Aurelia-Transit-Railway`).
-Every agent reads it before touching the repo. It does not replace `CLAUDE.md`, which holds the build commands and the
+Every agent reads it before touching the repo. It does not replace `AGENTS.md`, which holds the build commands and the
 compatibility invariants; it says who does what and how work is handed over.
 
 Repo facts the rules below depend on: ATR is a Fabric 1.20.1 mod built with Gradle (`./gradlew`). It is a drop-in
@@ -66,7 +66,8 @@ RETURN:      <exactly what comes back: PR link, test result lines, files changed
 
 | File | What it holds |
 |---|---|
-| `CLAUDE.md` | build commands, compatibility invariants, test rules |
+| `AGENTS.md` | build commands, compatibility invariants, test rules |
+| `CLAUDE.md` | only `@AGENTS.md`: imports it for Claude Code |
 | `PLAN.md` | the plan to V1, phase list and status |
 
 `HANDOFF.md` (current state only, replaced not appended) and `SPEC.md` (per-feature spec, written by the lead before
