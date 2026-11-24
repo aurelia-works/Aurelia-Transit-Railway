@@ -5,8 +5,8 @@ deliberately not included.
 
 ## MTR (Minecraft Transit Railway)
 
-ATR is a fork of MTR 4.0.5 and keeps its MIT licence. The original notice stays in `LICENSE-MTR.txt` and in the
-source files that came from it, unchanged.
+ATR is a fork of MTR 4.0.5 and keeps its MIT licence. The original notice stays in `LICENSE` (next to a line for
+ATR's changes) and in the source files that came from it, unchanged.
 
 ## Stratos (IndusGaming)
 
