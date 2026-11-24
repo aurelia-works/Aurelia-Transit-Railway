@@ -4,6 +4,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -23,8 +24,8 @@ public final class StationList {
 	public static final int FIELD = 16;
 	private static final int PAD = 4;
 	private static final int ROW = 11;
-	private static final int PANEL = 0xD0101418;
-	private static final int HOVER = 0x40FFFFFF;
+	/** The panel face, a little see-through so the map shows behind it. */
+	private static final int PANEL = 0xD0000000 | AureliaPalette.SURFACE & 0xFFFFFF;
 	private static final Text NONE_SEEN = Text.translatable("gui.aurelia.map.stations_none");
 	private static final Text NO_MATCH = Text.translatable("gui.aurelia.map.stations_no_match");
 
@@ -54,7 +55,7 @@ public final class StationList {
 		context.fill(left, top, left + WIDTH, top + height, PANEL);
 		final int listTop = listTop(top);
 		if (shownCount == 0) {
-			context.drawTextWithShadow(text, entries.length == 0 ? NONE_SEEN : NO_MATCH, left + PAD + 1, listTop + 2, 0x888888);
+			context.drawTextWithShadow(text, entries.length == 0 ? NONE_SEEN : NO_MATCH, left + PAD + 1, listTop + 2, AureliaPalette.TEXT_DIM);
 			return;
 		}
 		final int rows = rows(top, height);
@@ -63,10 +64,10 @@ public final class StationList {
 			final Entry entry = entries[shown[scroll + i]];
 			final int y = listTop + i * ROW;
 			if (scroll + i == hovered) {
-				context.fill(left + 1, y, left + WIDTH - 1, y + ROW, HOVER);
+				context.fill(left + 1, y, left + WIDTH - 1, y + ROW, AureliaPalette.RAISED_HOVER);
 			}
 			context.fill(left + PAD + 1, y + 2, left + PAD + 7, y + 8, 0xFF000000 | entry.area.color());
-			context.drawTextWithShadow(text, entry.label, left + PAD + 11, y + 2, 0xFFFFFFFF);
+			context.drawTextWithShadow(text, entry.label, left + PAD + 11, y + 2, AureliaPalette.FG);
 		}
 	}
 

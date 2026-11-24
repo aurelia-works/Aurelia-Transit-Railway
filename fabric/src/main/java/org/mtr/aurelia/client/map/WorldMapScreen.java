@@ -8,6 +8,7 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.map.MapCamera;
 
 import java.util.List;
@@ -122,9 +123,9 @@ public final class WorldMapScreen extends Screen {
 		// bottom left: the cursor's coordinates on the bottom row, beside the zoom buttons, and the hint above, wrapped
 		// so it never runs under the buttons or the station list
 		final int cursorY = height - MARGIN - 13;
-		context.drawTextWithShadow(textRenderer, cursor, MARGIN + 2, cursorY, 0xDDDDDD);
+		context.drawTextWithShadow(textRenderer, cursor, MARGIN + 2, cursorY, AureliaPalette.FG);
 		for (int i = 0; i < hint.size(); i++) {
-			context.drawTextWithShadow(textRenderer, hint.get(i), MARGIN + 2, cursorY - 11 * (hint.size() - i), 0x888888);
+			context.drawTextWithShadow(textRenderer, hint.get(i), MARGIN + 2, cursorY - 11 * (hint.size() - i), AureliaPalette.TEXT_DIM);
 		}
 		pinMenu.render(context, mouseX, mouseY, width, height);
 	}
