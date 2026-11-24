@@ -121,6 +121,7 @@ public final class UnifiedDashboardClient {
 			return false;
 		}
 		return DashboardPackets.isAllowed(
+				client.player.isCreative(),
 				ClientOperators.isOperator(client),
 				DashboardPackets.hasDashboardItem(client.player)
 		);

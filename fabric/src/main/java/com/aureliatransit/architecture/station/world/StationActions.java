@@ -66,10 +66,10 @@ public final class StationActions {
 
 	/** True when {@code player} may use the generator; otherwise tells them why not. */
 	public static boolean allowed(ServerPlayerEntity player) {
-		if (Operators.isOperator(player)) {
+		if (Operators.isOperatorOrCreative(player)) {
 			return true;
 		}
-		player.sendMessage(Text.literal("Only operators can use the station generator.").formatted(Formatting.RED), true);
+		player.sendMessage(Text.literal("Only operators and creative-mode players can use the station generator.").formatted(Formatting.RED), true);
 		return false;
 	}
 

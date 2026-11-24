@@ -35,7 +35,7 @@ public final class OperatorCommands {
 					player.teleport(player.getServerWorld(), pos.x, pos.y, pos.z, player.getYaw(), player.getPitch());
 					return 1;
 				})));
-		dispatcher.register(CommandManager.literal("atr_wrench").requires(source -> Operators.isOperatorSource(source))
+		dispatcher.register(CommandManager.literal("atr_wrench").requires(source -> Operators.isOperatorOrCreativeSource(source))
 				.executes(context -> {
 					context.getSource().getPlayerOrThrow().getInventory().offerOrDrop(new ItemStack(ModItems.WRENCH));
 					return 1;

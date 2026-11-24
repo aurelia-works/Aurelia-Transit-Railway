@@ -22,7 +22,7 @@ final class PassengerCommand {
 	}
 
 	static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
-		dispatcher.register(CommandManager.literal("atr_passengers").requires(source -> Operators.isOperatorSource(source))
+		dispatcher.register(CommandManager.literal("atr_passengers").requires(source -> Operators.isOperatorOrCreativeSource(source))
 				.then(CommandManager.literal("demo")
 						.executes(context -> demo(context, 20))
 						.then(CommandManager.argument("count", IntegerArgumentType.integer(1, 60))
