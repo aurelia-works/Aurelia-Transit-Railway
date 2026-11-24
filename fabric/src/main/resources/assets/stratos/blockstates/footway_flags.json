@@ -1,0 +1,92 @@
+{
+  "variants": {
+    "layers=1": [
+      {
+        "model": "stratos:block/footway_flags_0_h2"
+      },
+      {
+        "model": "stratos:block/footway_flags_1_h2"
+      },
+      {
+        "model": "stratos:block/footway_flags_2_h2"
+      }
+    ],
+    "layers=2": [
+      {
+        "model": "stratos:block/footway_flags_0_h4"
+      },
+      {
+        "model": "stratos:block/footway_flags_1_h4"
+      },
+      {
+        "model": "stratos:block/footway_flags_2_h4"
+      }
+    ],
+    "layers=3": [
+      {
+        "model": "stratos:block/footway_flags_0_h6"
+      },
+      {
+        "model": "stratos:block/footway_flags_1_h6"
+      },
+      {
+        "model": "stratos:block/footway_flags_2_h6"
+      }
+    ],
+    "layers=4": [
+      {
+        "model": "stratos:block/footway_flags_0_h8"
+      },
+      {
+        "model": "stratos:block/footway_flags_1_h8"
+      },
+      {
+        "model": "stratos:block/footway_flags_2_h8"
+      }
+    ],
+    "layers=5": [
+      {
+        "model": "stratos:block/footway_flags_0_h10"
+      },
+      {
+        "model": "stratos:block/footway_flags_1_h10"
+      },
+      {
+        "model": "stratos:block/footway_flags_2_h10"
+      }
+    ],
+    "layers=6": [
+      {
+        "model": "stratos:block/footway_flags_0_h12"
+      },
+      {
+        "model": "stratos:block/footway_flags_1_h12"
+      },
+      {
+        "model": "stratos:block/footway_flags_2_h12"
+      }
+    ],
+    "layers=7": [
+      {
+        "model": "stratos:block/footway_flags_0_h14"
+      },
+      {
+        "model": "stratos:block/footway_flags_1_h14"
+      },
+      {
+        "model": "stratos:block/footway_flags_2_h14"
+      }
+    ],
+    "layers=8": [
+      {
+        "model": "stratos:block/footway_flags_0_h16"
+      },
+      {
+        "model": "stratos:block/footway_flags_1_h16"
+      },
+      {
+        "model": "stratos:block/footway_flags_2_h16"
+      }
+    ]
+  }
+}

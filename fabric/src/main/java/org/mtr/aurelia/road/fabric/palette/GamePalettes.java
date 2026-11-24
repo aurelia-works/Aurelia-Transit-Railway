@@ -27,6 +27,7 @@ import org.mtr.aurelia.road.road.palette.PaletteFile;
 import org.mtr.aurelia.road.road.palette.Palettes;
 import org.mtr.aurelia.road.fabric.StratosMod;
 import org.mtr.aurelia.road.fabric.apply.ApplyService;
+import org.mtr.aurelia.road.fabric.paint.PaintLines;
 
 /**
  * The palettes roads may use in this game (task R-9; owner, 2026-10-10).
@@ -48,6 +49,9 @@ public final class GamePalettes {
     public static final BlockLookup GAME = new BlockLookup() {
         @Override
         public boolean has(String block) {
+            if (PaintLines.kindOf(block) != null) {
+                return true; // a road line: asphalt and paint in ATR, not a block (PaintLines)
+            }
             try {
                 return Registries.BLOCK.containsId(new Identifier(block));
             } catch (InvalidIdentifierException e) {
@@ -57,6 +61,10 @@ public final class GamePalettes {
 
         @Override
         public String canonical(String state) {
+            PaintLines.Line line = PaintLines.parse(state);
+            if (line != null) {
+                return line.state();
+            }
             try {
                 return BlockArgumentParser.stringifyBlockState(BlockArgumentParser.block(Registries.BLOCK.getReadOnlyWrapper(), state, false).blockState());
             } catch (CommandSyntaxException e) {

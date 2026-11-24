@@ -1,0 +1,10 @@
+{
+  "itemGroup.stratos.road_blocks": "Stratos",
+  "block.stratos.asphalt": "Asphalt",
+  "block.stratos.footway_flags": "Footway flags",
+  "block.stratos.footway_asphalt": "Footway asphalt",
+  "block.stratos.kerb": "Kerb",
+  "block.stratos.dropped_kerb": "Dropped kerb",
+  "block.stratos.dropped_kerb.red": "Dropped kerb, red tactile paving",
+  "block.stratos.gully": "Gully"
+}
