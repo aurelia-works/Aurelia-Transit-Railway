@@ -27,6 +27,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public final class AureliaSettingsTest {
 
+	/** A damaged file is kept, not written over: one typo must not silently reset ten features. */
+	@Test
+	public void unreadableFileIsKeptAsideInsteadOfOverwritten(@TempDir Path config) throws Exception {
+		final Path dir = config.resolve("aurelia");
+		Files.createDirectories(dir);
+		final byte[] damaged = "{\"version\":1,\"map\":{\"size\":".getBytes(StandardCharsets.UTF_8);
+		Files.write(dir.resolve("settings.json"), damaged);
+
+		AureliaSettings.load(config);
+
+		final Path kept = dir.resolve("settings.json.unreadable");
+		assertTrue(Files.isRegularFile(kept), "the damaged bytes must survive");
+		assertArrayEquals(damaged, Files.readAllBytes(kept));
+		assertEquals(1, AureliaSettings.version(), "a fresh file is written once the damaged one is safe");
+		assertTrue(Files.isRegularFile(dir.resolve("settings.json")));
+	}
+
 	@Test
 	public void readOnlyFolderKeepsTheOldFilesAndStillUsesTheirValues(@TempDir Path config) throws Exception {
 		final Path dir = config.resolve("aurelia");

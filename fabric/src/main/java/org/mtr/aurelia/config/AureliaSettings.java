@@ -78,6 +78,8 @@ public final class AureliaSettings {
 
 	private static final Map<String, JsonObject> SECTIONS = new LinkedHashMap<>();
 	private static Path file;
+	/** A damaged file that could not be moved aside: never write over it. */
+	private static boolean locked;
 	private static int version;
 
 	private AureliaSettings() {
@@ -93,6 +95,10 @@ public final class AureliaSettings {
 		version = 0;
 		SECTIONS.clear();
 		final JsonObject existing = readObject(file);
+		if (existing == null && Files.isRegularFile(file)) {
+			// unreadable: keep the bytes for the player, never overwrite them, and start that one setting set from defaults
+			setAsideUnreadable();
+		}
 		if (existing != null) {
 			final JsonElement stored = existing.get(VERSION_KEY);
 			if (stored != null && stored.isJsonPrimitive() && stored.getAsJsonPrimitive().isNumber()) {
@@ -129,7 +135,7 @@ public final class AureliaSettings {
 
 	/** Writes {@code settings.json} through a temp file and an atomic move. A failure leaves the old file untouched. */
 	public static synchronized boolean save() {
-		if (file == null) {
+		if (file == null || locked) {
 			return false;
 		}
 		try {
@@ -203,8 +209,21 @@ public final class AureliaSettings {
 			final JsonElement root = JsonParser.parseString(Files.readString(path, StandardCharsets.UTF_8));
 			return root.isJsonObject() ? root.getAsJsonObject() : null;
 		} catch (Exception e) {
-			AureliaClient.LOGGER.error("[ATR] {} could not be read; it is rebuilt from the old files", path.getFileName(), e);
+			AureliaClient.LOGGER.error("[ATR] {} could not be read", path.getFileName(), e);
 			return null;
+		}
+	}
+
+	/** Moves a damaged {@code settings.json} out of the way so the bytes survive and the next start can write a fresh one. */
+	private static void setAsideUnreadable() {
+		final Path target = file.resolveSibling(FILE + ".unreadable");
+		try {
+			Files.move(file, target, StandardCopyOption.REPLACE_EXISTING);
+			AureliaClient.LOGGER.error("[ATR] settings.json could not be read; it is kept as {} and the settings start from their defaults", target.getFileName());
+		} catch (IOException e) {
+			// could not move it: leave the file alone and refuse to write over it this session
+			locked = true;
+			AureliaClient.LOGGER.error("[ATR] settings.json could not be read or moved aside; it is left alone and will not be overwritten", e);
 		}
 	}
 }
