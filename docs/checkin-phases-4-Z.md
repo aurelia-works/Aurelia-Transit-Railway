@@ -303,6 +303,8 @@ Later, after accepted art (not in this PR): pack id `aurelia_look`, pack format 
 
 ## 1d.4 — in-game map (in progress)
 
+> 2026-11-24: the in-game map and minimap are cut from ATR scope (see `PLAN.md`, Scope decisions). This card is kept as a record.
+
 - **Status:** in progress.
 - **Branch:** `feat/1d4-ingame-map`.
 - **PR:** none. No merge SHA.

@@ -36,6 +36,7 @@ Nothing here is started. Screenshots: `~/.t3/userdata/attachments/fc90feb0-5b08-
     (github.com/0PALEQ/MTR-Traffic-Addon): generated traffic on an MTR-based road network, spawn/despawn connectors,
     signal phases, sedan models; needs MTR 4.0.4+, Fabric 1.20.1. Riding or driving is not mentioned. Licence is custom,
     all rights reserved: no code or models may be copied. Not planned yet; Jah to say whether it becomes a phase.
+    2026-11-24: decided. Cars are cut from ATR scope (see `PLAN.md`, Scope decisions).
 20. Jah wants the picks round run as an unattended loop (skill `auto-loop`). Contract not written, loop not started.
 
 ## Already approved earlier the same evening (ATR Check-in)
