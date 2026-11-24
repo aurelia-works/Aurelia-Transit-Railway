@@ -239,16 +239,15 @@ public final class VisualShots implements ClientModInitializer {
 		}
 	}
 
-	/** {@code panel <TAB>} the Aurelia panel on a tab, {@code wrench} the wrench in the main hand, {@code menu} the ATR menu, {@code close}. */
+	/** {@code panel <TAB>} the Aurelia panel on a tab, {@code wrench} the wrench in the main hand, {@code menu} the panel on Architecture, {@code close}. */
 	private static void openScreen(MinecraftClient client, String arg) {
 		final String[] words = arg.split("\\s+");
 		switch (words[0]) {
 			case "panel" -> client.setScreen(new org.mtr.aurelia.client.screen.AureliaPanelScreen(null,
 					org.mtr.aurelia.client.screen.AureliaPanelScreen.Tab.valueOf(words[1].toUpperCase(Locale.ROOT))));
 			case "wrench" -> com.aureliatransit.architecture.client.StationWrenchScreen.open(net.minecraft.util.Hand.MAIN_HAND);
-			case "menu" -> com.aureliatransit.architecture.client.AtrMenuScreen.open(null, words.length > 1
-					? com.aureliatransit.architecture.client.AtrMenuScreen.Tab.valueOf(words[1].toUpperCase(Locale.ROOT))
-					: com.aureliatransit.architecture.client.AtrMenuScreen.Tab.BUILD);
+			case "menu" -> client.setScreen(new org.mtr.aurelia.client.screen.AureliaPanelScreen(null,
+					org.mtr.aurelia.client.screen.AureliaPanelScreen.Tab.ARCHITECTURE));
 			case "editor" -> client.setScreen(new com.aureliatransit.architecture.client.StationEditorScreen(net.minecraft.util.Hand.MAIN_HAND,
 					arg.substring(words[0].length()).strip()));
 			case "close" -> client.setScreen(null);

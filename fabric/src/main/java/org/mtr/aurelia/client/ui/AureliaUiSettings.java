@@ -1,18 +1,20 @@
 package org.mtr.aurelia.client.ui;
 
+import org.mtr.aurelia.config.AureliaSettings;
 import org.mtr.libraries.com.google.gson.JsonElement;
 import org.mtr.libraries.com.google.gson.JsonObject;
 import org.mtr.libraries.com.google.gson.JsonParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 
 /**
- * Per-screen Aurelia look, in {@code config/aurelia/ui.json}. Missing file, missing key, or a value that is not
- * true or false keeps that screen on the Aurelia look. {@code config/mtr.json} is never touched.
+ * Per-screen Aurelia look, the {@code ui} section of {@code config/aurelia/settings.json} (formerly {@code ui.json}).
+ * Missing file, missing key, or a value that is not true or false keeps that screen on the Aurelia look.
+ * {@code config/mtr.json} is never touched.
  */
 public final class AureliaUiSettings {
 
@@ -35,7 +37,6 @@ public final class AureliaUiSettings {
 		}
 	}
 
-	private static final Logger LOGGER = LoggerFactory.getLogger("ATR Aurelia");
 	private static Values current = Values.defaults();
 
 	private AureliaUiSettings() {
@@ -51,17 +52,13 @@ public final class AureliaUiSettings {
 	}
 
 	public static void load(Path configDir) {
-		final Path file = file(configDir);
-		if (!Files.isRegularFile(file)) {
-			current = Values.defaults();
-			return;
-		}
-		try {
-			current = Values.from(JsonParser.parseString(Files.readString(file)).getAsJsonObject());
-		} catch (Exception e) {
-			LOGGER.error("[ATR] ui.json could not be read; the Aurelia look stays on", e);
-			current = Values.defaults();
-		}
+		AureliaSettings.load(configDir);
+		current = Values.from(AureliaSettings.section(AureliaSettings.UI));
+	}
+
+	/** Reads the old {@code ui.json} into the section body settings.json keeps. */
+	public static JsonObject readLegacy(Path file) throws IOException {
+		return Values.from(JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject()).toJson();
 	}
 
 	/** Missing keys stay on. A value that is not a boolean is ignored. Extra keys are ignored. */
@@ -70,17 +67,7 @@ public final class AureliaUiSettings {
 	}
 
 	private static void save() {
-		try {
-			final Path file = file(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir());
-			Files.createDirectories(file.getParent());
-			Files.writeString(file, current.toJson().toString());
-		} catch (Exception e) {
-			LOGGER.error("[ATR] ui.json could not be written", e);
-		}
-	}
-
-	private static Path file(Path configDir) {
-		return configDir.resolve("aurelia").resolve("ui.json");
+		AureliaSettings.put(AureliaSettings.UI, current.toJson());
 	}
 
 	public static final class Values {

@@ -1,6 +1,11 @@
-package com.aureliatransit.architecture.client;
+package org.mtr.perfbench;
 
+import com.aureliatransit.architecture.client.AirportWrenchScreen;
+import com.aureliatransit.architecture.client.CodexScreen;
+import com.aureliatransit.architecture.client.StationStudioClient;
+import com.aureliatransit.architecture.client.StationWrenchScreen;
 import com.aureliatransit.architecture.station.StationRecipe;
+import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.BookScreen;
@@ -10,6 +15,7 @@ import net.minecraft.item.Items;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
+import org.mtr.aurelia.client.screen.AureliaPanelScreen;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Dev runs only (the {@code ata.devScreenshots} system property, set by the runClient task): takes the game's own F2
+ * Dev runs only (the {@code ata.devScreenshots} system property, with the perf bench run): takes the game's own F2
  * screenshot for every file dropped into {@code <run dir>/screenshot-requests/}, so a script can capture the view while the
  * window stays in the background. The request's file name names the screenshot ({@code screenshots/<name>.png}); a request
  * containing {@code nohud} hides the HUD and chat for that shot, and {@code fov=<degrees>} sets the field of view for it.
@@ -34,9 +40,11 @@ import java.util.regex.Pattern;
  * right-clicks the block under the crosshair with the main-hand item first, like a player would, and any screen that opens is
  * in the shot, then closed; {@code click=<x>,<y>} (GUI pixels, repeatable) left-clicks the open screen {@code clickat=<ticks>}
  * after the request, {@code cmd=<command>} (rest of the line, no slash) runs a chat command first, and {@code record=<frames>} saves that many more numbered shots, one per tick, before closing. {@code studio} starts Station Studio without opening a browser (its address is in the log), so a
- * script can drive it. Inert in a normal game.
+ * script can drive it. Never part of the release jar.
  */
-final class DevScreenshots {
+public final class DevScreenshots implements ClientModInitializer {
+
+	static final boolean ACTIVE = Boolean.getBoolean("ata.devScreenshots");
 
 	/** Ticks before a shot that changes the HUD or field of view, so at least one frame renders with the change. */
 	private static final int HUD_SETTLE_TICKS = 3;
@@ -65,11 +73,9 @@ final class DevScreenshots {
 	private static int recordLeft;
 	private static int recordFrame;
 
-	private DevScreenshots() {
-	}
-
-	static void init() {
-		if (!Boolean.getBoolean("ata.devScreenshots")) {
+	@Override
+	public void onInitializeClient() {
+		if (!ACTIVE) {
 			return;
 		}
 		ClientTickEvents.END_CLIENT_TICK.register(DevScreenshots::tick);
@@ -181,7 +187,7 @@ final class DevScreenshots {
 	/** Opens the screen a request names; returns whether one was opened. */
 	private static boolean openScreen(MinecraftClient client, String content) {
 		if (content.contains("open=menu")) {
-			AtrMenuScreen.open(client.currentScreen, AtrMenuScreen.Tab.BUILD);
+			client.setScreen(new AureliaPanelScreen(client.currentScreen, AureliaPanelScreen.Tab.ARCHITECTURE));
 		} else if (content.contains("open=wrench")) {
 			StationWrenchScreen.open(Hand.MAIN_HAND);
 			if (client.currentScreen == null) {

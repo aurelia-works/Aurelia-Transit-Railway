@@ -29,6 +29,7 @@ import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.mtr.aurelia.client.AureliaClient;
+import org.mtr.aurelia.client.screen.AureliaPanelScreen;
 import org.mtr.aurelia.dashboard.DashboardLayout;
 import org.mtr.mod.screen.DashboardScreen;
 
@@ -36,7 +37,6 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 
 	@Override
 	public void onInitializeClient() {
-		DevScreenshots.init();
 		FreePlacementRender.init();
 		LiveClient.init();
 		AirportClient.init();
@@ -76,8 +76,8 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 	}
 
 	/**
-	 * Adds ATR's own entry points without touching MTR's classes: an ATR menu button on MTR's dashboard next to the panel
-	 * button. The Aurelia panel links to the menu from its own header.
+	 * Adds ATR's own entry points without touching MTR's classes: an Architecture button on MTR's dashboard next to the panel
+	 * button.
 	 */
 	private static void initMenuEntries() {
 		final Identifier texture = new Identifier(AureliaClient.MOD_ID, "textures/gui/dashboard_button.png");
@@ -86,9 +86,9 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
 			if (screen instanceof DashboardScreen) {
 				final TexturedButtonWidget button = new TexturedButtonWidget(DashboardLayout.ATR_MENU_BUTTON_X, y, size, size, 0, 0, size, texture,
-						size, size * 2, pressed -> client.setScreen(new AtrMenuScreen(screen, AtrMenuScreen.Tab.BUILD)),
-						Text.translatable("gui.aurelia.menu.title"));
-				button.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.menu.title")));
+						size, size * 2, pressed -> client.setScreen(new AureliaPanelScreen(screen, AureliaPanelScreen.Tab.ARCHITECTURE)),
+						Text.translatable("gui.aurelia.panel.tab.architecture"));
+				button.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.panel.tab.architecture")));
 				Screens.getButtons(screen).add(button);
 				ScreenMouseEvents.allowMouseClick(screen).register((clickedScreen, mouseX, mouseY, mouseButton) ->
 						AureliaClient.isMagicMenuOpen(clickedScreen) || !button.mouseClicked(mouseX, mouseY, mouseButton));

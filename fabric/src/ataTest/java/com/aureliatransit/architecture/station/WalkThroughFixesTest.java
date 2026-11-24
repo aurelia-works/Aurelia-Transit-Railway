@@ -293,6 +293,37 @@ class WalkThroughFixesTest {
 		}
 	}
 
+	/**
+	 * A wing's waiting room opens onto platform 1, so its doorway into the hall is on the paid side of the gate line: halfway
+	 * in, it was on the unpaid side of a Dutch or German hall's gates and the fare line could be walked round (FG).
+	 */
+	@Test
+	void aWingWaitingRoomsDoorIntoTheHallIsPastTheGateLine() {
+		for (final String text : List.of("2 tracks side station building city class", "2 tracks side station building grand class berlin",
+				"named hi, 2 tracks, 201 long, grand station building, footbridge, hong kong")) {
+			final StationSpec spec = StationDescriptionParser.parse(text).spec();
+			final TrackLayout layout = StationGeometry.layout(spec);
+			final StationLayout site = StationLayout.of(spec, layout);
+			final StationPlan plan = StationPlanner.plan(spec);
+			final int uP = site.platformWall(layout);
+			final java.util.Map<String, PlannedBlock> at = new java.util.HashMap<>();
+			plan.blocks().forEach(b -> at.put(b.u() + "," + b.y() + "," + b.v(), b));
+			final int gateU = plan.blocks().stream().filter(b -> b.role() == Role.GATE && b.v() > site.vStart() && b.v() < site.vEnd() && b.u() < uP)
+					.mapToInt(PlannedBlock::u).max().orElseThrow();
+			int doors = 0;
+			for (final int v : new int[]{site.vStart(), site.vEnd()}) {
+				for (int u = 0; u < uP; u++) {
+					if (at.get(u + "," + StationGeometry.PLATFORM_Y + "," + v) != null && at.get(u + "," + StationGeometry.WALK_Y + "," + v) == null
+							&& at.get(u + "," + (StationGeometry.WALK_Y + 1) + "," + v) == null) {
+						doors++;
+						assertTrue(u > gateU, text + ": the wing doorway at u=" + u + " v=" + v + " is not past the gate line at u=" + gateU);
+					}
+				}
+			}
+			assertTrue(doors > 0, text + ": no doorway from the hall into a wing");
+		}
+	}
+
 	/** Under the low end of a stair flight (footbridge or station building) nobody walks in where they cannot stand up. */
 	@Test
 	void nobodyWalksInUnderAFlightsLowEnd() {

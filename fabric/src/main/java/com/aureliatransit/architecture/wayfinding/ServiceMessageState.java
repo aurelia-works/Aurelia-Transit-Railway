@@ -44,6 +44,9 @@ public final class ServiceMessageState extends PersistentState {
 
 	/** Drops holds whose time has passed and removes the service message that announced each one. */
 	public boolean expire(long now) {
+		if (holds.isEmpty()) {
+			return false;
+		}
 		final List<RouteHold> left = new ArrayList<>();
 		ServiceMessages next = messages;
 		boolean changed = false;

@@ -11,7 +11,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.PersistentState;
-import org.mtr.core.Main;
 import org.mtr.core.data.Depot;
 import org.mtr.core.data.Platform;
 import org.mtr.core.data.Route;
@@ -20,10 +19,9 @@ import org.mtr.core.operation.ArrivalResponse;
 import org.mtr.core.simulation.Simulator;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectImmutableList;
-import org.mtr.mod.Init;
+import org.mtr.mod.engine.MtrSimulators;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -115,7 +113,7 @@ public final class DepotSchedulesSync {
 		final long worldDay = server.getOverworld().getTimeOfDay() / 24000;
 		final LocalDate today = LocalDate.now();
 		final Map<Long, DepotSchedules.Schedule> schedules = new HashMap<>(state.schedules.all());
-		final ObjectImmutableList<Simulator> simulators = simulators();
+		final ObjectImmutableList<Simulator> simulators = MtrSimulators.get();
 		if (simulators == null || schedules.isEmpty()) {
 			return;
 		}
@@ -142,7 +140,7 @@ public final class DepotSchedulesSync {
 		}
 		final Action action = Action.values()[actionIndex];
 		final State state = state(server);
-		final ObjectImmutableList<Simulator> simulators = simulators();
+		final ObjectImmutableList<Simulator> simulators = MtrSimulators.get();
 		if (simulators == null) {
 			return;
 		}
@@ -248,7 +246,7 @@ public final class DepotSchedulesSync {
 
 	/** Each simulator (dimension) collects its depots on its own thread; the server thread then sends them. */
 	private static void sendAll(MinecraftServer server) {
-		final ObjectImmutableList<Simulator> simulators = simulators();
+		final ObjectImmutableList<Simulator> simulators = MtrSimulators.get();
 		if (simulators == null) {
 			return;
 		}
@@ -283,24 +281,6 @@ public final class DepotSchedulesSync {
 			buf.writeString(DepotSchedules.dayType(realTimeByDepot.getOrDefault(depotId, false), LocalDate.now(), worldDay).name(), 16);
 		});
 		server.getPlayerManager().getPlayerList().forEach(player -> ServerPlayNetworking.send(player, SYNC, PacketByteBufs.copy(buf)));
-	}
-
-	@SuppressWarnings("unchecked")
-	@Nullable
-	private static ObjectImmutableList<Simulator> simulators() {
-		try {
-			final Field mainField = Init.class.getDeclaredField("main");
-			mainField.setAccessible(true);
-			final Main main = (Main) mainField.get(null);
-			if (main == null) {
-				return null;
-			}
-			final Field field = Main.class.getDeclaredField("simulators");
-			field.setAccessible(true);
-			return (ObjectImmutableList<Simulator>) field.get(main);
-		} catch (ReflectiveOperationException e) {
-			return null;
-		}
 	}
 
 	private static State state(MinecraftServer server) {

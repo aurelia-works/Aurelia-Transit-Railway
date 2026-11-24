@@ -6,7 +6,7 @@ import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 
 /**
- * Pure state machine for pending UI-shortcut dashboard open requests ({@code AtrMenuScreen} / {@code AureliaPanelScreen}).
+ * Pure state machine for pending UI-shortcut dashboard open requests ({@code AureliaPanelScreen}).
  * <ul>
  *   <li>Expires unanswered requests after {@link #EXPIRY_MS} ms and clears on disconnect.</li>
  *   <li>Consumes a pending request ONLY when {@code packetMode == TransportMode.TRAIN} and {@code isDefaultScreen},

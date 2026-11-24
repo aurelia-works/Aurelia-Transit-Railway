@@ -94,9 +94,7 @@ public final class CargoService {
 			if (snapshot != null && snapshot.reliable() && System.currentTimeMillis() - startedMillis > PRUNE_AFTER_MILLIS) {
 				STORE.prune(dimension, snapshot.allIds());
 			}
-			if (STORE.isFileDirty()) {
-				STORE.save(file);
-			}
+			// the file is written with MTR's own autosave (onAutosave) and on stop, not every second on the server thread
 		}
 	}
 

@@ -47,6 +47,8 @@ public class RoadVehicleEntity extends Entity {
 	private static final int INPUT_TICKS = 10;
 	private static final double GRAVITY = 0.08;
 	private static final double STEER_RATE = Math.toRadians(90) / 20;
+	/** How near a player must be to hear that an old road car was removed. */
+	private static final double RETIRED_CAR_NOTICE_RANGE = 64;
 	/** Rolling and air drag while coasting, in m/s² and per (m/s)². */
 	private static final double COAST = 0.6;
 	private static final double AIR = 0.0012;
@@ -146,6 +148,15 @@ public class RoadVehicleEntity extends Entity {
 			followServer();
 			prevWheelSpin = wheelSpin;
 			wheelSpin += (float) (speed() / (kind().wheelRadius * scale));
+		} else if (kind() == RoadVehicleKind.CAR) {
+			// Road cars were removed; one left in an old world is dropped on its first tick. Bikes carry on.
+			// Players nearby get one action-bar line so the car does not just vanish without a word.
+			for (final PlayerEntity player : getWorld().getPlayers()) {
+				if (player.squaredDistanceTo(this) < RETIRED_CAR_NOTICE_RANGE * RETIRED_CAR_NOTICE_RANGE) {
+					player.sendMessage(Text.translatable("message.mtr.road_car_removed"), true);
+				}
+			}
+			discard();
 		} else {
 			drive(scale);
 		}
@@ -343,7 +354,7 @@ public class RoadVehicleEntity extends Entity {
 
 	@Override
 	public ItemStack getPickBlockStack() {
-		return kind() == RoadVehicleKind.CAR ? new ItemStack(RoadVehicles.CAR_ITEM) : ItemStack.EMPTY;
+		return ItemStack.EMPTY;
 	}
 
 	@Override
