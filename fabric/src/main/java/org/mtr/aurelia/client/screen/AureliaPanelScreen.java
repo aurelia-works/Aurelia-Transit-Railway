@@ -620,10 +620,10 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		return Text.translatable("gui.aurelia.train_sound.door_chime", Text.translatable("gui.aurelia.train_sound.door_chime." + config.getDoorChime()));
 	}
 
-	/** Zip lines: on/off, top speed, brake and how far the cable sags. Operators only; the ride is shared. */
+	/** Zip lines: on/off, top speed, brake and how far the cable sags. Operators and creative mode only; the ride is shared. */
 	private void initZip() {
 		final int left = columnLeft();
-		final boolean operator = ClientOperators.isOperator(client);
+		final boolean operator = ClientOperators.isOperatorOrCreative(client);
 		final ZipSettings now = ZipClient.settings();
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.zip.enabled", ScreenTexts.onOrOff(now.enabled())), b -> {
 			final ZipSettings current = ZipClient.settings();
@@ -646,7 +646,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 
 	/**
 	 * Hire bikes: on/off, the bike colour (a picker, with a swatch beside the switch), size, top speed and bike share.
-	 * The server owns these, so they apply to everyone. Operators and the single player host only.
+	 * The server owns these, so they apply to everyone. Operators, the single-player host and creative mode only.
 	 */
 	private void initVehicles() {
 		final int left = columnLeft();
@@ -784,11 +784,11 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		return wrapped;
 	}
 
-	/** Building tools: station guide, rail stylus and the box tunnel. Operators only; the dig is shared. */
+	/** Building tools: station guide, rail stylus and the box tunnel. Operators and creative mode only; the dig is shared. */
 	private void initBuild() {
 		buildFirst = Math.max(0, Math.min(buildFirst, BUILD_ROWS - visibleRows()));
 		final int left = columnLeft();
-		final boolean operator = ClientOperators.isOperator(client);
+		final boolean operator = ClientOperators.isOperatorOrCreative(client);
 		final BuildSettings now = BuildClient.settings();
 		if (buildRow(0)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.station", ScreenTexts.onOrOff(now.stationEnabled())), b -> {
@@ -874,14 +874,14 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	}
 
 	/**
-	 * Passengers. The first five rows are the server caps (operators only): on/off, how many arrive per platform per
+	 * Passengers. The first five rows are the server caps (operators and creative mode only): on/off, how many arrive per platform per
 	 * minute, the most a platform and the whole dimension may hold, and seats per car. The rest are this client's
 	 * drawing switches, which anyone can change. The measured cost is drawn under the rows.
 	 */
 	private void initPassengers() {
 		passengerFirst = Math.max(0, Math.min(passengerFirst, PASSENGER_ROWS - passengerVisible()));
 		final int left = columnLeft();
-		final boolean operator = ClientOperators.isOperator(client);
+		final boolean operator = ClientOperators.isOperatorOrCreative(client);
 		if (passengerRow(0)) {
 			final ButtonWidget enabled = addDrawableChild(ButtonWidget.builder(passengersLabel(PassengerClient.settings().enabled()), b -> {
 				final PassengerNetwork.Settings now = PassengerClient.settings();
@@ -1188,7 +1188,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	}
 
 	private boolean operator() {
-		return ClientOperators.isOperator(client);
+		return ClientOperators.isOperatorOrCreative(client);
 	}
 
 	private boolean architectureRow(int row) {
@@ -1362,14 +1362,14 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 					? Text.translatable("gui.aurelia.passengers.draw_cost", String.format("%.2f", PassengerRenderer.renderMicros / 1000D), PassengerRenderer.lastWalkers, PassengerRenderer.lastFigures)
 					: Text.translatable("gui.aurelia.passengers.draw_cost.off");
 			context.drawCenteredTextWithShadow(textRenderer, drawCost, centerX(), statsY + 30, 0xAAAAAA);
-			if (!ClientOperators.isOperator(client)) {
+			if (!ClientOperators.isOperatorOrCreative(client)) {
 				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), centerX(), top - 12, 0xFF5555);
 			}
-		} else if (tab == Tab.BUILD && !ClientOperators.isOperator(client)) {
+		} else if (tab == Tab.BUILD && !ClientOperators.isOperatorOrCreative(client)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.VEHICLES) {
 			renderVehicles(context);
-		} else if (tab == Tab.ZIP && !ClientOperators.isOperator(client)) {
+		} else if (tab == Tab.ZIP && !ClientOperators.isOperatorOrCreative(client)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.TRAIN_SOUND) {
 			scrollLine(context, trainSoundFirst, visibleRows(), TRAIN_SOUND_ROWS);
@@ -1522,7 +1522,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		final org.mtr.mod.engine.EngineFeature[] features = org.mtr.mod.engine.EngineFeature.values();
 		engineFirst = Math.max(0, Math.min(engineFirst, engineRows() - engineVisible()));
 		final int left = columnLeft();
-		final boolean operator = ClientOperators.isOperator(client);
+		final boolean operator = ClientOperators.isOperatorOrCreative(client);
 		for (int row = engineFirst; row < Math.min(features.length, engineFirst + engineVisible()); row++) {
 			final org.mtr.mod.engine.EngineFeature feature = features[row];
 			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(engineLabel(feature, org.mtr.aurelia.client.EngineClient.enabled(feature)), b -> {
@@ -1555,7 +1555,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	/** Under the switches: how long the engine takes per tick in this dimension, and how much of its time that is. */
 	private void renderEngineLag(DrawContext context) {
 		final int y = top + Math.min(engineRows(), engineVisible()) * ROW + 4;
-		if (!ClientOperators.isOperator(client)) {
+		if (!ClientOperators.isOperatorOrCreative(client)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.engine.operators"), centerX(), y + 2, 0xAAAAAA);
 			return;
 		}

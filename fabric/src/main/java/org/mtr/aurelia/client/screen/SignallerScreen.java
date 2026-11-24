@@ -85,7 +85,7 @@ public final class SignallerScreen extends Screen {
 	}
 
 	private void toggle(Route route) {
-		if (route == null || JunctionPriority.isExpress(route) || !ClientOperators.isOperator(client)) {
+		if (route == null || JunctionPriority.isExpress(route) || !ClientOperators.isOperatorOrCreative(client)) {
 			return;
 		}
 		// the list redraws when the server sends the new set back

@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.input.Input;
 import net.minecraft.network.PacketByteBuf;
+import org.mtr.aurelia.client.ClientOperators;
 import org.mtr.aurelia.vehicle.RoadVehicleEntity;
 import org.mtr.aurelia.vehicle.RoadVehicleSettings;
 import org.mtr.aurelia.vehicle.RoadVehicles;
@@ -43,9 +44,9 @@ public final class RoadVehicleClient {
 		}
 	}
 
-	/** Operators and the single player host; the server checks again. */
+	/** Operators, the single-player host and creative-mode players; the server checks again. */
 	public static boolean mayEdit(MinecraftClient client) {
-		return client.player != null && (client.player.hasPermissionLevel(2) || client.isInSingleplayer());
+		return ClientOperators.isOperatorOrCreative(client);
 	}
 
 	private static void sendKeys(MinecraftClient client) {

@@ -43,7 +43,7 @@ final class StationSuffixCommand {
 					.executes(context -> show(context, suffixContext))));
 		}
 
-		dispatcher.register(CommandManager.literal("ata_suffix").requires(source -> Operators.isOperatorSource(source))
+		dispatcher.register(CommandManager.literal("ata_suffix").requires(source -> Operators.isOperatorOrCreativeSource(source))
 				.then(CommandManager.literal("set").then(set))
 				.then(CommandManager.literal("show").then(show))
 				.then(CommandManager.literal("remove").then(CommandManager.argument("station", StringArgumentType.string()).executes(StationSuffixCommand::remove)))

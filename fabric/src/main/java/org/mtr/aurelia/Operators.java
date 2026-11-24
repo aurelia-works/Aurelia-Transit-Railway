@@ -8,9 +8,14 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import java.util.function.Predicate;
 
 /**
- * Who may use ATR's shared tools (building, zip lines, the dashboard, the station wrench, ATR's commands and panel settings): operators at permission
- * level 2, and the host of a single-player world, so a solo world with cheats off keeps them. A dedicated server has
- * no host, so it stays op-only. LAN guests are not the host.
+ * Who may use ATR's tools. Two levels:
+ * <ul>
+ * <li>{@link #isOperator}: operators at permission level 2, and the host of a single-player world, so a solo world with
+ * cheats off keeps them. A dedicated server has no host; LAN guests are not the host. The panel's Tools tab and
+ * {@code /atr_jump} need this.</li>
+ * <li>{@link #isOperatorOrCreative}: the above, or any player in creative mode. Everything else needs this: building
+ * tools, zip lines, the dashboard shortcut, the ATR wrench, the panel's server settings and ATR's commands.</li>
+ * </ul>
  */
 public final class Operators {
 
@@ -31,13 +36,26 @@ public final class Operators {
 		return server != null && server.isHost(player.getGameProfile());
 	}
 
-	/** For ATR's own commands: level 2, or a player who counts by {@link #isOperator(PlayerEntity)}. */
+	public static boolean isOperatorOrCreative(PlayerEntity player) {
+		return player.isCreative() || isOperator(player);
+	}
+
+	/** For the operator-only commands: level 2 (console, command blocks), or a player who counts by {@link #isOperator(PlayerEntity)}. */
 	public static boolean isOperatorSource(ServerCommandSource source) {
 		if (source.hasPermissionLevel(2)) {
 			return true;
 		}
 		final ServerPlayerEntity player = source.getPlayer();
 		return player != null && isOperator(player);
+	}
+
+	/** For ATR's other commands: level 2, or a player who counts by {@link #isOperatorOrCreative(PlayerEntity)}. */
+	public static boolean isOperatorOrCreativeSource(ServerCommandSource source) {
+		if (source.hasPermissionLevel(2)) {
+			return true;
+		}
+		final ServerPlayerEntity player = source.getPlayer();
+		return player != null && isOperatorOrCreative(player);
 	}
 
 	public static void setClientHost(Predicate<PlayerEntity> check) {

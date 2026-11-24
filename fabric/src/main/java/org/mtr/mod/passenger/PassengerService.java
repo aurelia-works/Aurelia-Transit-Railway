@@ -122,7 +122,7 @@ public final class PassengerService {
 	}
 
 	private static void set(MinecraftServer server, ServerPlayerEntity player, PassengerNetwork.Settings requested) {
-		if (!Operators.isOperator(player)) {
+		if (!Operators.isOperatorOrCreative(player)) {
 			return;
 		}
 		final State state = state(server);

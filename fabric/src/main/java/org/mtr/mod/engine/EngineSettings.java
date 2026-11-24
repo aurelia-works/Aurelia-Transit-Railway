@@ -70,7 +70,7 @@ public final class EngineSettings {
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			if (server.getTicks() % 20 == 0 && enabled(EngineFeature.LAG_READOUT)) {
 				server.getPlayerManager().getPlayerList().forEach(player -> {
-					if (Operators.isOperator(player)) {
+					if (Operators.isOperatorOrCreative(player)) {
 						final EngineLag.Reading reading = EngineLag.reading(org.mtr.mod.Init.getWorldId(new org.mtr.mapping.holder.World(player.getServerWorld())));
 						final PacketByteBuf buf = PacketByteBufs.create();
 						buf.writeVarLong(reading.averageMicros());
@@ -139,7 +139,7 @@ public final class EngineSettings {
 	}
 
 	private static void set(MinecraftServer server, ServerPlayerEntity player, int ordinal, boolean value) {
-		if (!Operators.isOperator(player) || ordinal < 0 || ordinal >= EngineFeature.values().length) {
+		if (!Operators.isOperatorOrCreative(player) || ordinal < 0 || ordinal >= EngineFeature.values().length) {
 			return;
 		}
 		final State state = state(server);
@@ -150,7 +150,7 @@ public final class EngineSettings {
 	}
 
 	private static void setFirst(MinecraftServer server, ServerPlayerEntity player, long routeId, boolean first) {
-		if (!Operators.isOperator(player)) {
+		if (!Operators.isOperatorOrCreative(player)) {
 			return;
 		}
 		final State state = state(server);

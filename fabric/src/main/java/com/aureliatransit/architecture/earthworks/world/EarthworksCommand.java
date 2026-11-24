@@ -52,7 +52,7 @@ public final class EarthworksCommand {
 	public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
 		final String[] tools = Arrays.stream(EarthTool.values()).map(EarthTool::id).toArray(String[]::new);
 		final String[] looks = Arrays.stream(EarthLook.values()).map(EarthLook::id).toArray(String[]::new);
-		dispatcher.register(CommandManager.literal("atr_earthworks").requires(source -> Operators.isOperatorSource(source))
+		dispatcher.register(CommandManager.literal("atr_earthworks").requires(source -> Operators.isOperatorOrCreativeSource(source))
 				.then(CommandManager.literal("build")
 						.then(CommandManager.argument("tool", StringArgumentType.word())
 								.suggests((context, builder) -> CommandSource.suggestMatching(tools, builder))

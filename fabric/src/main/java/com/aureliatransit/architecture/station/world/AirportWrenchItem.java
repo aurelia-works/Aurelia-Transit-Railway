@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 /**
  * The old airport wrench id, kept so old worlds load: it is the one ATR wrench with Airport as its own mode. It works the same
  * way (right-click the air for its screen, right-click a block to plan an airport there, sneak + right-click to build, left-click
- * to cancel; operators only, checked on the server by {@link StationActions#allowed}) and goes through the same parser, planner,
+ * to cancel; operators and creative mode only, checked on the server by {@link StationActions#allowed}) and goes through the same parser, planner,
  * survey and build, but whatever its words say, what it plans is an airport
  * ({@link StationDescriptionParser#airportWords}).
  */

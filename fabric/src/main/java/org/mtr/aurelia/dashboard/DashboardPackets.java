@@ -55,9 +55,9 @@ public final class DashboardPackets {
 		return List.of("item.aurelia.transit_dashboard.legacy");
 	}
 
-	/** Operators (including the single-player host), or anyone carrying a dashboard item as in MTR. Creative mode alone no longer opens it. */
-	public static boolean isAllowed(boolean operator, boolean carryingDashboard) {
-		return operator || carryingDashboard;
+	/** Creative mode, operators (including the single-player host), or anyone carrying a dashboard item as in MTR. */
+	public static boolean isAllowed(boolean creative, boolean operator, boolean carryingDashboard) {
+		return creative || operator || carryingDashboard;
 	}
 
 	public static boolean hasDashboardItem(@Nullable PlayerEntity player) {
@@ -80,7 +80,7 @@ public final class DashboardPackets {
 				buf.readString(32);
 			}
 			server.execute(() -> {
-				if (!isAllowed(Operators.isOperator(player), hasDashboardItem(player))) {
+				if (!isAllowed(player.isCreative(), Operators.isOperator(player), hasDashboardItem(player))) {
 					return;
 				}
 				// Always reply with TRAIN + DEFAULT so pending menu requests never collide with legacy dashboard_2..4 packets.

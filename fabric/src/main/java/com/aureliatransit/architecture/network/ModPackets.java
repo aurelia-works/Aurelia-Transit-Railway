@@ -177,7 +177,7 @@ public final class ModPackets {
 				return;
 			}
 			server.execute(() -> {
-				if (!Operators.isOperator(player)) {
+				if (!Operators.isOperatorOrCreative(player)) {
 					return;
 				}
 				StationBuildSettings.set(server, pace);

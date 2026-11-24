@@ -82,9 +82,9 @@ public final class RoadVehicles {
 		clientSettings = settings.clamped();
 	}
 
-	/** Operators, and the host of a single player or LAN world ({@link Operators#isOperator}). */
+	/** Operators, the single-player host and creative-mode players ({@link Operators#isOperatorOrCreative}). */
 	public static boolean mayEdit(ServerPlayerEntity player) {
-		return Operators.isOperator(player);
+		return Operators.isOperatorOrCreative(player);
 	}
 
 	private static void applySettings(MinecraftServer server, ServerPlayerEntity player, RoadVehicleSettings requested) {

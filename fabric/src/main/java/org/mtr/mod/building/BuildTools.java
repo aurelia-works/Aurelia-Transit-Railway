@@ -66,9 +66,9 @@ public final class BuildTools {
 		});
 	}
 
-	/** Operators and the single-player host ({@link Operators}); creative mode alone is not enough on a shared server. */
+	/** Creative mode, operators and the single-player host ({@link Operators#isOperatorOrCreative}). */
 	public static boolean mayBuild(PlayerEntity player) {
-		return Operators.isOperator(player);
+		return Operators.isOperatorOrCreative(player);
 	}
 
 	public static ActionResult markStation(PlayerEntity player, World world, net.minecraft.util.math.BlockPos pos, boolean sneak) {

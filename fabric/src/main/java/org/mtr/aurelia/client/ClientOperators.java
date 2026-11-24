@@ -7,7 +7,7 @@ import javax.annotation.Nullable;
 
 /**
  * The client's view of {@link Operators}: an operator, or the player whose game runs the integrated server (the
- * single-player host). Only greys buttons out and keeps item use in step; the server checks again.
+ * single-player host), and the creative-mode variant. Only greys buttons out and keeps item use in step; the server checks again.
  */
 public final class ClientOperators {
 
@@ -20,5 +20,9 @@ public final class ClientOperators {
 
 	public static boolean isOperator(@Nullable MinecraftClient client) {
 		return client != null && client.player != null && Operators.isOperator(client.player);
+	}
+
+	public static boolean isOperatorOrCreative(@Nullable MinecraftClient client) {
+		return client != null && client.player != null && Operators.isOperatorOrCreative(client.player);
 	}
 }
