@@ -41,6 +41,12 @@ public final class MapOverview {
 	private static final int FROM_FILE = Integer.MIN_VALUE;
 	/** A slot taken for a tile still being read. */
 	private static final int PENDING = Integer.MIN_VALUE + 1;
+	/** A higher-level tile one of whose regions was saved since: still drawn, and read again. */
+	private static final int STALE = Integer.MIN_VALUE + 2;
+	/** A stale tile being read again: still drawn until the new one arrives. */
+	private static final int REREADING = Integer.MIN_VALUE + 3;
+	/** A higher-level tile is read again at most this often, in frames, since each read covers many regions. */
+	private static final int REREAD_FRAMES = 600;
 
 	private final Long2IntOpenHashMap[] slotOf = new Long2IntOpenHashMap[OverviewLevels.LEVELS];
 	private final long[] slotKey = new long[MAX_SLOTS];
@@ -94,10 +100,13 @@ public final class MapOverview {
 			reading--;
 			final int slot = slotOf[tile.level].get(tile.key);
 			// the slot was reused meanwhile, or a tile made from the region in memory is newer than the file
-			if (slot < 0 || slotVersion[slot] != PENDING) {
+			if (slot < 0 || slotVersion[slot] != PENDING && slotVersion[slot] != REREADING) {
 				continue;
 			}
-			if (tile.pixels == null) {
+			if (tile.pixels == null && slotVersion[slot] == REREADING) {
+				// keep what was drawn
+				slotVersion[slot] = FROM_FILE;
+			} else if (tile.pixels == null) {
 				unreadable[tile.level].add(tile.key);
 				release(slot);
 			} else {
@@ -129,6 +138,12 @@ public final class MapOverview {
 					upload(slot, pixels, region.version());
 				}
 			}
+		} else if (slot >= 0 && slotVersion[slot] == STALE && frame - slotMade[slot] >= REREAD_FRAMES && reading < MAX_READS && groupsLeft > 0) {
+			slotVersion[slot] = REREADING;
+			reading++;
+			groupsLeft--;
+			final int readGeneration = generation;
+			map.readLevelTileOnDiskThread(level, regionsIn(map, level, tileX, tileZ), read -> arrived.add(new Tile(level, key, read, readGeneration)));
 		} else if (slot < 0 && reading < MAX_READS && (level == 0 || groupsLeft > 0) && !unreadable[level].contains(key)) {
 			slot = reserve(level, key);
 			if (slot >= 0) {
@@ -151,6 +166,23 @@ public final class MapOverview {
 		final int slot = slotOf[0].get(key);
 		if (slot >= 0 && slotVersion[slot] != PENDING) {
 			slotVersion[slot] = FROM_FILE;
+		}
+	}
+
+	/**
+	 * A region was queued for saving: the higher-level tiles holding it are read again (they are made only from files),
+	 * and one that had nothing to show is tried again.
+	 */
+	public void saved(long regionKey) {
+		final int regionX = (int) (regionKey >> 32);
+		final int regionZ = (int) regionKey;
+		for (int level = 1; level < OverviewLevels.LEVELS; level++) {
+			final long key = MapRegion.key(OverviewLevels.tileOf(regionX, level), OverviewLevels.tileOf(regionZ, level));
+			unreadable[level].remove(key);
+			final int slot = slotOf[level].get(key);
+			if (slot >= 0 && slotVersion[slot] == FROM_FILE) {
+				slotVersion[slot] = STALE;
+			}
 		}
 	}
 

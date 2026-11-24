@@ -119,7 +119,7 @@ public final class MapClient {
 			return;
 		}
 		close();
-		map = new ExploredMap(folder, MapClient::dropped);
+		map = new ExploredMap(folder, MapClient::dropped, OVERVIEW::saved);
 		ServerTiles.start(dimension);
 		MapPins.use(folder);
 		network = new SeenNetwork(folder);
