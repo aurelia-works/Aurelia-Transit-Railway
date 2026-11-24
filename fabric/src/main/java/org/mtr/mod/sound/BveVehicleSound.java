@@ -80,17 +80,21 @@ public class BveVehicleSound extends VehicleSoundBase {
 	 */
 	@Override
 	public void playMotorSound(BlockPos blockPos, float speed, float speedChange, float acceleration, boolean isOnRoute) {
-		playVehicleSound(new VehicleSoundParameters(null, blockPos, speed, speedChange, acceleration, isOnRoute));
+		sound(new VehicleSoundParameters(null, blockPos, speed, speedChange, acceleration, isOnRoute));
 	}
 
 	@Override
 	public void playVehicleSound(VehicleSoundParameters parameters) {
 		if (parameters.runSound() == null) {
 			// the plain motor path: an add-on that subclassed this class before rail sound indices existed only
-			// overrode playMotorSound, so keep sending that path through it
-			super.playVehicleSound(parameters);
+			// overrode playMotorSound, so keep sending that path through it (playMotorSound must never call back here)
+			playMotorSound(parameters.blockPos(), parameters.speed(), parameters.speedChange(), parameters.acceleration(), parameters.isOnRoute());
 			return;
 		}
+		sound(parameters);
+	}
+
+	private void sound(VehicleSoundParameters parameters) {
 		final BlockPos blockPos = parameters.blockPos();
 		final float speed = parameters.speed();
 		final float speedChange = parameters.speedChange();
