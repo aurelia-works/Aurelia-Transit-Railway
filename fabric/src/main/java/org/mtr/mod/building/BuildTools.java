@@ -1,5 +1,6 @@
 package org.mtr.mod.building;
 
+import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.station.world.BuildStationHook;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -65,9 +66,9 @@ public final class BuildTools {
 		});
 	}
 
-	/** Operators only (permission level 2); creative mode alone is not enough on a shared server. */
+	/** Operators and the single-player host ({@link Operators}); creative mode alone is not enough on a shared server. */
 	public static boolean mayBuild(PlayerEntity player) {
-		return player.hasPermissionLevel(2);
+		return Operators.isOperator(player);
 	}
 
 	public static ActionResult markStation(PlayerEntity player, World world, net.minecraft.util.math.BlockPos pos, boolean sneak) {
@@ -380,7 +381,7 @@ public final class BuildTools {
 	}
 
 	private static void applySettings(MinecraftServer server, ServerPlayerEntity player, BuildSettings requested) {
-		if (!player.hasPermissionLevel(2)) {
+		if (!mayBuild(player)) {
 			return;
 		}
 		final State state = state(server);

@@ -1,5 +1,6 @@
 package org.mtr.mod.zip;
 
+import org.mtr.aurelia.Operators;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -60,9 +61,9 @@ public final class ZipLines {
 		});
 	}
 
-	/** Operators only (permission level 2); creative mode alone is not enough on a shared server. */
+	/** Operators and the single-player host ({@link Operators}); creative mode alone is not enough on a shared server. */
 	public static boolean mayBuild(PlayerEntity player) {
-		return player.hasPermissionLevel(2);
+		return Operators.isOperator(player);
 	}
 
 	public static void tell(PlayerEntity player, String key) {
@@ -268,7 +269,7 @@ public final class ZipLines {
 	}
 
 	private static void applySettings(MinecraftServer server, ServerPlayerEntity player, ZipSettings requested) {
-		if (!player.hasPermissionLevel(2)) {
+		if (!mayBuild(player)) {
 			return;
 		}
 		final State state = state(server);
