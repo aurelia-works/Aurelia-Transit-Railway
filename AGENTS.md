@@ -35,8 +35,11 @@ A fork of Minecraft Transit Railway 4.0.5 for Fabric 1.20.1. The mod id stays `m
 - Never merge to `master` locally or push to it. A PR merges after green `ci-ok` and a reviewer's pass.
 
 ## CI
-- A pull request that changes only Markdown, `docs/` or `archive/` skips the build and test jobs. Anything else runs everything.
-- `ci-ok` is the one check that says a run is good. It fails when a job failed, was cancelled, or was skipped on a code change.
+- Two tiers. Fast: ATR's build and unit tests, and ATA's unit tests in 8 shards. Slow: ATA's station sweeps (`ata-slow-unit`) and game tests, airport ones included.
+- Now: the merge queue is off, so every pull request runs both tiers and its `ci-ok` covers them. The sweeps are skipped when the PR touches no station code (`STATION_PATHS` in `ci.yml`).
+- Once master requires the merge queue and the repository variable `MERGE_QUEUE` is `on`, a pull request runs the fast tier only (unless it changes the build or CI) and the queue's `ci-ok` decides the merge. Then a station change can pass its PR and fail in the queue, so run the sweep classes it touches locally first (`StationAuditTest`, `StationPlannerTest`, `RealCitiesATest`, `CityLandmarksTest`).
+- A pull request that changes only Markdown, `docs/` or `archive/` skips the build and test jobs. Master always runs everything.
+- `ci-ok` is the one check that says a run is good. It fails when a job failed, was cancelled, or was skipped where that event should run it.
 - `evidence` wants four headings in the PR body: What changed, Testing, Risk, How to revert.
 
 ## How to work
