@@ -15,7 +15,7 @@ import java.util.Map;
 
 /**
  * Draws a map view into a screen rectangle: the explored ground, then the rails, stations and trains the Map tab
- * switches on, then the player. Every map screen draws through here, so they all agree.
+ * switches on, then the player's home and landmark pins, then the player. Every map screen draws through here, so they all agree.
  */
 public final class MapView {
 
@@ -51,6 +51,7 @@ public final class MapView {
 		if (MapSettings.trains()) {
 			drawTrains(context, left, top, width, height, camera, 4);
 		}
+		MapPinLayer.draw(context, left, top, width, height, camera.centerX(), camera.centerZ(), camera.scale());
 		if (client.player != null) {
 			drawPlayer(context, client.player, camera, left, top, width, height);
 		}
