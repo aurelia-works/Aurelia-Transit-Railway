@@ -173,6 +173,10 @@ public abstract class BlockPIDSBase extends BlockExtension implements DirectionH
 		 */
 		@Nullable
 		static ActionResult applyDye(World world, BlockPos blockPos, PlayerEntity player, BlockEntityBase blockEntity) {
+			if (player.data.isSneaking()) {
+				// sneaking keeps the brush reachable while a dye is held
+				return null;
+			}
 			for (final Hand hand : Hand.values()) {
 				final ItemStack itemStack = player.getStackInHand(hand);
 				final net.minecraft.item.Item item = itemStack.getItem().data;
@@ -186,7 +190,8 @@ public abstract class BlockPIDSBase extends BlockExtension implements DirectionH
 						}
 					}
 					return ActionResult.SUCCESS;
-				} else if (item == net.minecraft.item.Items.MILK_BUCKET) {
+				} else if (item == net.minecraft.item.Items.MILK_BUCKET && blockEntity.customColor != null) {
+					// only clear when there is a colour to clear, or the bucket would be spent for nothing
 					if (!world.isClient()) {
 						blockEntity.customColor = null;
 						blockEntity.markDirty2();
