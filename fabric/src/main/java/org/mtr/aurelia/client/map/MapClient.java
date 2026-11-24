@@ -45,6 +45,7 @@ public final class MapClient {
 
 	public static void register() {
 		MapSettings.load(FabricLoader.getInstance().getConfigDir());
+		ServerTiles.register();
 		openKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.aurelia.map.open", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_N, "key.categories.mtr"));
 		ClientTickEvents.END_CLIENT_TICK.register(MapClient::tick);
 		HudRenderCallback.EVENT.register((context, tickDelta) -> MinimapHud.render(context));
@@ -90,7 +91,7 @@ public final class MapClient {
 			if (world == null) {
 				close();
 			} else {
-				use(folder(client, world));
+				use(folder(client, world), world.getRegistryKey().getValue().toString());
 			}
 		}
 		while (openKey.wasPressed()) {
@@ -113,12 +114,13 @@ public final class MapClient {
 	}
 
 	/** Keeps the open map when the folder is the same (a respawn makes a new world object), else swaps maps. */
-	private static void use(Path folder) {
+	private static void use(Path folder, String dimension) {
 		if (map != null && map.folder().equals(folder)) {
 			return;
 		}
 		close();
 		map = new ExploredMap(folder, MapClient::dropped);
+		ServerTiles.start(dimension);
 		MapPins.use(folder);
 		network = new SeenNetwork(folder);
 		SCANNER.reset();
@@ -137,6 +139,7 @@ public final class MapClient {
 		MapPins.use(null);
 		TEXTURES.clear();
 		OVERVIEW.clear();
+		ServerTiles.reset();
 		SCANNER.reset();
 	}
 
