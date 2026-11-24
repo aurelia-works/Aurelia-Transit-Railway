@@ -25,6 +25,10 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
+import org.mtr.aurelia.road.fabric.block.LayeredBlock;
+import org.mtr.aurelia.road.fabric.block.StratosBlocks;
+import org.mtr.aurelia.road.fabric.paint.PaintLines;
+import org.mtr.aurelia.road.fabric.paint.PaintStore;
 import org.mtr.aurelia.road.spi.ChunkXZ;
 import org.mtr.aurelia.road.spi.WorldWriter;
 
@@ -62,6 +66,7 @@ public final class FabricWorldWriter implements WorldWriter {
     private int lastY;
     private int lastZ;
     private BlockState lastState;
+    private PaintStore paint;
 
     public FabricWorldWriter(ServerWorld level) {
         this.level = level;
@@ -90,7 +95,15 @@ public final class FabricWorldWriter implements WorldWriter {
 
     @Override
     public boolean isValidState(String state) {
-        return parse(state) != null;
+        return PaintLines.parse(state) != null || parse(state) != null;
+    }
+
+    /** The dimension's road paint ({@link PaintLines}): a painted column is asphalt here, its line kept there. */
+    private PaintStore paint() {
+        if (this.paint == null) {
+            this.paint = PaintStore.of(this.level);
+        }
+        return this.paint;
     }
 
     /** The block state for {@code state}, parsed once with Minecraft's own parser; null if it isn't one. */
@@ -116,6 +129,12 @@ public final class FabricWorldWriter implements WorldWriter {
         this.lastX = x;
         this.lastY = y;
         this.lastZ = z;
+        if (this.lastState.isOf(StratosBlocks.ASPHALT)) {
+            int value = paint().get(BlockPos.asLong(x, y, z));
+            if (value != 0) {
+                return new PaintLines.Line(PaintLines.kind(value), PaintLines.chord(value), this.lastState.get(LayeredBlock.LAYERS)).state();
+            }
+        }
         // Block states are shared objects, so each one's text is worked out once (no new string per read).
         return this.serialised.computeIfAbsent(this.lastState, BlockArgumentParser::stringifyBlockState);
     }
@@ -157,7 +176,8 @@ public final class FabricWorldWriter implements WorldWriter {
 
     @Override
     public String setBlockState(int x, int y, int z, String state, String data) {
-        BlockState blockState = parse(state);
+        PaintLines.Line line = PaintLines.parse(state);
+        BlockState blockState = parse(line == null ? state : line.surface());
         if (blockState == null) {
             throw new IllegalArgumentException("'" + state + "' is not a block state");
         }
@@ -169,6 +189,8 @@ public final class FabricWorldWriter implements WorldWriter {
         }
         this.lastState = null; // the block changes now; a neighbour's reaction may change others
         this.level.setBlockState(this.cursor.set(x, y, z), blockState, FLAGS);
+        // After the block: asphalt that stops being asphalt takes its paint away with it (LayeredBlock).
+        paint().set(BlockPos.asLong(x, y, z), line == null ? 0 : line.value());
         if (!blockState.hasBlockEntity()) {
             return null;
         }

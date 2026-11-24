@@ -1,0 +1,47 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "particle": "stratos:block/footway_flags_2",
+    "top": "stratos:block/footway_flags_2",
+    "side": "stratos:block/footway_flags_side"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        4,
+        16
+      ],
+      "faces": {
+        "up": {
+          "texture": "#top"
+        },
+        "down": {
+          "texture": "#side",
+          "cullface": "down"
+        },
+        "north": {
+          "texture": "#side",
+          "cullface": "north"
+        },
+        "east": {
+          "texture": "#side",
+          "cullface": "east"
+        },
+        "south": {
+          "texture": "#side",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#side",
+          "cullface": "west"
+        }
+      }
+    }
+  ]
+}

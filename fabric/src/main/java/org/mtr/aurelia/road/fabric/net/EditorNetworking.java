@@ -7,6 +7,7 @@ package org.mtr.aurelia.road.fabric.net;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -44,6 +45,7 @@ import org.mtr.aurelia.road.road.nodes.MtrNodes;
 import org.mtr.aurelia.road.fabric.StratosMod;
 import org.mtr.aurelia.road.fabric.apply.ApplyService;
 import org.mtr.aurelia.road.fabric.apply.SideEffects;
+import org.mtr.aurelia.road.fabric.bake.StratosBlockFinder;
 import org.mtr.aurelia.road.fabric.palette.GamePalettes;
 
 /**
@@ -65,6 +67,8 @@ public final class EditorNetworking {
     /** Connections whose client registered the roads channel, to greet on the next server tick. */
     private static final Set<ServerPlayNetworkHandler> REGISTERED = ConcurrentHashMap.newKeySet();
     private static EditorServer server;
+    /** Finds road blocks for bake to vanilla and redraw markings (B-3). */
+    private static StratosBlockFinder finder;
     private static ExecutorService planners;
 
     private EditorNetworking() {
@@ -148,7 +152,15 @@ public final class EditorNetworking {
                 player -> editWorld(minecraft, player),
                 planners, System::nanoTime, UUID::randomUUID,
                 StratosMod.LOGGER::warn);
-        // Baking to vanilla and redrawing markings (world tasks) come with the road blocks they look for.
+        // B-3: bake to vanilla and redraw markings reach every dimension.
+        finder = new StratosBlockFinder(minecraft);
+        server.worldTasks(() -> {
+            List<EditorServer.EditWorld> worlds = new ArrayList<>();
+            for (ServerWorld level : minecraft.getWorlds()) {
+                worlds.add(new EditorServer.EditWorld(ApplyService.operations(level), limits(level)));
+            }
+            return worlds;
+        }, finder);
         // UI-1c: the world's mark for Stratos blocks, kept in its aurelia_roads_meta record.
         server.stratosBlocks(ApplyService.stratosBlocks(minecraft), present -> ApplyService.stratosBlocks(minecraft, present));
     }
@@ -179,6 +191,10 @@ public final class EditorNetworking {
         if (planners != null) {
             planners.shutdownNow();
             planners = null;
+        }
+        if (finder != null) {
+            finder.close();
+            finder = null;
         }
     }
 
