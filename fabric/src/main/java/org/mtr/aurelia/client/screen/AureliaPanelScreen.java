@@ -202,7 +202,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private boolean paintBikes;
 	private int drivingFirst;
 	private int mapFirst;
-	private static final int MAP_ROWS = 10;
+	private static final int MAP_ROWS = 11;
 	private static final int DRIVING_ROWS = 7;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
 	private static final int PASSENGER_ROWS = 17;
@@ -1471,20 +1471,21 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		mapToggle(left, 4, "gui.aurelia.map.rails", MapSettings::rails, MapSettings::toggleRails);
 		mapToggle(left, 5, "gui.aurelia.map.stations", MapSettings::stations, MapSettings::toggleStations);
 		mapToggle(left, 6, "gui.aurelia.map.trains", MapSettings::trains, MapSettings::toggleTrains);
-		if (mapRow(7)) {
-			addDrawableChild(new RangeSlider(left, mapY(7), 0, MapSettings.HUE_MAX, 10, MapSettings::railHue,
+		mapToggle(left, 7, "gui.aurelia.map.busy", MapSettings::busy, MapSettings::toggleBusy);
+		if (mapRow(8)) {
+			addDrawableChild(new RangeSlider(left, mapY(8), 0, MapSettings.HUE_MAX, 10, MapSettings::railHue,
 					value -> MapSettings.setRailHue((int) value), value -> Text.translatable("gui.aurelia.map.rail_hue", value.intValue())));
 		}
-		if (mapRow(8)) {
-			addDrawableChild(new RangeSlider(left, mapY(8), MapSettings.SCAN_MIN, MapSettings.SCAN_MAX, 1, MapSettings::scanPerTick,
+		if (mapRow(9)) {
+			addDrawableChild(new RangeSlider(left, mapY(9), MapSettings.SCAN_MIN, MapSettings.SCAN_MAX, 1, MapSettings::scanPerTick,
 					value -> MapSettings.setScanPerTick((int) value), value -> Text.translatable("gui.aurelia.map.scan", value.intValue())))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.map.scan.tooltip")));
 		}
-		if (mapRow(9)) {
+		if (mapRow(10)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.map.open"), b -> {
 				close();
 				MapClient.open(client);
-			}).dimensions(left, mapY(9), BUTTON_WIDTH, 20).build()).active = MapClient.map() != null;
+			}).dimensions(left, mapY(10), BUTTON_WIDTH, 20).build()).active = MapClient.map() != null;
 		}
 	}
 

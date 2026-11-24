@@ -75,6 +75,10 @@ public final class SeenNetwork {
 		return stations.values();
 	}
 
+	public Map<Long, Area> stationsById() {
+		return stations;
+	}
+
 	/** Takes in what MTR has now near {@code playerX, playerZ}. */
 	public void refresh(double playerX, double playerZ) {
 		final MinecraftClientData data = MinecraftClientData.getInstance();

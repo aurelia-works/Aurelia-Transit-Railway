@@ -33,6 +33,7 @@ public final class WorldMapScreen extends Screen {
 		x = toggle(x, "gui.aurelia.map.rails", MapSettings::rails, MapSettings::toggleRails);
 		x = toggle(x, "gui.aurelia.map.stations", MapSettings::stations, MapSettings::toggleStations);
 		x = toggle(x, "gui.aurelia.map.trains", MapSettings::trains, MapSettings::toggleTrains);
+		x = toggle(x, "gui.aurelia.map.busy", MapSettings::busy, MapSettings::toggleBusy);
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.map.centre"), b -> centre()).dimensions(x, 2, 70, 18).build());
 	}
 
