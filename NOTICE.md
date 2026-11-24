@@ -26,7 +26,10 @@ Used with permission — see NOTICE.md.
 Files that are a port of MTR's MIT-licensed code do not: they keep MTR's notice, say so in their header, and MIT
 governs them.
 
-Included so far: _(filled in as each import phase lands — see `PLAN-stratos.md`)_.
+Included so far:
+- `org.mtr.aurelia.road.geom` and `.geom.mtr` (PR #147): the road geometry, copied from Stratos with the package
+  renamed. The `geom.mtr` files are a port of MTR's own MIT-licensed `RailMath` and friends, so those files stay MIT
+  and carry MTR's notice; only the rest of the package is Stratos's work under the permission above.
 
 ### Deliberately not included
 
