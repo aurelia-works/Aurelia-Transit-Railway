@@ -22,10 +22,11 @@ import org.mtr.aurelia.road.fabric.client.tool.StratosTools;
 public final class StratosClient {
     /**
      * Opens and closes the hub. A vanilla keybind, rebindable under Controls, looked up by name. The default is B, which
-     * ATR leaves free (Stratos used G, ATR's crew key).
+     * ATR leaves free (Stratos used G, ATR's crew key). The tick handler below opens it; while it is open the key reaches
+     * the screen instead, and {@link HubScreen#keyPressed} closes it.
      */
     public static final KeyBinding OPEN_HUB = new KeyBinding("key.stratos.open_hub", InputUtil.Type.KEYSYM,
-            InputUtil.fromTranslationKey("key.keyboard.b").getCode(), "key.categories.stratos");
+            InputUtil.fromTranslationKey("key.keyboard.b").getCode(), "category.mtr.keybinding");
 
     private StratosClient() {
     }
