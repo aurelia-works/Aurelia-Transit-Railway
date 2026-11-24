@@ -17,6 +17,8 @@
 		"KeyBoxKeysOutMixin"
 	],
 	"client": [
+		"TrainPickerOpenMixin",
+		"VehicleSelectorScreenAccessor",
 		"BlockEntityCounterMixin",
 		"DebugHudMixin",
 		"DriverSpeedMessageMixin",
