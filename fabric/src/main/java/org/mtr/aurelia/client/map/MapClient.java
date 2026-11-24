@@ -118,7 +118,7 @@ public final class MapClient {
 			return;
 		}
 		close();
-		map = new ExploredMap(folder, MapClient::dropped);
+		map = new ExploredMap(folder, MapClient::dropped, OVERVIEW::saved);
 		network = new SeenNetwork(folder);
 		SCANNER.reset();
 		nextSave = System.currentTimeMillis() + SAVE_MILLIS;

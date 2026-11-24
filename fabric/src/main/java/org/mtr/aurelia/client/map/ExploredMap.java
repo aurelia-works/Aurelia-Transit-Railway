@@ -49,13 +49,18 @@ public final class ExploredMap {
 	private final ConcurrentLinkedQueue<MapRegion> arrived = new ConcurrentLinkedQueue<>();
 	private final ConcurrentLinkedQueue<Long> unreadable = new ConcurrentLinkedQueue<>();
 	private final LongConsumer onDrop;
+	private final LongConsumer onSave;
 	private long[] known = new long[0];
 	private boolean knownChanged = true;
 
-	/** @param onDrop told the key of every region dropped from memory, so its texture can go too */
-	public ExploredMap(Path folder, LongConsumer onDrop) {
+	/**
+	 * @param onDrop told the key of every region dropped from memory, so its texture can go too
+	 * @param onSave told the key of every region queued for saving, so overview tiles made from its file are read again
+	 */
+	public ExploredMap(Path folder, LongConsumer onDrop, LongConsumer onSave) {
 		this.folder = folder;
 		this.onDrop = onDrop;
+		this.onSave = onSave;
 		// let saves still queued for this folder land first, so the listing below sees their files
 		try {
 			DISK.submit(() -> {
@@ -272,6 +277,8 @@ public final class ExploredMap {
 		final Path tile = tileFile(region.regionX, region.regionZ);
 		final int regionX = region.regionX;
 		final int regionZ = region.regionZ;
+		// reads go through the same disk thread, so one asked for after this sees the new file
+		onSave.accept(region.key());
 		DISK.execute(() -> {
 			try {
 				Files.createDirectories(file.getParent());
