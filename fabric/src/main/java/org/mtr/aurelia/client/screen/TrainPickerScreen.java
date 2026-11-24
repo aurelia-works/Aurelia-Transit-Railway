@@ -108,7 +108,7 @@ public final class TrainPickerScreen extends Screen {
 	 */
 	private void renderBackdrop(DrawContext context) {
 		context.fill(0, 0, width, height, AureliaPalette.SURFACE);
-		context.fill(0, 0, width, HEADER_BAR, STAGE_BOTTOM);
+		context.fill(0, 0, width, HEADER_BAR, AureliaPalette.FIELD);
 		context.fill(0, HEADER_BAR - 1, width, HEADER_BAR, AureliaPalette.LINE);
 	}
 
