@@ -146,9 +146,11 @@ public final class UnifiedDashboardTest {
 		DashboardSettings.save(tempDir, DashboardMode.CABLE_CAR);
 		assertEquals(DashboardMode.CABLE_CAR, DashboardSettings.read(tempDir));
 
-		// A config saved on the removed Bus & Road mode still loads, on Train
-		Files.writeString(tempDir.resolve("aurelia").resolve("dashboard.json"), "{\"lastMode\":\"road\"}");
-		assertEquals(DashboardMode.TRAIN, DashboardSettings.read(tempDir));
+		// An old dashboard.json saved on the removed Bus & Road mode still migrates, on Train
+		final Path legacy = tempDir.resolve("legacy");
+		Files.createDirectories(legacy.resolve("aurelia"));
+		Files.writeString(legacy.resolve("aurelia").resolve("dashboard.json"), "{\"lastMode\":\"road\"}");
+		assertEquals(DashboardMode.TRAIN, DashboardSettings.read(legacy));
 
 		// Corrupt JSON falls back cleanly to TRAIN
 		final Path broken = tempDir.resolve("broken");
