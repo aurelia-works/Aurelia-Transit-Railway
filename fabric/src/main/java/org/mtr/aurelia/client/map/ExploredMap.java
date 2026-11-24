@@ -80,6 +80,33 @@ public final class ExploredMap {
 		return folder;
 	}
 
+	/** True when this square was ever seen: it is loaded, or has a file. */
+	public boolean known(int regionX, int regionZ) {
+		final long key = MapRegion.key(regionX, regionZ);
+		return loaded.containsKey(key) || onDisk.contains(key);
+	}
+
+	/**
+	 * A square the server drew from its saved chunks. Kept as this client's own, and saved, when this client has never
+	 * seen the square; otherwise it only fills the columns this client has not seen.
+	 */
+	public void adopt(MapRegion drawn) {
+		final MapRegion own = region(drawn.regionX, drawn.regionZ, false);
+		if (own == null) {
+			add(drawn);
+			save(drawn);
+			knownChanged = true;
+			return;
+		}
+		for (int z = 0; z < MapRegion.SIZE; z++) {
+			for (int x = 0; x < MapRegion.SIZE; x++) {
+				if (own.color(x, z) == 0 && drawn.color(x, z) != 0) {
+					own.set(x, z, drawn.color(x, z), drawn.height(x, z));
+				}
+			}
+		}
+	}
+
 	/** The key of every square ever seen (loaded, or with a file). Shared, and rebuilt only when that set changes: read it, never change it. */
 	public long[] knownKeys() {
 		if (knownChanged) {
