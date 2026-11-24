@@ -99,7 +99,8 @@ public abstract class VehicleSoundBase {
 
 		public static RunSoundInfo create(Rail railTail, Rail railHead, float blendLevel) {
 			final int tailIndex = getSoundIndex(railTail);
-			if (railHead.equals(railTail)) {
+			// a car on one rail gets the same rail object twice; otherwise read both, which is cheaper than a full Rail.equals
+			if (railHead == railTail) {
 				return new RunSoundInfo(tailIndex, tailIndex, blendLevel);
 			} else {
 				return new RunSoundInfo(tailIndex, getSoundIndex(railHead), blendLevel);
