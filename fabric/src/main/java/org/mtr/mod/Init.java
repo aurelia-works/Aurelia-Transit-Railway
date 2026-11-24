@@ -126,6 +126,7 @@ public final class Init implements Utilities {
 		REGISTRY.registerPacket(PacketUpdateTrainSensorConfig.class, PacketUpdateTrainSensorConfig::new);
 		REGISTRY.registerPacket(PacketUpdateVehiclesLifts.class, PacketUpdateVehiclesLifts::new);
 		REGISTRY.registerPacket(PacketUpdateVehicleRidingEntities.class, PacketUpdateVehicleRidingEntities::new);
+		REGISTRY.registerPacket(PacketFetchNetworkData.class, PacketFetchNetworkData::new);
 		CargoPackets.register();
 
 		// Register command
