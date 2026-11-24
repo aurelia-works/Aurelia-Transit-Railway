@@ -188,6 +188,9 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private int trainSoundFirst;
 	/** The Sound tab's download / test button, relabelled while a download runs. */
 	private ButtonWidget voiceAction;
+	@Nullable
+	private org.mtr.aurelia.client.voice.VoiceInstaller.Status voiceShownStatus;
+	private int voiceShownPercent = -1;
 	private static final int TRAIN_SOUND_ROWS = 15;
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
@@ -1280,8 +1283,14 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		if (tab == Tab.SOUND && voiceAction != null) {
-			// the download's progress and its end show on the button
-			voiceAction.setMessage(voiceActionLabel());
+			// the download's progress and its end show on the button; the label checks files on disk, so only when they change
+			final org.mtr.aurelia.client.voice.VoiceInstaller.Status status = org.mtr.aurelia.client.voice.VoiceInstaller.status();
+			final int percent = org.mtr.aurelia.client.voice.VoiceInstaller.percent();
+			if (status != voiceShownStatus || percent != voiceShownPercent) {
+				voiceShownStatus = status;
+				voiceShownPercent = percent;
+				voiceAction.setMessage(voiceActionLabel());
+			}
 		}
 		renderBackground(context);
 		renderChrome(context);
