@@ -24,4 +24,19 @@ class ClockFaceTest {
 		Arrays.fill(onePerFourHours, 1);
 		assertEquals(6, ClockFace.departures(onePerFourHours, 0, DAY).length);
 	}
+
+	/** A gap longer than an hour used to fall only on whole gaps after midnight, so most hours it served got no train. */
+	@Test
+	void everyHourWithTrainsGetsOne() {
+		final long hour = ClockFace.MILLIS_PER_HOUR;
+		final long[] onceAtSix = new long[24];
+		onceAtSix[6] = 1;
+		assertArrayEquals(new long[]{6 * hour}, ClockFace.departures(onceAtSix, 0, DAY));
+
+		final long[] everyTwoHours = new long[24];
+		everyTwoHours[7] = 2;
+		everyTwoHours[8] = 2;
+		everyTwoHours[9] = 2;
+		assertArrayEquals(new long[]{7 * hour, 9 * hour}, ClockFace.departures(everyTwoHours, 0, DAY));
+	}
 }
