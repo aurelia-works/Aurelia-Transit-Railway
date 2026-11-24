@@ -1,5 +1,5 @@
 /*
- * Ported from Minecraft Transit Railway's Transport-Simulation-Core, MIT licensed (see LICENSE-MTR.txt);
+ * Ported from Minecraft Transit Railway's Transport-Simulation-Core, MIT licensed (MTR's notice is in LICENSE);
  * this copy came through Stratos. MTR's notice below is unchanged, and MIT governs this file.
  */
 /*
