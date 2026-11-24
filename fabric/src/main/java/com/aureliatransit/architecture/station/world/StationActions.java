@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station.world;
 
+import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.station.Facing;
 import com.aureliatransit.architecture.station.Heading;
@@ -65,7 +66,7 @@ public final class StationActions {
 
 	/** True when {@code player} may use the generator; otherwise tells them why not. */
 	public static boolean allowed(ServerPlayerEntity player) {
-		if (player.hasPermissionLevel(PERMISSION_LEVEL)) {
+		if (Operators.isOperator(player)) {
 			return true;
 		}
 		player.sendMessage(Text.literal("Only operators can use the station generator.").formatted(Formatting.RED), true);

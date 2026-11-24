@@ -1,5 +1,6 @@
 package org.mtr.aurelia.client.screen;
 
+import org.mtr.aurelia.client.ClientOperators;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.dashboard.DashboardParentAccess;
 import org.mtr.aurelia.jump.JumpTarget;
@@ -67,7 +68,7 @@ public final class JumpScreen extends Screen implements DashboardParentAccess {
 	}
 
 	private boolean canTeleport() {
-		return client.player != null && client.player.hasPermissionLevel(2);
+		return ClientOperators.isOperator(client);
 	}
 
 	/** Built once per open. Stations and depots jump onto their first platform or siding. */

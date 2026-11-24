@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.bridge.world;
 
+import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.bridge.BridgeStampPlan;
 import com.aureliatransit.architecture.bridge.BridgeTemplate;
 import com.aureliatransit.architecture.station.Heading;
@@ -38,7 +39,7 @@ final class BridgeCommand {
 	}
 
 	static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
-		dispatcher.register(CommandManager.literal("atr_bridge").requires(source -> source.hasPermissionLevel(2))
+		dispatcher.register(CommandManager.literal("atr_bridge").requires(source -> Operators.isOperatorSource(source))
 				.executes(BridgeCommand::help)
 				.then(CommandManager.literal("help").executes(BridgeCommand::help))
 				.then(CommandManager.literal("capture")

@@ -107,6 +107,7 @@ public final class AureliaClient implements ClientModInitializer {
 		org.mtr.aurelia.sound.SoundProfileStore.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.sound.SoundProfileReloadListener.register();
 		PassengerRenderer.register();
+		ClientOperators.register();
 		ZipClient.register();
 		org.mtr.aurelia.client.map.MapClient.register();
 		ZipCableRenderer.register();
