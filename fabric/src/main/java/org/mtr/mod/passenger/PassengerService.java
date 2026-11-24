@@ -1,5 +1,8 @@
 package org.mtr.mod.passenger;
 
+import org.mtr.mod.engine.EngineFeature;
+import org.mtr.mod.engine.EngineSettings;
+
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -67,6 +70,8 @@ public final class PassengerService {
 	private static final Map<String, Counts> COUNTS = new ConcurrentHashMap<>();
 	private static final Map<String, Stats> STATS = new ConcurrentHashMap<>();
 	private static final Map<String, Long> LAST_MILLIS = new ConcurrentHashMap<>();
+	/** Per dimension: where passengers can go, worked out again only when the routes change. */
+	private static final Map<String, PassengerRouteCache> ROUTES = new ConcurrentHashMap<>();
 	private static final Map<String, Double> COST = new ConcurrentHashMap<>();
 	@Nullable
 	private static Field vehiclesField;
@@ -85,6 +90,7 @@ public final class PassengerService {
 			STATS.clear();
 			COUNTS.clear();
 			LAST_MILLIS.clear();
+			ROUTES.clear();
 			COST.clear();
 		});
 		ServerTickEvents.END_SERVER_TICK.register(PassengerService::tick);
@@ -166,9 +172,16 @@ public final class PassengerService {
 			LAST_MILLIS.put(dimension, now);
 			final double minutes = Math.min(1, (now - last) / 60_000D);
 
-			final Map<Long, long[]> destinations = destinationsByPlatform(simulator);
+			final Map<Long, Long> stationOfPlatform = new HashMap<>();
+			simulator.platforms.forEach(platform -> {
+				if (platform.area != null) {
+					stationOfPlatform.put(platform.getId(), platform.area.getId());
+				}
+			});
+			final int maxChanges = EngineSettings.enabled(EngineFeature.PASSENGER_CHANGES) ? PassengerRoutes.MAX_CHANGES : 0;
+			final PassengerRoutes routes = ROUTES.computeIfAbsent(dimension, key -> new PassengerRouteCache()).get(stationOfPlatform, destinationsByPlatform(simulator), maxChanges);
 			final Random random = new Random();
-			destinations.forEach((platformId, stations) -> network.spawn(platformId, stations, minutes, current, now, random));
+			routes.destinationsByPlatform().keySet().forEach(platformId -> network.spawn(platformId, routes, minutes, current, now, random));
 			network.expire(now);
 
 			final Set<Long> vehicleIds = new HashSet<>();
@@ -182,7 +195,7 @@ public final class PassengerService {
 					if (platform != null && platform.area != null && route != null) {
 						final int cars = Math.max(1, vehicle.vehicleExtraData.immutableVehicleCars.size());
 						// MTR keeps the door target open while a train is dwelling with its doors released
-						network.exchange(vehicle.getId(), platformId, platform.area.getId(), upcomingStations(route, platformId, vehicle.vehicleExtraData.getStopIndex()), cars, current, vehicle.vehicleExtraData.getDoorMultiplier() > 0);
+						network.exchange(vehicle.getId(), platformId, platform.area.getId(), upcomingStations(route, platformId, vehicle.vehicleExtraData.getStopIndex()), cars, current, vehicle.vehicleExtraData.getDoorMultiplier() > 0, routes, now);
 					}
 				}
 				riding += network.ridingOn(vehicle.getId());

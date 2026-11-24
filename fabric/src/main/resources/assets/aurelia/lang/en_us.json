@@ -388,6 +388,8 @@
 	"gui.aurelia.panel.tab.passengers": "Passengers",
 	"gui.aurelia.panel.tab.engine": "Engine",
 	"gui.aurelia.engine.plane_turnaround": "Plane turnarounds at the gate: %s",
+	"gui.aurelia.engine.passenger_changes": "Passengers change trains: %s",
+	"gui.aurelia.engine.passenger_changes.tooltip": "Passengers head for any station the network reaches and change trains up to twice on the way. They only board a train or bus that stops where they need to get off. Off, everyone rides one train from where they start.",
 	"gui.aurelia.engine.plane_turnaround.tooltip": "Planes wait at each gate as long as a real turnaround takes: about 25 game minutes for a small plane, 40 for a mid-size one and 70 for a big one. A longer gate dwell you set yourself still wins.",
 	"gui.aurelia.panel.tab.look": "Look",
 	"gui.aurelia.panel.tab.packs": "Packs",
