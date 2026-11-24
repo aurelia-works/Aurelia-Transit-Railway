@@ -69,8 +69,10 @@ public final class AureliaUi {
 	}
 
 	/**
-	 * Screens this mod ships, by package. The camera panel is left out: it exists to look at the world. The mapping
-	 * library's own classes are left out because other mods' screens extend them too.
+	 * Screens this mod ships: a class in one of the mod's packages that was also loaded from the mod's own jar. The jar
+	 * check keeps an add-on's screen on its own look even when it subclasses an MTR screen or borrows a package name, so
+	 * add-on screens are drawn exactly as before. The camera panel is left out: it exists to look at the world. The
+	 * mapping library's own classes are left out because other mods' screens extend them too.
 	 */
 	private static final ClassValue<Boolean> OWN_SCREEN = new ClassValue<>() {
 		@Override
@@ -79,7 +81,22 @@ public final class AureliaUi {
 			if (name.startsWith("org.mtr.camera.")) {
 				return false;
 			}
-			return name.startsWith("org.mtr.mod.") || name.startsWith("org.mtr.aurelia.") || name.startsWith("org.mtr.atr.") || name.startsWith("com.aureliatransit.");
+			if (!name.startsWith("org.mtr.mod.") && !name.startsWith("org.mtr.aurelia.") && !name.startsWith("org.mtr.atr.") && !name.startsWith("com.aureliatransit.")) {
+				return false;
+			}
+			final String home = jar(AureliaUi.class);
+			final String where = jar(type);
+			return home == null || home.equals(where);
 		}
 	};
+
+	/** Where a class was loaded from, or null when the class loader does not say. */
+	private static String jar(Class<?> type) {
+		try {
+			final java.security.CodeSource source = type.getProtectionDomain().getCodeSource();
+			return source == null || source.getLocation() == null ? null : source.getLocation().toExternalForm();
+		} catch (SecurityException e) {
+			return null;
+		}
+	}
 }
