@@ -112,7 +112,7 @@ public final class ServerMapTiles {
 			return false;
 		}
 		return everyone
-				? DashboardPackets.isAllowed(player.hasPermissionLevel(2), DashboardPackets.hasDashboardItem(player))
+				? DashboardPackets.isAllowed(org.mtr.aurelia.Operators.isOperator(player), DashboardPackets.hasDashboardItem(player))
 				: player.hasPermissionLevel(2) || player.isCreative();
 	}
 
