@@ -1,6 +1,6 @@
 /*
- * Derived from Stratos, (c) 2026 IndusGaming. All Rights Reserved.
- * Used with permission — see NOTICE.md.
+ * Ported from Minecraft Transit Railway's Transport-Simulation-Core, MIT licensed (see LICENSE-MTR.txt);
+ * this copy came through Stratos. MTR's notice below is unchanged, and MIT governs this file.
  */
 /*
  * Ported subset of org.mtr.core.data.Position from Minecraft Transit Railway's Transport-Simulation-Core: only the members
