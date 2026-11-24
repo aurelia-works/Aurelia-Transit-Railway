@@ -79,6 +79,8 @@ jobs:
       # them, which is where the Maven download flakes came from
       - name: Warm the cache with ATA's test dependencies
         if: github.event_name == 'push'
+        # cache only: a Maven flake here must not fail the run, or it would block the release it exists to protect
+        continue-on-error: true
         run: ./gradlew setupFiles :fabric:compileAtaTestJava
   # ATA's unit tests over 6 jobs, balanced by each class's time on CI (-Pata.tests.shard, fabric/build.gradle,
   # fabric/ata-test-times.properties)
