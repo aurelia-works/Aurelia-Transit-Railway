@@ -137,4 +137,25 @@ class CityLandmarksTest {
 		}
 		assertEquals(java.util.List.of(), wrong.subList(0, Math.min(12, wrong.size())), wrong.size() + " cells");
 	}
+
+	/**
+	 * Rebuilding an "X style" station saved before city shapes (Jah, 11-24): the rebuild builds a fresh plan of the saved words, so it
+	 * takes the city's front and the class's platforms (210 grand, 200 city), not the old generic building over 48-block platforms.
+	 * The saved form still carries the old length field, untouched, which must not come back.
+	 */
+	@Test
+	void rebuiltStyleStationTakesTheCityFrontAndClassLength() {
+		final String[][] cases = {{"6 track paris style station", "paris", "210"}, {"4 track tokyo style station", "tokyo", "200"}};
+		for (final String[] c : cases) {
+			final String words = com.aureliatransit.architecture.station.studio.StudioApi.description(java.util.Map.of("text", c[0], "length", "48"));
+			final StationSpec spec = spec(words);
+			final Landmark shape = Landmarks.shapeOf(spec);
+			assertNotNull(shape, words);
+			assertEquals(c[1], shape.key(), words);
+			assertEquals(Integer.parseInt(c[2]), spec.platformLength(), words);
+			// the plan rounds the length up to whole bays (210 lays 211)
+			final int laid = StationPlanner.plan(spec).layout().platformLength();
+			assertTrue(laid >= spec.platformLength() && laid < spec.platformLength() + 8, words + " laid " + laid);
+		}
+	}
 }
