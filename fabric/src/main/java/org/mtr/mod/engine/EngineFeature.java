@@ -13,7 +13,9 @@ public enum EngineFeature {
 	/** A train keeps its doors open while people are still getting on and off, up to a limit. */
 	BOARDING_DWELL("boarding_dwell"),
 	/** The Engine tab shows how long the simulation takes per tick; off, the server stops sending it. */
-	LAG_READOUT("lag_readout");
+	LAG_READOUT("lag_readout"),
+	/** Trains climbing a hill go a little slower and pull away more gently. */
+	HILL_SLOWDOWN("hill_slowdown");
 
 	public final String key;
 

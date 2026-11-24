@@ -37,6 +37,16 @@ public final class EngineSettings {
 		return enabled[feature.ordinal()];
 	}
 
+	/**
+	 * Client: takes the values the server sent, so the client's own train prediction (hills, for one) matches the
+	 * server's. In single player this is the same copy the server uses, and the values are the same.
+	 */
+	public static void mirror(Map<EngineFeature, Boolean> values) {
+		final boolean[] next = defaults();
+		values.forEach((feature, value) -> next[feature.ordinal()] = value);
+		enabled = next;
+	}
+
 	public static void registerServer() {
 		// as soon as the overworld exists, before MTR's simulators build any paths
 		ServerWorldEvents.LOAD.register((server, world) -> {

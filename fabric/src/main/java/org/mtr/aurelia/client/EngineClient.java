@@ -22,7 +22,10 @@ public final class EngineClient {
 	public static void register() {
 		ClientPlayNetworking.registerGlobalReceiver(EngineSettings.SYNC, (client, handler, buf, response) -> {
 			final Map<EngineFeature, Boolean> read = EngineSettings.read(buf);
-			client.execute(() -> values = read);
+			client.execute(() -> {
+				values = read;
+				EngineSettings.mirror(read);
+			});
 		});
 		ClientPlayNetworking.registerGlobalReceiver(EngineSettings.LAG, (client, handler, buf, response) -> {
 			final EngineLag.Reading read = new EngineLag.Reading(buf.readVarLong(), buf.readVarLong());
