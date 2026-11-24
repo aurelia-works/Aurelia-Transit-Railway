@@ -34,6 +34,7 @@ public final class MapSettings {
 	private static boolean rails = true;
 	private static boolean stations = true;
 	private static boolean trains = true;
+	private static boolean busy = true;
 	private static int railHue = 210;
 	private static int scanPerTick = 4;
 
@@ -54,6 +55,7 @@ public final class MapSettings {
 			rails = json.has("rails") ? json.get("rails").getAsBoolean() : rails;
 			stations = json.has("stations") ? json.get("stations").getAsBoolean() : stations;
 			trains = json.has("trains") ? json.get("trains").getAsBoolean() : trains;
+			busy = json.has("busy") ? json.get("busy").getAsBoolean() : busy;
 			railHue = json.has("railHue") ? clamp(json.get("railHue").getAsInt(), 0, HUE_MAX) : railHue;
 			scanPerTick = json.has("scanPerTick") ? clamp(json.get("scanPerTick").getAsInt(), SCAN_MIN, SCAN_MAX) : scanPerTick;
 		} catch (Exception e) {
@@ -87,6 +89,11 @@ public final class MapSettings {
 
 	public static boolean trains() {
 		return trains;
+	}
+
+	/** Quiet, busy or packed next to each station's name, from the people waiting on its platforms. */
+	public static boolean busy() {
+		return busy;
 	}
 
 	public static int railHue() {
@@ -137,6 +144,11 @@ public final class MapSettings {
 		save();
 	}
 
+	public static void toggleBusy() {
+		busy = !busy;
+		save();
+	}
+
 	public static void setRailHue(int value) {
 		railHue = clamp(value, 0, HUE_MAX);
 		save();
@@ -159,6 +171,7 @@ public final class MapSettings {
 			json.addProperty("rails", rails);
 			json.addProperty("stations", stations);
 			json.addProperty("trains", trains);
+			json.addProperty("busy", busy);
 			json.addProperty("railHue", railHue);
 			json.addProperty("scanPerTick", scanPerTick);
 			Files.writeString(file, json.toString());

@@ -22,11 +22,15 @@ final class SystemVoice {
 		if (org.mtr.mod.client.TtsVolume.muted()) {
 			return false;
 		}
-		return narrator() != null;
+		return org.mtr.aurelia.client.voice.AnnouncerVoice.oursReady() || narrator() != null;
 	}
 
-	/** Speaks {@code text}, cutting off whatever this voice was still saying. */
+	/** Speaks {@code text}, cutting off whatever this voice was still saying. ATR's own voice speaks when downloaded. */
 	static void say(String text) {
+		if (org.mtr.aurelia.client.voice.AnnouncerVoice.oursReady()) {
+			org.mtr.aurelia.client.voice.AnnouncerVoice.say(text);
+			return;
+		}
 		final Narrator voice = narrator();
 		if (voice != null && text != null && !text.isBlank()) {
 			voice.say(text, true);

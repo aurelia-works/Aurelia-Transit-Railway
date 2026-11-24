@@ -48,6 +48,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		StationStudioClient.init();
 		StationPaceClient.register();
 		FarePolicyClient.register();
+		com.aureliatransit.architecture.client.fare.CardBalanceClient.register();
 		WrenchClient.init();
 		WrenchSettings.load(FabricLoader.getInstance().getConfigDir());
 		initMenuEntries();

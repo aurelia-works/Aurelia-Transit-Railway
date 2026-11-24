@@ -70,6 +70,8 @@ public final class PassengerService {
 	private static final Map<String, Counts> COUNTS = new ConcurrentHashMap<>();
 	private static final Map<String, Stats> STATS = new ConcurrentHashMap<>();
 	private static final Map<String, Long> LAST_MILLIS = new ConcurrentHashMap<>();
+	/** Per dimension: where passengers can go, worked out again only when the routes change. */
+	private static final Map<String, PassengerRouteCache> ROUTES = new ConcurrentHashMap<>();
 	private static final Map<String, Double> COST = new ConcurrentHashMap<>();
 	@Nullable
 	private static Field vehiclesField;
@@ -89,6 +91,7 @@ public final class PassengerService {
 			STATS.clear();
 			COUNTS.clear();
 			LAST_MILLIS.clear();
+			ROUTES.clear();
 			COST.clear();
 		});
 		ServerTickEvents.END_SERVER_TICK.register(PassengerService::tick);
@@ -179,7 +182,7 @@ public final class PassengerService {
 				}
 			});
 			final int maxChanges = EngineSettings.enabled(EngineFeature.PASSENGER_CHANGES) ? PassengerRoutes.MAX_CHANGES : 0;
-			final PassengerRoutes routes = PassengerRoutes.build(stationOfPlatform, destinationsByPlatform(simulator), maxChanges);
+			final PassengerRoutes routes = ROUTES.computeIfAbsent(dimension, key -> new PassengerRouteCache()).get(stationOfPlatform, destinationsByPlatform(simulator), maxChanges);
 			final Random random = new Random();
 			routes.destinationsByPlatform().keySet().forEach(platformId -> network.spawn(platformId, routes, minutes, current, now, random));
 			network.expire(now);
@@ -475,7 +478,12 @@ public final class PassengerService {
 	}
 
 	private static State state(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(State::fromNbt, () -> new State(PassengerNetwork.Settings.DEFAULT), FILE);
+		return server.getOverworld().getPersistentStateManager().getOrCreate(State::fromNbt, () -> {
+			// saved straight away, so the choice made on first load sticks when the world is older next time
+			final State state = new State(PassengerNetwork.Settings.forFirstLoad(server.getOverworld().getTime()));
+			state.markDirty();
+			return state;
+		}, FILE);
 	}
 
 	private static final class State extends PersistentState {

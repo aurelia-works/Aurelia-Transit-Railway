@@ -98,6 +98,9 @@ public final class AureliaClient implements ClientModInitializer {
 		EngineClient.register();
 		PassengerDrawSettings.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.client.ui.AureliaUiSettings.load(FabricLoader.getInstance().getConfigDir());
+		// the driver key box's glass door has see-through pixels
+		net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(org.mtr.mod.Blocks.DRIVER_KEY_DISPENSER.get().data, net.minecraft.client.render.RenderLayer.getCutout());
+		TapToast.register();
 		org.mtr.aurelia.dashboard.DashboardSettings.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.dashboard.UnifiedDashboardClient.register();
 		org.mtr.aurelia.route.RouteControlSettings.load();
