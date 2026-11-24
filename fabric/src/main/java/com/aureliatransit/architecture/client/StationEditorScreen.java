@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * The station editor, opened from the station wrench: the station's settings on the left, its plan from above (one pixel per
@@ -416,18 +417,18 @@ public final class StationEditorScreen extends Screen {
 		drawPlan(context, boxes[0]);
 		preview.render(context, boxes[1][0], boxes[1][1], boxes[1][2], boxes[1][3]);
 		super.render(context, mouseX, mouseY, delta);
-		context.drawTextWithShadow(textRenderer, getTitle(), GAP, 8, 0xFFFFFF);
+		context.drawTextWithShadow(textRenderer, getTitle(), GAP, 8, AureliaPalette.TEXT);
 		if (boxes[0][0] + textRenderer.getWidth(Text.translatable(KEY + "plan_view")) + 6 < headerLeft) {
-			context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "plan_view"), boxes[0][0], 8, 0xE0C060);
+			context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "plan_view"), boxes[0][0], 8, AureliaPalette.ACCENT_LIGHT);
 		}
 		if (!message.isEmpty()) {
-			context.drawTextWithShadow(textRenderer, Text.literal(message), GAP, height - GAP - 9, messageBad ? 0xFF7070 : 0x9AE6A0);
+			context.drawTextWithShadow(textRenderer, Text.literal(message), GAP, height - GAP - 9, messageBad ? AureliaPalette.DANGER : AureliaPalette.SUCCESS);
 		}
 	}
 
 	private void drawPlan(DrawContext context, int[] box) {
 		context.fill(box[0], box[1], box[2], box[3], PlanTopView.BACKGROUND);
-		context.drawBorder(box[0], box[1], box[2] - box[0], box[3] - box[1], 0xFF2A2F36);
+		context.drawBorder(box[0], box[1], box[2] - box[0], box[3] - box[1], AureliaPalette.LINE);
 		final PlanTopView top = preview.topView();
 		if (top == null || client == null) {
 			return;
@@ -453,7 +454,7 @@ public final class StationEditorScreen extends Screen {
 			for (final PlanTopView.Label label : top.labels()) {
 				final int lx = x + (int) (label.x() * scale) + 1;
 				final int ly = y + (int) (label.y() * scale + scale / 2) - 4;
-				context.drawTextWithShadow(textRenderer, Text.literal(label.text()), lx, ly, 0xFFFFFF);
+				context.drawTextWithShadow(textRenderer, Text.literal(label.text()), lx, ly, AureliaPalette.TEXT);
 			}
 		}
 	}

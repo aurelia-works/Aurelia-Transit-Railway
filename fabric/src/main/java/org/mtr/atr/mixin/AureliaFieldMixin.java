@@ -26,7 +26,7 @@ public abstract class AureliaFieldMixin {
 		if (!widget.visible || widget.getWidth() <= 0 || widget.getHeight() <= 0) {
 			return;
 		}
-		final int color = widget.isFocused() ? AureliaPalette.ACCENT : AureliaPalette.BORDER;
+		final int color = widget.isFocused() ? AureliaPalette.FOCUS : widget.isHovered() ? AureliaPalette.TEXT_DIM : AureliaPalette.CONTROL_BORDER;
 		AureliaChrome.frame(context, widget.getX() - 1, widget.getY() - 1, widget.getWidth() + 2, widget.getHeight() + 2, color);
 	}
 }

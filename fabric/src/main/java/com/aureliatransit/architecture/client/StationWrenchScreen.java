@@ -30,6 +30,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 
 import java.util.function.Supplier;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * The station wrench screen. The simple page builds a station from buttons: a city look (and a second one to mix in), through
@@ -949,34 +950,34 @@ public class StationWrenchScreen extends Screen {
 		switch (mode) {
 			case AIRPORT -> {
 				final int top = top(airportHeight());
-				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
-				context.drawTextWithShadow(textRenderer, Text.translatable("screen.aurelia_transit_architecture.airport_wrench.hint"), left, top, 0x9AA0A6);
+				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, AureliaPalette.TEXT);
+				context.drawTextWithShadow(textRenderer, Text.translatable("screen.aurelia_transit_architecture.airport_wrench.hint"), left, top, AureliaPalette.TEXT_DIM);
 			}
 			case BRIDGE -> {
 				final int top = top(bridgeHeight());
-				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
-				context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "bridge.hint"), left, top, 0x9AA0A6);
+				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, AureliaPalette.TEXT);
+				context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "bridge.hint"), left, top, AureliaPalette.TEXT_DIM);
 			}
 			case EARTHWORKS -> {
 				final int top = top(earthworksHeight());
-				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, 0xFFFFFF);
-				context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.hint"), left, top, 0x9AA0A6);
-				context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.hint2"), left, top + 11, 0x9AA0A6);
+				context.drawCenteredTextWithShadow(textRenderer, getTitle(), left + column / 2, top - 16, AureliaPalette.TEXT);
+				context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.hint"), left, top, AureliaPalette.TEXT_DIM);
+				context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "earthworks.hint2"), left, top + 11, AureliaPalette.TEXT_DIM);
 			}
 			case STATION -> {
 				if (picker != Picker.NONE) {
 					final int top = top(pickerHeight());
-					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + (picker == Picker.LOOK ? "look.pick" : "presets.pick")), left, top, 0xE0C060);
+					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + (picker == Picker.LOOK ? "look.pick" : "presets.pick")), left, top, AureliaPalette.ACCENT_LIGHT);
 				} else if (advanced) {
 					final int top = top(advancedHeight());
-					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "example"), left, top + 22, 0x9AA0A6);
-					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "hint"), left, top + 32, 0x9AA0A6);
+					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "example"), left, top + 22, AureliaPalette.TEXT_DIM);
+					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "hint"), left, top + 32, AureliaPalette.TEXT_DIM);
 				} else {
 					final int top = top(simpleHeight());
-					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "step_look"), left, top, 0xE0C060);
+					context.drawTextWithShadow(textRenderer, Text.translatable(KEY + "step_look"), left, top, AureliaPalette.ACCENT_LIGHT);
 					final int summary = top + summaryOffset() + 1;
-					context.drawCenteredTextWithShadow(textRenderer, Text.literal(recipe.title()), left + column / 2, summary, 0xFFFFFF);
-					context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "step_place"), left + column / 2, summary + 11, 0x9AA0A6);
+					context.drawCenteredTextWithShadow(textRenderer, Text.literal(recipe.title()), left + column / 2, summary, AureliaPalette.TEXT);
+					context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "step_place"), left + column / 2, summary + 11, AureliaPalette.TEXT_DIM);
 				}
 			}
 		}

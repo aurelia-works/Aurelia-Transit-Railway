@@ -1,6 +1,7 @@
 package org.mtr.aurelia.client.screen;
 
 import org.mtr.aurelia.client.MtrBridge;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.dashboard.DashboardParentAccess;
 import org.mtr.aurelia.jump.JumpTarget;
 import org.mtr.aurelia.overlap.Point;
@@ -27,9 +28,9 @@ public final class JumpScreen extends Screen implements DashboardParentAccess {
 
 	private static final int MARGIN = 8;
 	private static final int TOP = 32;
-	private static final int COLOR_TEXT = 0xFFFFFF;
-	private static final int COLOR_DIM = 0xA0A0A0;
-	private static final int COLOR_ERROR = 0xFF5555;
+	private static final int COLOR_TEXT = AureliaPalette.TEXT;
+	private static final int COLOR_DIM = AureliaPalette.TEXT_DIM;
+	private static final int COLOR_ERROR = AureliaPalette.DANGER;
 
 	/** A list row: what to show and the command that gets there. */
 	private record Target(String label, JumpTarget.Kind kind, String command) {
