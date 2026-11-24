@@ -6,6 +6,7 @@ A fork of Minecraft Transit Railway 4.0.5 for Fabric 1.20.1. The mod id stays `m
 
 ## Commands
 - Build: `./gradlew setupFiles build -x test`. The jar lands in `build/release/`.
+- The Resource Pack Creator page (`website/`, Node 22) is built into the jar only when `website/dist` exists, so build it first for a jar with a working creator: `./gradlew setupWebsiteFiles && npm --prefix website ci && npm --prefix website run build`. CI and the release do this (`.github/actions/creator-page`).
 - Compile only (use this while working): `./gradlew setupFiles :fabric:compileJava --offline`.
 - MTR unit tests: `./gradlew setupFiles :fabric:test -x runGameTest`.
 - Generator tests (ATA): `./gradlew setupFiles :fabric:ataTest --offline --tests '*ClassName'`.

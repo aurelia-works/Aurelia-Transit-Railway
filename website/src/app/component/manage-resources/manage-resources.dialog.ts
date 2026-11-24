@@ -6,6 +6,7 @@ import {UploaderComponent} from "../uploader/uploader.component";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {MatExpansionModule} from "@angular/material/expansion";
 import {DataService} from "../../service/data.service";
+import {prepareModelFiles} from "../../utility/model-import";
 
 @Component({
 	imports: [
@@ -21,11 +22,12 @@ import {DataService} from "../../service/data.service";
 })
 export class ManageResourcesDialog {
 	private readonly dialogRef = inject(MatDialogRef<ManageResourcesDialog>);
-	protected readonly data = inject<{ title: string, addText: string, deleteText: string, fileExtensions: string[], listCustomSupplier: () => string[], listMinecraftSupplier: () => string[] }>(MAT_DIALOG_DATA);
+	protected readonly data = inject<{ title: string, addText: string, deleteText: string, fileExtensions: string[], hint?: string, listCustomSupplier: () => string[], listMinecraftSupplier: () => string[] }>(MAT_DIALOG_DATA);
 	protected listCustomCount = 0;
 	protected idListCustomFlattened = "";
 	protected listMinecraftCount = 0;
 	protected idListMinecraftFlattened = "";
+	protected readonly prepareFiles = prepareModelFiles;
 
 	constructor(private readonly dataService: DataService) {
 		[this.listCustomCount, this.idListCustomFlattened] = ManageResourcesDialog.updateIdLists(this.data.listCustomSupplier);

@@ -17,8 +17,11 @@ jobs:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
+      - uses: ./.github/actions/creator-page
       - name: Build the jar
         run: ./gradlew setupFiles build -x runGameTest -x ataTest
+      - name: Check the Resource Pack Creator page is in the jar
+        run: test "$(stat -c %s fabric/build/classes/java/main/org/mtr/mod/generated/WebserverResources.class)" -gt 100000
       - name: Check the jar is the only release file
         run: |
           ls -l build/release/
