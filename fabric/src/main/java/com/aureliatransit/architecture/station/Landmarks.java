@@ -635,13 +635,14 @@ public final class Landmarks {
 
 	/**
 	 * The sheet whose building {@code spec} is built with: the real station's ({@link #of}), or else the one a look word's city
-	 * lends a station of the player's own ("paris style", Jah 11-24: more than four building shapes), on whichever building the
-	 * station has: Gare du Nord's front as the middle of a through station's building, Amsterdam Centraal's across a terminus's
-	 * head. Where neither fits, the look's own generic building stays. Null for none.
+	 * lends a through station of the player's own ("paris style", Jah 11-24: more than four building shapes), as the building
+	 * beside its tracks: Gare du Nord's front as the middle of it, Amsterdam Centraal's long front along it. A terminus keeps
+	 * the head its look already has (the photo study's terminal fronts), and where the sheet doesn't fit the generic building
+	 * stays. Null for none.
 	 */
 	public static Landmark shapeOf(StationSpec spec) {
 		final Landmark real = of(spec);
-		if (real != null || !spec.options().lookSheet() || spec.buildingScale() == StationScale.COMPACT) {
+		if (real != null || !spec.options().lookSheet() || spec.terminus() || spec.buildingScale() == StationScale.COMPACT) {
 			return real;
 		}
 		for (final Landmark landmark : ALL) {
