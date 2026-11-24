@@ -25,7 +25,7 @@ Phase statuses are as of 2026-11-13 (later merges such as #115 may be missing). 
 - The preview is a hologram of the real blocks.
 
 ## Scope decisions (Jah, 2026-11-24)
-- Cut: the planning orchestrator AI in Studio (PF keeps only the shared, versioned plan format), staff rooms (SR), the bike garage (BG), the in-game map and minimap (L4), and LOD, landscape and shader work.
+- Cut: the planning orchestrator AI in Studio (PF keeps only the shared, versioned plan format), staff rooms (SR), the bike garage (BG), the minimap (L4; the full-screen map stays), and LOD, landscape and shader work.
 - Train operator features: only AWS/TPWS stays. Crew roles (L1), the driver, freight and cars (L2's drivable cars) are cut.
 - Neural voice: English only. No other languages.
 - Trainline: no standalone phone app. Its features go into the journey planner (L3) and the station boards.
@@ -47,7 +47,8 @@ Phase statuses are as of 2026-11-13 (later merges such as #115 may be missing). 
 | AE | Airports in the editor | merged (#92, terminal buildings #95, curved taxiways #97) |
 | L3 | Journey planner | merged (#80). Trainline's features fold in here and into the station boards |
 | L2 | Bike share on station racks | merged (#93) |
-| L1, L2 cars, L4 | Crew roles, drivable road cars, in-game map and minimap | merged (#79, #91, #81); cut from scope 2026-11-24, no code removed yet |
+| L1, L2 cars | Crew roles, drivable road cars | merged (#79, #91); cut from scope 2026-11-24, no code removed yet |
+| L4 | In-game map and minimap | merged (#81); minimap cut from scope 2026-11-24, the full-screen map stays |
 | DM | Train-door markers on platforms | merged (#98) |
 | BS | Bus station at the station front | merged (#99) |
 | E3+ | Street entrance, hall, gates and wing waiting rooms | merged (#96) |
