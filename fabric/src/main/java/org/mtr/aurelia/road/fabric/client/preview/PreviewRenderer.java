@@ -526,7 +526,7 @@ public final class PreviewRenderer implements PreviewSink {
         }
         if (shader.screenSize != null) {
             Window window = MinecraftClient.getInstance().getWindow();
-            shader.screenSize.set((float) window.getWidth(), (float) window.getHeight());
+            shader.screenSize.set((float) window.getFramebufferWidth(), (float) window.getFramebufferHeight());
         }
         RenderSystem.setupShaderLights(shader);
     }
