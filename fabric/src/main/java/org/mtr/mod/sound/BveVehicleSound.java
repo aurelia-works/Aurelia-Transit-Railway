@@ -60,7 +60,7 @@ public class BveVehicleSound extends VehicleSoundBase {
 		}
 		final Int2ObjectOpenHashMap<VehicleLoopingSoundInstance> soundLoopRun = new Int2ObjectOpenHashMap<>();
 		int lowestRunSoundIndex = -1;
-		for (final Int2ObjectMap.Entry<SoundEvent> entry : config.config.run.int2ObjectEntrySet()) {
+		for (final Int2ObjectMap.Entry<SoundEvent> entry : config.config.runByIndex.int2ObjectEntrySet()) {
 			soundLoopRun.put(entry.getIntKey(), new VehicleLoopingSoundInstance(entry.getValue()));
 			lowestRunSoundIndex = lowestRunSoundIndex == -1 ? entry.getIntKey() : Math.min(lowestRunSoundIndex, entry.getIntKey());
 		}
