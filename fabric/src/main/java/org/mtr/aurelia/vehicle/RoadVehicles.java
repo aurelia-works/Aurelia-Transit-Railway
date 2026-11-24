@@ -46,7 +46,7 @@ public final class RoadVehicles {
 	 * The retired road car. It stays registered so old worlds and inventories keep the stack, but it no longer places a
 	 * car, has no recipe and is not in the creative tabs.
 	 */
-	public static final Item CAR_ITEM = Registry.register(Registries.ITEM, new Identifier("mtr", "road_car"), new Item(new Item.Settings().maxCount(1)));
+	public static final Item CAR_ITEM = Registry.register(Registries.ITEM, new Identifier("mtr", "road_car"), new RetiredCarItem(new Item.Settings().maxCount(1)));
 
 	private static RoadVehicleSettings serverSettings = RoadVehicleSettings.DEFAULT;
 	private static RoadVehicleSettings clientSettings = RoadVehicleSettings.DEFAULT;
