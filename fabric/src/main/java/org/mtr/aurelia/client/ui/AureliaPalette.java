@@ -23,4 +23,14 @@ public final class AureliaPalette {
 
 	private AureliaPalette() {
 	}
+
+	/** The modern screens (key box, Codex, card): the panel face, a raised row, a hairline and dim text that still reads at 4.5:1. */
+	public static final int SURFACE = 0xFF15181C;
+	public static final int RAISED = 0xFF1E2228;
+	public static final int RAISED_HOVER = 0xFF272C33;
+	public static final int LINE = 0xFF2A2F36;
+	public static final int TEXT_DIM = 0xFF9AA3AD;
+	/** The accent's light step, for a selected outline on a dark face where {@link #ACCENT} is too dark to see. */
+	public static final int ACCENT_LIGHT = 0xFF4F93EA;
+	public static final int WARN = 0xFFFF6B5E;
 }
