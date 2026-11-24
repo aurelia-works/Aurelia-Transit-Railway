@@ -33,7 +33,7 @@ public final class MinimapHud {
 		final int top = bottom ? screenHeight - MARGIN - size - 12 - 24 : MARGIN;
 		final MapCamera camera = new MapCamera(client.player.getX(), client.player.getZ(), MapSettings.zoom() / 100.0);
 		context.fill(left - 1, top - 1, left + size + 1, top + size + 1, BORDER);
-		MapView.draw(context, left, top, size, size, camera, false);
+		MapView.draw(context, left, top, size, size, camera);
 		final Text where = Text.literal(client.player.getBlockX() + ", " + client.player.getBlockY() + ", " + client.player.getBlockZ());
 		context.drawCenteredTextWithShadow(client.textRenderer, where, left + size / 2, top + size + 3, 0xDDDDDD);
 	}
