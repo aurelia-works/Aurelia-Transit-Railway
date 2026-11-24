@@ -122,6 +122,8 @@ public final class CurveTool implements Tool {
     private boolean editing;
     /** R-10+: the handles of the edited road's joined ends, which can't be picked up. */
     private final Set<Handle.Kind> pinned = EnumSet.noneOf(Handle.Kind.class);
+    /** P9: the driving side of the placed road being edited, which it keeps; null for a new road (the world's side). */
+    private RoadPlanParams.DrivingSide loadedSide;
 
     /** A tool with its own settings (tests). */
     public CurveTool() {
@@ -190,7 +192,8 @@ public final class CurveTool implements Tool {
     private Optional<RoadPlanParams> drawn() {
         return this.start == null || this.end == null ? Optional.empty()
                 : road(this.settings.profile(), this.start, this.end, this.settings.vertical(), this.settings.nodeAids())
-                        .map(params -> params.withPalette(this.settings.palette().id()));
+                        .map(params -> params.withPalette(this.settings.palette().id())
+                                .withDrivingSide(this.loadedSide != null ? this.loadedSide : this.settings.drivingSide()));
     }
 
     /** {@code point}, or the road end it joins (R-5). */
@@ -231,8 +234,9 @@ public final class CurveTool implements Tool {
 
     /**
      * Starts at step 3 with the placed road {@code road}'s ends (R-10: the Edit roads tool's edit): its handles can be
-     * picked up and moved, and the layout, palette, node aid and shape are the shared settings'. Each end faces the way
-     * its heading points, so an unchanged road comes out as placed.
+     * picked up and moved, and the layout, palette, node aid and shape are the shared settings'; it keeps its own driving
+     * side (P9), whatever the world's is now. Each end faces the way its heading points, so an unchanged road comes out
+     * as placed.
      *
      * <p><b>R-10+</b>: a joined end ({@link JoinableRoads#pinned}: drawn onto another road, or another road drawn onto it)
      * keeps its join and stays where it is: its handle can't be picked up.
@@ -251,6 +255,7 @@ public final class CurveTool implements Tool {
         }
         this.endFixed = true;
         this.editing = true;
+        this.loadedSide = road.drivingSide();
     }
 
     /** The planner's answer for the road as it stands, once it has arrived. */
@@ -474,6 +479,7 @@ public final class CurveTool implements Tool {
 
     @Override
     public void reset() {
+        this.loadedSide = null;
         this.start = null;
         this.end = null;
         this.raise = 0;

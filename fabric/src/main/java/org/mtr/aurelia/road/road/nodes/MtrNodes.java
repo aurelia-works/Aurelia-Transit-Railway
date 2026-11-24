@@ -14,7 +14,9 @@ import org.mtr.aurelia.road.geom.mtr.MtrRails;
  * <ul>
  *   <li>The node block is {@value #BLOCK}. Its heading, modulo 180° (0 east, 4 south, as {@code LaneNode.mtrFacing()}),
  *       is stored as {@code facing} (0° if true, else 90°) + {@code is_22_5} (22.5°) + {@code is_45} (45°): for heading
- *       {@code i}, {@code facing = i < 4}, {@code is_22_5 = i odd}, {@code is_45 = i mod 4 ≥ 2}.</li>
+ *       {@code i}, {@code facing = i < 4}, {@code is_22_5 = i odd}, {@code is_45 = i mod 4 ≥ 2}. ATR's node has a fourth,
+ *       {@code is_11_25} (its 32 node angles), always false for a road's node: left out, it reads true and turns the node
+ *       11.25°, so the track between two nodes bends into an S.</li>
  *   <li><b>Every property is named</b> when Stratos writes one ({@link #state}): MTR never sets the block's default
  *       state, so a property left out would take Minecraft's default, {@code true}. A node no rail has joined yet has
  *       {@code is_connected=false}, as a player's does.</li>
@@ -45,7 +47,7 @@ public final class MtrNodes {
     public static String state(int facing, boolean connected) {
         checkFacing(facing);
         return BLOCK + "[facing=" + (facing < 4) + ",is_22_5=" + (facing % 2 == 1) + ",is_45=" + (facing % 4 >= 2)
-                + ",is_connected=" + connected + ",waterlogged=false]";
+                + ",is_11_25=false,is_connected=" + connected + ",waterlogged=false]";
     }
 
     /** Whether {@code state} is an MTR node, whatever its properties. */

@@ -37,6 +37,9 @@ import org.mtr.aurelia.road.road.solve.RoadSolver;
  * the layout simply changes at the joint: the footway steps there, and City street's dashes stop or start. The alley
  * joins only the alley ({@link #PROFILE_MISMATCH}).
  *
+ * <p><b>Driving side</b> (P9): a road joins only a road that keeps to the same side ({@link #SIDE_MISMATCH}), except the
+ * alley, whose one lane is shared.
+ *
  * <p><b>Dashes</b> carry on in step across a joint between two roads of the same layout ({@link RoadPlanParams.Dashes}):
  * see {@link #dashes}.
  */
@@ -53,6 +56,11 @@ public final class RoadJoins {
      * args {@code layout} (this road's profile id) and {@code joins} (the other's).
      */
     public static final String PROFILE_MISMATCH = "PROFILE_MISMATCH";
+    /**
+     * P9: the roads keep to different sides (one placed before the world's driving side changed), so their one-way lanes
+     * would meet head-on at the joint. Roads with only shared lanes (the alley) join whatever their side.
+     */
+    public static final String SIDE_MISMATCH = "SIDE_MISMATCH";
 
     /**
      * One end of a placed road: {@code index} 0 for its start and 1 for its end, the centre-line node (its block and the
@@ -282,11 +290,19 @@ public final class RoadJoins {
                 args.put("joins", other.id());
                 return refused(PROFILE_MISMATCH, args);
             }
+            if (placed.get(road).drivingSide() != params.drivingSide() && !shared(profile)) {
+                return refused(SIDE_MISMATCH, Map.of());
+            }
         }
         if (!params.dashes().equals(editDashes(params, portsOf, incoming))) {
             return refused(PORT_MISMATCH, Map.of());
         }
         return Optional.empty();
+    }
+
+    /** Whether every lane of {@code profile} is shared by both directions (the alley's), so its driving side changes nothing. */
+    private static boolean shared(RoadProfile profile) {
+        return profile.lanes().stream().allMatch(lane -> lane.direction() == Lane.Direction.BOTH);
     }
 
     private static Optional<RoadPlanner.Outcome> refused(String code, Map<String, String> args) {

@@ -99,6 +99,11 @@ public final class StratosEditorClient {
         return core == null || core.stratosBlocks();
     }
 
+    /** The world's driving side, which new roads take (P9): as the server last said; left-hand until it says. */
+    public static RoadPlanParams.DrivingSide drivingSide() {
+        return core == null ? RoadPlanParams.DrivingSide.LHT : core.drivingSide();
+    }
+
     /** Whether the server's {@code Hello} listed {@code capability} (T-2: {@code track}, when it can build track). */
     public static boolean serverHas(String capability) {
         return core != null && core.serverHas(capability);
