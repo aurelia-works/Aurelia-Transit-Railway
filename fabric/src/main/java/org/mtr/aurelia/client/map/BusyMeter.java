@@ -37,6 +37,11 @@ public final class BusyMeter {
 	static final double BUSY_SHARE = 0.25;
 	/** From this share, packed. */
 	static final double PACKED_SHARE = 0.6;
+	/** The map draws every frame, but the waiting counts arrive from the server only every few seconds. */
+	private static final long REFRESH_MILLIS = 1000;
+
+	private static Map<Long, Level> cached = Map.of();
+	private static long cachedAt = Long.MIN_VALUE;
 
 	private BusyMeter() {
 	}
@@ -49,13 +54,22 @@ public final class BusyMeter {
 		return share >= PACKED_SHARE ? Level.PACKED : share >= BUSY_SHARE ? Level.BUSY : Level.QUIET;
 	}
 
-	/** Station id to level, for stations with platforms; empty while passengers are off. */
+	/** Station id to level, for stations with platforms; empty while passengers are off. Worked out at most once a second. */
 	public static Map<Long, Level> levels() {
+		final long now = System.currentTimeMillis();
+		if (now - cachedAt >= REFRESH_MILLIS || now < cachedAt) {
+			cached = compute();
+			cachedAt = now;
+		}
+		return cached;
+	}
+
+	private static Map<Long, Level> compute() {
 		final PassengerNetwork.Settings settings = PassengerClient.settings();
 		final PassengerService.Counts counts = PassengerClient.counts();
 		final Map<Long, Level> levels = new HashMap<>();
 		if (!settings.enabled()) {
-			return levels;
+			return Map.of();
 		}
 		for (final Station station : MinecraftClientData.getInstance().stations) {
 			int waiting = 0;
@@ -68,6 +82,6 @@ public final class BusyMeter {
 				levels.put(station.getId(), level(waiting, platforms, settings.maxWaitingPerPlatform()));
 			}
 		}
-		return levels;
+		return Map.copyOf(levels);
 	}
 }
