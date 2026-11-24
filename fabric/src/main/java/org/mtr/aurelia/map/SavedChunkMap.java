@@ -83,7 +83,8 @@ public final class SavedChunkMap {
 					final int index = (regionX * CHUNKS + chunkX & 31) + (regionZ * CHUNKS + chunkZ & 31) * 32;
 					final int entry = header.getInt(index * 4);
 					final NbtCompound chunk = readChunk(channel, entry >>> 8, entry & 0xFF);
-					if (chunk != null && column.load(chunk)) {
+					// a read torn by a save in progress can land on another chunk's data: draw only the chunk asked for
+					if (chunk != null && chunk.getInt("xPos") == regionX * CHUNKS + chunkX && chunk.getInt("zPos") == regionZ * CHUNKS + chunkZ && column.load(chunk)) {
 						any |= column.draw(chunkX * 16, chunkZ * 16, base, heights, depths);
 					}
 				}
@@ -124,16 +125,11 @@ public final class SavedChunkMap {
 			return null;
 		}
 		final InputStream raw = new ByteArrayInputStream(data.array(), 5, length - 1);
-		final InputStream in = switch (compression) {
-			case 1 -> new GZIPInputStream(raw);
-			case 2 -> new InflaterInputStream(raw);
-			case 3 -> raw;
-			default -> null;
-		};
-		if (in == null) {
+		if (compression < 1 || compression > 3) {
 			return null;
 		}
-		try (DataInputStream stream = new DataInputStream(new BufferedInputStream(in))) {
+		// the GZIP stream reads its header as it is made, so it is made inside the try too
+		try (DataInputStream stream = new DataInputStream(new BufferedInputStream(compression == 1 ? new GZIPInputStream(raw) : compression == 2 ? new InflaterInputStream(raw) : raw))) {
 			return NbtIo.read(stream);
 		} catch (IOException | RuntimeException e) {
 			// written while being read, or damaged: the map leaves the chunk out
