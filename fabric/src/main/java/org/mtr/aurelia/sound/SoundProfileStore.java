@@ -1,5 +1,6 @@
 package org.mtr.aurelia.sound;
 
+import org.mtr.aurelia.config.AureliaSettings;
 import org.mtr.libraries.com.google.gson.JsonElement;
 import org.mtr.libraries.com.google.gson.JsonObject;
 import org.mtr.libraries.com.google.gson.JsonParser;
@@ -7,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -16,8 +19,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Which profile each train uses and the volume of each sound part, in {@code config/aurelia/sound-profiles.json}. The
- * file is new, so worlds and {@code config/mtr.json} are untouched, and a train with no entry keeps its own sound.
+ * Which profile each train uses and the volume of each sound part, in the {@code sound_profiles} section of
+ * {@code config/aurelia/settings.json} (formerly {@code sound-profiles.json}). A train with no entry keeps its own
+ * sound.
  */
 public final class SoundProfileStore {
 
@@ -39,7 +43,6 @@ public final class SoundProfileStore {
 	private static final Logger LOGGER = LoggerFactory.getLogger("ATR Aurelia");
 	private static final Map<Long, Settings> SETTINGS = new HashMap<>();
 	private static final Set<String> WARNED_UNKNOWN_DEFAULTS = new HashSet<>();
-	private static Path file;
 	/** Whether trains use the default profile their pack names when the player picked none. New key, defaults to on. */
 	private static boolean useTrainDefaults = true;
 
@@ -114,33 +117,41 @@ public final class SoundProfileStore {
 	}
 
 	public static void load(Path configDir) {
-		file = configDir.resolve("aurelia").resolve("sound-profiles.json");
+		AureliaSettings.load(configDir);
+		try {
+			apply(AureliaSettings.section(AureliaSettings.SOUND_PROFILES));
+		} catch (Exception e) {
+			LOGGER.error("[ATR] the sound_profiles section of settings.json could not be read; all trains keep their own sound", e);
+			apply(new JsonObject());
+		}
+	}
+
+	/** Reads the old {@code sound-profiles.json} into the section body settings.json keeps. */
+	public static JsonObject readLegacy(Path file) throws IOException {
+		final JsonElement root = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8));
+		if (!root.isJsonObject()) {
+			throw new IOException("not a JSON object");
+		}
+		apply(root.getAsJsonObject());
+		return toJson();
+	}
+
+	private static void apply(JsonObject root) {
 		SETTINGS.clear();
 		useTrainDefaults = true;
-		if (!Files.isRegularFile(file)) {
+		final JsonElement useDefaults = root.get("use_train_defaults");
+		if (useDefaults != null && useDefaults.isJsonPrimitive() && useDefaults.getAsJsonPrimitive().isBoolean()) {
+			useTrainDefaults = useDefaults.getAsBoolean();
+		}
+		final JsonElement vehicles = root.get("vehicles");
+		if (vehicles == null || !vehicles.isJsonObject()) {
 			return;
 		}
-		try {
-			final JsonElement root = JsonParser.parseString(Files.readString(file));
-			if (!root.isJsonObject()) {
-				return;
+		for (final Map.Entry<String, JsonElement> entry : vehicles.getAsJsonObject().entrySet()) {
+			final Long vehicleId = parseLong(entry.getKey());
+			if (vehicleId != null && entry.getValue().isJsonObject()) {
+				SETTINGS.put(vehicleId, Settings.from(entry.getValue().getAsJsonObject()));
 			}
-			final JsonElement useDefaults = root.getAsJsonObject().get("use_train_defaults");
-			if (useDefaults != null && useDefaults.isJsonPrimitive() && useDefaults.getAsJsonPrimitive().isBoolean()) {
-				useTrainDefaults = useDefaults.getAsBoolean();
-			}
-			final JsonElement vehicles = root.getAsJsonObject().get("vehicles");
-			if (vehicles == null || !vehicles.isJsonObject()) {
-				return;
-			}
-			for (final Map.Entry<String, JsonElement> entry : vehicles.getAsJsonObject().entrySet()) {
-				final Long vehicleId = parseLong(entry.getKey());
-				if (vehicleId != null && entry.getValue().isJsonObject()) {
-					SETTINGS.put(vehicleId, Settings.from(entry.getValue().getAsJsonObject()));
-				}
-			}
-		} catch (Exception e) {
-			LOGGER.error("[ATR] sound-profiles.json could not be read; all trains keep their own sound", e);
 		}
 	}
 
@@ -153,22 +164,18 @@ public final class SoundProfileStore {
 	}
 
 	public static void save() {
-		if (file == null) {
-			return;
+		AureliaSettings.put(AureliaSettings.SOUND_PROFILES, toJson());
+	}
+
+	private static JsonObject toJson() {
+		final JsonObject vehicles = new JsonObject();
+		for (final Map.Entry<Long, Settings> entry : SETTINGS.entrySet()) {
+			vehicles.add(String.valueOf(entry.getKey()), entry.getValue().toJson());
 		}
-		try {
-			Files.createDirectories(file.getParent());
-			final JsonObject vehicles = new JsonObject();
-			for (final Map.Entry<Long, Settings> entry : SETTINGS.entrySet()) {
-				vehicles.add(String.valueOf(entry.getKey()), entry.getValue().toJson());
-			}
-			final JsonObject root = new JsonObject();
-			root.addProperty("use_train_defaults", useTrainDefaults);
-			root.add("vehicles", vehicles);
-			Files.writeString(file, root.toString());
-		} catch (Exception e) {
-			LOGGER.error("[ATR] sound-profiles.json could not be written", e);
-		}
+		final JsonObject root = new JsonObject();
+		root.addProperty("use_train_defaults", useTrainDefaults);
+		root.add("vehicles", vehicles);
+		return root;
 	}
 
 	@Nullable
