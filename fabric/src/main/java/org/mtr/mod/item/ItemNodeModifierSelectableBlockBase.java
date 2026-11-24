@@ -1,5 +1,6 @@
 package org.mtr.mod.item;
 
+import org.mtr.aurelia.client.RailToolPath;
 import org.mtr.core.data.Rail;
 import org.mtr.core.data.TransportMode;
 import org.mtr.core.tool.Angle;
@@ -8,6 +9,7 @@ import org.mtr.mapping.mapper.TextHelper;
 import org.mtr.mod.InitClient;
 import org.mtr.mod.block.BlockNode;
 import org.mtr.mod.generated.lang.TranslationProvider;
+import org.mtr.mod.packet.PacketApplyRailAction;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,6 +53,11 @@ public abstract class ItemNodeModifierSelectableBlockBase extends ItemNodeModifi
 			}
 		}
 
+		if (context.getWorld().isClient()) {
+			// A second click on a node further along the track covers every rail in between (MTR 4.1)
+			RailToolPath.onClientUse(context, clickCondition(context));
+		}
+
 		return super.useOnBlock2(context);
 	}
 
@@ -75,7 +82,8 @@ public abstract class ItemNodeModifierSelectableBlockBase extends ItemNodeModifi
 
 	@Override
 	protected final void onConnect(World world, ItemStack itemStack, TransportMode transportMode, BlockState stateStart, BlockState stateEnd, BlockPos posStart, BlockPos posEnd, Angle facingStart, Angle facingEnd, @Nullable ServerPlayerEntity serverPlayerEntity) {
-		if (serverPlayerEntity != null) {
+		// When the two clicked nodes were joined along the track, the rails between them are already done
+		if (serverPlayerEntity != null && !PacketApplyRailAction.consumePending(serverPlayerEntity, posStart, posEnd)) {
 			getRail(world, posStart, posEnd, serverPlayerEntity, rail -> onConnect(rail, serverPlayerEntity, itemStack, getWidth(itemStack) / 2, getHeight(itemStack)));
 		}
 	}
@@ -105,4 +113,12 @@ public abstract class ItemNodeModifierSelectableBlockBase extends ItemNodeModifi
 	}
 
 	protected abstract void onConnect(Rail rail, ServerPlayerEntity serverPlayerEntity, ItemStack itemStack, int radius, int height);
+
+	/**
+	 * Applies this tool to one rail with the stack's width and height, as an end click on its two nodes would.
+	 * Used by {@link PacketApplyRailAction} for each rail along a multi-node path.
+	 */
+	public final void applyToRail(Rail rail, ServerPlayerEntity serverPlayerEntity, ItemStack itemStack) {
+		onConnect(rail, serverPlayerEntity, itemStack, getWidth(itemStack) / 2, getHeight(itemStack));
+	}
 }

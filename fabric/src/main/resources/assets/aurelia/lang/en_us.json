@@ -359,6 +359,8 @@
 	"gui.aurelia.builder.clear": "Dig the clearance: %s",
 	"gui.aurelia.builder.walls": "Walls where there is ground: %s",
 	"gui.aurelia.builder.hold": "Hold a Rail Builder to change it",
+	"gui.aurelia.builder.multi_node": "Follow the track between clicks: %s",
+	"gui.aurelia.builder.multi_node.tooltip": "Bridge, tunnel, tunnel wall and Rail Builder tools: click a node, then any node further along the track, and every rail in between is built. Off: only two nodes joined by one rail.",
 	"key.aurelia.sit": "Sit / stand while riding",
 	"gui.aurelia.panel.tab.riding": "Riding",
 	"gui.aurelia.riding.sit": "Sit when boarding: %s",
