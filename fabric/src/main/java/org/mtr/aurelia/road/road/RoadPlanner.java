@@ -422,14 +422,7 @@ public final class RoadPlanner {
         for (int lane = 0; lane < lanes; lane++) {
             for (PieceSolution.Solved piece : pieces) {
                 LaneRail rail = piece.lanes().get(lane);
-                Lane.Direction direction = rail.lane().direction();
-                if (params.drivingSide() == RoadPlanParams.DrivingSide.RHT) {
-                    direction = switch (direction) {
-                        case WITH_REFERENCE -> Lane.Direction.AGAINST_REFERENCE;
-                        case AGAINST_REFERENCE -> Lane.Direction.WITH_REFERENCE;
-                        case BOTH -> Lane.Direction.BOTH;
-                    };
-                }
+                Lane.Direction direction = rail.lane().direction().on(params.drivingSide());
                 LaneNode a = new LaneNode(rail.number(), rail.start().x(), rail.start().y(), rail.start().z(), rail.start().heading());
                 LaneNode b = new LaneNode(rail.number(), rail.end().x(), rail.end().y(), rail.end().z(), rail.end().heading());
                 int fromA = direction == Lane.Direction.AGAINST_REFERENCE ? 0 : speed;

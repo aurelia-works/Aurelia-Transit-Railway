@@ -53,6 +53,11 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
         CLEAR_MARKERS
     }
 
+    /**
+     * Which side of the road traffic keeps to (spec roads-v1 §11.4). Profiles are authored for left-hand traffic (UK);
+     * right-hand traffic swaps the way each carriageway runs. New roads take the world's setting (P9: the
+     * {@code stratosDrivingSide} game rule, left-hand by default); a placed road keeps the side it was placed with.
+     */
     public enum DrivingSide {
         LHT,
         RHT
@@ -243,6 +248,12 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
     /** The same parameters with the palette {@code paletteId} (R-9: the tools' palette; a rebuild in another palette). */
     public RoadPlanParams withPalette(String paletteId) {
         return new RoadPlanParams(this.tool, this.profileId, this.preset, paletteId, this.drivingSide, this.ends, this.vertical, this.nodeAids,
+                this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes);
+    }
+
+    /** The same parameters with the driving side {@code drivingSide} (P9: the world's, for a new road). */
+    public RoadPlanParams withDrivingSide(DrivingSide drivingSide) {
+        return new RoadPlanParams(this.tool, this.profileId, this.preset, this.paletteId, drivingSide, this.ends, this.vertical, this.nodeAids,
                 this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes);
     }
 

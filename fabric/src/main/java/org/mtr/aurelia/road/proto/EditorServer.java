@@ -40,6 +40,7 @@ import org.mtr.aurelia.road.proto.Message.PlanRejected;
 import org.mtr.aurelia.road.proto.Message.PlanRequest;
 import org.mtr.aurelia.road.proto.Message.Redo;
 import org.mtr.aurelia.road.proto.Message.StratosBlocks;
+import org.mtr.aurelia.road.proto.Message.TrafficSide;
 import org.mtr.aurelia.road.proto.Message.TaskRequest;
 import org.mtr.aurelia.road.proto.Message.TaskResult;
 import org.mtr.aurelia.road.proto.Message.Undo;
@@ -102,6 +103,9 @@ import org.mtr.aurelia.road.undo.SideEffect;
  * ({@link #stratosBlocks(boolean, Consumer)}): on as soon as any Stratos block is placed ({@link #stratosBlockPlaced}), off
  * when a world bake leaves none and none was placed while it ran. Players who can edit hear it after the handshake
  * ({@code StratosBlocks}, after {@code YourRoads}) and whenever it changes.
+ *
+ * <p><b>From P9</b> the server also keeps the world's driving side, which the platform gives it ({@link #trafficSide}):
+ * players who can edit hear it after the handshake when it is right-hand ({@code TrafficSide}) and whenever it changes.
  *
  * <p>Server thread only: the platform calls {@link #receive}, {@link #tick} and {@link #finished} there.
  */
@@ -209,6 +213,8 @@ public final class EditorServer {
     private long stratosPlacements;
     private Consumer<Boolean> stratosBlocksSaver = present -> {
     };
+    /** P9: whether the world keeps to the right, which new roads take; the platform says (its game rule). */
+    private boolean rightHand;
 
     /**
      * @param modules      the modules that take plan requests (Slice A: roads)
@@ -254,6 +260,22 @@ public final class EditorServer {
         if (present != this.stratosBlocks) {
             this.stratosBlocks = present;
             tellStratosBlocks();
+        }
+    }
+
+    /**
+     * The world's driving side (P9), as the platform keeps it: players who can edit hear it whenever it changes, so the
+     * roads they draw from then on keep to that side. Roads already placed keep the side they were placed with.
+     */
+    public void trafficSide(boolean rightHand) {
+        if (rightHand != this.rightHand) {
+            this.rightHand = rightHand;
+            TrafficSide message = new TrafficSide(rightHand);
+            for (Session session : this.sessions.values()) {
+                if (session.editing) {
+                    session.channel.send(message);
+                }
+            }
         }
     }
 
@@ -408,6 +430,9 @@ public final class EditorServer {
             sendPalettes(player, session);
             sendYourRoads(player, session);
             session.channel.send(new StratosBlocks(this.stratosBlocks));
+            if (this.rightHand) {
+                session.channel.send(new TrafficSide(true)); // P9: left-hand is what a client assumes until told
+            }
             if (this.repaired != null && this.permissions.has(player, NODE_USE)) {
                 session.channel.send(this.repaired); // F-2+: the repair after a crash, before they joined
             }

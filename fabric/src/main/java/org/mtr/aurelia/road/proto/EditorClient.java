@@ -31,6 +31,7 @@ import org.mtr.aurelia.road.proto.Message.TaskResult;
 import org.mtr.aurelia.road.proto.Message.Undo;
 import org.mtr.aurelia.road.proto.Message.UndoRedoResult;
 import org.mtr.aurelia.road.proto.Message.YourRoads;
+import org.mtr.aurelia.road.road.RoadPlanParams;
 import org.mtr.aurelia.road.road.palette.BuiltInPalettes;
 import org.mtr.aurelia.road.road.palette.Palette;
 import org.mtr.aurelia.road.road.palette.PaletteException;
@@ -88,6 +89,10 @@ public final class EditorClient {
         /** Whether the world has Stratos blocks, by the server's mark (UI-1c): after the handshake and when it changes. */
         default void stratosBlocks(boolean present) {
         }
+
+        /** The world's driving side changed (P9): new roads keep to the right when {@code rightHand}. */
+        default void trafficSide(boolean rightHand) {
+        }
     }
 
     /**
@@ -117,6 +122,7 @@ public final class EditorClient {
     private boolean editing;
     private Palettes palettes = Palettes.BUILT_IN;
     private boolean stratosBlocks = true;
+    private boolean rightHand;
     private int nextRequestId;
     private int malformed;
 
@@ -160,6 +166,7 @@ public final class EditorClient {
             this.editing = false;
             this.palettes = Palettes.BUILT_IN;
             this.stratosBlocks = true;
+            this.rightHand = false;
             this.channel.send(new HelloAck(Protocol.VERSION, this.modVersion, this.capabilities));
         } else if (message instanceof HelloResult result) {
             this.editing = result.editingEnabled() && this.hello != null;
@@ -197,6 +204,9 @@ public final class EditorClient {
         } else if (message instanceof Message.StratosBlocks blocks) {
             this.stratosBlocks = blocks.present();
             this.listeners.forEach(l -> l.stratosBlocks(blocks.present()));
+        } else if (message instanceof Message.TrafficSide side) {
+            this.rightHand = side.rightHand();
+            this.listeners.forEach(l -> l.trafficSide(side.rightHand()));
         }
     }
 
@@ -205,9 +215,18 @@ public final class EditorClient {
         boolean was = this.editing;
         this.hello = null;
         this.editing = false;
+        this.rightHand = false;
         if (was) {
             this.listeners.forEach(l -> l.editingChanged(false, Optional.empty()));
         }
+    }
+
+    /**
+     * The driving side new roads take (P9): the world's, as the server last said; left-hand until it says, and without a
+     * server.
+     */
+    public RoadPlanParams.DrivingSide drivingSide() {
+        return this.rightHand ? RoadPlanParams.DrivingSide.RHT : RoadPlanParams.DrivingSide.LHT;
     }
 
     /** Whether the server's handshake enabled editing. */

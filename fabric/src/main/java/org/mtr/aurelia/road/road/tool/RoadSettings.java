@@ -34,6 +34,8 @@ import org.mtr.aurelia.road.tool.HudModel.Text;
  *       can't be built and MTR nodes where the game has no node block.</li>
  *   <li><b>The palette</b> (R-9; owner, 2026-10-10): Stratos UK to start (B-1, ADR-0044); the hub's palette button steps
  *       through the server's palettes. A palette chosen on another server and missing here stands for Stratos UK.</li>
+ *   <li><b>The driving side</b> (P9) isn't the player's to choose: it is the world's, as the server says, left-hand until it
+ *       does.</li>
  * </ul>
  */
 public final class RoadSettings {
@@ -45,6 +47,7 @@ public final class RoadSettings {
     private final BooleanSupplier mtrNodes;
     private final BooleanSupplier track;
     private final Supplier<Palettes> palettes;
+    private final Supplier<RoadPlanParams.DrivingSide> drivingSide;
     private String paletteId = BuiltInPalettes.DEFAULT_ID;
     private RoadProfile profile = RoadProfiles.CITY_17;
     private RoadPlanParams.Vertical.Shape shape = RoadPlanParams.Vertical.Shape.QUADRATIC;
@@ -72,9 +75,20 @@ public final class RoadSettings {
 
     /** As {@link #RoadSettings(BooleanSupplier, BooleanSupplier)}, where {@code palettes} gives the palettes roads may use (R-9: the server's). */
     public RoadSettings(BooleanSupplier mtrNodes, BooleanSupplier track, Supplier<Palettes> palettes) {
+        this(mtrNodes, track, palettes, () -> RoadPlanParams.DrivingSide.LHT);
+    }
+
+    /** As {@link #RoadSettings(BooleanSupplier, BooleanSupplier, Supplier)}, where {@code drivingSide} gives the world's driving side (P9). */
+    public RoadSettings(BooleanSupplier mtrNodes, BooleanSupplier track, Supplier<Palettes> palettes, Supplier<RoadPlanParams.DrivingSide> drivingSide) {
         this.mtrNodes = Objects.requireNonNull(mtrNodes, "mtrNodes");
         this.track = Objects.requireNonNull(track, "track");
         this.palettes = Objects.requireNonNull(palettes, "palettes");
+        this.drivingSide = Objects.requireNonNull(drivingSide, "drivingSide");
+    }
+
+    /** The side new roads keep to (P9): the world's. */
+    public RoadPlanParams.DrivingSide drivingSide() {
+        return this.drivingSide.get();
     }
 
     /** The palette roads get: the one chosen, while this game has it; else the default (Stratos UK), else Vanilla. */

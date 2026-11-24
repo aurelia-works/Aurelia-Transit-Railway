@@ -22,6 +22,21 @@ public record Lane(int index, int offsetHalfBlocks, Direction direction) {
         static Direction of(int offsetHalfBlocks) {
             return offsetHalfBlocks < 0 ? WITH_REFERENCE : offsetHalfBlocks > 0 ? AGAINST_REFERENCE : BOTH;
         }
+
+        /**
+         * The way traffic runs on this lane when the road is driven on {@code side} (§11.4): as authored for left-hand
+         * traffic, swapped for right-hand traffic. A shared lane stays shared.
+         */
+        public Direction on(RoadPlanParams.DrivingSide side) {
+            if (side == RoadPlanParams.DrivingSide.LHT) {
+                return this;
+            }
+            return switch (this) {
+                case WITH_REFERENCE -> AGAINST_REFERENCE;
+                case AGAINST_REFERENCE -> WITH_REFERENCE;
+                case BOTH -> BOTH;
+            };
+        }
     }
 
     /** The offset {@code d} in blocks: a whole number for odd-width profiles, a half (x.5) for even widths. */

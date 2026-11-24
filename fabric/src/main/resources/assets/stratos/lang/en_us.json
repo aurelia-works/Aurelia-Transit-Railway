@@ -1,5 +1,9 @@
 {
   "key.categories.stratos": "Stratos",
+  "gamerule.stratosDrivingSide": "Stratos roads: driving side",
+  "gamerule.stratosDrivingSide.description": "Which side new roads keep to. Roads already placed keep their own side.",
+  "gamerule.stratosDrivingSide.lht": "Left-hand (UK)",
+  "gamerule.stratosDrivingSide.rht": "Right-hand",
   "itemGroup.stratos.road_blocks": "Stratos",
   "block.stratos.asphalt": "Asphalt",
   "block.stratos.footway_flags": "Footway flags",
@@ -332,6 +336,7 @@
   "stratos.road.reject.road_joined": "This road is joined to another road, and editing joined roads comes later. You can still rebuild or delete it.",
   "stratos.road.reject.road_too_old": "Stratos no longer has what was here before this road (a world keeps the undo data of its last 200 edits), so it can't delete it exactly. Rebuild still works.",
   "stratos.road.reject.port_mismatch": "This road doesn't line up with the road end it joins. Set that end again.",
+  "stratos.road.reject.side_mismatch": "That road keeps to the other side of the road (it was built before the world's driving side changed), so this one can't join it.",
   "stratos.road.reject.profile_mismatch": "These roads have different layouts: %s can't join %s, as their lanes don't line up.",
   "stratos.road.reject.unknown_palette": "There's no palette called %s here. Choose another one in the hub.",
   "stratos.road.reject.grade_on_mixed_piece": "This bend climbs unevenly (lanes %s blocks apart in height) and can't be split into a straight and a bend. Climb on a straight road, then join the bend to it.",

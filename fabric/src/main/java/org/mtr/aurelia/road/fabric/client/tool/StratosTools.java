@@ -120,10 +120,10 @@ public final class StratosTools {
 
     /**
      * The road tools' shared settings (R-4): the shape, and (R-6) the node aid, with MTR nodes only when the game has them
-     * and (T-2) Track only when the server's {@code Hello} lists {@code track}.
+     * and (T-2) Track only when the server's {@code Hello} lists {@code track}; (P9) the world's driving side.
      */
     private static final RoadSettings ROAD_SETTINGS = new RoadSettings(() -> EditorNetworking.modBlocks().contains(MtrNodes.BLOCK),
-            () -> StratosEditorClient.serverHas(Protocol.CAPABILITY_TRACK), GamePalettes::client);
+            () -> StratosEditorClient.serverHas(Protocol.CAPABILITY_TRACK), GamePalettes::client, StratosEditorClient::drivingSide);
 
     /** The road choices' file, under the game's config folder (UI-1a; owner, 2026-10-15); from UI-1c the preview's settings too. */
     private static final String CHOICES_FILE = "aurelia/roads/client.json";
