@@ -76,6 +76,11 @@ public final class PaintStore extends PersistentState {
         set(position, 0);
     }
 
+    /** A copy of every painted cell, for a reader off the server thread (a world bake reads saved chunks there). */
+    public Long2IntMap snapshot() {
+        return new Long2IntOpenHashMap(this.cells);
+    }
+
     /** Every painted cell, to send to a player who arrives. */
     Long2IntMap cells() {
         return this.cells;
