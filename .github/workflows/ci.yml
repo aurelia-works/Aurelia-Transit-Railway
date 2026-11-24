@@ -74,6 +74,14 @@ jobs:
           name: ATR-fabric-1.20.1
           path: build/release/*.jar
           retention-days: 7
+      # The test shards only read the cache, and this job never resolves ATA's test classpath, so the two jars only ATA's
+      # tests use (junit-jupiter-params, fabric-loader-junit; fabric/build.gradle) were fetched cold in all fourteen of
+      # them, which is where the Maven download flakes came from
+      - name: Warm the cache with ATA's test dependencies
+        if: github.event_name == 'push'
+        # cache only: a Maven flake here must not fail the run, or it would block the release it exists to protect
+        continue-on-error: true
+        run: ./gradlew setupFiles :fabric:compileAtaTestJava
   # ATA's unit tests over 6 jobs, balanced by each class's time on CI (-Pata.tests.shard, fabric/build.gradle,
   # fabric/ata-test-times.properties)
   ata-unit:
