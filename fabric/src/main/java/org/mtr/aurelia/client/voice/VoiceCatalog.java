@@ -11,8 +11,7 @@ import java.util.Locale;
  * the mod jar: the player downloads the engine and one voice from the Sound tab.
  * <p>
  * Licences, from each project's own page: sherpa-onnx and the Kokoro voices are Apache-2.0. Kokoro turns text into sounds
- * with espeak-ng (GPL-3), which comes inside those downloads and never inside the jar. The Piper path stays for a voice
- * added later; none is offered now.
+ * with espeak-ng (GPL-3), which comes inside those downloads and never inside the jar.
  */
 public final class VoiceCatalog {
 
@@ -23,15 +22,12 @@ public final class VoiceCatalog {
 	public record Download(String url, String sha256, long bytes, String folder) {
 	}
 
-	public enum Kind {KOKORO, PIPER}
-
 	/**
-	 * @param speaker    Kokoro's speaker number (Piper voices have one speaker, 0)
+	 * @param speaker    Kokoro's speaker number
 	 * @param kokoroLang espeak-ng language for Kokoro, empty when its word lists cover the language
 	 * @param lexicons   Kokoro word lists inside the voice folder, empty when espeak-ng does the work
-	 * @param piperModel the Piper model file inside the voice folder
 	 */
-	public record Voice(String id, String name, String language, Kind kind, Download download, int speaker, String kokoroLang, List<String> lexicons, String piperModel) {
+	public record Voice(String id, String name, String language, Download download, int speaker, String kokoroLang, List<String> lexicons) {
 	}
 
 	private static final Download KOKORO = new Download(MODEL_BASE + "kokoro-int8-multi-lang-v1_0.tar.bz2", "72c347230107ef8a31098ec4d468a605244beef5f1ed00db97efa13518800653", 132_353_410, "kokoro-int8-multi-lang-v1_0");
@@ -119,29 +115,22 @@ public final class VoiceCatalog {
 		final List<String> command = new ArrayList<>();
 		command.add(program.toString());
 		final String lengthScale = String.format(Locale.ROOT, "%.3f", 1 / Math.max(0.5, Math.min(2, speed)));
-		if (voice.kind == Kind.KOKORO) {
-			command.add("--kokoro-model=" + voiceFolder.resolve("model.int8.onnx"));
-			command.add("--kokoro-voices=" + voiceFolder.resolve("voices.bin"));
-			command.add("--kokoro-tokens=" + voiceFolder.resolve("tokens.txt"));
-			command.add("--kokoro-data-dir=" + voiceFolder.resolve("espeak-ng-data"));
-			command.add("--kokoro-dict-dir=" + voiceFolder.resolve("dict"));
-			if (!voice.lexicons.isEmpty()) {
-				final List<String> lexicons = new ArrayList<>();
-				for (final String lexicon : voice.lexicons) {
-					lexicons.add(voiceFolder.resolve(lexicon).toString());
-				}
-				command.add("--kokoro-lexicon=" + String.join(",", lexicons));
+		command.add("--kokoro-model=" + voiceFolder.resolve("model.int8.onnx"));
+		command.add("--kokoro-voices=" + voiceFolder.resolve("voices.bin"));
+		command.add("--kokoro-tokens=" + voiceFolder.resolve("tokens.txt"));
+		command.add("--kokoro-data-dir=" + voiceFolder.resolve("espeak-ng-data"));
+		command.add("--kokoro-dict-dir=" + voiceFolder.resolve("dict"));
+		if (!voice.lexicons.isEmpty()) {
+			final List<String> lexicons = new ArrayList<>();
+			for (final String lexicon : voice.lexicons) {
+				lexicons.add(voiceFolder.resolve(lexicon).toString());
 			}
-			if (!voice.kokoroLang.isEmpty()) {
-				command.add("--kokoro-lang=" + voice.kokoroLang);
-			}
-			command.add("--kokoro-length-scale=" + lengthScale);
-		} else {
-			command.add("--vits-model=" + voiceFolder.resolve(voice.piperModel + ".onnx"));
-			command.add("--vits-tokens=" + voiceFolder.resolve("tokens.txt"));
-			command.add("--vits-data-dir=" + voiceFolder.resolve("espeak-ng-data"));
-			command.add("--vits-length-scale=" + lengthScale);
+			command.add("--kokoro-lexicon=" + String.join(",", lexicons));
 		}
+		if (!voice.kokoroLang.isEmpty()) {
+			command.add("--kokoro-lang=" + voice.kokoroLang);
+		}
+		command.add("--kokoro-length-scale=" + lengthScale);
 		command.add("--sid=" + voice.speaker);
 		command.add("--num-threads=2");
 		command.add("--output-filename=" + output);
@@ -150,11 +139,7 @@ public final class VoiceCatalog {
 	}
 
 	private static Voice kokoro(String id, String name, String language, int speaker, String kokoroLang, String... lexicons) {
-		return new Voice(id, name, language, Kind.KOKORO, KOKORO, speaker, kokoroLang, List.of(lexicons), "");
-	}
-
-	private static Voice piper(String id, String name, String language, String model, long bytes, String sha256) {
-		return new Voice(id, name, language, Kind.PIPER, new Download(MODEL_BASE + "vits-piper-" + model + ".tar.bz2", sha256, bytes, "vits-piper-" + model), 0, "", List.of(), model);
+		return new Voice(id, name, language, KOKORO, speaker, kokoroLang, List.of(lexicons));
 	}
 
 	private static Download engine(String build, String sha256, long approximateBytes) {
