@@ -3,7 +3,7 @@
  * Used with permission — see NOTICE.md.
  */
 /**
- * The {@code stratos:main} protocol (editor-protocol spec), from task F-3. The platform layer only frames bytes.
+ * The {@code aurelia:roads} protocol (editor-protocol spec), from task F-3. The platform layer only frames bytes.
  * <ul>
  *   <li><b>Records and their codec:</b> {@link org.mtr.aurelia.road.proto.Message} (ids 0–9: handshake, plan
  *       request, accept and reject, progress, undo and redo), {@link org.mtr.aurelia.road.proto.Messages},

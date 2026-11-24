@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * The records of the {@code stratos:main} channel built so far: ids 0–9 of editor-protocol §4 (handshake, plan request,
+ * The records of the {@code aurelia:roads} channel built so far: ids 0–9 of editor-protocol §4 (handshake, plan request,
  * accept and reject, apply progress, undo and redo), 17 ({@code Notice}, T-2), 18 ({@code YourRoads}, F-5), 19
  * ({@code Palettes}, R-9), 20–22 (world tasks, B-3) and 23 ({@code StratosBlocks}, UI-1c). Ids 10–16 (cancel, road-graph
  * data, transfers) arrive with the tasks that need them. {@link Messages} encodes and decodes them.
