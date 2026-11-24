@@ -9,8 +9,9 @@ import org.lwjgl.glfw.GLFW;
 import org.mtr.aurelia.map.MapCamera;
 
 /**
- * The full-screen map: drag to move, scroll to zoom about the cursor, C to come back to the player. Buttons along the
- * top switch rails, stations and trains (the same switches as the panel's Map tab). The world keeps running behind it.
+ * The full-screen map: drag to move, scroll to zoom about the cursor, C to come back to the player, right-click to set
+ * home, add a landmark or remove a pin. Buttons along the top switch rails, stations and trains (the same switches as
+ * the panel's Map tab). The world keeps running behind it.
  */
 public final class WorldMapScreen extends Screen {
 
@@ -19,6 +20,7 @@ public final class WorldMapScreen extends Screen {
 	private static double lastScale = 1;
 
 	private final MapCamera camera;
+	private final PinMenu pinMenu = new PinMenu();
 	private boolean dragging;
 
 	public WorldMapScreen() {
@@ -66,11 +68,21 @@ public final class WorldMapScreen extends Screen {
 		context.drawTextWithShadow(textRenderer, where, width - 6 - textRenderer.getWidth(where), 7, 0xDDDDDD);
 		final Text hint = Text.translatable("gui.aurelia.map.hint");
 		context.drawTextWithShadow(textRenderer, hint, 6, height - 12, 0x888888);
+		pinMenu.render(context, mouseX, mouseY, width, height);
 	}
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (pinMenu.click(mouseX, mouseY)) {
+			return true;
+		}
 		if (super.mouseClicked(mouseX, mouseY, button)) {
+			return true;
+		}
+		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && mouseY >= BAR) {
+			final int worldX = (int) Math.floor(camera.worldX(mouseX, 0, width));
+			final int worldZ = (int) Math.floor(camera.worldZ(mouseY, BAR, height - BAR));
+			pinMenu.open((int) mouseX, (int) mouseY, worldX, worldZ, MapPinLayer.hit(mouseX, mouseY, 0, BAR, width, height - BAR, camera.centerX(), camera.centerZ(), camera.scale()));
 			return true;
 		}
 		dragging = button == 0 && mouseY >= BAR;
@@ -101,6 +113,10 @@ public final class WorldMapScreen extends Screen {
 
 	@Override
 	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		if (keyCode == GLFW.GLFW_KEY_ESCAPE && pinMenu.isOpen()) {
+			pinMenu.close();
+			return true;
+		}
 		if (keyCode == GLFW.GLFW_KEY_C) {
 			centre();
 			return true;

@@ -4,6 +4,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import org.mtr.aurelia.client.map.MapGround;
+import org.mtr.aurelia.client.map.MapPinLayer;
 import org.mtr.core.data.AreaBase;
 import org.mtr.core.data.Station;
 import org.mtr.mod.client.MinecraftClientData;
@@ -11,7 +12,8 @@ import org.mtr.mod.client.MinecraftClientData;
 /**
  * What ATR adds to MTR's dashboard map ({@code WidgetMap}), drawn through {@code DashboardMapMixin}: the explored ground
  * of the whole world under MTR's overlays, in place of MTR's picture of the loaded chunks only; and, zoomed out, a dot and
- * a name for each station too small on screen for MTR to name, so stations far away can still be found.
+ * a name for each station too small on screen for MTR to name, so stations far away can still be found; and the
+ * player's home and landmark pins, which a right-click on the map sets and removes.
  */
 public final class DashboardMapLayers {
 
@@ -70,6 +72,13 @@ public final class DashboardMapLayers {
 				}
 			}
 		}
+		context.disableScissor();
+	}
+
+	/** The player's home and landmark pins, over everything MTR draws. */
+	public static void pins(DrawContext context, int left, int top, int width, int height, double centerX, double centerZ, double scale) {
+		context.enableScissor(left, top, left + width, top + height);
+		MapPinLayer.draw(context, left, top, width, height, centerX, centerZ, scale);
 		context.disableScissor();
 	}
 
