@@ -4,8 +4,6 @@ import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
-import org.mtr.aurelia.crew.CrewClient;
-import org.mtr.aurelia.crew.HoldSequence;
 import org.mtr.core.data.PathData;
 import org.mtr.core.data.Position;
 import org.mtr.core.data.Rail;
@@ -84,16 +82,12 @@ public final class PathSignals {
 		}
 
 		final List<Boundary> boundaries = new ArrayList<>();
-		final boolean[] held = new boolean[4];
-		boolean anyHeld = false;
 		double metres = 0;
 		for (int i = 0; i + headIndex < end; i++) {
 			if (i > 0 && signatures[i] != 0 && signatures[i] != signatures[i - 1]) {
 				final CachedAspects head = headAt(path.get(headIndex + i));
 				final boolean signal = head.aspects > 0;
 				final int aspects = signal ? head.aspects : DEFAULT_ASPECTS;
-				held[boundaries.size()] = signal && head.head != NO_HEAD && CrewClient.held(head.head);
-				anyHeld |= held[boundaries.size()];
 				boundaries.add(new Boundary(headIndex + i, aspect(signatures, blocked, lengths, i, end - headIndex, aspects, end == path.size()), metres, aspects, signal));
 				if (boundaries.size() >= 4) {
 					break;
@@ -101,24 +95,7 @@ public final class PathSignals {
 			}
 			metres += lengths[i];
 		}
-		return anyHeld ? withHolds(boundaries, held) : boundaries;
-	}
-
-	/** The boundaries with a signaller's holds shown: held heads red, the heads before them stepping down. */
-	private static List<Boundary> withHolds(List<Boundary> boundaries, boolean[] held) {
-		final List<SignalAspect> aspects = new ArrayList<>(boundaries.size());
-		final int[] counts = new int[boundaries.size()];
-		for (int i = 0; i < boundaries.size(); i++) {
-			aspects.add(boundaries.get(i).aspect());
-			counts[i] = boundaries.get(i).aspects();
-		}
-		final List<SignalAspect> shown = HoldSequence.apply(aspects, counts, held);
-		final List<Boundary> result = new ArrayList<>(boundaries.size());
-		for (int i = 0; i < boundaries.size(); i++) {
-			final Boundary boundary = boundaries.get(i);
-			result.add(new Boundary(boundary.railIndex(), shown.get(i), boundary.metresFromHead(), boundary.aspects(), boundary.signal()));
-		}
-		return result;
+		return boundaries;
 	}
 
 	private static SignalAspect aspect(int[] signatures, boolean[] blocked, double[] lengths, int from, int size, int aspects, boolean routeEnded) {
