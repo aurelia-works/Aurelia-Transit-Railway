@@ -1,13 +1,17 @@
 package org.mtr.aurelia.client;
 
+import org.mtr.aurelia.config.AureliaSettings;
 import org.mtr.libraries.com.google.gson.JsonObject;
 import org.mtr.libraries.com.google.gson.JsonParser;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * This client's passenger drawing switches, in {@code config/aurelia/passenger-draw.json}.
+ * This client's passenger drawing switches, the {@code passenger_draw} section of {@code config/aurelia/settings.json}
+ * (formerly {@code passenger-draw.json}).
  * Missing file and missing keys keep the defaults, so an old config folder loads unchanged.
  * Defaults stay cheap: drawing is off, and the distances are short, for low-end PCs and shader packs.
  */
@@ -35,17 +39,13 @@ public final class PassengerDrawSettings {
 	}
 
 	public static void load(Path configDir) {
-		final Path file = file(configDir);
-		if (!Files.isRegularFile(file)) {
-			values = DEFAULT;
-			return;
-		}
-		try {
-			values = from(JsonParser.parseString(Files.readString(file)).getAsJsonObject());
-		} catch (Exception e) {
-			AureliaClient.LOGGER.error("[ATR] passenger-draw.json could not be read; drawing stays off", e);
-			values = DEFAULT;
-		}
+		AureliaSettings.load(configDir);
+		values = from(AureliaSettings.section(AureliaSettings.PASSENGER_DRAW));
+	}
+
+	/** Reads the old {@code passenger-draw.json} into the section body settings.json keeps. */
+	public static JsonObject readLegacy(Path file) throws IOException {
+		return from(JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject()).toJson();
 	}
 
 	public static Values get() {
@@ -135,31 +135,7 @@ public final class PassengerDrawSettings {
 	}
 
 	private static void save() {
-		try {
-			final Path file = file(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir());
-			Files.createDirectories(file.getParent());
-			final JsonObject json = new JsonObject();
-			json.addProperty("draw", values.draw());
-			json.addProperty("drawDistance", values.drawDistance());
-			json.addProperty("detailDistance", values.detailDistance());
-			json.addProperty("maxPerPlatform", values.maxPerPlace());
-			json.addProperty("solid", values.solid());
-			json.addProperty("figureSize", values.figureSize());
-			json.addProperty("waitingHue", values.waitingHue());
-			json.addProperty("ridingHue", values.ridingHue());
-			json.addProperty("people", values.people());
-			json.addProperty("maxWalkers", values.maxWalkers());
-			json.addProperty("routes", values.routes());
-			json.addProperty("walkRange", values.walkRange());
-			json.addProperty("maxPath", values.maxPath());
-			Files.writeString(file, json.toString());
-		} catch (Exception e) {
-			AureliaClient.LOGGER.error("[ATR] passenger-draw.json could not be written", e);
-		}
-	}
-
-	private static Path file(Path configDir) {
-		return configDir.resolve("aurelia").resolve("passenger-draw.json");
+		AureliaSettings.put(AureliaSettings.PASSENGER_DRAW, values.toJson());
 	}
 
 	private static int clamp(int value, int min, int max) {
@@ -174,6 +150,24 @@ public final class PassengerDrawSettings {
 		/** Detail never reaches farther than the draw distance. */
 		public Values detailInsideDraw() {
 			return detailDistance <= drawDistance ? this : new Values(draw, drawDistance, drawDistance, maxPerPlace, solid, figureSize, waitingHue, ridingHue, people, maxWalkers, routes, walkRange, maxPath);
+		}
+
+		public JsonObject toJson() {
+			final JsonObject json = new JsonObject();
+			json.addProperty("draw", draw);
+			json.addProperty("drawDistance", drawDistance);
+			json.addProperty("detailDistance", detailDistance);
+			json.addProperty("maxPerPlatform", maxPerPlace);
+			json.addProperty("solid", solid);
+			json.addProperty("figureSize", figureSize);
+			json.addProperty("waitingHue", waitingHue);
+			json.addProperty("ridingHue", ridingHue);
+			json.addProperty("people", people);
+			json.addProperty("maxWalkers", maxWalkers);
+			json.addProperty("routes", routes);
+			json.addProperty("walkRange", walkRange);
+			json.addProperty("maxPath", maxPath);
+			return json;
 		}
 	}
 }

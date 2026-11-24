@@ -1,23 +1,25 @@
 package org.mtr.aurelia.pack;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import net.fabricmc.loader.api.FabricLoader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.mtr.aurelia.config.AureliaSettings;
+import org.mtr.libraries.com.google.gson.JsonElement;
+import org.mtr.libraries.com.google.gson.JsonObject;
+import org.mtr.libraries.com.google.gson.JsonParser;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * The private-pack master switch, in {@code config/aurelia/packs.json}. Missing file, missing key or a value that is not
- * a boolean keeps packs on, so old configs and worlds load unchanged.
+ * The private-pack master switch, the {@code packs} section of {@code config/aurelia/settings.json} (formerly
+ * {@code packs.json}). Missing file, missing key or a value that is not a boolean keeps packs on, so old configs and
+ * worlds load unchanged.
  */
 public final class PackSettings {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger("ATR Aurelia");
-	private static Boolean enabled;
+	private static boolean enabled = true;
+	private static boolean loaded;
 
 	private PackSettings() {
 	}
@@ -33,41 +35,41 @@ public final class PackSettings {
 		save();
 	}
 
+	public static synchronized void load(Path configDir) {
+		AureliaSettings.load(configDir);
+		loaded = true;
+		apply(AureliaSettings.section(AureliaSettings.PACKS));
+	}
+
+	/** Reads the old {@code packs.json} into the section body settings.json keeps. */
+	public static JsonObject readLegacy(Path file) throws IOException {
+		final JsonObject root = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
+		enabled = read(root);
+		return toJson();
+	}
+
+	private static void apply(JsonObject json) {
+		enabled = read(json);
+	}
+
+	private static boolean read(JsonObject json) {
+		final JsonElement value = json.get("enabled");
+		return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isBoolean() ? value.getAsBoolean() : true;
+	}
+
+	private static JsonObject toJson() {
+		final JsonObject root = new JsonObject();
+		root.addProperty("enabled", enabled);
+		return root;
+	}
+
 	private static void load() {
-		if (enabled != null) {
-			return;
-		}
-		enabled = true;
-		final Path file = file();
-		if (!Files.isRegularFile(file)) {
-			return;
-		}
-		try {
-			final JsonElement root = JsonParser.parseString(Files.readString(file));
-			if (root.isJsonObject()) {
-				final JsonElement value = root.getAsJsonObject().get("enabled");
-				if (value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isBoolean()) {
-					enabled = value.getAsBoolean();
-				}
-			}
-		} catch (Exception e) {
-			LOGGER.error("[ATR] packs.json could not be read; private packs stay on", e);
+		if (!loaded) {
+			load(FabricLoader.getInstance().getConfigDir());
 		}
 	}
 
 	private static void save() {
-		try {
-			final Path file = file();
-			Files.createDirectories(file.getParent());
-			final JsonObject root = new JsonObject();
-			root.addProperty("enabled", enabled);
-			Files.writeString(file, root.toString());
-		} catch (Exception e) {
-			LOGGER.error("[ATR] packs.json could not be written", e);
-		}
-	}
-
-	private static Path file() {
-		return FabricLoader.getInstance().getConfigDir().resolve("aurelia").resolve("packs.json");
+		AureliaSettings.put(AureliaSettings.PACKS, toJson());
 	}
 }
