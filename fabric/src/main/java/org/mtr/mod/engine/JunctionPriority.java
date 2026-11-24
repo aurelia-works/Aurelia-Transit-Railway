@@ -29,8 +29,9 @@ public final class JunctionPriority {
 	public static final long DWELL_CLAIM_MILLIS = 10_000;
 	/** The longest a train gives way in one go. */
 	public static final long MAX_YIELD_MILLIS = 60_000;
-	/** A claim not renewed for this long belongs to a train that is gone. */
-	private static final long CLAIM_LIFE_MILLIS = 1_000;
+	/** A claim not renewed for this long belongs to a train that is gone. Long enough to ride out a jittered renewal or
+	 * one slow server tick, because a claim that lapses for a single ask would release a waiting train for good. */
+	private static final long CLAIM_LIFE_MILLIS = 2_500;
 
 	private static final Map<Long, Claim> CLAIMS = new ConcurrentHashMap<>();
 	/** Route ids the signaller lets go first, saved with the world. Replaced, never changed in place. */

@@ -30,8 +30,8 @@ class JunctionPriorityTest {
 		assertFalse(JunctionPriority.claimedByOther(slow, List.of("junction"), "approach", 1_500));
 		// a train never waits for its own claim
 		assertFalse(JunctionPriority.claimedByOther(express, List.of("junction"), "elsewhere", 1_500));
-		// a claim the express stopped renewing (it left or was removed) lets everyone through
-		assertFalse(JunctionPriority.claimedByOther(slow, List.of("junction"), "branch", 3_000));
+		// a claim the express stopped renewing (it left or was removed) lets everyone through after its 2.5 s life
+		assertFalse(JunctionPriority.claimedByOther(slow, List.of("junction"), "branch", 4_000));
 	}
 
 	/** The engine asks again a second after a train starts braking for the signal; it must not let the train go then. */
