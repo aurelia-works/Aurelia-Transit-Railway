@@ -20,7 +20,7 @@ import java.util.Set;
 /**
  * Reads trains off a simulator. {@code Siding.vehicles} is private; the map layer already reflects it, and this does
  * the same on the simulation thread. Only trains with speed zero are offered to cargo blocks. Every id is recorded so
- * a moving train is not treated as deleted.
+ * a moving train is not treated as deleted, and every train's points are kept for level crossings.
  */
 public final class CargoVehicles {
 
@@ -35,6 +35,7 @@ public final class CargoVehicles {
 			return TrainSnapshot.unreliable();
 		}
 		final List<StoppedTrain> stopped = new ArrayList<>();
+		final List<List<double[]>> everyTrain = new ArrayList<>();
 		final Set<Long> allIds = new HashSet<>();
 		try {
 			for (final Siding siding : simulator.sidings) {
@@ -49,17 +50,19 @@ public final class CargoVehicles {
 					final Vehicle vehicle = (Vehicle) vehicleObject;
 					final long id = vehicle.getId();
 					allIds.add(id);
+					final List<double[]> points = points(vehicle);
+					everyTrain.add(points);
 					if (vehicle.isMoving()) {
 						continue;
 					}
-					stopped.add(new StoppedTrain(id, routeId(vehicle), cars(vehicle), points(vehicle)));
+					stopped.add(new StoppedTrain(id, routeId(vehicle), cars(vehicle), points));
 				}
 			}
 		} catch (Exception e) {
 			Init.LOGGER.error("Cargo could not read trains", e);
 			return TrainSnapshot.unreliable();
 		}
-		return new TrainSnapshot(stopped, allIds, true, System.currentTimeMillis());
+		return new TrainSnapshot(stopped, everyTrain, allIds, true, System.currentTimeMillis());
 	}
 
 	private static long routeId(Vehicle vehicle) {

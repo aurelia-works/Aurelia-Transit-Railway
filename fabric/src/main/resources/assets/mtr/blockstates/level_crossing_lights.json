@@ -1,0 +1,52 @@
+{
+	"variants": {
+		"facing=north,flash=0": {
+			"model": "mtr:block/level_crossing_lights",
+			"y": 0
+		},
+		"facing=north,flash=1": {
+			"model": "mtr:block/level_crossing_lights_left",
+			"y": 0
+		},
+		"facing=north,flash=2": {
+			"model": "mtr:block/level_crossing_lights_right",
+			"y": 0
+		},
+		"facing=east,flash=0": {
+			"model": "mtr:block/level_crossing_lights",
+			"y": 90
+		},
+		"facing=east,flash=1": {
+			"model": "mtr:block/level_crossing_lights_left",
+			"y": 90
+		},
+		"facing=east,flash=2": {
+			"model": "mtr:block/level_crossing_lights_right",
+			"y": 90
+		},
+		"facing=south,flash=0": {
+			"model": "mtr:block/level_crossing_lights",
+			"y": 180
+		},
+		"facing=south,flash=1": {
+			"model": "mtr:block/level_crossing_lights_left",
+			"y": 180
+		},
+		"facing=south,flash=2": {
+			"model": "mtr:block/level_crossing_lights_right",
+			"y": 180
+		},
+		"facing=west,flash=0": {
+			"model": "mtr:block/level_crossing_lights",
+			"y": 270
+		},
+		"facing=west,flash=1": {
+			"model": "mtr:block/level_crossing_lights_left",
+			"y": 270
+		},
+		"facing=west,flash=2": {
+			"model": "mtr:block/level_crossing_lights_right",
+			"y": 270
+		}
+	}
+}

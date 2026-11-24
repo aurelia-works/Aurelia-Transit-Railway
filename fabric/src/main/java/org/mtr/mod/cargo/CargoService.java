@@ -130,6 +130,15 @@ public final class CargoService {
 		STORE.markDirty(dimension, train.id());
 	}
 
+	/**
+	 * Where every train in {@code dimension} is, each as its points (head first, {@code x, y, z}), from the last read of
+	 * the simulation; empty when there is no fresh read. Level crossings close on it.
+	 */
+	public static List<List<double[]>> trains(String dimension) {
+		final TrainSnapshot snapshot = SNAPSHOTS.get(dimension);
+		return snapshot == null || System.currentTimeMillis() - snapshot.millis() > SNAPSHOT_STALE_MILLIS ? List.of() : snapshot.trains();
+	}
+
 	public static int itemCount(long vehicleId) {
 		return STORE.itemCount(vehicleId);
 	}

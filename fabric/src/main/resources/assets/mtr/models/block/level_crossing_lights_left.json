@@ -1,0 +1,6 @@
+{
+	"parent": "mtr:block/level_crossing_lights",
+	"textures": {
+		"left": "minecraft:block/red_concrete"
+	}
+}

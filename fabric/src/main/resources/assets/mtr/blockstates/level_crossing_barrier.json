@@ -1,0 +1,20 @@
+{
+	"variants": {
+		"facing=north": {
+			"model": "mtr:block/level_crossing_barrier",
+			"y": 0
+		},
+		"facing=east": {
+			"model": "mtr:block/level_crossing_barrier",
+			"y": 90
+		},
+		"facing=south": {
+			"model": "mtr:block/level_crossing_barrier",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "mtr:block/level_crossing_barrier",
+			"y": 270
+		}
+	}
+}

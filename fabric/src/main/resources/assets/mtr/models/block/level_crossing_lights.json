@@ -1,0 +1,172 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"particle": "minecraft:block/light_gray_concrete",
+		"post": "minecraft:block/light_gray_concrete",
+		"board": "minecraft:block/black_concrete",
+		"left": "minecraft:block/red_terracotta",
+		"right": "minecraft:block/red_terracotta"
+	},
+	"elements": [
+		{
+			"from": [
+				7,
+				0,
+				8
+			],
+			"to": [
+				9,
+				16,
+				10
+			],
+			"faces": {
+				"north": {
+					"texture": "#post"
+				},
+				"south": {
+					"texture": "#post"
+				},
+				"east": {
+					"texture": "#post"
+				},
+				"west": {
+					"texture": "#post"
+				},
+				"up": {
+					"texture": "#post"
+				},
+				"down": {
+					"texture": "#post"
+				}
+			}
+		},
+		{
+			"from": [
+				1,
+				8,
+				7
+			],
+			"to": [
+				15,
+				14,
+				8
+			],
+			"faces": {
+				"north": {
+					"texture": "#board"
+				},
+				"south": {
+					"texture": "#board"
+				},
+				"east": {
+					"texture": "#board"
+				},
+				"west": {
+					"texture": "#board"
+				},
+				"up": {
+					"texture": "#board"
+				},
+				"down": {
+					"texture": "#board"
+				}
+			}
+		},
+		{
+			"from": [
+				2,
+				9,
+				6
+			],
+			"to": [
+				6,
+				13,
+				7
+			],
+			"faces": {
+				"north": {
+					"texture": "#left"
+				},
+				"south": {
+					"texture": "#left"
+				},
+				"east": {
+					"texture": "#left"
+				},
+				"west": {
+					"texture": "#left"
+				},
+				"up": {
+					"texture": "#left"
+				},
+				"down": {
+					"texture": "#left"
+				}
+			}
+		},
+		{
+			"from": [
+				10,
+				9,
+				6
+			],
+			"to": [
+				14,
+				13,
+				7
+			],
+			"faces": {
+				"north": {
+					"texture": "#right"
+				},
+				"south": {
+					"texture": "#right"
+				},
+				"east": {
+					"texture": "#right"
+				},
+				"west": {
+					"texture": "#right"
+				},
+				"up": {
+					"texture": "#right"
+				},
+				"down": {
+					"texture": "#right"
+				}
+			}
+		},
+		{
+			"from": [
+				5.5,
+				0,
+				6.5
+			],
+			"to": [
+				10.5,
+				1,
+				11.5
+			],
+			"faces": {
+				"north": {
+					"texture": "#board"
+				},
+				"south": {
+					"texture": "#board"
+				},
+				"east": {
+					"texture": "#board"
+				},
+				"west": {
+					"texture": "#board"
+				},
+				"up": {
+					"texture": "#board"
+				},
+				"down": {
+					"texture": "#board"
+				}
+			}
+		}
+	]
+}

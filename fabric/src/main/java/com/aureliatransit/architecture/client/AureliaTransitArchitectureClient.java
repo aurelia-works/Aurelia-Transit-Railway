@@ -40,6 +40,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		FreePlacementRender.init();
 		LiveClient.init();
 		AirportClient.init();
+		org.mtr.aurelia.crossing.client.LevelCrossingsClient.register();
 		BridgeClient.init();
 		InteractiveClient.init();
 		WayfindingLogicClient.init();
