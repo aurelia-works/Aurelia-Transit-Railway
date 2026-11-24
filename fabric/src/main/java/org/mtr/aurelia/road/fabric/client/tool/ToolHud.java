@@ -31,6 +31,7 @@ import org.mtr.aurelia.road.fabric.client.editor.StratosEditorClient;
 import org.mtr.aurelia.road.fabric.client.ui.RoadPicture;
 import org.mtr.aurelia.road.fabric.client.nodes.StratosNodes;
 import org.mtr.aurelia.road.fabric.client.ui.RoadColours;
+import org.mtr.aurelia.road.fabric.client.hub.HubScreen;
 import org.mtr.aurelia.road.fabric.client.ui.HubIcon;
 import org.mtr.aurelia.road.fabric.client.ui.UiText;
 
@@ -178,7 +179,13 @@ public final class ToolHud {
         panelBox = null;
         messageBox = null;
         MinecraftClient minecraft = MinecraftClient.getInstance();
-        if (minecraft.options.hudHidden || minecraft.currentScreen != null || StratosTools.session() == null) {
+        boolean hub = minecraft.currentScreen instanceof HubScreen;
+        if (minecraft.options.hudHidden || minecraft.currentScreen != null && !hub || StratosTools.session() == null) {
+            return;
+        }
+        // UI-1c: while Settings covers the panel's place (GUI scales 3 and 4), the panel and its messages hide.
+        Box place = new Box(graphics.getScaledWindowWidth() - MARGIN - WIDTH, MARGIN, WIDTH, HubScreen.top(graphics.getScaledWindowHeight()) - MARGIN);
+        if (minecraft.currentScreen instanceof HubScreen screen && screen.settingsArea().filter(place::overlaps).isPresent()) {
             return;
         }
         Optional<Tool> tool = StratosTools.session().active();
@@ -194,8 +201,8 @@ public final class ToolHud {
         }
         TextRenderer font = minecraft.textRenderer;
         int x = graphics.getScaledWindowWidth() - MARGIN - WIDTH;
-        // Clear of the hotbar.
-        int bottom = graphics.getScaledWindowHeight() - HOTBAR - GAP;
+        // Clear of the hub's bar while it's open, else of the hotbar.
+        int bottom = (hub ? HubScreen.top(graphics.getScaledWindowHeight()) : graphics.getScaledWindowHeight() - HOTBAR) - GAP;
         int y = MARGIN + effectRows(minecraft) * EFFECT_ROW;
         int stripX = x;
         int stripY = y;
