@@ -51,6 +51,7 @@ public final class MapGround {
 		final int lastX = MapRegion.regionOf((int) Math.floor(centerX + width / 2.0 / scale));
 		final int firstZ = MapRegion.regionOf((int) Math.floor(centerZ - height / 2.0 / scale));
 		final int lastZ = MapRegion.regionOf((int) Math.floor(centerZ + height / 2.0 / scale));
+		ServerTiles.askInView(map, firstX, lastX, firstZ, lastZ);
 
 		int count = 0;
 		for (final long key : map.knownKeys()) {
