@@ -1,7 +1,10 @@
 # Driving and signalling
 
 Two things landed together: lineside signal aspects now follow the blocks ahead, and a driver gets a UK-style cab
-(AWS, TPWS, door keys, a stop marker and a score). Everything visible is switched on the panel's new **Driving** tab.
+with AWS and TPWS. Everything visible is switched on the panel's **Driving** tab.
+
+2026-11-24: the door keys, stop board, stop tape, score and crew roles were removed (scope decision in `PLAN.md`).
+Only AWS/TPWS and the cab HUD that shows them stay. The old config keys are still read, so old configs load.
 
 ![Driver HUD layout preview](driving-hud.svg)
 
@@ -16,11 +19,8 @@ The picture is a synthetic layout preview, not an in-game screenshot; the in-gam
 | Toggle doors | Left arrow (MTR) | MTR's own door toggle |
 | AWS acknowledge | J | Cancels an AWS horn and the service brake it applied |
 | TPWS reset | K | Releases a TPWS trip after the train is at a stand |
-| Open left | Comma | Opens the doors if the left side is at a platform |
-| Open right | Period | Opens the doors if the right side is at a platform |
-| Close doors | Semicolon | Closes the doors |
 
-The four new bindings have their own ids (`key.aurelia.driving.*`) in MTR's keybinding category, so existing
+The two bindings have their own ids (`key.aurelia.driving.*`) in MTR's keybinding category, so existing
 bindings and old options files are untouched. Rebind them in Options → Controls if they clash.
 
 ## Signal aspects
@@ -66,7 +66,7 @@ A TPWS trip puts the emergency brake on (B8) and lights the TPWS indicator. It l
 
 - **Overspeed:** within 150 m of a restrictive signal, the current speed above the lower of the track and manual
   limits by 5% + 1 km/h. Real TPWS overspeed loops sit at signal approaches and speed restrictions, not on every
-  metre of line, so plain-line overspeed is scored but not tripped. The HUD shows `TPWS ARMED` inside that window.
+  metre of line, so plain-line overspeed is not tripped. The HUD shows `TPWS ARMED` inside that window.
 - **SPAD:** passing a signal whose block is occupied, i.e. a signal that was red.
 
 Stop the train, then press K. The reset is refused while the train is moving. The emergency brake stays applied
@@ -75,54 +75,22 @@ until the driver notches up after the reset.
 MTR does not store TPWS loop positions, so overspeed is a continuous monitor rather than a pair of loops at a
 particular signal. The SPAD sensor uses the same block-boundary data as AWS.
 
-## Doors
-
-MTR has one door toggle. The two open keys add the side check a real driver makes: the key does nothing and says
-"No platform on the left/right" unless platform blocks are next to that side of the train. The train's reversed
-state is taken into account. At a bay with platforms on both sides MTR opens both, because its door system has no
-independent per-side latch. The close key always sends the MTR toggle, which closes at a stand and is a no-op while
-moving.
-
-## Stop marker
-
-When a platform stop is within 400 m, a yellow/black stop board is drawn beside the track at the front stop point for
-this train. Its face says `N CAR STOP` for this train, and the HUD also shows a stop tape, the distance to the marker,
-and the car count and length, so the same marker works for a 2-car unit and a 10-car set. The board is geometry and
-billboard text; no new sign art.
-
-## Score
-
-One run starts when the train begins moving (above 0.5 m/s) and ends at a platform stop within 5 m of the marker.
-Stopping at a signal before the platform does not end the run, so the clock keeps going. A stop short of the
-platform ends the run with a poor accuracy and a new run starts from the next departure.
-
-- Base 1000 points.
-- Up to 300 for stop accuracy: full marks within 0.3 m, zero at 3 m and beyond.
-- −300 per SPAD, −100 per overspeed event (the first tick over the limit, not every tick).
-- −1 point per 10 s over three minutes. MTR gives the client no timetable target, so time is a gentle cap, not a
-  punctuality score.
-
-The HUD shows the current run while moving and the last run after stopping. The **Score HUD** switch hides the last
-line; the run is still scored.
-
 ## Cab HUD
 
 The panel is a dark desk with a round analogue speedometer (green limit tick, red needle, digital speed below), a
-vertical power/brake gauge with P7/N/B8 detents, a door diagram that lights the platform side, the AWS sunflower,
-the TPWS state (`OK`/`ARMED`/`TRIP`), a four-lamp next-signal repeater with distance and aspect, the stop tape and
-the score. It shrinks to fit a small window and scales with the panel slider.
+vertical power/brake gauge with P7/N/B8 detents, the door state with the car count and length, the AWS sunflower,
+the TPWS state (`OK`/`ARMED`/`TRIP`) and a four-lamp next-signal repeater with distance and aspect. It shrinks to fit a small window and scales with the panel slider.
 
 ## Panel
 
 The **Driving** tab has:
 
-- AWS on/off, TPWS on/off, Score HUD on/off.
-- Stop board on/off.
+- AWS on/off, TPWS on/off.
 - AWS acknowledge time, 1.0–6.0 s.
 - HUD size, 75–150%. The HUD also shrinks to fit a small window.
 
-They are new client-config keys (`drivingAws`, `drivingTpws`, `drivingScoreHud`, `drivingStopMarker`, `drivingAwsSeconds`,
-`drivingHudScale`) in `config/mtr.json`. Old configs and worlds load unchanged; missing keys take their defaults.
+They are client-config keys (`drivingAws`, `drivingTpws`, `drivingAwsSeconds`, `drivingHudScale`; the unused
+`drivingScoreHud` and `drivingStopMarker` are still read) in `config/mtr.json`. Old configs and worlds load unchanged; missing keys take their defaults.
 
 ## Test it in game
 
@@ -136,14 +104,9 @@ They are new client-config keys (`drivingAws`, `drivingTpws`, `drivingScoreHud`,
 6. Run past a red with TPWS on. The emergency brake should apply and the HUD should say `TPWS TRIP`; press K while
    still moving and the reset should be refused. Stop, press K, then notch up.
 7. Approach a restrictive signal at more than 5% + 1 km/h above the limit and confirm the TPWS overspeed trip. The
-   same overspeed on plain line should count on the score but not trip.
-8. Stop at a platform and press comma and period. Only the platform side should open. Press semicolon to close. Try
-   the wrong side and check the "No platform" message.
-9. Approach a platform: the stop board should appear beside the track and the HUD tape should count down. Note the
-   car count and length on the HUD.
-10. Complete a run and read the `LAST` line: points, stop error, SPADs, overspeeds, time.
-11. Open the panel's Driving tab and change every switch and slider. Restart; they should persist.
-12. Check F3 while several signals are in view: aspects are cached, so frame time should not change noticeably.
+   same overspeed on plain line should not trip.
+8. Open the panel's Driving tab and change every switch and slider. Restart; they should persist.
+9. Check F3 while several signals are in view: aspects are cached, so frame time should not change noticeably.
 
 ## Known limits
 
@@ -155,6 +118,4 @@ They are new client-config keys (`drivingAws`, `drivingTpws`, `drivingScoreHud`,
 - The HUD skips a block boundary when no physical signal head is found within the node scan, so the next signal
   shown is the next one it could identify; the AWS horn/bell uses the head it did find.
 - MTR's notches are P1–P7 and B1–B8, not a specific class's P1–P4/B1–B7; the emergency brake is B8.
-- Door open-left/open-right gate MTR's single toggle, so a bay platform with both sides open opens all doors.
-- The stop board is geometry with a billboard label, not a bespoke sign texture.
 - Sounds are synthesized, not recorded from a real AWS/TPWS installation.
