@@ -114,6 +114,10 @@ public class RenderPIDS<T extends BlockPIDSBase.BlockEntityBase> extends BlockEn
 		final int arrivalsPerPage = isSingleArrival ? 1 : entity.alternateLines() ? entity.maxArrivals / 2 : entity.maxArrivals;
 		int arrivalIndex = entity.getDisplayPage() * arrivalsPerPage;
 
+		final Integer customColor = entity.getCustomColor();
+		final int textColor = customColor == null ? entity.textColor() : customColor;
+		final int textColorArrived = entity.textColorArrived() == entity.textColor() ? textColor : entity.textColorArrived();
+
 		for (int i = 0; i < entity.maxArrivals; i++) {
 			final int languageTicks = (int) Math.floor(InitClient.getGameTick()) / SWITCH_LANGUAGE_TICKS;
 			final ArrivalResponse arrivalResponse;
@@ -178,10 +182,10 @@ public class RenderPIDS<T extends BlockPIDSBase.BlockEntityBase> extends BlockEn
 			graphicsHolder.scale(1 / scale, 1 / scale, 1 / scale);
 
 			if (renderCustomMessage) {
-				renderText(graphicsHolder, customMessageSplit[languageIndex], entity.textColor(), maxWidth * scale / 16, HorizontalAlignment.LEFT);
+				renderText(graphicsHolder, customMessageSplit[languageIndex], textColor, maxWidth * scale / 16, HorizontalAlignment.LEFT);
 			} else {
 				final long arrival = (arrivalResponse.getArrival() - ArrivalsCacheClient.INSTANCE.getMillisOffset() - System.currentTimeMillis()) / 1000;
-				final int color = arrival <= 0 ? entity.textColorArrived() : entity.textColor();
+				final int color = arrival <= 0 ? textColorArrived : textColor;
 				final String destination = destinationSplit[languageIndex];
 				final boolean isCjk = IGui.isCjk(destination);
 				final String destinationFormatted;

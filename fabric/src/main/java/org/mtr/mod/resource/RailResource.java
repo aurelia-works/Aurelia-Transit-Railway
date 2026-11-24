@@ -25,7 +25,7 @@ public final class RailResource extends RailResourceSchema implements StoredMode
 	 * Used to create the default rail
 	 */
 	public RailResource(String id, String name, ResourceProvider resourceProvider) {
-		super(id, name, "777777", "", "", false, 0, 0, resourceProvider);
+		super(id, name, "777777", "", "", false, 0, 0, 0, resourceProvider);
 		shouldPreload = false;
 		cachedRailResource = new CachedResource<>(() -> null, Integer.MAX_VALUE);
 	}
@@ -67,6 +67,13 @@ public final class RailResource extends RailResourceSchema implements StoredMode
 
 	public double getModelYOffset() {
 		return modelYOffset;
+	}
+
+	/**
+	 * Which run sound of a train's sound.cfg this rail plays. Packs that leave the field out get index 0.
+	 */
+	public int getSoundIndex() {
+		return (int) soundIndex;
 	}
 
 	public static String getIdWithoutDirection(String id) {
