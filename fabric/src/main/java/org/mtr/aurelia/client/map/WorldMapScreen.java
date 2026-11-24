@@ -5,9 +5,12 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 import org.mtr.aurelia.map.MapCamera;
+
+import java.util.List;
 
 /**
  * The full-screen map: drag to move, scroll to zoom about the cursor, C to come back to the player, right-click to set
@@ -32,6 +35,8 @@ public final class WorldMapScreen extends Screen {
 	private int cursorX = Integer.MIN_VALUE;
 	private int cursorZ = Integer.MIN_VALUE;
 	private Text cursor = Text.empty();
+	/** The hint wrapped to the room left of the station list, made again on resize. */
+	private List<OrderedText> hint = List.of();
 
 	public WorldMapScreen() {
 		super(Text.translatable("gui.aurelia.map.title"));
@@ -62,6 +67,7 @@ public final class WorldMapScreen extends Screen {
 		});
 		filter.setText(lastFilter);
 		stations.setFilter(lastFilter);
+		hint = textRenderer.wrapLines(HINT, Math.max(40, listLeft() - MARGIN * 3));
 	}
 
 	private int toggle(int y, String key, java.util.function.BooleanSupplier get, Runnable flip) {
@@ -112,8 +118,13 @@ public final class WorldMapScreen extends Screen {
 			cursorZ = worldZ;
 			cursor = Text.translatable("gui.aurelia.map.cursor", worldX, worldZ);
 		}
-		context.drawTextWithShadow(textRenderer, cursor, MARGIN + 2, height - MARGIN - 21, 0xDDDDDD);
-		context.drawTextWithShadow(textRenderer, HINT, MARGIN + 2, height - MARGIN - 9, 0x888888);
+		// bottom left: the cursor's coordinates on the bottom row, beside the zoom buttons, and the hint above, wrapped
+		// so it never runs under the buttons or the station list
+		final int cursorY = height - MARGIN - 13;
+		context.drawTextWithShadow(textRenderer, cursor, MARGIN + 2, cursorY, 0xDDDDDD);
+		for (int i = 0; i < hint.size(); i++) {
+			context.drawTextWithShadow(textRenderer, hint.get(i), MARGIN + 2, cursorY - 11 * (hint.size() - i), 0x888888);
+		}
 		pinMenu.render(context, mouseX, mouseY, width, height);
 	}
 

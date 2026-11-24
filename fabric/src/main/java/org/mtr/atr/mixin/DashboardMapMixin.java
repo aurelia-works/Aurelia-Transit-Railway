@@ -51,6 +51,10 @@ public abstract class DashboardMapMixin extends ClickableWidgetExtension impleme
 	@Unique
 	private final PinMenu atr$pinMenu = new PinMenu();
 
+	/** MTR is editing an area or a route (its own map state is a private enum), so a right-click is MTR's. */
+	@Unique
+	private boolean atr$editing;
+
 	protected DashboardMapMixin(int x, int y, int width, int height) {
 		super(x, y, width, height);
 	}
@@ -136,9 +140,23 @@ public abstract class DashboardMapMixin extends ClickableWidgetExtension impleme
 		}
 	}
 
-	/** Right-click opens the home and landmark menu; while it is open, a click goes to it and nowhere else. */
+	@Inject(method = {"startEditingArea", "startEditingRoute"}, at = @At("HEAD"))
+	private void atr$startEditing(CallbackInfo ci) {
+		this.atr$editing = true;
+		this.atr$pinMenu.close();
+	}
+
+	@Inject(method = "stopEditing", at = @At("HEAD"))
+	private void atr$stopEditing(CallbackInfo ci) {
+		this.atr$editing = false;
+	}
+
+	/** Right-click opens the home and landmark menu, except while MTR edits an area or route; while it is open, a click goes to it and nowhere else. */
 	@Inject(method = "mouseClicked2", at = @At("HEAD"), cancellable = true)
 	private void atr$pinMenuClick(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+		if (this.atr$editing) {
+			return;
+		}
 		if (this.atr$pinMenu.click(mouseX, mouseY)) {
 			cir.setReturnValue(true);
 		} else if (button == 1 && this.isMouseOver2(mouseX, mouseY)) {

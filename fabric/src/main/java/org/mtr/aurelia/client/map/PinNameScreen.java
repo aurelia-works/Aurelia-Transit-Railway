@@ -18,6 +18,7 @@ public final class PinNameScreen extends Screen {
 	private final int worldX;
 	private final int worldZ;
 	private TextFieldWidget name;
+	private ButtonWidget add;
 
 	public PinNameScreen(@Nullable Screen parent, int worldX, int worldZ) {
 		super(Text.translatable("gui.aurelia.map.pin.name_title"));
@@ -32,7 +33,10 @@ public final class PinNameScreen extends Screen {
 		name.setMaxLength(MapPins.MAX_NAME);
 		addDrawableChild(name);
 		setInitialFocus(name);
-		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.map.pin.add"), button -> done()).dimensions(width / 2 - 100, height / 2 + 6, 98, 20).build());
+		add = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.map.pin.add"), button -> done()).dimensions(width / 2 - 100, height / 2 + 6, 98, 20).build());
+		// a landmark needs a name: Add stays off while the field is blank
+		add.active = !name.getText().isBlank();
+		name.setChangedListener(text -> add.active = !text.isBlank());
 		addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, button -> close()).dimensions(width / 2 + 2, height / 2 + 6, 98, 20).build());
 	}
 
@@ -65,6 +69,9 @@ public final class PinNameScreen extends Screen {
 	}
 
 	private void done() {
+		if (name.getText().isBlank()) {
+			return;
+		}
 		MapPins.addLandmark(name.getText(), worldX, worldZ);
 		close();
 	}
