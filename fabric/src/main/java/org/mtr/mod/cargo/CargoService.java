@@ -12,6 +12,7 @@ import org.mtr.mod.Init;
 import org.mtr.mod.block.BlockTrainSensorBase;
 import org.mtr.mod.packet.PacketSyncTrainCargo;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.List;
@@ -131,12 +132,13 @@ public final class CargoService {
 	}
 
 	/**
-	 * Where every train in {@code dimension} is, each as its points (head first, {@code x, y, z}), from the last read of
-	 * the simulation; empty when there is no fresh read. Level crossings close on it.
+	 * Every train in {@code dimension} from the last read of the simulation, for level crossings; null when there is no
+	 * fresh, reliable read (the core has not started, or stalled), so a crossing can hold its state instead of opening.
 	 */
-	public static List<List<double[]>> trains(String dimension) {
+	@Nullable
+	public static List<CrossingTrain> trains(String dimension) {
 		final TrainSnapshot snapshot = SNAPSHOTS.get(dimension);
-		return snapshot == null || System.currentTimeMillis() - snapshot.millis() > SNAPSHOT_STALE_MILLIS ? List.of() : snapshot.trains();
+		return snapshot == null || !snapshot.reliable() || System.currentTimeMillis() - snapshot.millis() > SNAPSHOT_STALE_MILLIS ? null : snapshot.trains();
 	}
 
 	public static int itemCount(long vehicleId) {

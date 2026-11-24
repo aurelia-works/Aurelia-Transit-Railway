@@ -76,11 +76,11 @@ public final class LevelCrossingBarrierBlock extends HorizontalFacingBlock imple
 	@Override
 	@SuppressWarnings("deprecation")
 	public void scheduledTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
-		final boolean closed = LevelCrossings.closed(world, pos);
+		final boolean closed = LevelCrossings.closed(world, pos, state.get(LOWERED));
 		if (closed != state.get(LOWERED)) {
 			world.setBlockState(pos, state.with(LOWERED, closed), Block.NOTIFY_ALL);
 		}
-		world.scheduleBlockTick(pos, this, LevelCrossings.CHECK_TICKS);
+		world.scheduleBlockTick(pos, this, LevelCrossings.nextCheck(closed));
 	}
 
 	@Override

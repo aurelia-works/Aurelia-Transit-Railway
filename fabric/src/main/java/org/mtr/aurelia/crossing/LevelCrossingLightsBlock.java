@@ -65,14 +65,16 @@ public final class LevelCrossingLightsBlock extends HorizontalFacingBlock {
 	@Override
 	@SuppressWarnings("deprecation")
 	public void scheduledTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
-		final int flash = LevelCrossings.closed(world, pos) ? state.get(FLASH) == 1 ? 2 : 1 : 0;
+		final boolean closed = LevelCrossings.closed(world, pos, state.get(FLASH) > 0);
+		// each lamp stays lit CHECK_TICKS, by the world's clock, however often a closed crossing looks
+		final int flash = closed ? (world.getTime() / LevelCrossings.CHECK_TICKS) % 2 == 0 ? 1 : 2 : 0;
 		if (flash != state.get(FLASH)) {
 			world.setBlockState(pos, state.with(FLASH, flash), Block.NOTIFY_ALL);
+			if (flash > 0) {
+				world.playSound(null, pos, SoundEvents.BLOCK_NOTE_BLOCK_BELL.value(), SoundCategory.BLOCKS, 0.6F, flash == 1 ? 1.5F : 1.4F);
+			}
 		}
-		if (flash > 0) {
-			world.playSound(null, pos, SoundEvents.BLOCK_NOTE_BLOCK_BELL.value(), SoundCategory.BLOCKS, 0.6F, flash == 1 ? 1.5F : 1.4F);
-		}
-		world.scheduleBlockTick(pos, this, LevelCrossings.CHECK_TICKS);
+		world.scheduleBlockTick(pos, this, LevelCrossings.nextCheck(closed));
 	}
 
 	@Override

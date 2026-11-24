@@ -11,7 +11,7 @@ import java.util.Set;
 public final class TrainSnapshot {
 
 	private final List<StoppedTrain> stopped;
-	private final List<List<double[]>> trains;
+	private final List<CrossingTrain> trains;
 	private final Set<Long> allIds;
 	private final boolean reliable;
 	private final long millis;
@@ -20,11 +20,8 @@ public final class TrainSnapshot {
 		this(stopped, List.of(), allIds, reliable, millis);
 	}
 
-	/**
-	 * @param trains every train, moving or not, as its points ({@code x, y, z}): the head first when it is known, then the
-	 *               bogies, for level crossings
-	 */
-	public TrainSnapshot(List<StoppedTrain> stopped, List<List<double[]>> trains, Set<Long> allIds, boolean reliable, long millis) {
+	/** @param trains every train, moving or not, for level crossings */
+	public TrainSnapshot(List<StoppedTrain> stopped, List<CrossingTrain> trains, Set<Long> allIds, boolean reliable, long millis) {
 		this.stopped = stopped == null ? List.of() : List.copyOf(stopped);
 		this.trains = trains == null ? List.of() : List.copyOf(trains);
 		this.allIds = allIds == null ? Set.of() : Set.copyOf(allIds);
@@ -40,8 +37,8 @@ public final class TrainSnapshot {
 		return Collections.unmodifiableList(stopped);
 	}
 
-	/** Where every train is: each one's points, head first, {@code x, y, z}. Do not change the arrays. */
-	public List<List<double[]>> trains() {
+	/** Every train, for level crossings. Do not change the arrays. */
+	public List<CrossingTrain> trains() {
 		return trains;
 	}
 
