@@ -83,18 +83,18 @@ public final class StratosTools {
      * choice, is ReplayMod's), and the harness checks that this one stays free ({@code check.keys}).
      */
     public static final KeyBinding TOOL_KEY = new KeyBinding("key.stratos.tool", InputUtil.Type.KEYSYM,
-            InputUtil.fromTranslationKey("key.keyboard.grave.accent").getCode(), "key.categories.stratos");
+            InputUtil.fromTranslationKey("key.keyboard.grave.accent").getCode(), "category.mtr.keybinding");
 
     /**
      * Undoes the player's latest Stratos edit, while a tool is in hand (owner, 2026-10-06: a stray press in normal play
      * changes nothing). The default is - ([ and ] are JSBlock's and Xaero's, Ctrl+Z is Axiom's).
      */
     public static final KeyBinding UNDO_KEY = new KeyBinding("key.stratos.undo", InputUtil.Type.KEYSYM,
-            InputUtil.fromTranslationKey("key.keyboard.minus").getCode(), "key.categories.stratos");
+            InputUtil.fromTranslationKey("key.keyboard.minus").getCode(), "category.mtr.keybinding");
 
     /** Redoes the player's latest undone Stratos edit, while a tool is in hand. The default is =. */
     public static final KeyBinding REDO_KEY = new KeyBinding("key.stratos.redo", InputUtil.Type.KEYSYM,
-            InputUtil.fromTranslationKey("key.keyboard.equal").getCode(), "key.categories.stratos");
+            InputUtil.fromTranslationKey("key.keyboard.equal").getCode(), "category.mtr.keybinding");
 
     /**
      * The elevation and shape keys (owner, 2026-10-06: R-4), the block above the arrow keys, all free in the full pack:
@@ -157,7 +157,7 @@ public final class StratosTools {
     }
 
     private static KeyBinding key(String name, String defaultKey) {
-        return new KeyBinding(name, InputUtil.Type.KEYSYM, InputUtil.fromTranslationKey(defaultKey).getCode(), "key.categories.stratos");
+        return new KeyBinding(name, InputUtil.Type.KEYSYM, InputUtil.fromTranslationKey(defaultKey).getCode(), "category.mtr.keybinding");
     }
 
     /** The road tools' shared shape settings (the radius box changes them). */
