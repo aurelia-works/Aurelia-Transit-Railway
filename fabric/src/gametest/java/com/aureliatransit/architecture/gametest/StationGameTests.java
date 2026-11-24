@@ -79,6 +79,7 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.world.GameMode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1101,8 +1102,11 @@ public class StationGameTests implements FabricGameTest {
 		final ServerCommandSource op = player.getCommandSource().withLevel(2);
 		final CommandManager commands = world.getServer().getCommandManager();
 
+		// creative mode alone counts (Operators.isOperatorOrCreative), so the refused player plays in survival
+		player.changeGameMode(GameMode.SURVIVAL);
 		check(commands.executeWithPrefix(denied, "/ata_station plan " + SMALL) == 0, "a non-operator ran /ata_station plan");
 		check(StationSessions.pending(id) == null, "a non-operator got a pending plan");
+		player.changeGameMode(GameMode.CREATIVE);
 
 		check(commands.executeWithPrefix(op, "/ata_station plan " + SMALL + ", replace terrain") == 1, "plan failed");
 		// the survey has a tick's wall-clock budget: on a slow server it carries on next tick, and the plan is not there yet
@@ -1348,12 +1352,15 @@ public class StationGameTests implements FabricGameTest {
 		final BlockPos clicked = feet.offset(Direction.SOUTH, LocalFrame.GAP_IN_FRONT).down();
 		final StationSessions.Pending fromFeet = StationCommand.prepare(world, SMALL, feet, Heading.SOUTH);
 
-		// not an operator: nothing happens, and the screen packet does not even save the description
+		// not an operator and not in creative mode (which counts on its own): nothing happens, and the screen packet does
+		// not even save the description
+		player.changeGameMode(GameMode.SURVIVAL);
 		check(!player.hasPermissionLevel(StationActions.PERMISSION_LEVEL), "the mock player is already an operator; this test needs one that is not");
 		click(player, clicked);
 		StationWrenchItem.perform(player, Hand.MAIN_HAND, StationWrenchItem.Action.PLAN, "4 track metro station", "");
 		check(StationSessions.pending(id) == null, "a non-operator planned with the wrench");
 		check(StationWrenchItem.description(player.getMainHandStack()).equals(SMALL), "a non-operator changed the wrench description");
+		player.changeGameMode(GameMode.CREATIVE);
 
 		// an explicit level: the test server's default operator level grants nothing
 		world.getServer().getPlayerManager().getOpList().add(new OperatorEntry(player.getGameProfile(), 4, false));
