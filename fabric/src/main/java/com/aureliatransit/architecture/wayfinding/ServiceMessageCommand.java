@@ -63,7 +63,7 @@ final class ServiceMessageCommand {
 		final var station = CommandManager.argument("name", StringArgumentType.string()).then(legacyStation)
 				.then(CommandManager.literal("clear").executes(context -> clear(context, MessageScope.STATION, StringArgumentType.getString(context, "name"))));
 
-		dispatcher.register(CommandManager.literal("ata_message").requires(source -> Operators.isOperatorSource(source))
+		dispatcher.register(CommandManager.literal("ata_message").requires(source -> Operators.isOperatorOrCreativeSource(source))
 				.then(add)
 				.then(CommandManager.literal("remove").then(CommandManager.argument("id", IntegerArgumentType.integer(1)).executes(ServiceMessageCommand::remove)))
 				.then(CommandManager.literal("clear")

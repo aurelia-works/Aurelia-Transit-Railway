@@ -19,7 +19,7 @@ public final class ModItems {
 			new TransitCardItem(new Item.Settings().maxCount(1)));
 	public static final Item POCKET_TIMETABLE = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("pocket_timetable"),
 			new PocketTimetableItem(new Item.Settings().maxCount(1)));
-	/** The one ATR wrench: Station, Airport, Bridge and Earthworks modes; operators only. */
+	/** The one ATR wrench: Station, Airport, Bridge and Earthworks modes; operators and creative mode only. */
 	public static final Item WRENCH = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("wrench"),
 			new StationWrenchItem(new Item.Settings().maxCount(1)));
 	/** Old station wrench id: kept registered so old worlds load; it is the same wrench, opening in Station mode. */

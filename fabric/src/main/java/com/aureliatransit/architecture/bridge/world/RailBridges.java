@@ -93,7 +93,7 @@ public final class RailBridges {
 		return buf;
 	}
 
-	/** Server: saves the screen's choices on the wrench in the player's hand (operators only, as every wrench action). */
+	/** Server: saves the screen's choices on the wrench in the player's hand (operators and creative mode only, as every wrench action). */
 	public static void registerPackets() {
 		ServerPlayNetworking.registerGlobalReceiver(SETTINGS_PACKET, (server, player, handler, buf, responseSender) -> {
 			final Hand hand;

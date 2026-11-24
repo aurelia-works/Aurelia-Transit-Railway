@@ -3,6 +3,7 @@ package org.mtr.mod.passenger;
 import org.mtr.aurelia.Operators;
 import org.mtr.mod.engine.EngineFeature;
 import org.mtr.mod.engine.EngineSettings;
+import org.mtr.mod.engine.MtrSimulators;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -31,7 +32,6 @@ import org.mtr.core.data.Vehicle;
 import org.mtr.core.simulation.Simulator;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import org.mtr.mod.Init;
-import org.mtr.core.Main;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
@@ -78,7 +78,6 @@ public final class PassengerService {
 	private static Field vehiclesField;
 	private static volatile PassengerNetwork.Settings settings = PassengerNetwork.Settings.DEFAULT;
 	private static int ticks;
-	private static boolean loggedMissingSimulators;
 
 	private PassengerService() {
 	}
@@ -123,7 +122,7 @@ public final class PassengerService {
 	}
 
 	private static void set(MinecraftServer server, ServerPlayerEntity player, PassengerNetwork.Settings requested) {
-		if (!Operators.isOperator(player)) {
+		if (!Operators.isOperatorOrCreative(player)) {
 			return;
 		}
 		final State state = state(server);
@@ -456,26 +455,9 @@ public final class PassengerService {
 		return counts;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Nullable
 	public static ObjectImmutableList<Simulator> simulators() {
-		try {
-			final Field mainField = Init.class.getDeclaredField("main");
-			mainField.setAccessible(true);
-			final Main main = (Main) mainField.get(null);
-			if (main == null) {
-				return null;
-			}
-			final Field field = Main.class.getDeclaredField("simulators");
-			field.setAccessible(true);
-			return (ObjectImmutableList<Simulator>) field.get(main);
-		} catch (ReflectiveOperationException e) {
-			if (!loggedMissingSimulators) {
-				loggedMissingSimulators = true;
-				Init.LOGGER.error("Passengers cannot reach the simulators", e);
-			}
-			return null;
-		}
+		return MtrSimulators.get();
 	}
 
 	private static State state(MinecraftServer server) {
