@@ -52,14 +52,18 @@ import org.mtr.mod.packet.PacketUpdateData;
  *       MTR answers a few ticks later; with no answer within {@value #ANSWER_SECONDS} s, every rail asked about is
  *       {@code FAILED}.</li>
  *   <li><b>Making</b>, on the server thread: a rail already there is a player's ({@code ALREADY_THERE}: left alone and
- *       never owned, as one sent with the same id would replace it). Otherwise, with both node blocks still MTR nodes
- *       facing the lane's way, {@code Rail.newRail} as MTR's connector builds one: the angles from {@code Rail.getAngles}
- *       given each node block, the road's vertical shape and radius, <b>no styles</b> (hidden track), the speed from the
- *       lane's start node in slot 1 and from its end in slot 2, and the flags of MTR's connector at that speed
- *       ({@link RailType}). Then {@code PacketUpdateData.sendDirectlyToServerRail}; MTR sends it to the players itself.</li>
- *   <li><b>Removing:</b> a rail gone already is {@code NOT_THERE}; so is one with a style, a player's put there since,
- *       which is left. Ours goes with {@code PacketDeleteData.sendDirectlyToServerRailId}; MTR resets any node block still
- *       there itself.</li>
+ *       never owned, as one sent with the same id would replace it). A lane whose ends aren't MTR node blocks (a road
+ *       laid with another node aid, such as an old road's blue wool) is {@code SKIPPED}: it can't have track, which is
+ *       not a failure. Otherwise, with both node blocks facing the lane's way, {@code Rail.newRail} as MTR's connector
+ *       builds one: the angles from {@code Rail.getAngles} given each node block, the road's vertical shape and radius,
+ *       <b>no styles</b> (hidden track), the speed from the lane's start node in slot 1 and from its end in slot 2, and
+ *       the flags of MTR's connector at the nearest speed at or below the lane's ({@link RailType}). Then
+ *       {@code PacketUpdateData.sendDirectlyToServerRail}; MTR sends it to the players itself.</li>
+ *   <li><b>Removing:</b> a rail gone already is {@code NOT_THERE}; so is one that isn't the rail the road made
+ *       ({@link #ours}): a player who laid their own rail between the same two nodes replaced ours under the same id, and
+ *       theirs is left. Player rails can have no styles either, so the check is the whole rail: no styles, the lane's
+ *       speeds and the road's flags. Ours goes with {@code PacketDeleteData.sendDirectlyToServerRailId}; MTR resets any
+ *       node block still there itself.</li>
  *   <li><b>Then it asks MTR again</b> about the rails it sent, and answers only once MTR has: made means MTR has it,
  *       removed means it doesn't. MTR resets a freed node when its answer to the removal comes back, so without this a
  *       redo right after an undo could have its joined nodes reset under it. A made rail MTR doesn't confirm in time is
@@ -149,7 +153,7 @@ public final class TrackWriter implements SideEffectWriter {
         }
         Rail there = after.get(id(rail));
         if (making) {
-            return there != null && there.getStyles().isEmpty() ? Result.DONE : failed("MTR didn't keep the rail it was sent");
+            return there != null && ours(there, rail) ? Result.DONE : failed("MTR didn't keep the rail it was sent");
         }
         return there == null ? Result.DONE : failed("MTR still has the rail after removing it");
     }
@@ -159,6 +163,9 @@ public final class TrackWriter implements SideEffectWriter {
         if (there != null) {
             return new Result(Outcome.ALREADY_THERE, "a rail is already there (styles " + there.getStyles() + "): a player's, left alone");
         }
+        if (!isNode(level, rail.ax(), rail.ay(), rail.az()) || !isNode(level, rail.bx(), rail.by(), rail.bz())) {
+            return new Result(Outcome.SKIPPED, "an end isn't an MTR node block (a road laid with another node aid)");
+        }
         String problem = nodeProblem(level, rail.ax(), rail.ay(), rail.az(), rail.aFacing());
         if (problem == null) {
             problem = nodeProblem(level, rail.bx(), rail.by(), rail.bz(), rail.bFacing());
@@ -167,9 +174,6 @@ public final class TrackWriter implements SideEffectWriter {
             return failed(problem);
         }
         RailType type = railType(rail.speed());
-        if (type == null) {
-            return failed("MTR has no rail at " + rail.speed() + " km/h");
-        }
         Position a = new Position(rail.ax(), rail.ay(), rail.az());
         Position b = new Position(rail.bx(), rail.by(), rail.bz());
         var angles = Rail.getAngles(a, angle(level, rail.ax(), rail.ay(), rail.az()), b, angle(level, rail.bx(), rail.by(), rail.bz()));
@@ -205,8 +209,10 @@ public final class TrackWriter implements SideEffectWriter {
         if (there == null) {
             return new Result(Outcome.NOT_THERE, "MTR has no rail there now");
         }
-        if (!there.getStyles().isEmpty()) {
-            return new Result(Outcome.NOT_THERE, "the rail there now has styles " + there.getStyles() + ": a player's, left alone");
+        if (!ours(there, rail)) {
+            return new Result(Outcome.NOT_THERE, "the rail there now isn't the one the road made (styles " + there.getStyles()
+                    + ", " + there.getSpeedLimitKilometersPerHour(false) + "/" + there.getSpeedLimitKilometersPerHour(true)
+                    + " km/h): a player's, left alone");
         }
         PacketDeleteData.sendDirectlyToServerRailId(new org.mtr.mapping.holder.ServerWorld(level), id(rail));
         return null;
@@ -230,6 +236,23 @@ public final class TrackWriter implements SideEffectWriter {
         return answer.completeOnTimeout(null, ANSWER_SECONDS, TimeUnit.SECONDS);
     }
 
+    /**
+     * Whether MTR's {@code there} is the rail the road made for {@code rail}, as {@link #make} sends it: no styles, the
+     * lane's two speeds (either way round: MTR may store the ends swapped) and the flags of its {@link RailType}.
+     */
+    static boolean ours(Rail there, TrackRail rail) {
+        RailType type = railType(rail.speed());
+        long one = there.getSpeedLimitKilometersPerHour(false);
+        long two = there.getSpeedLimitKilometersPerHour(true);
+        boolean speeds = one == rail.speedFromA() && two == rail.speedFromB() || one == rail.speedFromB() && two == rail.speedFromA();
+        return there.getStyles().isEmpty() && speeds && there.canAccelerate() == type.canAccelerate && !there.isPlatform()
+                && !there.isSiding() && !there.canTurnBack() && there.getTransportMode() == TransportMode.TRAIN;
+    }
+
+    private static boolean isNode(ServerWorld level, int x, int y, int z) {
+        return MtrNodes.isNode(BlockArgumentParser.stringifyBlockState(level.getBlockState(new BlockPos(x, y, z))));
+    }
+
     /** Why the block at {@code (x, y, z)} can't be one end of a rail: not an MTR node, or facing another way; or null. */
     private static String nodeProblem(ServerWorld level, int x, int y, int z, int facing) {
         String state = BlockArgumentParser.stringifyBlockState(level.getBlockState(new BlockPos(x, y, z)));
@@ -247,14 +270,25 @@ public final class TrackWriter implements SideEffectWriter {
         return BlockNode.getAngle(new org.mtr.mapping.holder.BlockState(level.getBlockState(new BlockPos(x, y, z))));
     }
 
-    /** The rail type MTR's connector at {@code speed} km/h makes, for its flags; null if there is none. */
+    /**
+     * The rail type of MTR's connector nearest {@code speed} km/h at or below it (the slowest below every one), for its
+     * flags: a lane's speed need not be one of MTR's connector speeds.
+     */
     static RailType railType(int speed) {
+        RailType best = null;
+        RailType slowest = null;
         for (RailType type : RailType.values()) {
-            if (type.speedLimit == speed && type.canAccelerate && type.railShape == Rail.Shape.QUADRATIC) {
-                return type;
+            if (!type.canAccelerate || type.railShape != Rail.Shape.QUADRATIC) {
+                continue;
+            }
+            if (slowest == null || type.speedLimit < slowest.speedLimit) {
+                slowest = type;
+            }
+            if (type.speedLimit <= speed && (best == null || type.speedLimit > best.speedLimit)) {
+                best = type;
             }
         }
-        return null;
+        return best != null ? best : slowest;
     }
 
     /** MTR's id for {@code rail}: from its two node positions, so the same two nodes always give the same id. */

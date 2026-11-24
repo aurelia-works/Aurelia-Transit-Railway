@@ -377,7 +377,8 @@ public final class Recovery {
             SideEffectWriter.Outcome outcome = result == null ? SideEffectWriter.Outcome.FAILED : result.outcome();
             if (outcome == SideEffectWriter.Outcome.DONE) {
                 step.trackChanged++;
-            } else if (outcome != (removing ? SideEffectWriter.Outcome.NOT_THERE : SideEffectWriter.Outcome.ALREADY_THERE)) {
+            } else if (removing ? outcome != SideEffectWriter.Outcome.NOT_THERE
+                    : outcome != SideEffectWriter.Outcome.ALREADY_THERE && outcome != SideEffectWriter.Outcome.SKIPPED) {
                 wrong++;
             }
         }

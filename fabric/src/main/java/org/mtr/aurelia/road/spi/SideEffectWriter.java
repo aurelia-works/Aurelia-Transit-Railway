@@ -24,6 +24,8 @@ public interface SideEffectWriter {
         ALREADY_THERE,
         /** Removing: it is gone already, or what is there now is a player's (T-2: a rail with a style), which is left. */
         NOT_THERE,
+        /** Making: it can't exist here and isn't needed (T-2: a lane whose ends aren't MTR node blocks). Never owned. */
+        SKIPPED,
         /** Nothing in this game can carry it out (no MTR). */
         UNAVAILABLE,
         /** It was tried and went wrong ({@link Result#reason}). */
