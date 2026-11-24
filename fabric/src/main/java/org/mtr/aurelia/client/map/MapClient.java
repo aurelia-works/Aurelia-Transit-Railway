@@ -4,7 +4,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ServerInfo;
@@ -18,7 +17,7 @@ import javax.annotation.Nullable;
 import java.nio.file.Path;
 
 /**
- * The in-game map: the key that opens {@link WorldMapScreen}, the {@link MinimapHud}, and the map of the world the
+ * The in-game map: the key that opens {@link WorldMapScreen}, and the map of the world the
  * player is in. Each world (a single-player save, or a server address) and dimension gets its own folder under
  * {@code <game folder>/aurelia/map/}; nothing is written into the world save, so worlds load exactly as before.
  */
@@ -48,7 +47,6 @@ public final class MapClient {
 		ServerTiles.register();
 		openKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.aurelia.map.open", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_N, "key.categories.mtr"));
 		ClientTickEvents.END_CLIENT_TICK.register(MapClient::tick);
-		HudRenderCallback.EVENT.register((context, tickDelta) -> MinimapHud.render(context));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(MapClient::close));
 		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
 			close();
