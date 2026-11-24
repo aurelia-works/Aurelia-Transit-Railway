@@ -10,9 +10,9 @@ import java.util.Locale;
  * program so a crash in it never takes the game down). Every file is pinned by size and SHA-256. Nothing here is in
  * the mod jar: the player downloads the engine and one voice from the Sound tab.
  * <p>
- * Licences, from each project's own page: sherpa-onnx and the Kokoro voices are Apache-2.0; the Piper voices are CC0
- * (Dutch, German, Spanish) or CC BY 4.0 (French, SIWIS, credited in the Sound tab tooltip). Both engines turn text into
- * sounds with espeak-ng (GPL-3), which comes inside those downloads and never inside the jar.
+ * Licences, from each project's own page: sherpa-onnx and the Kokoro voices are Apache-2.0. Kokoro turns text into sounds
+ * with espeak-ng (GPL-3), which comes inside those downloads and never inside the jar. The Piper path stays for a voice
+ * added later; none is offered now.
  */
 public final class VoiceCatalog {
 
@@ -36,32 +36,19 @@ public final class VoiceCatalog {
 
 	private static final Download KOKORO = new Download(MODEL_BASE + "kokoro-int8-multi-lang-v1_0.tar.bz2", "72c347230107ef8a31098ec4d468a605244beef5f1ed00db97efa13518800653", 132_353_410, "kokoro-int8-multi-lang-v1_0");
 
-	/** Jah's English picks (2026-11-23) first; the first voice of a language is its default. */
+	/**
+	 * Jah's English picks (2026-11-23); the first is the default. English only (Jah, 2026-11-24): a game in another language uses
+	 * the computer's own voice.
+	 */
 	public static final List<Voice> VOICES = List.of(
 			kokoro("isabella", "Isabella", "en", 22, "", "lexicon-gb-en.txt"),
 			kokoro("lewis", "Lewis", "en", 27, "", "lexicon-gb-en.txt"),
-			kokoro("michael", "Michael", "en", 16, "", "lexicon-us-en.txt"),
-			kokoro("xiaoxiao", "Xiaoxiao", "zh", 47, "", "lexicon-us-en.txt", "lexicon-zh.txt"),
-			kokoro("sara", "Sara", "it", 35, "it"),
-			kokoro("dora", "Dora", "pt", 42, "pt-br"),
-			kokoro("alpha", "Alpha", "hi", 31, "hi"),
-			piper("ronnie", "Ronnie", "nl", "nl_NL-ronnie-medium", 67_194_164, "d2cc688abf46054eba1d47b3b1406c742ccf66732cd47998a3ee727c1b96c09f"),
-			piper("thorsten", "Thorsten", "de", "de_DE-thorsten-medium", 67_214_254, "50487d9c95fdf2191f31d2588569381063ba1591dcd4c7d4bdd30f12b2191714"),
-			piper("siwis", "Siwis", "fr", "fr_FR-siwis-medium", 67_207_459, "375909aa30842b3a4efa10b1beb1d761af792960ae6873b4d53889f96c66195b"),
-			piper("davefx", "Davefx", "es", "es_ES-davefx-medium", 67_184_952, "a3f6beb54a9cb893279f72978a22f807a4d9fc9c7848157b524d5cc7b7f58b22")
+			kokoro("michael", "Michael", "en", 16, "", "lexicon-us-en.txt")
 	);
 
 	/** The line the Sound tab's "Test voice" button says, per language. */
 	public static final java.util.Map<String, String> SAMPLES = java.util.Map.of(
-			"en", "The next station is Clapham Junction. Please mind the gap between the train and the platform.",
-			"zh", "下一站，人民广场。请从右侧车门下车。",
-			"it", "Prossima fermata: Roma Termini.",
-			"pt", "Próxima estação: Sé.",
-			"hi", "अगला स्टेशन राजीव चौक है।",
-			"nl", "De volgende halte is Utrecht Centraal.",
-			"de", "Nächster Halt: Frankfurt Hauptbahnhof.",
-			"fr", "Prochain arrêt : Châtelet.",
-			"es", "Próxima estación: Sol."
+			"en", "The next station is Clapham Junction. Please mind the gap between the train and the platform."
 	);
 
 	private VoiceCatalog() {
