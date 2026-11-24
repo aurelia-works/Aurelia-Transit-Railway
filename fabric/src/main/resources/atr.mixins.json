@@ -18,6 +18,9 @@
 		"VehicleSchemaAccessor",
 		"EngineLagMixin",
 		"HillSlowdownMixin",
+		"ClockFaceTimetableMixin",
+		"TerminusCatchUpMixin",
+		"NameColorDataBaseSchemaAccessor",
 		"SidingPathFinderAccessor",
 		"SidingPathFinderRouteControlMixin",
 		"KeyBoxKeysOutMixin"
