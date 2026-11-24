@@ -51,7 +51,10 @@ public final class GiveWay {
 	public boolean hold(int signalIndex, double metersToSignal, double stoppingMeters, boolean claimed, long now) {
 		// the engine asks about every signal from the train's front onwards, so only an answer about the signal the
 		// train is waiting at ends the wait
-		final boolean waiting = signalIndex == this.signalIndex && now - last <= NEW_WAIT_GAP_MILLIS;
+		// a train standing at the signal is still waiting even after a stall longer than the ask gap: a stall does not
+		// move the train, and dropping the wait there is what let it run the junction
+		final boolean atSignal = Math.abs(metersToSignal) <= PASSED_TOLERANCE_METERS && stoppingMeters <= 0;
+		final boolean waiting = signalIndex == this.signalIndex && (now - last <= NEW_WAIT_GAP_MILLIS || atSignal);
 		// too close to stop, or already past it: as on a real railway, a signal is never put back in front of a train
 		final boolean past = metersToSignal < -PASSED_TOLERANCE_METERS;
 		final boolean tooCloseToStop = !waiting && stoppingMeters > 0 && metersToSignal <= STOP_COMMIT_FRACTION * stoppingMeters;

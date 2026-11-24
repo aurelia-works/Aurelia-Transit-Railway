@@ -54,6 +54,17 @@ class JunctionPriorityTest {
 		assertFalse(new GiveWay().hold(7, 12, 30, true, 2_000));
 	}
 
+	/** A stall longer than the engine's ask gap must not release a train that is standing at the signal. */
+	@Test
+	void aStallAtTheSignalDoesNotReleaseTheTrain() {
+		final GiveWay giveWay = new GiveWay();
+		assertTrue(giveWay.hold(7, 30, 30, true, 1_000));
+		// a 7 s stall, and the express's claim is missed on the first ask back
+		assertTrue(giveWay.hold(7, 0, 0, false, 8_000));
+		// the claim is still gone after the grace: now it may go
+		assertFalse(giveWay.hold(7, 0, 0, false, 10_000));
+	}
+
 	/**
 	 * Replays the engine's 1000 ms moving / 50 ms stopped signal loop at 8, 15 and 22 m/s toward a claimed junction
 	 * signal block: the slower train must stop at the signal entrance, stay held while the express claim is live, and
