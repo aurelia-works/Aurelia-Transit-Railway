@@ -7,7 +7,6 @@ import com.aureliatransit.architecture.client.StationPaceSlider;
 import com.aureliatransit.architecture.client.StationStudioClient;
 import com.aureliatransit.architecture.client.StationWrenchScreen;
 import com.aureliatransit.architecture.client.WrenchSettings;
-import com.aureliatransit.architecture.registry.ModItems;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
 import com.aureliatransit.architecture.station.world.WrenchMode;
 import net.minecraft.client.gui.DrawContext;
@@ -15,7 +14,6 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.registry.Registries;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.StringVisitable;
@@ -28,6 +26,7 @@ import org.mtr.aurelia.client.AureliaExamplePack;
 import org.mtr.aurelia.client.ui.AureliaUiSettings;
 import org.mtr.aurelia.dashboard.DashboardParentAccess;
 import org.mtr.aurelia.dashboard.UnifiedDashboardClient;
+import org.mtr.aurelia.client.ClientOperators;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.PassengerClient;
 import org.mtr.aurelia.client.ZipClient;
@@ -626,7 +625,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	/** Zip lines: on/off, top speed, brake and how far the cable sags. Operators only; the ride is shared. */
 	private void initZip() {
 		final int left = columnLeft();
-		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		final boolean operator = ClientOperators.isOperator(client);
 		final ZipSettings now = ZipClient.settings();
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.zip.enabled", ScreenTexts.onOrOff(now.enabled())), b -> {
 			final ZipSettings current = ZipClient.settings();
@@ -801,7 +800,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private void initBuild() {
 		buildFirst = Math.max(0, Math.min(buildFirst, BUILD_ROWS - visibleRows()));
 		final int left = columnLeft();
-		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		final boolean operator = ClientOperators.isOperator(client);
 		final BuildSettings now = BuildClient.settings();
 		if (buildRow(0)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.station", ScreenTexts.onOrOff(now.stationEnabled())), b -> {
@@ -894,7 +893,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private void initPassengers() {
 		passengerFirst = Math.max(0, Math.min(passengerFirst, PASSENGER_ROWS - passengerVisible()));
 		final int left = columnLeft();
-		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		final boolean operator = ClientOperators.isOperator(client);
 		if (passengerRow(0)) {
 			final ButtonWidget enabled = addDrawableChild(ButtonWidget.builder(passengersLabel(PassengerClient.settings().enabled()), b -> {
 				final PassengerNetwork.Settings now = PassengerClient.settings();
@@ -1111,7 +1110,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		if (architectureRow(5)) {
 			final ButtonWidget give = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.give"), b -> {
 				if (client != null && client.player != null) {
-					client.player.networkHandler.sendChatCommand("give @s " + Registries.ITEM.getId(ModItems.WRENCH));
+					client.player.networkHandler.sendChatCommand("atr_wrench");
 				}
 			}).dimensions(left, architectureY(5), BUTTON_WIDTH, 20).build());
 			give.active = operator();
@@ -1201,7 +1200,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	}
 
 	private boolean operator() {
-		return client != null && client.player != null && client.player.hasPermissionLevel(2);
+		return ClientOperators.isOperator(client);
 	}
 
 	private boolean architectureRow(int row) {
@@ -1375,14 +1374,14 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 					? Text.translatable("gui.aurelia.passengers.draw_cost", String.format("%.2f", PassengerRenderer.renderMicros / 1000D), PassengerRenderer.lastWalkers, PassengerRenderer.lastFigures)
 					: Text.translatable("gui.aurelia.passengers.draw_cost.off");
 			context.drawCenteredTextWithShadow(textRenderer, drawCost, centerX(), statsY + 30, 0xAAAAAA);
-			if (client.player != null && !client.player.hasPermissionLevel(2)) {
+			if (!ClientOperators.isOperator(client)) {
 				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), centerX(), top - 12, 0xFF5555);
 			}
-		} else if (tab == Tab.BUILD && client.player != null && !client.player.hasPermissionLevel(2)) {
+		} else if (tab == Tab.BUILD && !ClientOperators.isOperator(client)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.VEHICLES) {
 			renderVehicles(context);
-		} else if (tab == Tab.ZIP && client.player != null && !client.player.hasPermissionLevel(2)) {
+		} else if (tab == Tab.ZIP && !ClientOperators.isOperator(client)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.TRAIN_SOUND) {
 			scrollLine(context, trainSoundFirst, visibleRows(), TRAIN_SOUND_ROWS);
@@ -1580,7 +1579,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		final org.mtr.mod.engine.EngineFeature[] features = org.mtr.mod.engine.EngineFeature.values();
 		engineFirst = Math.max(0, Math.min(engineFirst, engineRows() - engineVisible()));
 		final int left = columnLeft();
-		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		final boolean operator = ClientOperators.isOperator(client);
 		for (int row = engineFirst; row < Math.min(features.length, engineFirst + engineVisible()); row++) {
 			final org.mtr.mod.engine.EngineFeature feature = features[row];
 			final ButtonWidget button = addDrawableChild(ButtonWidget.builder(engineLabel(feature, org.mtr.aurelia.client.EngineClient.enabled(feature)), b -> {
@@ -1613,7 +1612,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	/** Under the switches: how long the engine takes per tick in this dimension, and how much of its time that is. */
 	private void renderEngineLag(DrawContext context) {
 		final int y = top + Math.min(engineRows(), engineVisible()) * ROW + 4;
-		if (client == null || client.player == null || !client.player.hasPermissionLevel(2)) {
+		if (!ClientOperators.isOperator(client)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.engine.operators"), centerX(), y + 2, 0xAAAAAA);
 			return;
 		}

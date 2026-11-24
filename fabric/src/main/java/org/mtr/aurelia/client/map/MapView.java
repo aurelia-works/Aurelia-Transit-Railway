@@ -15,7 +15,7 @@ import java.util.Map;
 
 /**
  * Draws a map view into a screen rectangle: the explored ground, then the rails, stations and trains the Map tab
- * switches on, then the player's home and landmark pins, then the player. The big map and the minimap both draw through here, so they always agree.
+ * switches on, then the player's home and landmark pins, then the player. Every map screen draws through here, so they all agree.
  */
 public final class MapView {
 
@@ -31,7 +31,7 @@ public final class MapView {
 	private MapView() {
 	}
 
-	public static void draw(DrawContext context, int left, int top, int width, int height, MapCamera camera, boolean big) {
+	public static void draw(DrawContext context, int left, int top, int width, int height, MapCamera camera) {
 		final SeenNetwork network = MapClient.network();
 		final MinecraftClient client = MinecraftClient.getInstance();
 		context.enableScissor(left, top, left + width, top + height);
@@ -39,17 +39,17 @@ public final class MapView {
 		MapGround.draw(context, left, top, width, height, camera.centerX(), camera.centerZ(), camera.scale());
 		if (network != null) {
 			if (MapSettings.stations()) {
-				drawStations(context, client.textRenderer, network, left, top, width, height, camera, big);
+				drawStations(context, client.textRenderer, network, left, top, width, height, camera);
 			}
 			if (MapSettings.rails()) {
-				drawRails(context, network, left, top, width, height, camera, big ? 2 : 1);
+				drawRails(context, network, left, top, width, height, camera, 2);
 			}
 			if (MapSettings.stations() && MapSettings.busy()) {
-				drawBusy(context, client.textRenderer, network, left, top, width, height, camera, big);
+				drawBusy(context, client.textRenderer, network, left, top, width, height, camera);
 			}
 		}
 		if (MapSettings.trains()) {
-			drawTrains(context, left, top, width, height, camera, big ? 4 : 3);
+			drawTrains(context, left, top, width, height, camera, 4);
 		}
 		MapPinLayer.draw(context, left, top, width, height, camera.centerX(), camera.centerZ(), camera.scale());
 		if (client.player != null) {
@@ -90,7 +90,7 @@ public final class MapView {
 		}
 	}
 
-	private static void drawStations(DrawContext context, TextRenderer text, SeenNetwork network, int left, int top, int width, int height, MapCamera camera, boolean big) {
+	private static void drawStations(DrawContext context, TextRenderer text, SeenNetwork network, int left, int top, int width, int height, MapCamera camera) {
 		for (final SeenNetwork.Area area : network.stations()) {
 			final int x1 = (int) Math.floor(camera.screenX(area.minX(), left, width));
 			final int y1 = (int) Math.floor(camera.screenY(area.minZ(), top, height));
@@ -100,7 +100,7 @@ public final class MapView {
 				continue;
 			}
 			context.fill(x1, y1, Math.max(x1 + 2, x2), Math.max(y1 + 2, y2), 0x60000000 | area.color() & 0xFFFFFF);
-			if (big && camera.scale() >= LABEL_SCALE) {
+			if (camera.scale() >= LABEL_SCALE) {
 				final String name = area.name().split("\\|", 2)[0];
 				context.drawCenteredTextWithShadow(text, name, (x1 + x2) / 2, Math.max(y1, (y1 + y2) / 2 - 4), 0xFFFFFF);
 			}
@@ -108,15 +108,15 @@ public final class MapView {
 	}
 
 	/**
-	 * A three-bar meter and "Quiet", "Busy" or "Packed" under each station's name on the big map; on the minimap, or zoomed
-	 * out, a dot in the colour of the level at the station's corner.
+	 * A three-bar meter and "Quiet", "Busy" or "Packed" under each station's name; zoomed out, a dot in the colour of the
+	 * level at the station's corner.
 	 */
-	private static void drawBusy(DrawContext context, TextRenderer text, SeenNetwork network, int left, int top, int width, int height, MapCamera camera, boolean big) {
+	private static void drawBusy(DrawContext context, TextRenderer text, SeenNetwork network, int left, int top, int width, int height, MapCamera camera) {
 		final Map<Long, BusyMeter.Level> levels = BusyMeter.levels();
 		if (levels.isEmpty()) {
 			return;
 		}
-		final boolean labels = big && camera.scale() >= LABEL_SCALE;
+		final boolean labels = camera.scale() >= LABEL_SCALE;
 		network.stationsById().forEach((id, area) -> {
 			final BusyMeter.Level level = levels.get(id);
 			if (level == null) {
@@ -142,7 +142,7 @@ public final class MapView {
 				}
 				context.drawText(text, word, pillX + 16, pillY + 2, 0xFFFFFFFF, false);
 			} else {
-				final int size = big ? 4 : 3;
+				final int size = 4;
 				final int dotX = Math.max(x1, Math.min(x2, x1 + (x2 - x1) * 3 / 4));
 				context.fill(dotX - size / 2 - 1, y1 - size / 2 - 1, dotX - size / 2 + size + 1, y1 - size / 2 + size + 1, OUTLINE);
 				context.fill(dotX - size / 2, y1 - size / 2, dotX - size / 2 + size, y1 - size / 2 + size, level.color);

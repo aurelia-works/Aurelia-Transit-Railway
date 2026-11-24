@@ -11,15 +11,20 @@ import net.minecraft.client.render.VertexFormats;
 import net.minecraft.util.Identifier;
 import org.joml.Matrix4f;
 import org.mtr.aurelia.map.MapRegion;
+import org.mtr.aurelia.map.OverviewLevels;
+import org.mtr.libraries.it.unimi.dsi.fastutil.longs.LongIterator;
+import org.mtr.libraries.it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.Arrays;
 
 /**
  * Draws the explored ground of the current world into a screen rectangle, for every map view: the N map, the road
  * dashboard and MTR's dashboard map. Close in, each region is drawn from its full texture; zoomed out, or when more
- * regions show than fit in memory, from the {@link MapOverview} tiles, a few draw calls for the whole view. Tiles also
- * stand in for regions still loading. Regions are loaded and uploaded a few per frame, so no frame stalls, and the draw
- * itself allocates nothing.
+ * regions show than fit in memory, from the {@link MapOverview} tiles, a few draw calls for the whole view. Past
+ * {@link OverviewLevels#BUDGET} explored regions in view, tiles of a higher level each cover a square of regions, so the
+ * whole view always draws. Tiles also stand in for regions still loading. Tiles are made four a frame from regions in
+ * memory and read sixteen at a time from disk, so a far view of a large map fills in over a few seconds without a frame
+ * stalling; the draw allocates next to nothing.
  */
 public final class MapGround {
 
@@ -35,6 +40,7 @@ public final class MapGround {
 
 	private static long[] visible = new long[256];
 	private static int[] slots = new int[256];
+	private static final LongOpenHashSet TILES = new LongOpenHashSet();
 
 	private MapGround() {
 	}
@@ -51,7 +57,6 @@ public final class MapGround {
 		final int lastX = MapRegion.regionOf((int) Math.floor(centerX + width / 2.0 / scale));
 		final int firstZ = MapRegion.regionOf((int) Math.floor(centerZ - height / 2.0 / scale));
 		final int lastZ = MapRegion.regionOf((int) Math.floor(centerZ + height / 2.0 / scale));
-		ServerTiles.askInView(map, firstX, lastX, firstZ, lastZ);
 
 		int count = 0;
 		for (final long key : map.knownKeys()) {
@@ -79,13 +84,28 @@ public final class MapGround {
 		RenderSystem.defaultBlendFunc();
 
 		// tiles first: the whole view far out, and what is still loading close in
-		for (int i = 0; i < count; i++) {
-			slots[i] = overview.slot(map, (int) (visible[i] >> 32), (int) visible[i]);
+		final int level = OverviewLevels.level(visible, count, TILES);
+		final int tiles;
+		if (level == 0) {
+			tiles = count;
+			for (int i = 0; i < count; i++) {
+				slots[i] = overview.slot(map, 0, (int) (visible[i] >> 32), (int) visible[i]);
+			}
+		} else {
+			// at most BUDGET of them, fewer than the regions, so they fit in the same arrays
+			tiles = TILES.size();
+			final LongIterator iterator = TILES.iterator();
+			for (int i = 0; i < tiles; i++) {
+				final long key = iterator.nextLong();
+				visible[i] = key;
+				slots[i] = overview.slot(map, level, (int) (key >> 32), (int) key);
+			}
 		}
+		final double tileSize = MapRegion.SIZE * (double) (1 << level) * scale;
 		final BufferBuilder buffer = Tessellator.getInstance().getBuffer();
 		for (int page = 0; page < overview.pageCount(); page++) {
 			boolean started = false;
-			for (int i = 0; i < count; i++) {
+			for (int i = 0; i < tiles; i++) {
 				final int slot = slots[i];
 				if (slot < 0 || slot / MapOverview.PER_PAGE != page) {
 					continue;
@@ -98,16 +118,16 @@ public final class MapGround {
 				final int index = slot % MapOverview.PER_PAGE;
 				final float u = (float) (index % TILES_PER_ROW) / TILES_PER_ROW;
 				final float v = (float) (index / TILES_PER_ROW) / TILES_PER_ROW;
-				final float x = (float) (originX + (int) (visible[i] >> 32) * (double) MapRegion.SIZE * scale);
-				final float y = (float) (originZ + (int) visible[i] * (double) MapRegion.SIZE * scale);
-				quad(buffer, matrix, x, y, x + size, y + size, u + INSET, v + INSET, u + 1F / TILES_PER_ROW - INSET, v + 1F / TILES_PER_ROW - INSET);
+				final float x = (float) (originX + (int) (visible[i] >> 32) * tileSize);
+				final float y = (float) (originZ + (int) visible[i] * tileSize);
+				quad(buffer, matrix, x, y, (float) (x + tileSize), (float) (y + tileSize), u + INSET, v + INSET, u + 1F / TILES_PER_ROW - INSET, v + 1F / TILES_PER_ROW - INSET);
 			}
 			if (started) {
 				BufferRenderer.drawWithGlobalProgram(buffer.end());
 			}
 		}
 
-		if (scale < FULL_MIN_SCALE || count > FULL_MAX_REGIONS) {
+		if (level > 0 || scale < FULL_MIN_SCALE || count > FULL_MAX_REGIONS) {
 			RenderSystem.disableBlend();
 			return;
 		}

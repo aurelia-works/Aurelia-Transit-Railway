@@ -1,5 +1,6 @@
 package org.mtr.mod.passenger;
 
+import org.mtr.aurelia.Operators;
 import org.mtr.mod.engine.EngineFeature;
 import org.mtr.mod.engine.EngineSettings;
 
@@ -122,7 +123,7 @@ public final class PassengerService {
 	}
 
 	private static void set(MinecraftServer server, ServerPlayerEntity player, PassengerNetwork.Settings requested) {
-		if (!player.hasPermissionLevel(2)) {
+		if (!Operators.isOperator(player)) {
 			return;
 		}
 		final State state = state(server);

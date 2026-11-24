@@ -197,32 +197,55 @@ public final class ExploredMap {
 		DISK.execute(() -> done.accept(read(file, regionX, regionZ)));
 	}
 
-	/**
-	 * Reads a region's overview tile on the disk thread and hands it (null when there is none) to {@code done} there. The
-	 * small tile file written with each save is read when it is there; otherwise the tile is made from the region file
-	 * and written for next time, so a map saved before tiles existed pays that once.
-	 */
+	/** Reads a region's overview tile ({@link #readTile}) on the disk thread and hands it (null when there is none) to {@code done} there. */
 	public void readTileOnDiskThread(int regionX, int regionZ, Consumer<int[]> done) {
-		final Path file = file(regionX, regionZ);
-		final Path tile = tileFile(regionX, regionZ);
+		DISK.execute(() -> done.accept(readTile(regionX, regionZ)));
+	}
+
+	/**
+	 * Puts together a tile of a higher overview level on the disk thread from the tiles of {@code regions} (the known
+	 * regions inside it) and hands it to {@code done} there; null when none of them could be read.
+	 */
+	public void readLevelTileOnDiskThread(int level, long[] regions, Consumer<int[]> done) {
 		DISK.execute(() -> {
-			if (Files.isRegularFile(tile)) {
-				try (InputStream in = Files.newInputStream(tile)) {
-					done.accept(MapRegionCodec.readTile(in, MapOverview.TILE));
-					return;
-				} catch (IOException e) {
-					// made again from the region below
+			final int[] pixels = new int[MapOverview.TILE * MapOverview.TILE];
+			final int mask = (1 << level) - 1;
+			boolean any = false;
+			for (final long key : regions) {
+				final int regionX = (int) (key >> 32);
+				final int regionZ = (int) key;
+				final int[] tile = readTile(regionX, regionZ);
+				if (tile != null) {
+					any = true;
+					MapOverview.shrinkInto(tile, level, regionX & mask, regionZ & mask, pixels);
 				}
 			}
-			final MapRegion region = read(file, regionX, regionZ);
-			if (region == null) {
-				done.accept(null);
-				return;
-			}
-			final int[] pixels = MapOverview.downsample(region, new int[MapOverview.TILE * MapOverview.TILE]);
-			writeTile(tile, pixels);
-			done.accept(pixels);
+			done.accept(any ? pixels : null);
 		});
+	}
+
+	/**
+	 * A region's overview tile, on the disk thread. The small tile file written with each save is read when it is there;
+	 * otherwise the tile is made from the region file and written for next time, so a map saved before tiles existed pays
+	 * that once. Null when there is neither.
+	 */
+	@Nullable
+	private int[] readTile(int regionX, int regionZ) {
+		final Path tile = tileFile(regionX, regionZ);
+		if (Files.isRegularFile(tile)) {
+			try (InputStream in = Files.newInputStream(tile)) {
+				return MapRegionCodec.readTile(in, MapOverview.TILE);
+			} catch (IOException e) {
+				// made again from the region below
+			}
+		}
+		final MapRegion region = read(file(regionX, regionZ), regionX, regionZ);
+		if (region == null) {
+			return null;
+		}
+		final int[] pixels = MapOverview.downsample(region, new int[MapOverview.TILE * MapOverview.TILE]);
+		writeTile(tile, pixels);
+		return pixels;
 	}
 
 	/** Hands every unsaved region to the disk thread. */
