@@ -220,6 +220,14 @@ public final class Landmark {
 		return key;
 	}
 
+	/**
+	 * The same sheet standing on the other building: a terminus's front as the middle of a through station's building beside the
+	 * tracks, or a through station's front across a terminus's head (a look's building, not the real one: Jah, 11-24).
+	 */
+	public Landmark twin() {
+		return new Landmark(key, anchor == Anchor.HEAD ? Anchor.SIDE : Anchor.HEAD, names, masses, shed, compactOnly);
+	}
+
 	public Anchor anchor() {
 		return anchor;
 	}

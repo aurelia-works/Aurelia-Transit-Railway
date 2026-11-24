@@ -350,6 +350,8 @@ public final class StationDescriptionParser {
 		 * the station, its sheet and shed in {@link Landmarks} are built.
 		 */
 		private String cityStationName;
+		/** The real station whose building's shape the first look word lends a station of the player's own ("paris style"), or null. */
+		private String lookStationName;
 		private long seed;
 		private String seedText = "";
 		/** "single stairs": one way down to each platform even at a station that would get two. */
@@ -1864,31 +1866,41 @@ public final class StationDescriptionParser {
 			return false;
 		}
 
+		/** The real station a city word names ("paris": Gare du Nord), whose sheet is in {@link Landmarks}; null for none. */
+		private static String cityStation(String word) {
+			return switch (word) {
+				case "pancras" -> "St Pancras";
+				case "frankfurt" -> "Frankfurt Hbf";
+				case "paris" -> "Paris Nord";
+				case "milan", "milano" -> "Milano Centrale";
+				case "munich", "munchen" -> "Munich Hbf";
+				case "berlin" -> "Berlin Hbf";
+				case "coventry" -> "Coventry";
+				case "tokyo" -> "Tokyo";
+				case "beijing" -> "Beijing";
+				case "kuala lumpur" -> "Kuala Lumpur";
+				case "surbiton" -> "Surbiton";
+				case "antwerp", "antwerpen" -> "Antwerpen Centraal";
+				case "zurich" -> "Zurich HB";
+				case "mumbai" -> "Mumbai CSMT";
+				case "bangkok" -> "Hua Lamphong";
+				case "amsterdam" -> "Amsterdam Centraal";
+				default -> null;
+			};
+		}
+
 		/** A city or look word at {@code i}: the building look, a landmark's building, and the look list for mixing. */
 		private void cityLook(int i, String word, BuildingStyle city) {
 			// only "real frankfurt" is the station (the wrench's city buttons say it); a bare "frankfurt terminus" is the city's look
 			final int before = word.equals("pancras") && at(i - 1).equals("st") ? i - 2 : i - 1;
 			if (looks.isEmpty() && at(before).equals("real") && !at(i + 1).startsWith("style")) {
 				// a real station's city word ("frankfurt terminus"; "frankfurt style" is only its look) is that station
-				cityStationName = switch (word) {
-					case "pancras" -> "St Pancras";
-					case "frankfurt" -> "Frankfurt Hbf";
-					case "paris" -> "Paris Nord";
-					case "milan", "milano" -> "Milano Centrale";
-					case "munich", "munchen" -> "Munich Hbf";
-					case "berlin" -> "Berlin Hbf";
-					case "coventry" -> "Coventry";
-					case "tokyo" -> "Tokyo";
-					case "beijing" -> "Beijing";
-					case "kuala lumpur" -> "Kuala Lumpur";
-					case "surbiton" -> "Surbiton";
-					case "antwerp", "antwerpen" -> "Antwerpen Centraal";
-					case "zurich" -> "Zurich HB";
-					case "mumbai" -> "Mumbai CSMT";
-					case "bangkok" -> "Hua Lamphong";
-					case "amsterdam" -> "Amsterdam Centraal";
-					default -> null;
-				};
+				cityStationName = cityStation(word);
+			}
+			if (looks.isEmpty() && cityStationName == null && lookStationName == null) {
+				// the first city's own station lends a station of the player's own its building's shape (Jah, 11-24: more than four
+				// shapes); London's is St Pancras. Beijing's look is Beijing South's, not the 1959 station's, so it keeps its own
+				lookStationName = word.equals("london") ? "St Pancras" : word.equals("beijing") ? null : cityStation(word);
 			}
 			if (looks.isEmpty() && word.equals("amsterdam") && scale == null) {
 				// Amsterdam Centraal's long brick front, with a tower each side of its entrance, is a grand building
@@ -3012,6 +3024,8 @@ public final class StationDescriptionParser {
 				// the station is itself only through its sheet: its name stays as typed (or empty), as the controls gave it
 				builder.options(options.withSheet(cityStationName));
 				note(looks.get(0).at(), "the real " + cityStationName + "'s front and train shed (say \"" + looks.get(0).word() + " style\" for its look on a station of your own)");
+			} else if (lookStationName != null && (real == null || real == RealStation.NONE) && looks.size() == 1 && !mixing) {
+				builder.options(options.withLookSheet(lookStationName));
 			}
 			builder.stationClass(stationClass).era(era).facing(facing);
 			if (seed == 0 && !seedText.isEmpty()) {

@@ -623,11 +623,30 @@ public final class Landmarks {
 		// a station without a name of its own that a city word names ("frankfurt terminus") is that city's station
 		// a head sheet only on a plain main-station terminus, a side sheet on a through station with its building: the sheets are as
 		// wide as the real buildings and are checked at preset size
-		if (name.isEmpty() && !spec.options().sheet().isEmpty() && spec.buildingScale() != StationScale.COMPACT) {
+		if (name.isEmpty() && !spec.options().lookSheet() && !spec.options().sheet().isEmpty() && spec.buildingScale() != StationScale.COMPACT) {
 			for (final Landmark landmark : ALL) {
 				if (landmark.named(spec.options().sheet()) && carries(landmark, spec)) {
 					return landmark;
 				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The sheet whose building {@code spec} is built with: the real station's ({@link #of}), or else the one a look word's city
+	 * lends a station of the player's own ("paris style", Jah 11-24: more than four building shapes), on whichever building the
+	 * station has: Gare du Nord's front as the middle of a through station's building, Amsterdam Centraal's across a terminus's
+	 * head. Where neither fits, the look's own generic building stays. Null for none.
+	 */
+	public static Landmark shapeOf(StationSpec spec) {
+		final Landmark real = of(spec);
+		if (real != null || !spec.options().lookSheet() || spec.buildingScale() == StationScale.COMPACT) {
+			return real;
+		}
+		for (final Landmark landmark : ALL) {
+			if (landmark.named(spec.options().sheet())) {
+				return carries(landmark, spec) ? landmark : carries(landmark.twin(), spec) ? landmark.twin() : null;
 			}
 		}
 		return null;
