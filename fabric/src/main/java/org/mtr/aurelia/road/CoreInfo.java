@@ -16,7 +16,7 @@ import java.util.Properties;
  */
 public final class CoreInfo {
     /**
-     * The format of Stratos's files under {@code <world>/stratos/} (spec world-data-format §3; ADR-0028): an integer,
+     * The format of Stratos's files under {@code <world>/aurelia_roads/} (spec world-data-format §3; ADR-0028): an integer,
      * separate from the mod and protocol versions. Any change to any of those formats raises it and adds a migration
      * (F-5). Version 1 (G-9): operation records ({@code undo.OperationJson}) and undo images ({@code undo.UndoCodec}).
      * The handshake reports it ({@code Hello.formatVersion}).

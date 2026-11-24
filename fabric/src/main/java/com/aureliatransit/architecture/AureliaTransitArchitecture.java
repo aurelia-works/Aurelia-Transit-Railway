@@ -82,6 +82,7 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		org.mtr.mod.zip.ZipContent.register();
 		org.mtr.mod.zip.ZipLines.registerServer();
 		org.mtr.aurelia.vehicle.RoadVehicles.register();
+		org.mtr.aurelia.road.fabric.StratosMod.register();
 		org.mtr.mod.building.BuildContent.register();
 		org.mtr.mod.building.BuildTools.registerServer();
 		FareSystems.init();
@@ -90,7 +91,6 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		BridgeSystems.init();
 		org.mtr.aurelia.pack.AureliaPacks.registerServer();
 		org.mtr.aurelia.crew.CrewServer.registerServer();
-		org.mtr.aurelia.road.fabric.StratosMod.register();
 		LOGGER.info("Registered {} Aurelia Transit Architecture blocks (MTR platform door contract: {}, MTR fares: {})", ModBlocks.entries().size(),
 				MtrPlatformContract.available() ? "enabled" : "unavailable", MtrFareContract.available() ? "enabled" : "unavailable");
 	}

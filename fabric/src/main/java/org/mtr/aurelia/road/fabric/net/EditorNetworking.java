@@ -7,13 +7,14 @@ package org.mtr.aurelia.road.fabric.net;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.BiPredicate;
+
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -46,7 +47,7 @@ import org.mtr.aurelia.road.fabric.apply.SideEffects;
 import org.mtr.aurelia.road.fabric.palette.GamePalettes;
 
 /**
- * The server's end of {@code stratos:main} (editor-protocol): frames core's {@link EditorServer} on Fabric's networking
+ * The server's end of {@code aurelia:roads} (editor-protocol): frames core's {@link EditorServer} on Fabric's networking
  * API, the same on a dedicated server and in singleplayer.
  * <ul>
  *   <li>{@code Hello} goes out only to clients that registered the channel ({@code canSend}), so a client without
@@ -55,19 +56,16 @@ import org.mtr.aurelia.road.fabric.palette.GamePalettes;
  *   <li>Incoming packets are handled on the server thread (Fabric's packet handlers run there).</li>
  *   <li>Plans are worked out on two daemon threads, "Stratos planner".</li>
  *   <li><b>Who may edit</b> (F-6): {@link StratosPermissions}, by operator level, node by node.</li>
- *   <li><b>The rate and volume limits</b> (F-6) come from {@code config/stratos/server.json}, read when the server starts
+ *   <li><b>The rate and volume limits</b> (F-6) come from {@code config/aurelia/roads/server.json}, read when the server starts
  *       and written with the defaults if it isn't there. A file that doesn't read is logged and the defaults used.</li>
  *   <li>{@code Hello} lists the {@code track} capability when the server can build track ({@link SideEffects}, T-2).</li>
  * </ul>
  */
 public final class EditorNetworking {
-    /** Connections whose client registered {@code stratos:main}, to greet on the next server tick. */
+    /** Connections whose client registered the roads channel, to greet on the next server tick. */
     private static final Set<ServerPlayNetworkHandler> REGISTERED = ConcurrentHashMap.newKeySet();
     private static EditorServer server;
     private static ExecutorService planners;
-    private static EditorLimits configured = EditorLimits.DEFAULTS;
-    /** The harness's stand-in for the permission check (F-6), or null. */
-    private static volatile BiPredicate<UUID, String> testPermissions;
 
     private EditorNetworking() {
     }
@@ -110,8 +108,9 @@ public final class EditorNetworking {
         ServerLifecycleEvents.SERVER_STARTED.register(EditorNetworking::start);
         ServerLifecycleEvents.SERVER_STOPPING.register(minecraft -> stop());
         ServerTickEvents.END_SERVER_TICK.register(minecraft -> {
-            for (ServerPlayNetworkHandler handler : List.copyOf(REGISTERED)) {
-                REGISTERED.remove(handler);
+            for (Iterator<ServerPlayNetworkHandler> handlers = REGISTERED.iterator(); handlers.hasNext(); ) {
+                ServerPlayNetworkHandler handler = handlers.next();
+                handlers.remove();
                 join(minecraft, handler);
             }
             if (server != null) {
@@ -141,7 +140,7 @@ public final class EditorNetworking {
         });
         // T-2: the server offers track only when it can build it.
         List<String> capabilities = SideEffects.writer(minecraft).available() ? List.of(Protocol.CAPABILITY_TRACK) : List.of();
-        configured = readLimits(FabricLoader.getInstance().getConfigDir().resolve(EditorLimits.FILE));
+        EditorLimits configured = readLimits(FabricLoader.getInstance().getConfigDir().resolve(EditorLimits.FILE));
         server = new EditorServer(new EditorServer.ServerInfo(modVersion, CoreInfo.version(), dataVersion, CoreInfo.FORMAT_VERSION, configured,
                 capabilities),
                 List.of(RoadsModule.INSTANCE),
@@ -150,7 +149,7 @@ public final class EditorNetworking {
                 planners, System::nanoTime, UUID::randomUUID,
                 StratosMod.LOGGER::warn);
         // Baking to vanilla and redrawing markings (world tasks) come with the road blocks they look for.
-        // UI-1c: the world's mark for Stratos blocks, kept in its stratos_meta record.
+        // UI-1c: the world's mark for Stratos blocks, kept in its aurelia_roads_meta record.
         server.stratosBlocks(ApplyService.stratosBlocks(minecraft), present -> ApplyService.stratosBlocks(minecraft, present));
     }
 
@@ -166,12 +165,6 @@ public final class EditorNetworking {
         }
     }
 
-    /** For GameTests (UI-1c): the world's mark off, in the server and in the world's record, as a world bake leaving none. */
-    public static void stratosBlocksOffForTests(MinecraftServer minecraft) {
-        ApplyService.stratosBlocks(minecraft, false);
-        server.stratosBlocks(false, present -> ApplyService.stratosBlocks(minecraft, present));
-    }
-
     /** Whether the world has Stratos blocks, by its mark (UI-1c), as the server would tell a player now. */
     public static boolean stratosBlocks() {
         return server == null || server.stratosBlocks();
@@ -179,7 +172,6 @@ public final class EditorNetworking {
 
     private static void stop() {
         REGISTERED.clear();
-        testPermissions = null;
         if (server != null) {
             server.stop();
             server = null;
@@ -190,7 +182,7 @@ public final class EditorNetworking {
         }
     }
 
-    /** Says {@code Hello} to a connected player whose client can receive {@code stratos:main}, once per connection. */
+    /** Says {@code Hello} to a connected player whose client can receive the roads channel, once per connection. */
     private static void join(MinecraftServer minecraft, ServerPlayNetworkHandler handler) {
         ServerPlayerEntity player = handler.player;
         if (server == null || server.hasSession(player.getUuid()) || !handler.isConnectionOpen()
@@ -210,10 +202,6 @@ public final class EditorNetworking {
 
     /** Whether the player holds {@code node} ({@link StratosPermissions}); a player who has left holds none. */
     private static boolean has(MinecraftServer minecraft, UUID id, String node) {
-        BiPredicate<UUID, String> test = testPermissions;
-        if (test != null) {
-            return test.test(id, node);
-        }
         ServerPlayerEntity player = minecraft.getPlayerManager().getPlayer(id);
         return player != null && StratosPermissions.has(player, node);
     }
@@ -233,18 +221,6 @@ public final class EditorNetworking {
         } catch (IOException | JsonFormatException e) {
             StratosMod.LOGGER.error("[stratos] couldn't read {}, so the default limits apply: {}", file, e.getMessage());
             return EditorLimits.DEFAULTS;
-        }
-    }
-
-    /**
-     * For the harness only (F-6): answers every permission check with {@code permissions} and puts {@code limits} in
-     * place of the server's, so a check can see a refused player's messages in singleplayer, where the owner holds every
-     * node. Null for either puts the real one back. Server thread.
-     */
-    public static void testOverrides(BiPredicate<UUID, String> permissions, EditorLimits limits) {
-        testPermissions = permissions;
-        if (server != null) {
-            server.setLimits(limits != null ? limits : configured);
         }
     }
 

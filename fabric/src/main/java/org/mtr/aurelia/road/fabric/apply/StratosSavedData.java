@@ -14,7 +14,7 @@ import org.mtr.aurelia.road.world.WorldData;
 import org.mtr.aurelia.road.fabric.StratosMod;
 
 /**
- * The world's {@code stratos_meta} record in Minecraft's own save, {@code data/stratos_meta.dat} (world-data-format §3;
+ * The world's {@code aurelia_roads_meta} record in Minecraft's own save, {@code data/aurelia_roads_meta.dat} (world-data-format §3;
  * task F-5): {@code formatVersion}, {@code worldId} and (UI-1c) {@code stratosBlocks}, the world's mark for Stratos blocks. Its job is to hook Stratos into the world's saves: it reports
  * itself dirty while Stratos has unsaved changes, so every save (autosave, Save and Quit, {@code /save-all}, stopping)
  * calls {@link #writeNbt(NbtCompound)}, which writes Stratos's files first. A read-only world never has changes, so it is
@@ -28,7 +28,7 @@ import org.mtr.aurelia.road.fabric.StratosMod;
  * having them (the safe side) until a world bake finds none. A read-only world's mark is never saved.
  */
 final class StratosSavedData extends PersistentState {
-    static final String NAME = "stratos_meta";
+    static final String NAME = "aurelia_roads_meta";
 
     private final int formatVersion;
     private boolean stratosBlocks;

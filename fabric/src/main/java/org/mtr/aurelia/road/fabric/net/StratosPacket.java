@@ -11,7 +11,7 @@ import net.minecraft.util.Identifier;
 import org.mtr.aurelia.road.proto.Protocol;
 
 /**
- * One message on {@code stratos:main} (editor-protocol §2): the bytes core encoded, framed as a Fabric packet. Reading
+ * One message on {@code aurelia:roads} (editor-protocol §2): the bytes core encoded, framed as a Fabric packet. Reading
  * only copies the bytes, on the network thread, and never fails; core decodes and checks them on the game thread.
  */
 public record StratosPacket(byte[] bytes) implements FabricPacket {

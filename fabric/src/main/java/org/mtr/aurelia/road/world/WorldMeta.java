@@ -19,7 +19,7 @@ import org.mtr.aurelia.road.json.JsonFormatException;
 import org.mtr.aurelia.road.json.StrictJson;
 
 /**
- * {@code <world>/stratos/meta.json} (world-data-format §3; task F-5): the format of the world's Stratos data and who
+ * {@code <world>/aurelia_roads/meta.json} (world-data-format §3; task F-5): the format of the world's Stratos data and who
  * wrote it. Written last on every save, so it is the commit point of a migration (§7).
  *
  * <pre>{@code
