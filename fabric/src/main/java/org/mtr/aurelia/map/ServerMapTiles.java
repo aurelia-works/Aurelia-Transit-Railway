@@ -116,7 +116,7 @@ public final class ServerMapTiles {
 			return false;
 		}
 		final boolean operator = Operators.isOperator(player);
-		return everyone ? DashboardPackets.isAllowed(operator, DashboardPackets.hasDashboardItem(player)) : operator;
+		return everyone ? DashboardPackets.isAllowed(player.isCreative(), operator, DashboardPackets.hasDashboardItem(player)) : operator;
 	}
 
 	private static void list(MinecraftServer server, ServerPlayerEntity player) {
