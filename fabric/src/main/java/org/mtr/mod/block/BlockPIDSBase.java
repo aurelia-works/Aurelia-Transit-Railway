@@ -243,7 +243,8 @@ public abstract class BlockPIDSBase extends BlockExtension implements DirectionH
 					return 0xFF5555;
 				case BLACK:
 				default:
-					return 0x000000;
+					// pure black would vanish on the dark screen, so black dye gives the darkest grey that still reads
+					return 0x55595D;
 			}
 		}
 
@@ -259,6 +260,9 @@ public abstract class BlockPIDSBase extends BlockExtension implements DirectionH
 		 */
 		@Nullable
 		static Integer parse(String string) {
+			if (string.isEmpty()) {
+				return null;
+			}
 			try {
 				return Integer.parseInt(string, 16);
 			} catch (NumberFormatException e) {
