@@ -12,7 +12,11 @@ import org.mtr.mod.screen.EditRouteScreen;
 import org.mtr.mod.screen.EditStationScreen;
 import org.mtr.mod.screen.SidingScreen;
 
-/** Which of the seven restyled screens is open, and whether its Look switch is on. */
+/**
+ * Which ATR screen is open, and whether its Look switch is on. Seven screens have their own switch; every other screen
+ * the mod opens shares the {@link ScreenId#OTHER} switch, so the whole mod draws its controls one way. Vanilla and other
+ * mods' screens are never touched.
+ */
 public final class AureliaUi {
 
 	private AureliaUi() {
@@ -50,6 +54,32 @@ public final class AureliaUi {
 		if (screen instanceof AureliaPanelScreen) {
 			return ScreenId.PANEL;
 		}
-		return null;
+		return screen != null && OWN_SCREEN.get(screen.getClass()) ? ScreenId.OTHER : null;
 	}
+
+	/** Whether the screen gets the Aurelia controls but keeps the world in view behind it: every screen without its own switch. */
+	public static boolean keepsWorldBehind(Screen screen) {
+		return id(screen) == ScreenId.OTHER;
+	}
+
+	/** Whether the player is moving between controls with the keyboard, so a focus ring is worth drawing. */
+	public static boolean keyboardNavigation() {
+		final MinecraftClient client = MinecraftClient.getInstance();
+		return client != null && client.getNavigationType().isKeyboard();
+	}
+
+	/**
+	 * Screens this mod ships, by package. The camera panel is left out: it exists to look at the world. The mapping
+	 * library's own classes are left out because other mods' screens extend them too.
+	 */
+	private static final ClassValue<Boolean> OWN_SCREEN = new ClassValue<>() {
+		@Override
+		protected Boolean computeValue(Class<?> type) {
+			final String name = type.getName();
+			if (name.startsWith("org.mtr.camera.")) {
+				return false;
+			}
+			return name.startsWith("org.mtr.mod.") || name.startsWith("org.mtr.aurelia.") || name.startsWith("org.mtr.atr.") || name.startsWith("com.aureliatransit.");
+		}
+	};
 }

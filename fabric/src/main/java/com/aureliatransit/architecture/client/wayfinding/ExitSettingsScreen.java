@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * Per-exit settings of a station information board's Exits view (A3): one row per exit with its own "leads to" text,
@@ -135,7 +136,7 @@ public final class ExitSettingsScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		renderBackground(context);
-		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
+		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, AureliaPalette.TEXT);
 		super.render(context, mouseX, mouseY, delta);
 	}
 

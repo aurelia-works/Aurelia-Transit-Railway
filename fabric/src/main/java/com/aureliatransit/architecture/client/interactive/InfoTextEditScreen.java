@@ -18,6 +18,7 @@ import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * The one text editor for information case, information pillar and timetable case: heading, body rows, alignment and
@@ -116,7 +117,7 @@ public class InfoTextEditScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		renderBackground(context);
-		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 8, 0xFFFFFF);
+		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 8, AureliaPalette.TEXT);
 		super.render(context, mouseX, mouseY, delta);
 
 		if (previewDirty) {

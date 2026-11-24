@@ -24,12 +24,34 @@ public final class AureliaChrome {
 	private AureliaChrome() {
 	}
 
+	/**
+	 * A button face. Each state reads on its own: hover lifts the face and lightens the edge, keyboard focus draws a
+	 * two-pixel blue ring inside the edge (inside, because MTR packs buttons edge to edge), and a disabled button sinks
+	 * into the panel with no edge to speak of.
+	 */
 	public static void button(DrawContext context, int x, int y, int w, int h, boolean hovered, boolean active, boolean focused) {
-		context.fill(x, y, x + w, y + h, active ? AureliaPalette.BUTTON : AureliaPalette.BG);
-		frame(context, x, y, w, h, focused || (hovered && active) ? AureliaPalette.ACCENT : AureliaPalette.BORDER);
-		if (hovered && active) {
-			context.fill(x, y, x + 2, y + h, AureliaPalette.ACCENT);
+		if (w <= 0 || h <= 0) {
+			return;
 		}
+		final boolean hot = hovered && active;
+		final int edge = !active ? AureliaPalette.LINE : hot ? AureliaPalette.CONTROL_BORDER : AureliaPalette.OUTLINE;
+		final int face = !active ? AureliaPalette.SURFACE : hot ? AureliaPalette.RAISED_HOVER : AureliaPalette.RAISED;
+		rounded(context, x, y, w, h, AureliaPalette.RADIUS_SMALL, edge);
+		rounded(context, x + 1, y + 1, w - 2, h - 2, AureliaPalette.RADIUS_SMALL - 1, face);
+		if (focused && active) {
+			focusRing(context, x, y, w, h);
+		}
+	}
+
+	/** Two pixels of {@link AureliaPalette#FOCUS} just inside a control's edge. */
+	public static void focusRing(DrawContext context, int x, int y, int w, int h) {
+		roundedFrame(context, x, y, w, h, AureliaPalette.RADIUS_SMALL, AureliaPalette.FOCUS);
+		frame(context, x + 1, y + 1, w - 2, h - 2, fade(AureliaPalette.FOCUS, 0.45F));
+	}
+
+	/** The text colour of a control's label. */
+	public static int labelColor(boolean active) {
+		return active ? AureliaPalette.TEXT : AureliaPalette.TEXT_DISABLED;
 	}
 
 	public static void frame(DrawContext context, int x, int y, int w, int h, int color) {
@@ -42,27 +64,47 @@ public final class AureliaChrome {
 		context.fill(x + w - 1, y, x + w, y + h, color);
 	}
 
+	/** A box with a white tick on the brand blue when checked. The outline alone shows where an empty box is. */
 	public static void checkbox(DrawContext context, int x, int y, int h, boolean checked, boolean hovered) {
+		checkbox(context, x, y, h, checked, hovered, false);
+	}
+
+	public static void checkbox(DrawContext context, int x, int y, int h, boolean checked, boolean hovered, boolean focused) {
 		final int box = 12;
+		final int left = x + 3;
 		final int top = y + Math.max(0, (h - box) / 2);
-		context.fill(x + 3, top, x + 3 + box, top + box, AureliaPalette.FIELD);
-		frame(context, x + 3, top, box, box, hovered ? AureliaPalette.ACCENT : AureliaPalette.BORDER);
+		final int edge = focused ? AureliaPalette.FOCUS : checked || hovered ? AureliaPalette.ACCENT_LIGHT : AureliaPalette.CONTROL_BORDER;
+		rounded(context, left, top, box, box, AureliaPalette.RADIUS_SMALL, edge);
+		rounded(context, left + 1, top + 1, box - 2, box - 2, AureliaPalette.RADIUS_SMALL - 1, checked ? AureliaPalette.ACCENT : AureliaPalette.FIELD);
 		if (checked) {
-			context.fill(x + 6, top + 3, x + 3 + box - 3, top + box - 3, AureliaPalette.ACCENT);
+			// A tick two pixels thick: the short stroke down to the corner, then the long one up to the right
+			for (int i = 0; i < 3; i++) {
+				context.fill(left + 3 + i, top + 5 + i, left + 5 + i, top + 7 + i, AureliaPalette.TEXT);
+			}
+			for (int i = 0; i < 4; i++) {
+				context.fill(left + 6 + i, top + 6 - i, left + 8 + i, top + 8 - i, AureliaPalette.TEXT);
+			}
 		}
 	}
 
 	/** Panel slider: the label is drawn by the widget, centred, after this returns. */
 	public static void slider(DrawContext context, int x, int y, int w, int h, double value, boolean hovered) {
+		slider(context, x, y, w, h, value, hovered, false);
+	}
+
+	public static void slider(DrawContext context, int x, int y, int w, int h, double value, boolean hovered, boolean focused) {
 		context.fill(x, y, x + w, y + h, AureliaPalette.FIELD);
-		frame(context, x, y, w, h, AureliaPalette.BORDER);
+		frame(context, x, y, w, h, hovered ? AureliaPalette.TEXT_DIM : AureliaPalette.CONTROL_BORDER);
 		final int span = Math.max(1, w - HANDLE);
 		final int centre = x + (int) (clamp01(value) * span) + HANDLE / 2;
 		// A tinted fill up to the value, marked only at the top and bottom edges so it never crosses the label
-		context.fill(x + 1, y + 1, centre, y + h - 1, (AureliaPalette.ACCENT & 0xFFFFFF) | 0x48000000);
-		final int marker = hovered ? AureliaPalette.ACCENT : AureliaPalette.FG_LIGHT;
-		context.fill(centre - 1, y, centre + 1, y + 3, marker);
-		context.fill(centre - 1, y + h - 3, centre + 1, y + h, marker);
+		context.fill(x + 1, y + 1, centre, y + h - 1, fade(AureliaPalette.ACCENT, 0.55F));
+		final int marker = hovered || focused ? AureliaPalette.ACCENT_LIGHT : AureliaPalette.TEXT;
+		context.fill(centre - 1, y, centre + 1, y + 4, marker);
+		context.fill(centre - 1, y + h - 4, centre + 1, y + h, marker);
+		if (focused) {
+			frame(context, x, y, w, h, AureliaPalette.FOCUS);
+		}
 	}
 
 	/**
@@ -71,13 +113,13 @@ public final class AureliaChrome {
 	 */
 	public static void shortSlider(DrawContext context, TextRenderer textRenderer, int x, int y, int w, int h, int value, int max, int markerFrequency, int markerDisplayedRatio, boolean hovered, Text message) {
 		context.fill(x, y, x + w, y + h, AureliaPalette.FIELD);
-		frame(context, x, y, w, h, AureliaPalette.BORDER);
+		frame(context, x, y, w, h, AureliaPalette.CONTROL_BORDER);
 		final int maxSafe = Math.max(1, max);
 		final int span = Math.max(1, w - HANDLE);
 		final int handleX = x + (int) ((long) span * value / maxSafe);
-		context.fill(handleX, y, handleX + HANDLE, y + h, hovered ? AureliaPalette.ACCENT : AureliaPalette.FG_LIGHT);
+		context.fill(handleX, y, handleX + HANDLE, y + h, hovered ? AureliaPalette.ACCENT_LIGHT : AureliaPalette.TEXT);
 		if (message != null) {
-			context.drawText(textRenderer, message, x + w + 6, y + (h - 8) / 2, AureliaPalette.FG, false);
+			context.drawText(textRenderer, message, x + w + 6, y + (h - 8) / 2, AureliaPalette.TEXT, false);
 		}
 		if (markerFrequency <= 0 || markerDisplayedRatio <= 0) {
 			return;
@@ -86,14 +128,14 @@ public final class AureliaChrome {
 		for (int i = 1; i <= ticks; i++) {
 			final int xOffset = (int) ((long) span * i * markerFrequency / maxSafe);
 			final int tickX = x + xOffset + HANDLE / 3;
-			context.fill(tickX, y + h, tickX + 2, y + h + TICK, AureliaPalette.BORDER);
+			context.fill(tickX, y + h, tickX + 2, y + h + TICK, AureliaPalette.OUTLINE);
 			final int shown = i * markerFrequency / markerDisplayedRatio;
 			if (shown < 0 || shown >= NUMBERS.length) {
 				continue;
 			}
 			final String label = NUMBERS[shown];
 			final int labelX = x + xOffset + HANDLE / 2 - textRenderer.getWidth(label) / 2;
-			context.drawText(textRenderer, label, labelX, y + h + TICK + 2, AureliaPalette.FG, false);
+			context.drawText(textRenderer, label, labelX, y + h + TICK + 2, AureliaPalette.TEXT_DIM, false);
 		}
 	}
 

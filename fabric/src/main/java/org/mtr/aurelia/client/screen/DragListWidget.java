@@ -1,5 +1,7 @@
 package org.mtr.aurelia.client.screen;
 
+import org.mtr.aurelia.client.ui.AureliaChrome;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.route.StopOrder;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -67,7 +69,8 @@ public final class DragListWidget extends ClickableWidget {
 		final MinecraftClient client = MinecraftClient.getInstance();
 		final int left = getX();
 		final int top = getY();
-		context.fill(left, top, left + width, top + height, 0x80000000);
+		context.fill(left, top, left + width, top + height, AureliaPalette.FIELD);
+		AureliaChrome.frame(context, left, top, width, height, AureliaPalette.OUTLINE);
 		context.enableScissor(left, top, left + width, top + height);
 		for (int position = 0; position < order.size(); position++) {
 			final int rowY = (int) (top + position * ROW_HEIGHT - scroll);
@@ -76,31 +79,32 @@ public final class DragListWidget extends ClickableWidget {
 			}
 			final boolean isDragged = dragging && position == pressedRow;
 			if (position == selected) {
-				context.fill(left + 1, rowY, left + width - 1, rowY + ROW_HEIGHT, isDragged ? 0x40FFFFFF : 0x60FFFFFF);
+				context.fill(left + 1, rowY, left + width - 1, rowY + ROW_HEIGHT, isDragged ? AureliaPalette.RAISED : AureliaChrome.fade(AureliaPalette.ACCENT, 0.7F));
 			} else if (isMouseOver(mouseX, mouseY) && rowAt(mouseY) == position && !dragging) {
-				context.fill(left + 1, rowY, left + width - 1, rowY + ROW_HEIGHT, 0x20FFFFFF);
+				context.fill(left + 1, rowY, left + width - 1, rowY + ROW_HEIGHT, AureliaPalette.RAISED_HOVER);
 			}
-			drawRow(context, client, position, rowY, isDragged ? 0x808080 : 0xFFFFFF);
+			drawRow(context, client, position, rowY, isDragged ? AureliaPalette.TEXT_DISABLED : AureliaPalette.TEXT);
 		}
 		if (dragging) {
 			final int insertion = StopOrder.insertionIndex(dragY, top - scroll, ROW_HEIGHT, order.size());
 			final int lineY = (int) (top + insertion * ROW_HEIGHT - scroll);
-			context.fill(left + 1, lineY - 1, left + width - 1, lineY + 1, 0xFF55FF55);
+			context.fill(left + 1, lineY - 1, left + width - 1, lineY + 1, AureliaPalette.ACCENT_LIGHT);
 			final int ghostY = MathHelper.clamp((int) dragY - ROW_HEIGHT / 2, top, top + height - ROW_HEIGHT);
-			context.fill(left + 1, ghostY, left + width - 1, ghostY + ROW_HEIGHT, 0xC0303030);
-			drawRow(context, client, pressedRow, ghostY, 0x55FF55);
+			context.fill(left + 1, ghostY, left + width - 1, ghostY + ROW_HEIGHT, AureliaPalette.RAISED_HOVER);
+			AureliaChrome.frame(context, left + 1, ghostY, width - 2, ROW_HEIGHT, AureliaPalette.ACCENT_LIGHT);
+			drawRow(context, client, pressedRow, ghostY, AureliaPalette.TEXT);
 		}
 		context.disableScissor();
 		if (maxScroll() > 0) {
 			final int barHeight = Math.max(8, height * height / (order.size() * ROW_HEIGHT));
 			final int barY = top + (int) ((height - barHeight) * (scroll / maxScroll()));
-			context.fill(left + width - 3, barY, left + width - 1, barY + barHeight, 0xFFA0A0A0);
+			context.fill(left + width - 3, barY, left + width - 1, barY + barHeight, AureliaPalette.TEXT_DIM);
 		}
 	}
 
 	private void drawRow(DrawContext context, MinecraftClient client, int position, int rowY, int color) {
 		final String number = (position + 1) + ".";
-		context.drawText(client.textRenderer, number, getX() + 4, rowY + 3, 0xA0A0A0, false);
+		context.drawText(client.textRenderer, number, getX() + 4, rowY + 3, AureliaPalette.TEXT_DIM, false);
 		final Text label = labelForOriginalIndex.apply(order.originalIndexAt(position));
 		context.drawText(client.textRenderer, client.textRenderer.trimToWidth(label, width - 34).getString(), getX() + 26, rowY + 3, color, false);
 	}
