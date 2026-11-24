@@ -1,6 +1,6 @@
 {
 	"gui.aurelia.dashboard_button": "ATU",
-	"gui.aurelia.no_permission": "You need MTR edit permission (creative or survival mode) to change transit data.",
+	"gui.aurelia.no_permission": "You need MTR edit permission to change transit data.",
 	"gui.aurelia.tools.title": "Aurelia Transit Utilities",
 	"gui.aurelia.tools.operators": "Only operators can use these tools",
 	"gui.aurelia.tools.presets": "Train presets",
