@@ -6,11 +6,11 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * Every train MTR has sent to this client (those within render distance), the one the player rides first: route,

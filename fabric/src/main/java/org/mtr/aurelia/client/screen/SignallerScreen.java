@@ -26,7 +26,7 @@ public final class SignallerScreen extends Screen {
 
 	private static final int MARGIN = 8;
 	private static final int TOP = 32;
-	private static final int COLOR_EXPRESS = 0x7FD8FF;
+	private static final int COLOR_EXPRESS = AureliaPalette.ACCENT_LIGHT;
 	private static final int COLOR_FIRST = AureliaPalette.SUCCESS;
 	private static final int COLOR_NORMAL = AureliaPalette.TEXT;
 

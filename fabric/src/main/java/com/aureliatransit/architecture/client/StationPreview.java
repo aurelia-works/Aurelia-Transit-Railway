@@ -40,6 +40,7 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.world.EmptyBlockView;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,7 +51,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * A live 3D preview of a station description inside a screen, like the preview in MTR's own menus. The station is parsed and

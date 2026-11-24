@@ -15,10 +15,10 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * The one text editor for information case, information pillar and timetable case: heading, body rows, alignment and

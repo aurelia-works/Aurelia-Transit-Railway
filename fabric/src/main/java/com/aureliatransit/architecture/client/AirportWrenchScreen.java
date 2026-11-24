@@ -14,10 +14,10 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.EnumMap;
 import java.util.Map;
-import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * The airport wrench screen: the airport choices (Regional, Small, Two runways, Airstrip) write their words into the text box, which

@@ -15,11 +15,11 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * Base of the display and speaker configuration screens: the shared "which MTR station / platforms" picker (Auto or

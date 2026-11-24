@@ -65,15 +65,11 @@ public final class AureliaChrome {
 	}
 
 	/** A box with a white tick on the brand blue when checked. The outline alone shows where an empty box is. */
-	public static void checkbox(DrawContext context, int x, int y, int h, boolean checked, boolean hovered) {
-		checkbox(context, x, y, h, checked, hovered, false);
-	}
-
 	public static void checkbox(DrawContext context, int x, int y, int h, boolean checked, boolean hovered, boolean focused) {
 		final int box = 12;
 		final int left = x + 3;
 		final int top = y + Math.max(0, (h - box) / 2);
-		final int edge = focused ? AureliaPalette.FOCUS : checked || hovered ? AureliaPalette.ACCENT_LIGHT : AureliaPalette.CONTROL_BORDER;
+		final int edge = checked || hovered ? AureliaPalette.ACCENT_LIGHT : AureliaPalette.CONTROL_BORDER;
 		rounded(context, left, top, box, box, AureliaPalette.RADIUS_SMALL, edge);
 		rounded(context, left + 1, top + 1, box - 2, box - 2, AureliaPalette.RADIUS_SMALL - 1, checked ? AureliaPalette.ACCENT : AureliaPalette.FIELD);
 		if (checked) {
@@ -85,13 +81,13 @@ public final class AureliaChrome {
 				context.fill(left + 6 + i, top + 6 - i, left + 8 + i, top + 8 - i, AureliaPalette.TEXT);
 			}
 		}
+		if (focused) {
+			// Outside the box with a pixel of gap, so it reads on a ticked box whose own edge is already blue
+			roundedFrame(context, left - 2, top - 2, box + 4, box + 4, AureliaPalette.RADIUS_SMALL + 2, AureliaPalette.FOCUS);
+		}
 	}
 
 	/** Panel slider: the label is drawn by the widget, centred, after this returns. */
-	public static void slider(DrawContext context, int x, int y, int w, int h, double value, boolean hovered) {
-		slider(context, x, y, w, h, value, hovered, false);
-	}
-
 	public static void slider(DrawContext context, int x, int y, int w, int h, double value, boolean hovered, boolean focused) {
 		context.fill(x, y, x + w, y + h, AureliaPalette.FIELD);
 		frame(context, x, y, w, h, hovered ? AureliaPalette.TEXT_DIM : AureliaPalette.CONTROL_BORDER);
@@ -111,15 +107,15 @@ public final class AureliaChrome {
 	 * Depot and siding slider. MTR draws the value to the right of the track, and tick marks under the dwell slider.
 	 * {@code message} is the widget's existing text.
 	 */
-	public static void shortSlider(DrawContext context, TextRenderer textRenderer, int x, int y, int w, int h, int value, int max, int markerFrequency, int markerDisplayedRatio, boolean hovered, Text message) {
+	public static void shortSlider(DrawContext context, TextRenderer textRenderer, int x, int y, int w, int h, int value, int max, int markerFrequency, int markerDisplayedRatio, boolean hovered, boolean active, boolean focused, Text message) {
 		context.fill(x, y, x + w, y + h, AureliaPalette.FIELD);
-		frame(context, x, y, w, h, AureliaPalette.CONTROL_BORDER);
+		frame(context, x, y, w, h, focused ? AureliaPalette.FOCUS : active ? AureliaPalette.CONTROL_BORDER : AureliaPalette.LINE);
 		final int maxSafe = Math.max(1, max);
 		final int span = Math.max(1, w - HANDLE);
 		final int handleX = x + (int) ((long) span * value / maxSafe);
-		context.fill(handleX, y, handleX + HANDLE, y + h, hovered ? AureliaPalette.ACCENT_LIGHT : AureliaPalette.TEXT);
+		context.fill(handleX, y, handleX + HANDLE, y + h, !active ? AureliaPalette.TEXT_DISABLED : hovered || focused ? AureliaPalette.ACCENT_LIGHT : AureliaPalette.TEXT);
 		if (message != null) {
-			context.drawText(textRenderer, message, x + w + 6, y + (h - 8) / 2, AureliaPalette.TEXT, false);
+			context.drawText(textRenderer, message, x + w + 6, y + (h - 8) / 2, labelColor(active), false);
 		}
 		if (markerFrequency <= 0 || markerDisplayedRatio <= 0) {
 			return;

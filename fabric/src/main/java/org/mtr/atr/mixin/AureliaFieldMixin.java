@@ -7,19 +7,24 @@ import org.mtr.aurelia.client.ui.AureliaChrome;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.client.ui.AureliaUi;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Repaints the text-field border after MTR has drawn the field, so the cursor, selection and suggestion stay as they are.
+ * A field that draws no background sits inside a shape its screen draws, such as a rounded search pill, so it is left alone.
  */
 @Mixin(TextFieldWidget.class)
 public abstract class AureliaFieldMixin {
 
+	@Shadow
+	private boolean drawsBackground;
+
 	@Inject(method = "renderButton(Lnet/minecraft/client/gui/DrawContext;IIF)V", at = @At("RETURN"))
 	private void atr$fieldBorder(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-		if (!AureliaUi.active()) {
+		if (!AureliaUi.active() || !this.drawsBackground) {
 			return;
 		}
 		final ClickableWidget widget = (ClickableWidget) (Object) this;

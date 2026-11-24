@@ -12,12 +12,12 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * Per-exit settings of a station information board's Exits view (A3): one row per exit with its own "leads to" text,

@@ -28,9 +28,9 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.function.Supplier;
-import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * The station wrench screen. The simple page builds a station from buttons: a city look (and a second one to mix in), through

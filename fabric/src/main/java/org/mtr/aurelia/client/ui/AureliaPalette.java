@@ -60,10 +60,6 @@ public final class AureliaPalette {
 
 	/** Corner radius of a button, field or chip, in GUI pixels. */
 	public static final int RADIUS_SMALL = 2;
-	/** Corner radius of a card or row. */
-	public static final int RADIUS = 4;
-	/** Corner radius of a panel or dialog. */
-	public static final int RADIUS_LARGE = 6;
 
 	// Older names, kept so existing screens keep compiling. They point at the roles above.
 

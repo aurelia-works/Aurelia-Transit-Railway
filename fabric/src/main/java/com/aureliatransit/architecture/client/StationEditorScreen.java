@@ -24,6 +24,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.io.IOException;
 import java.util.LinkedHashSet;
@@ -31,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import org.mtr.aurelia.client.ui.AureliaPalette;
 
 /**
  * The station editor, opened from the station wrench: the station's settings on the left, its plan from above (one pixel per

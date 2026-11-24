@@ -6,6 +6,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.map.MapCamera;
 
 /**
@@ -63,9 +64,9 @@ public final class WorldMapScreen extends Screen {
 		final int worldX = (int) Math.floor(camera.worldX(mouseX, 0, width));
 		final int worldZ = (int) Math.floor(camera.worldZ(mouseY, BAR, height - BAR));
 		final Text where = mouseY >= BAR ? Text.translatable("gui.aurelia.map.cursor", worldX, worldZ) : Text.empty();
-		context.drawTextWithShadow(textRenderer, where, width - 6 - textRenderer.getWidth(where), 7, 0xDDDDDD);
+		context.drawTextWithShadow(textRenderer, where, width - 6 - textRenderer.getWidth(where), 7, AureliaPalette.TEXT);
 		final Text hint = Text.translatable("gui.aurelia.map.hint");
-		context.drawTextWithShadow(textRenderer, hint, 6, height - 12, 0x888888);
+		context.drawTextWithShadow(textRenderer, hint, 6, height - 12, AureliaPalette.TEXT_DIM);
 	}
 
 	@Override
