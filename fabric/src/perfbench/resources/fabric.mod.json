@@ -10,7 +10,8 @@
 			"org.mtr.perfbench.PanelShots",
 			"org.mtr.perfbench.PassengerShots",
 			"org.mtr.perfbench.PassengerDemoClient",
-			"org.mtr.perfbench.VisualShots"
+			"org.mtr.perfbench.VisualShots",
+			"org.mtr.perfbench.DevScreenshots"
 		]
 	},
 	"depends": {
