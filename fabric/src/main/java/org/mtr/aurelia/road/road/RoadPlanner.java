@@ -160,6 +160,12 @@ public final class RoadPlanner {
      */
     public static final String ROAD_TOO_OLD = "ROAD_TOO_OLD";
 
+    /**
+     * Upstream BUG-2: the road's lanes would end staggered (a sharp bend near an end leaves a column beside one lane with
+     * no lane beyond it), which the rasteriser can't build yet. Refused with a reason instead of an internal error.
+     */
+    public static final String LANE_ENDS_STAGGERED = "LANE_ENDS_STAGGERED";
+
     /** The shortest piece, in blocks (roads-v1 §12). */
     public static final double MIN_LENGTH = 2;
 
@@ -365,7 +371,12 @@ public final class RoadPlanner {
         boolean clearing = params.tool() == RoadPlanParams.Tool.CLEAR_MARKERS;
         boolean heightOutside = start.y() < limits.minY() || start.y() >= limits.maxY() || end.y() < limits.minY() || end.y() >= limits.maxY();
         // The foundation and the clearance stop at the build height; the surface itself is checked below.
-        BlockPlan plan = Rasteriser.plan(rasterPieces(profile, pieces, params.dashes()), palette, limits.minY(), limits.maxY());
+        BlockPlan plan;
+        try {
+            plan = Rasteriser.plan(rasterPieces(profile, pieces, params.dashes()), palette, limits.minY(), limits.maxY());
+        } catch (Rasteriser.StaggeredLaneEnds staggered) {
+            return refused(LANE_ENDS_STAGGERED, Map.of()); // upstream BUG-2
+        }
         List<LaneNode> nodes = LaneNodes.of(pieces);
         plan = withNodeColumns(plan, nodes, palette, limits);
         if (clearing) {

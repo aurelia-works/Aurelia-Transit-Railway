@@ -315,6 +315,7 @@
   "stratos.notice.repaired_attention": "Stratos repaired this world after a crash. Edits rolled back: %1$s. Edits completed: %2$s. Not fully repaired: %3$s (the log says what).",
   "stratos.notice.unknown": "Stratos: %s",
   "stratos.road.reject.too_short": "This piece is too short.",
+  "stratos.road.reject.lane_ends_staggered": "This bend is too sharp so near its end for the lanes to end together. Make it gentler or longer.",
   "stratos.road.reject.world_limit": "Part of the road is outside the world's build limits.",
   "stratos.road.reject.end_not_in_line": "The end isn't straight ahead of the start. Move the end onto the start's direction, or give both ends the same direction.",
   "stratos.road.reject.unknown_profile": "There's no road layout called %s.",
