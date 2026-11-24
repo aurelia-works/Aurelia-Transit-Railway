@@ -28,6 +28,7 @@ import org.mtr.aurelia.client.AureliaExamplePack;
 import org.mtr.aurelia.client.ui.AureliaUiSettings;
 import org.mtr.aurelia.dashboard.DashboardParentAccess;
 import org.mtr.aurelia.dashboard.UnifiedDashboardClient;
+import org.mtr.aurelia.client.ClientOperators;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.PassengerClient;
 import org.mtr.aurelia.client.ZipClient;
@@ -630,7 +631,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	/** Zip lines: on/off, top speed, brake and how far the cable sags. Operators only; the ride is shared. */
 	private void initZip() {
 		final int left = columnLeft();
-		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		final boolean operator = ClientOperators.isOperator(client);
 		final ZipSettings now = ZipClient.settings();
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.zip.enabled", ScreenTexts.onOrOff(now.enabled())), b -> {
 			final ZipSettings current = ZipClient.settings();
@@ -805,7 +806,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private void initBuild() {
 		buildFirst = Math.max(0, Math.min(buildFirst, BUILD_ROWS - visibleRows()));
 		final int left = columnLeft();
-		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
+		final boolean operator = ClientOperators.isOperator(client);
 		final BuildSettings now = BuildClient.settings();
 		if (buildRow(0)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.station", ScreenTexts.onOrOff(now.stationEnabled())), b -> {
@@ -1382,11 +1383,11 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			if (client.player != null && !client.player.hasPermissionLevel(2)) {
 				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), centerX(), top - 12, 0xFF5555);
 			}
-		} else if (tab == Tab.BUILD && client.player != null && !client.player.hasPermissionLevel(2)) {
+		} else if (tab == Tab.BUILD && !ClientOperators.isOperator(client)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.VEHICLES) {
 			renderVehicles(context);
-		} else if (tab == Tab.ZIP && client.player != null && !client.player.hasPermissionLevel(2)) {
+		} else if (tab == Tab.ZIP && !ClientOperators.isOperator(client)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.TRAIN_SOUND) {
 			scrollLine(context, trainSoundFirst, visibleRows(), TRAIN_SOUND_ROWS);
