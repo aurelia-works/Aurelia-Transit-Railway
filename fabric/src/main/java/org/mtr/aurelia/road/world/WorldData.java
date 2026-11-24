@@ -230,7 +230,7 @@ public final class WorldData {
         try {
             this.storage.delete("tmp");
         } catch (IOException e) {
-            this.log.accept("[stratos] couldn't empty stratos/tmp: " + e);
+            this.log.accept("[stratos] couldn't empty aurelia_roads/tmp: " + e);
         }
         UndoIndex index = UndoIndex.EMPTY;
         boolean indexRead = true;
