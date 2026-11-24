@@ -132,7 +132,7 @@ public final class TrainPickerScreen extends Screen {
 			context.fill(x + 4, rowY + 5, x + 7, rowY + ROW_HEIGHT - 7, 0xFF000000 | train.getColor());
 			final String length = fits ? Text.translatable("gui.aurelia.train_picker.length", metres(train.getLength())).getString() : Text.translatable("gui.aurelia.train_picker.too_long").getString();
 			final int lengthWidth = textRenderer.getWidth(length);
-			context.drawText(textRenderer, textRenderer.trimToWidth(train.getName().getString(), w - 24 - lengthWidth), x + 12, rowY + 7, fits ? AureliaPalette.FG : AureliaPalette.TEXT_DIM, false);
+			context.drawText(textRenderer, ellipsis(train.getName().getString(), w - 24 - lengthWidth), x + 12, rowY + 7, fits ? AureliaPalette.FG : AureliaPalette.TEXT_DIM, false);
 			context.drawText(textRenderer, length, x + w - 8 - lengthWidth, rowY + 7, fits ? AureliaPalette.TEXT_DIM : AureliaPalette.WARN, false);
 			if (hovered && fits) {
 				plus(context, x + w - 16 - lengthWidth, rowY + 11);
@@ -145,6 +145,11 @@ public final class TrainPickerScreen extends Screen {
 			final int thumbY = top + (int) ((trackHeight - thumb) * listScroll / maxScroll());
 			AureliaChrome.rounded(context, x + w + 3, thumbY, 3, thumb, 1, AureliaPalette.LINE);
 		}
+	}
+
+	/** The text cut to fit, ending in "..." when cut, so a clipped name reads as clipped. */
+	private String ellipsis(String text, int width) {
+		return textRenderer.getWidth(text) <= width ? text : textRenderer.trimToWidth(text, width - textRenderer.getWidth("...")) + "...";
 	}
 
 	private void renderFormation(DrawContext context, int mouseX, int mouseY) {
