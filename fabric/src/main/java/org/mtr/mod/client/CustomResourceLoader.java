@@ -13,6 +13,7 @@ import org.mtr.mod.Keys;
 import org.mtr.mod.config.Config;
 import org.mtr.mod.resource.*;
 
+import javax.annotation.Nullable;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -278,8 +279,13 @@ public class CustomResourceLoader {
 		return new ObjectImmutableList<>(RAILS);
 	}
 
+	@Nullable
+	public static RailResource getRailById(String railId) {
+		return RAILS_CACHE.get(railId);
+	}
+
 	public static void getRailById(String railId, Consumer<RailResource> ifPresent) {
-		final RailResource railResource = RAILS_CACHE.get(railId);
+		final RailResource railResource = getRailById(railId);
 		if (railResource != null) {
 			ifPresent.accept(railResource);
 		}

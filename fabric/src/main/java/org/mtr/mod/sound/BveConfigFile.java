@@ -1,6 +1,7 @@
 package org.mtr.mod.sound;
 
 import org.apache.commons.lang3.StringUtils;
+import org.mtr.libraries.it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.mtr.mapping.holder.Identifier;
 import org.mtr.mapping.holder.SoundEvent;
 import org.mtr.mapping.mapper.SoundHelper;
@@ -9,7 +10,8 @@ import java.util.Locale;
 
 public class BveConfigFile {
 
-	public final SoundEvent[] run = new SoundEvent[1];
+	/** Run sounds by index. A rail resource's {@code soundIndex} picks one, and cars blend between two at a rail joint. */
+	public final Int2ObjectOpenHashMap<SoundEvent> run = new Int2ObjectOpenHashMap<>();
 	/** Up to eight BVE flange clips. Packs that only define flange[0] still load that one. */
 	public final SoundEvent[] flange = new SoundEvent[8];
 	public final SoundEvent[] motor = new SoundEvent[40];
@@ -122,10 +124,7 @@ public class BveConfigFile {
 						break;
 					case "run":
 					case "rolling":
-						if (Integer.parseInt(key) >= run.length) {
-							break;
-						}
-						run[Integer.parseInt(key)] = valueAsSoundEvent;
+						run.put(Integer.parseInt(key), valueAsSoundEvent);
 						break;
 					case "flange":
 						if (Integer.parseInt(key) >= flange.length) {
