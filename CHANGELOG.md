@@ -1,6 +1,48 @@
 # Changelog
 
-## Unreleased
+## Unreleased (planned as 1.2.0, 4.0.5+atr.1.2.0, on 2 December)
+
+### Added
+- Express trains go first where lines meet. A train on a line set to MTR's "High Speed" route type holds the junction ahead of it, and a slower train from another line waits at its signal until it is through, for at most a minute. The Engine tab's signaller lets other lines go first too. Switch: "Express trains go first at junctions", on by default (#141).
+- Passengers travel to any station the network reaches and change trains on the way, with up to two changes. They board only a train or bus that stops where they need to go. Switch: "Passengers change trains", on by default (#136).
+- Announcements can speak with ATR's own downloadable voices, picked by the game's language, from the Sound tab. Nothing is added to the jar; the computer's voice is the fallback (#142).
+- A driver key box with keys hanging inside the cabinet. A key handed to a driver leaves its hook empty until it runs out (#131).
+- Tapping at a gate or card reader shows a small card pop-up. The transit card screen shows the balance, today's spend and journeys, and the Station Codex has a leather cover, sliding tabs and a page turn (#131).
+- The train picker shows the hovered train in 3D on a piece of track (#132).
+- Stations on the map show quiet, busy or packed from the people waiting there (#134).
+- The Engine tab shows how long the train simulation takes each tick (#138).
+
+### Changed
+- Timetabled trains leave at the same minutes each hour and catch up at the end of the line (#140).
+- Trains slow down gently on uphill track (#139).
+- A train keeps its doors open while people are still boarding (#137).
+- Planes stay at the gate for a turnaround that fits their size (#135).
+- New worlds start with passengers on and people drawn on the platforms. With no platform blocks, people wait behind the platform screen doors (#133).
+- The old ATR menu is gone. Its buttons are in the Aurelia panel's Architecture tab, and the menu key opens the panel (#145).
+- ATR runs on a simulation engine built from its own fork of MTR's engine, from the same source as before. Saves load unchanged (#128).
+
+### Fixed
+- MTR 4.0.6's fixes: vehicles no longer snap or jump while syncing, and the Class 345 and Class 377 have their new sounds (#143).
+- A reverse escalator runs down, and board text fits its window (#129).
+- Pressing Esc twice on the dashboard no longer crashes the game (#130).
+- Players who aren't operators see why the Engine tab is locked (#138).
+
+### Pending: open pull requests, not merged yet
+Move each line up when its pull request merges, and delete what misses the release.
+- Stratos road building, with permission from its owner: road geometry (#147), the road engine (#162), server side (#166), road blocks (#174), road tools, preview and HUD (#176) and the road hub (#179).
+- Building, zip lines and the dashboard work for operators and the single-player host (#169). The panel's Tools tab is for operators only (#173).
+- MTR 4.1's per-train rail sounds and dyeable PIDS (#148), and its train picker tiers and tag search (#159).
+- One versioned client settings file, with the ten old ones migrated (#146).
+- One colour and control system for every ATR screen (#157), and a fully dark train picker (#151).
+- Station class words halt, local, hub and terminal; a halt gets a ticket machine (#153). Wing waiting rooms open into the paid hall only (#168).
+- Escalators get glass balustrades above a thin steel skirt (#152).
+- Airside shops in airport terminals (#156).
+- Zip lines get a seat with ropes and a thick shaded cable (#178).
+- The map: homes, landmarks and a station list (#165), unexplored squares filled from saved chunks (#163), and the dashboard map shows the whole explored world (#160). The minimap is removed (#154).
+- The neural announcer voice is English only (#155).
+- MTR 4.1 leftovers: no double riding, one door toggle, and multi-node bridge and tunnel tools (#167).
+- Road cars and the Bus & Road dashboard are cut; hire bikes stay (#172). Crew roles and driver extras are removed; AWS and TPWS stay (#171).
+- Performance: no per-tick reflection, idle simulator tasks, per-second cargo writes or per-row list sorts (#164).
 
 ### Added
 - Each road lane gets hidden MTR track along it, so a train can follow the road. Going back to a version without road track leaves the track already built in the world's MTR data; remove it with MTR's tools (#180).
