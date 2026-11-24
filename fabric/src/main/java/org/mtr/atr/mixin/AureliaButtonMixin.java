@@ -6,7 +6,6 @@ import net.minecraft.client.gui.widget.PressableWidget;
 import net.minecraft.client.gui.widget.TexturedButtonWidget;
 import net.minecraft.text.Text;
 import org.mtr.aurelia.client.ui.AureliaChrome;
-import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.client.ui.AureliaUi;
 import org.mtr.mod.screen.WidgetColorSelector;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,10 +33,10 @@ public abstract class AureliaButtonMixin {
 		}
 		final int x = widget.getX();
 		final int y = widget.getY();
-		AureliaChrome.button(context, x, y, w, h, widget.isHovered(), widget.active, widget.isFocused());
+		AureliaChrome.button(context, x, y, w, h, widget.isHovered(), widget.active, widget.isFocused() && AureliaUi.keyboardNavigation());
 		final Text message = ((AureliaWidgetText) (Object) this).atr$message();
 		if (message != null) {
-			AureliaWidgetText.atr$drawScrollableText(context, MinecraftClient.getInstance().textRenderer, message, x + 2, y, x + w - 2, y + h, widget.active ? AureliaPalette.FG : AureliaPalette.FG_LIGHT);
+			AureliaWidgetText.atr$drawScrollableText(context, MinecraftClient.getInstance().textRenderer, message, x + 2, y, x + w - 2, y + h, AureliaChrome.labelColor(widget.active));
 		}
 		ci.cancel();
 	}

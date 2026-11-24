@@ -15,6 +15,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -116,7 +117,7 @@ public class InfoTextEditScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		renderBackground(context);
-		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 8, 0xFFFFFF);
+		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 8, AureliaPalette.TEXT);
 		super.render(context, mouseX, mouseY, delta);
 
 		if (previewDirty) {

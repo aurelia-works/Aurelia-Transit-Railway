@@ -1,6 +1,7 @@
 package org.mtr.aurelia.client.screen;
 
 import org.mtr.aurelia.client.MtrBridge;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.overlap.HeightRange;
 import org.mtr.aurelia.overlap.Zones;
 import net.minecraft.client.gui.DrawContext;
@@ -28,11 +29,11 @@ public final class ZoneHeightScreen extends Screen {
 	private static final int MARGIN = 8;
 	private static final int TOP = 32;
 	private static final int BUTTON_WIDTH = 110;
-	private static final int COLOR_TEXT = 0xFFFFFF;
-	private static final int COLOR_DIM = 0xA0A0A0;
-	private static final int COLOR_OK = 0x55FF55;
-	private static final int COLOR_WARN = 0xFFAA00;
-	private static final int COLOR_ERROR = 0xFF5555;
+	private static final int COLOR_TEXT = AureliaPalette.TEXT;
+	private static final int COLOR_DIM = AureliaPalette.TEXT_DIM;
+	private static final int COLOR_OK = AureliaPalette.SUCCESS;
+	private static final int COLOR_WARN = AureliaPalette.CAUTION;
+	private static final int COLOR_ERROR = AureliaPalette.DANGER;
 
 	private final Screen parent;
 	private SimpleListWidget<AreaBase<?, ?>> areaList;
