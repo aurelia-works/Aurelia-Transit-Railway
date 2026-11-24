@@ -94,13 +94,17 @@ abstract class PlanBuilding extends PlanPlatforms {
 			}
 		}
 		// with wings, the paid side opens into their waiting rooms through a three-wide doorway in each end wall; the wall
-		// stays down to the floor either side of it
+		// stays down to the floor either side of it. The rooms open onto platform 1, so the doorway is beside the platform
+		// wall, and the cells just inside it are kept clear too: the gate line stands two short of anything kept in the hall
+		// (HallZones#gateLine), so it never reaches the doorway and nobody walks round the gates through a waiting room (a
+		// doorway halfway in was on the unpaid side of a Dutch or German hall's gates, which stand by the stairs)
 		if (wingBays > 0) {
-			final int doorCentre = (uS + 6 + uP - 2) / 2;
-			for (int u = doorCentre - 1; u <= doorCentre + 1; u++) {
+			for (int u = uP - 3; u <= uP - 1; u++) {
 				for (int y = 1; y <= 3; y++) {
 					keepClear(u, y, vS);
 					keepClear(u, y, vE);
+					keepClear(u, y, vS + 1);
+					keepClear(u, y, vE - 1);
 				}
 			}
 		}

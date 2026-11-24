@@ -342,6 +342,8 @@ public final class StationDescriptionParser {
 		private StationScale scale;
 		/** The size came from a landmark (Grand Central is grand), so a size word said after it still wins. */
 		private boolean scaleFromLandmark;
+		/** No length word was said, so the platforms are {@link StationSpec#DEFAULT_LENGTH} until a bigger building asks for more. */
+		private boolean defaultLength;
 		private int scaleAt = -1;
 		/**
 		 * The real station the first city word names, said "real frankfurt" (St Pancras, Frankfurt Hbf, Paris Nord, Milano Centrale, Grand Central), or null: with nothing else in the words naming
@@ -2630,6 +2632,7 @@ public final class StationDescriptionParser {
 				builder.platformLength(terminusLength);
 				defaulted.add("length " + terminusLength + " (default for a " + (scale == StationScale.CITY ? "city " : "") + "terminus)");
 			} else {
+				defaultLength = true;
 				defaulted.add("length " + StationSpec.DEFAULT_LENGTH + " (default)");
 			}
 			if (deepType == UndergroundType.CUT_AND_COVER) {
@@ -2891,6 +2894,18 @@ public final class StationDescriptionParser {
 					defaulted.add(auto.label() + " station building (" + (own != null ? "the real station's size"
 							: "default for " + platformed + (platformed == 1 ? " track" : " tracks") + " at platforms"
 									+ (dutch && auto == StationScale.GRAND && platformed < StationScale.GRAND_BUILDING_TRACKS ? " on a Dutch station" : "")) + ")");
+				}
+			}
+			// a city or grand building is a main station's, so its platforms are as long as that class's: "6 track amsterdam style
+			// station" put a grand hall over 48-block platforms, two cars long. Only the plain default gives way; a length said, a
+			// terminus, an underground station or a longer listed platform keeps its own
+			if (defaultLength && wantsBuilding && !terminus && deepType == null && builder.build().platformLength() == StationSpec.DEFAULT_LENGTH) {
+				final StationScale built = builder.build().buildingScale();
+				if (built != StationScale.COMPACT) {
+					final int classLength = built == StationScale.GRAND ? GRAND_LENGTH : CITY_LENGTH;
+					builder.platformLength(classLength);
+					defaulted.remove("length " + StationSpec.DEFAULT_LENGTH + " (default)");
+					defaulted.add("length " + classLength + " (default for a " + built.label() + " station building)");
 				}
 			}
 			// a bigger through station (a city or grand building) gives every platform wide enough two ways down from its footbridge, so
