@@ -39,6 +39,8 @@ public final class TrainPickerScreen extends Screen {
 	private static final long OPEN_MILLIS = 240;
 	private static final int STAGE_TOP = 0xFF20262E;
 	private static final int STAGE_BOTTOM = 0xFF101317;
+	/** The header bar's height: the title and the Done button sit in it, the search box just under it. */
+	private static final int HEADER_BAR = 26;
 
 	private final Siding siding;
 	@Nullable
@@ -79,7 +81,7 @@ public final class TrainPickerScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		renderBackdrop(context);
 		final float open = AureliaMotion.easeOut(AureliaMotion.progress(openedAt, OPEN_MILLIS));
 		context.getMatrices().push();
 		context.getMatrices().translate(0, (1 - open) * 8, 0);
@@ -98,6 +100,16 @@ public final class TrainPickerScreen extends Screen {
 		context.getMatrices().pop();
 
 		super.render(context, mouseX, mouseY, delta);
+	}
+
+	/**
+	 * An opaque dark face over the whole screen, in place of the vanilla background, which lets the world (or the dirt
+	 * texture) show through behind the list and the stage. Drawn before the open animation's slide, so it stays put.
+	 */
+	private void renderBackdrop(DrawContext context) {
+		context.fill(0, 0, width, height, AureliaPalette.SURFACE);
+		context.fill(0, 0, width, HEADER_BAR, AureliaPalette.FIELD);
+		context.fill(0, HEADER_BAR - 1, width, HEADER_BAR, AureliaPalette.LINE);
 	}
 
 	private void renderList(DrawContext context, int mouseX, int mouseY) {
