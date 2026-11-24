@@ -594,6 +594,9 @@ public class RenderRails implements IGui {
 		final int railViewChunks = client.getRailViewChunks();
 		for (int i = 0; i < farRails.size(); i++) {
 			final Rail rail = farRails.get(i);
+			if (!RailLod.drawnInFarView(!rail.getStyles().isEmpty(), holdingRailRelated)) {
+				continue;
+			}
 			final Identifier texture;
 			final float halfWidth;
 			final float yOffset;

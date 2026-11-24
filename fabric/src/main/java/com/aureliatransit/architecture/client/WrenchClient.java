@@ -12,6 +12,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
 import org.lwjgl.glfw.GLFW;
+import org.mtr.aurelia.client.screen.AureliaPanelScreen;
 
 /**
  * Client side of the one wrench: a key (V by default) and sneak + mouse wheel change the mode of a wrench in either hand,
@@ -39,7 +40,7 @@ public final class WrenchClient {
 		}
 		while (menuKey != null && menuKey.wasPressed()) {
 			if (client.currentScreen == null) {
-				AtrMenuScreen.open(null, AtrMenuScreen.Tab.BUILD);
+				client.setScreen(new AureliaPanelScreen(null, AureliaPanelScreen.Tab.ARCHITECTURE));
 			}
 		}
 	}

@@ -1,0 +1,118 @@
+{
+  "id": "6f1c2a4e-9b7d-4e21-8c3a-5d2f0b9e7a11",
+  "dimension": "minecraft:overworld",
+  "module": "roads",
+  "tool": "CURVE",
+  "params": {
+    "tool": "CURVE",
+    "profileId": "city-17",
+    "preset": "GAME_SCALE",
+    "paletteId": "vanilla",
+    "drivingSide": "LHT",
+    "ends": [
+      {
+        "x": 0,
+        "y": 64,
+        "z": 0,
+        "heading": "E",
+        "snapRoadId": "00000000-0000-0001-0000-000000000002",
+        "snapPortIndex": 1
+      },
+      {
+        "x": 40,
+        "y": 64,
+        "z": 40,
+        "heading": "S"
+      }
+    ],
+    "vertical": {
+      "shape": "TWO_RADII",
+      "radius": 120.5
+    },
+    "nodeAids": "WOOL",
+    "overlay": false
+  },
+  "planHash": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+  "coreVersion": "0.1.0",
+  "author": "00000000-0000-0000-0000-000000000001",
+  "time": "2026-10-08T10:00:00Z",
+  "status": "UNDONE",
+  "undoAvailable": true,
+  "sections": [
+    {
+      "x": -1,
+      "y": 3,
+      "z": -1,
+      "hash": "1212121212121212121212121212121212121212121212121212121212121212"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "z": 2,
+      "hash": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef"
+    }
+  ],
+  "sideEffects": {
+    "planned": [
+      {
+        "kind": "trackRail",
+        "a": [
+          1,
+          65,
+          -3
+        ],
+        "aFacing": 2,
+        "b": [
+          40,
+          65,
+          36
+        ],
+        "bFacing": 4,
+        "speedFromA": 40,
+        "speedFromB": 0,
+        "shape": "TWO_RADII",
+        "radius": 120.5
+      },
+      {
+        "kind": "trackRail",
+        "a": [
+          40,
+          65,
+          44
+        ],
+        "aFacing": 0,
+        "b": [
+          1,
+          65,
+          3
+        ],
+        "bFacing": 6,
+        "speedFromA": 40,
+        "speedFromB": 40,
+        "shape": "TWO_RADII",
+        "radius": 120.5
+      }
+    ],
+    "owned": [
+      {
+        "kind": "trackRail",
+        "a": [
+          1,
+          65,
+          -3
+        ],
+        "aFacing": 2,
+        "b": [
+          40,
+          65,
+          36
+        ],
+        "bFacing": 4,
+        "speedFromA": 40,
+        "speedFromB": 0,
+        "shape": "TWO_RADII",
+        "radius": 120.5
+      }
+    ]
+  }
+}

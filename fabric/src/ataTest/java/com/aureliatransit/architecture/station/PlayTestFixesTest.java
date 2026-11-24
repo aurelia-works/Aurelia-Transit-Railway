@@ -84,9 +84,10 @@ class PlayTestFixesTest {
 	@Test
 	void noLoneBenchOnTheBuildingsGroundFloor() {
 		final StationPlan plan = plan(PLAYED);
-		// Jah's stray seat stood at u 20, v 92, beside the building's lift and the gates: seats now come only in rows
+		// Jah's stray seat stood at u 20, v 92, beside the building's lift and the gates: seats now come only in rows. The whole
+		// hall, inside its end walls at v 82 and 118, so a row near an end wall is counted whole rather than cut
 		final List<PlannedBlock> seats = plan.blocks().stream().filter(b -> b.role() == Role.BENCH && b.y() == StationGeometry.WALK_Y
-				&& b.u() > StationLayout.streetWall() && b.u() < 23 && b.v() > 85 && b.v() < 115).toList();
+				&& b.u() > StationLayout.streetWall() && b.u() < 23 && b.v() > 82 && b.v() < 118).toList();
 		for (final PlannedBlock seat : seats) {
 			final long row = seats.stream().filter(b -> b.u() == seat.u() && Math.abs(b.v() - seat.v()) < PlanFurniture.SEAT_ROW).count();
 			assertTrue(row >= PlanFurniture.SEAT_ROW - 1, "a seat on its own: " + seat);

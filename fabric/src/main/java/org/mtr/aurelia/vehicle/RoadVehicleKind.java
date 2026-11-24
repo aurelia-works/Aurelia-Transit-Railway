@@ -2,7 +2,8 @@ package org.mtr.aurelia.vehicle;
 
 /**
  * What a road vehicle is: its size, how it accelerates and steers, where people sit and which Blockbench model draws it.
- * Lengths are in metres (1 block = 1 m) at size 100%. The car comes from its item; the bicycle is hired from a bike rack.
+ * Lengths are in metres (1 block = 1 m) at size 100%. The bicycle is hired from a bike rack. The car is retired: it stays
+ * here only so a car saved in an old world still decodes, and the entity removes it on its first tick.
  */
 public enum RoadVehicleKind {
 

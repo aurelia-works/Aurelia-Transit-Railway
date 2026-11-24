@@ -482,6 +482,12 @@
 		"aurelia_transit_architecture:ns_stair_handrail",
 		"aurelia_transit_architecture:stair_handrail",
 		"aurelia_transit_architecture:lineside_fence",
-		"aurelia_transit_architecture:bicycle_rack"
+		"aurelia_transit_architecture:bicycle_rack",
+		"stratos:asphalt",
+		"stratos:footway_flags",
+		"stratos:footway_asphalt",
+		"stratos:kerb",
+		"stratos:dropped_kerb",
+		"stratos:gully"
 	]
 }

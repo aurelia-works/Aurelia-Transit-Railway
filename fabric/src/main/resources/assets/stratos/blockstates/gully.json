@@ -1,0 +1,124 @@
+{
+  "variants": {
+    "facing=north,layers=1": {
+      "model": "stratos:block/gully_h2"
+    },
+    "facing=north,layers=2": {
+      "model": "stratos:block/gully_h4"
+    },
+    "facing=north,layers=3": {
+      "model": "stratos:block/gully_h6"
+    },
+    "facing=north,layers=4": {
+      "model": "stratos:block/gully_h8"
+    },
+    "facing=north,layers=5": {
+      "model": "stratos:block/gully_h10"
+    },
+    "facing=north,layers=6": {
+      "model": "stratos:block/gully_h12"
+    },
+    "facing=north,layers=7": {
+      "model": "stratos:block/gully_h14"
+    },
+    "facing=north,layers=8": {
+      "model": "stratos:block/gully_h16"
+    },
+    "facing=east,layers=1": {
+      "model": "stratos:block/gully_h2",
+      "y": 90
+    },
+    "facing=east,layers=2": {
+      "model": "stratos:block/gully_h4",
+      "y": 90
+    },
+    "facing=east,layers=3": {
+      "model": "stratos:block/gully_h6",
+      "y": 90
+    },
+    "facing=east,layers=4": {
+      "model": "stratos:block/gully_h8",
+      "y": 90
+    },
+    "facing=east,layers=5": {
+      "model": "stratos:block/gully_h10",
+      "y": 90
+    },
+    "facing=east,layers=6": {
+      "model": "stratos:block/gully_h12",
+      "y": 90
+    },
+    "facing=east,layers=7": {
+      "model": "stratos:block/gully_h14",
+      "y": 90
+    },
+    "facing=east,layers=8": {
+      "model": "stratos:block/gully_h16",
+      "y": 90
+    },
+    "facing=south,layers=1": {
+      "model": "stratos:block/gully_h2",
+      "y": 180
+    },
+    "facing=south,layers=2": {
+      "model": "stratos:block/gully_h4",
+      "y": 180
+    },
+    "facing=south,layers=3": {
+      "model": "stratos:block/gully_h6",
+      "y": 180
+    },
+    "facing=south,layers=4": {
+      "model": "stratos:block/gully_h8",
+      "y": 180
+    },
+    "facing=south,layers=5": {
+      "model": "stratos:block/gully_h10",
+      "y": 180
+    },
+    "facing=south,layers=6": {
+      "model": "stratos:block/gully_h12",
+      "y": 180
+    },
+    "facing=south,layers=7": {
+      "model": "stratos:block/gully_h14",
+      "y": 180
+    },
+    "facing=south,layers=8": {
+      "model": "stratos:block/gully_h16",
+      "y": 180
+    },
+    "facing=west,layers=1": {
+      "model": "stratos:block/gully_h2",
+      "y": 270
+    },
+    "facing=west,layers=2": {
+      "model": "stratos:block/gully_h4",
+      "y": 270
+    },
+    "facing=west,layers=3": {
+      "model": "stratos:block/gully_h6",
+      "y": 270
+    },
+    "facing=west,layers=4": {
+      "model": "stratos:block/gully_h8",
+      "y": 270
+    },
+    "facing=west,layers=5": {
+      "model": "stratos:block/gully_h10",
+      "y": 270
+    },
+    "facing=west,layers=6": {
+      "model": "stratos:block/gully_h12",
+      "y": 270
+    },
+    "facing=west,layers=7": {
+      "model": "stratos:block/gully_h14",
+      "y": 270
+    },
+    "facing=west,layers=8": {
+      "model": "stratos:block/gully_h16",
+      "y": 270
+    }
+  }
+}

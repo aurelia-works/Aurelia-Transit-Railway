@@ -17,7 +17,9 @@ public enum EngineFeature {
 	/** Trains climbing a hill go a little slower and pull away more gently. */
 	HILL_SLOWDOWN("hill_slowdown"),
 	/** Departures at the same minutes every hour, and late trains catch up at the end of the line. */
-	TIMETABLE("timetable");
+	TIMETABLE("timetable"),
+	/** Express trains go first where lines meet. */
+	JUNCTION_PRIORITY("junction_priority");
 
 	public final String key;
 

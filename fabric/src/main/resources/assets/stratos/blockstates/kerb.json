@@ -1,0 +1,460 @@
+{
+  "variants": {
+    "facing=north,layers=1,shape=straight": {
+      "model": "stratos:block/kerb_straight_h2",
+      "uvlock": true
+    },
+    "facing=north,layers=1,shape=inner": {
+      "model": "stratos:block/kerb_inner_h2",
+      "uvlock": true
+    },
+    "facing=north,layers=1,shape=outer": {
+      "model": "stratos:block/kerb_outer_h2",
+      "uvlock": true
+    },
+    "facing=north,layers=2,shape=straight": {
+      "model": "stratos:block/kerb_straight_h4",
+      "uvlock": true
+    },
+    "facing=north,layers=2,shape=inner": {
+      "model": "stratos:block/kerb_inner_h4",
+      "uvlock": true
+    },
+    "facing=north,layers=2,shape=outer": {
+      "model": "stratos:block/kerb_outer_h4",
+      "uvlock": true
+    },
+    "facing=north,layers=3,shape=straight": {
+      "model": "stratos:block/kerb_straight_h6",
+      "uvlock": true
+    },
+    "facing=north,layers=3,shape=inner": {
+      "model": "stratos:block/kerb_inner_h6",
+      "uvlock": true
+    },
+    "facing=north,layers=3,shape=outer": {
+      "model": "stratos:block/kerb_outer_h6",
+      "uvlock": true
+    },
+    "facing=north,layers=4,shape=straight": {
+      "model": "stratos:block/kerb_straight_h8",
+      "uvlock": true
+    },
+    "facing=north,layers=4,shape=inner": {
+      "model": "stratos:block/kerb_inner_h8",
+      "uvlock": true
+    },
+    "facing=north,layers=4,shape=outer": {
+      "model": "stratos:block/kerb_outer_h8",
+      "uvlock": true
+    },
+    "facing=north,layers=5,shape=straight": {
+      "model": "stratos:block/kerb_straight_h10",
+      "uvlock": true
+    },
+    "facing=north,layers=5,shape=inner": {
+      "model": "stratos:block/kerb_inner_h10",
+      "uvlock": true
+    },
+    "facing=north,layers=5,shape=outer": {
+      "model": "stratos:block/kerb_outer_h10",
+      "uvlock": true
+    },
+    "facing=north,layers=6,shape=straight": {
+      "model": "stratos:block/kerb_straight_h12",
+      "uvlock": true
+    },
+    "facing=north,layers=6,shape=inner": {
+      "model": "stratos:block/kerb_inner_h12",
+      "uvlock": true
+    },
+    "facing=north,layers=6,shape=outer": {
+      "model": "stratos:block/kerb_outer_h12",
+      "uvlock": true
+    },
+    "facing=north,layers=7,shape=straight": {
+      "model": "stratos:block/kerb_straight_h14",
+      "uvlock": true
+    },
+    "facing=north,layers=7,shape=inner": {
+      "model": "stratos:block/kerb_inner_h14",
+      "uvlock": true
+    },
+    "facing=north,layers=7,shape=outer": {
+      "model": "stratos:block/kerb_outer_h14",
+      "uvlock": true
+    },
+    "facing=north,layers=8,shape=straight": {
+      "model": "stratos:block/kerb_straight_h16",
+      "uvlock": true
+    },
+    "facing=north,layers=8,shape=inner": {
+      "model": "stratos:block/kerb_inner_h16",
+      "uvlock": true
+    },
+    "facing=north,layers=8,shape=outer": {
+      "model": "stratos:block/kerb_outer_h16",
+      "uvlock": true
+    },
+    "facing=east,layers=1,shape=straight": {
+      "model": "stratos:block/kerb_straight_h2",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=1,shape=inner": {
+      "model": "stratos:block/kerb_inner_h2",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=1,shape=outer": {
+      "model": "stratos:block/kerb_outer_h2",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=2,shape=straight": {
+      "model": "stratos:block/kerb_straight_h4",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=2,shape=inner": {
+      "model": "stratos:block/kerb_inner_h4",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=2,shape=outer": {
+      "model": "stratos:block/kerb_outer_h4",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=3,shape=straight": {
+      "model": "stratos:block/kerb_straight_h6",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=3,shape=inner": {
+      "model": "stratos:block/kerb_inner_h6",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=3,shape=outer": {
+      "model": "stratos:block/kerb_outer_h6",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=4,shape=straight": {
+      "model": "stratos:block/kerb_straight_h8",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=4,shape=inner": {
+      "model": "stratos:block/kerb_inner_h8",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=4,shape=outer": {
+      "model": "stratos:block/kerb_outer_h8",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=5,shape=straight": {
+      "model": "stratos:block/kerb_straight_h10",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=5,shape=inner": {
+      "model": "stratos:block/kerb_inner_h10",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=5,shape=outer": {
+      "model": "stratos:block/kerb_outer_h10",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=6,shape=straight": {
+      "model": "stratos:block/kerb_straight_h12",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=6,shape=inner": {
+      "model": "stratos:block/kerb_inner_h12",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=6,shape=outer": {
+      "model": "stratos:block/kerb_outer_h12",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=7,shape=straight": {
+      "model": "stratos:block/kerb_straight_h14",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=7,shape=inner": {
+      "model": "stratos:block/kerb_inner_h14",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=7,shape=outer": {
+      "model": "stratos:block/kerb_outer_h14",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=8,shape=straight": {
+      "model": "stratos:block/kerb_straight_h16",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=8,shape=inner": {
+      "model": "stratos:block/kerb_inner_h16",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,layers=8,shape=outer": {
+      "model": "stratos:block/kerb_outer_h16",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=south,layers=1,shape=straight": {
+      "model": "stratos:block/kerb_straight_h2",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=1,shape=inner": {
+      "model": "stratos:block/kerb_inner_h2",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=1,shape=outer": {
+      "model": "stratos:block/kerb_outer_h2",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=2,shape=straight": {
+      "model": "stratos:block/kerb_straight_h4",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=2,shape=inner": {
+      "model": "stratos:block/kerb_inner_h4",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=2,shape=outer": {
+      "model": "stratos:block/kerb_outer_h4",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=3,shape=straight": {
+      "model": "stratos:block/kerb_straight_h6",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=3,shape=inner": {
+      "model": "stratos:block/kerb_inner_h6",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=3,shape=outer": {
+      "model": "stratos:block/kerb_outer_h6",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=4,shape=straight": {
+      "model": "stratos:block/kerb_straight_h8",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=4,shape=inner": {
+      "model": "stratos:block/kerb_inner_h8",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=4,shape=outer": {
+      "model": "stratos:block/kerb_outer_h8",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=5,shape=straight": {
+      "model": "stratos:block/kerb_straight_h10",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=5,shape=inner": {
+      "model": "stratos:block/kerb_inner_h10",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=5,shape=outer": {
+      "model": "stratos:block/kerb_outer_h10",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=6,shape=straight": {
+      "model": "stratos:block/kerb_straight_h12",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=6,shape=inner": {
+      "model": "stratos:block/kerb_inner_h12",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=6,shape=outer": {
+      "model": "stratos:block/kerb_outer_h12",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=7,shape=straight": {
+      "model": "stratos:block/kerb_straight_h14",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=7,shape=inner": {
+      "model": "stratos:block/kerb_inner_h14",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=7,shape=outer": {
+      "model": "stratos:block/kerb_outer_h14",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=8,shape=straight": {
+      "model": "stratos:block/kerb_straight_h16",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=8,shape=inner": {
+      "model": "stratos:block/kerb_inner_h16",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,layers=8,shape=outer": {
+      "model": "stratos:block/kerb_outer_h16",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=west,layers=1,shape=straight": {
+      "model": "stratos:block/kerb_straight_h2",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=1,shape=inner": {
+      "model": "stratos:block/kerb_inner_h2",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=1,shape=outer": {
+      "model": "stratos:block/kerb_outer_h2",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=2,shape=straight": {
+      "model": "stratos:block/kerb_straight_h4",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=2,shape=inner": {
+      "model": "stratos:block/kerb_inner_h4",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=2,shape=outer": {
+      "model": "stratos:block/kerb_outer_h4",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=3,shape=straight": {
+      "model": "stratos:block/kerb_straight_h6",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=3,shape=inner": {
+      "model": "stratos:block/kerb_inner_h6",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=3,shape=outer": {
+      "model": "stratos:block/kerb_outer_h6",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=4,shape=straight": {
+      "model": "stratos:block/kerb_straight_h8",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=4,shape=inner": {
+      "model": "stratos:block/kerb_inner_h8",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=4,shape=outer": {
+      "model": "stratos:block/kerb_outer_h8",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=5,shape=straight": {
+      "model": "stratos:block/kerb_straight_h10",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=5,shape=inner": {
+      "model": "stratos:block/kerb_inner_h10",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=5,shape=outer": {
+      "model": "stratos:block/kerb_outer_h10",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=6,shape=straight": {
+      "model": "stratos:block/kerb_straight_h12",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=6,shape=inner": {
+      "model": "stratos:block/kerb_inner_h12",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=6,shape=outer": {
+      "model": "stratos:block/kerb_outer_h12",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=7,shape=straight": {
+      "model": "stratos:block/kerb_straight_h14",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=7,shape=inner": {
+      "model": "stratos:block/kerb_inner_h14",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=7,shape=outer": {
+      "model": "stratos:block/kerb_outer_h14",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=8,shape=straight": {
+      "model": "stratos:block/kerb_straight_h16",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=8,shape=inner": {
+      "model": "stratos:block/kerb_inner_h16",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,layers=8,shape=outer": {
+      "model": "stratos:block/kerb_outer_h16",
+      "y": 270,
+      "uvlock": true
+    }
+  }
+}
