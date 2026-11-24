@@ -20,6 +20,8 @@ public final class Toolbar {
     public static final int MARGIN = 6;
     /** The padding inside the toolbar, and the space each side of a divider. */
     public static final int PAD = 6;
+    /** The narrowest space each side of a divider, on a toolbar too narrow for the usual {@link #PAD}. */
+    public static final int TIGHT_PAD = 3;
     /** A tool tile's side, and a strip tile's width. */
     public static final int TILE = 30;
     /** The space between two tiles. */
@@ -58,16 +60,30 @@ public final class Toolbar {
                            int paletteDivider, int paletteX, int nodesDivider, int nodesX) {
     }
 
-    /** The sections of a toolbar {@code width} GUI pixels wide inside, with {@code tools} tool tiles. */
+    /**
+     * The sections of a toolbar {@code width} GUI pixels wide inside, with {@code tools} tool tiles. When the strip would
+     * be too narrow for one tile between its arrows (a 320-pixel GUI), the space each side of the dividers shrinks, down
+     * to {@link #TIGHT_PAD}, to make room for it.
+     */
     public static Sections sections(int width, int tools) {
+        Sections sections = sections(width, tools, PAD);
+        int missing = TILE + 2 * ARROW - sections.stripWidth();
+        if (missing <= 0 || sections.stripWidth() <= 0) {
+            return sections;
+        }
+        // six gaps sit each side of the three dividers
+        return sections(width, tools, StrictMath.max(TIGHT_PAD, PAD - (missing + 5) / 6));
+    }
+
+    private static Sections sections(int width, int tools, int gap) {
         int toolsWidth = tools <= 0 ? 0 : tools * TILE + (tools - 1) * GAP;
-        int toolsDivider = PAD + toolsWidth + PAD;
-        int stripX = toolsDivider + PAD;
+        int toolsDivider = PAD + toolsWidth + gap;
+        int stripX = toolsDivider + gap;
         int nodesX = width - PAD - NODES_WIDTH;
-        int nodesDivider = nodesX - PAD;
-        int paletteX = nodesDivider - PAD - PALETTE_WIDTH;
-        int paletteDivider = paletteX - PAD;
-        int stripWidth = StrictMath.max(0, paletteDivider - PAD - stripX);
+        int nodesDivider = nodesX - gap;
+        int paletteX = nodesDivider - gap - PALETTE_WIDTH;
+        int paletteDivider = paletteX - gap;
+        int stripWidth = StrictMath.max(0, paletteDivider - gap - stripX);
         return new Sections(PAD, toolsWidth, toolsDivider, stripX, stripWidth, paletteDivider, paletteX, nodesDivider, nodesX);
     }
 
