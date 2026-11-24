@@ -109,7 +109,7 @@ public final class StratosPreview {
         return RENDERER.drawnOnce();
     }
 
-    /** The settings kept in config/stratos/client.json (UI-1c). */
+    /** The settings kept in config/aurelia/roads/client.json (UI-1c). */
     public static PreviewChoices choices() {
         return new PreviewChoices(RENDERER.outlinesOnly(), RENDERER.shaderFaces());
     }

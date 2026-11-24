@@ -20,6 +20,9 @@ public final class StratosClient {
     }
 
     public static void register() {
+        if (StratosMod.standsDown()) {
+            return; // the standalone Stratos mod has the client; StratosMod logged why
+        }
         PaintRenderer.register();
         StratosEditorClient.register();
         StratosPreview.register();
