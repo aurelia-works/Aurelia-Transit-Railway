@@ -15,19 +15,23 @@ env:
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
-# Two tiers. A pull request runs the fast tier: ATR's build and tests and ATA's unit tests in 8 shards. The merge queue
-# (merge_group) and master also run the slow tier: ATA's slowest unit tests (StationAuditTest's plan sweep over three jobs by
+# Two tiers. The fast tier: ATR's build and tests and ATA's unit tests in 8 shards. The slow tier, which master and the merge
+# queue (merge_group) always run: ATA's slowest unit tests (StationAuditTest's plan sweep over three jobs by
 # track count, StationPlannerTest over two, RealCitiesATest, CityLandmarksTest) and ATA's game tests in 3 servers (the airport
 # rebuild test and the plane-leaves-a-gate test, each real-time MTR waits over 3 minutes, alone in one each; everything else in
 # the third). The jobs run side by side, so a run takes as long as its slowest job.
-# A pull request that changes the build or CI itself (BUILD_PATHS) runs both tiers, so a change to them is tested in full.
+# A pull request runs both tiers until the merge queue is on, so nothing merges without the slow tier. Once master requires
+# the merge queue, setting the repository variable MERGE_QUEUE to "on" (Settings > Secrets and variables > Actions >
+# Variables) lets pull requests run the fast tier only, leaving the slow tier to the queue. A pull request that changes the
+# build or CI itself (BUILD_PATHS) still runs both tiers, so a change to them is tested in full.
 # A pull request that only changes docs skips them all, and a run that leaves the station code alone skips the sweeps
 # (job "changes"). Job "ci-ok" is the one check to require: it fails when any job failed, and when a job was skipped that
 # this event should have run.
 jobs:
   # Docs only? Only when every changed file is Markdown or under docs/ or archive/. Slow tier? Always, except on a pull request
-  # that changes nothing in BUILD_PATHS. Station code? When a changed file matches STATION_PATHS. A push to master, or any
-  # doubt (the file list could not be read, is empty, or is cut off at the compare API's 300 files), runs everything.
+  # that changes nothing in BUILD_PATHS while MERGE_QUEUE is "on". Station code? When a changed file matches STATION_PATHS.
+  # A push to master, or any doubt (the file list could not be read, is empty, or is cut off at the compare API's 300
+  # files), runs everything.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -41,6 +45,8 @@ jobs:
     steps:
       - id: detect
         uses: actions/github-script@v7
+        env:
+          MERGE_QUEUE: ${{ vars.MERGE_QUEUE }}
         with:
           script: |
             let code = true, slow = true, station = true;
@@ -63,7 +69,8 @@ jobs:
                 const docs = (name) => /\.md$/i.test(name) || name.startsWith("docs/") || name.startsWith("archive/");
                 const buildPaths = new RegExp(process.env.BUILD_PATHS), stationPaths = new RegExp(process.env.STATION_PATHS);
                 code = names.length === 0 || !names.every(docs);
-                slow = context.eventName !== "pull_request" || names.length === 0 || names.some((name) => buildPaths.test(name));
+                slow = context.eventName !== "pull_request" || process.env.MERGE_QUEUE !== "on" || names.length === 0
+                  || names.some((name) => buildPaths.test(name));
                 station = names.length === 0 || names.some((name) => stationPaths.test(name));
                 core.info(`${names.length} changed paths, code: ${code}, slow tier: ${slow}, station: ${station}`);
               }
