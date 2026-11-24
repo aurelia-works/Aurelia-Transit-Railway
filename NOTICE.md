@@ -30,6 +30,10 @@ Included so far:
 - `org.mtr.aurelia.road.geom` and `.geom.mtr` (PR #147): the road geometry, copied from Stratos with the package
   renamed. The `geom.mtr` files are a port of MTR's own MIT-licensed `RailMath` and friends, so those files stay MIT
   and carry MTR's notice; only the rest of the package is Stratos's work under the permission above.
+- The rest of Stratos's engine (P3): `org.mtr.aurelia.road` and its sub-packages `bake`, `forest`, `journal`, `json`,
+  `ops`, `preview`, `proto`, `road`, `schem`, `spi`, `terrain`, `tool`, `undo` and `world`, plus the road palettes and
+  `core.properties` under `fabric/src/main/resources/org/mtr/aurelia/road/`. Copied from Stratos 0.1.0's core with
+  the package renamed; all of it is Stratos's own work under the permission above.
 
 ### Deliberately not included
 
