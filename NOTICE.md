@@ -16,12 +16,15 @@ IndusGaming, **All Rights Reserved**.
 Those parts are included with the copyright holder's permission, recorded by Jah on 2026-11-24. The permission is
 limited to use inside ATR; it does not relicense the derived files, and ATR's own MIT grant does not extend to them.
 
-Every imported file carries a header naming this file:
+Every file that is Stratos's own work carries this header:
 
 ```
 Derived from Stratos, (c) 2026 IndusGaming. All Rights Reserved.
 Used with permission — see NOTICE.md.
 ```
+
+Files that are a port of MTR's MIT-licensed code do not: they keep MTR's notice, say so in their header, and MIT
+governs them.
 
 Included so far: _(filled in as each import phase lands — see `PLAN-stratos.md`)_.
 
