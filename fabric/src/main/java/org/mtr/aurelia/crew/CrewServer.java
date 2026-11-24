@@ -22,6 +22,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
+import org.mtr.aurelia.Operators;
 import org.mtr.mod.block.BlockSignalBase;
 
 import java.util.Arrays;
@@ -119,7 +120,7 @@ public final class CrewServer {
 					}
 					return 1;
 				}))
-				.then(CommandManager.literal("release_all").requires(source -> source.hasPermissionLevel(2)).executes(context -> {
+				.then(CommandManager.literal("release_all").requires(Operators::isOperatorSource).executes(context -> {
 					final ServerPlayerEntity player = context.getSource().getPlayerOrThrow();
 					final ServerWorld world = player.getServerWorld();
 					final State state = state(player.getServer());
