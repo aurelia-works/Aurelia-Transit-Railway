@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.S2CPlayChannelEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -18,24 +19,34 @@ import net.minecraft.server.world.ServerWorld;
 
 /**
  * Sends road paint to players: all of a dimension's when a player arrives in it (joining, changing dimension,
- * respawning), then each tick's changes to the players there.
+ * respawning) at the end of that tick, then each tick's changes to the players there.
  */
 public final class PaintSync {
+    private static volatile PaintResends<ServerPlayerEntity> resends;
+
     private PaintSync() {
     }
 
     /** Called once, from the mod initialiser. */
     public static void register() {
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sendAll(handler.getPlayer()));
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> resends = new PaintResends<>(
+            id -> server.getPlayerManager().getPlayer(id),
+            player -> !player.isDisconnected() && ServerPlayNetworking.canSend(player, PaintPacket.TYPE),
+            PaintSync::sendAll));
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> resends = null);
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> resend(handler.getPlayer()));
         // A client's channels can arrive after it joins (and off the server thread), so it may hear only now.
         S2CPlayChannelEvents.REGISTER.register((handler, sender, server, channels) -> {
             if (channels.contains(PaintPacket.ID)) {
-                server.execute(() -> sendAll(handler.getPlayer()));
+                resend(handler.getPlayer());
             }
         });
-        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> sendAll(player));
-        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> sendAll(newPlayer));
+        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> resend(player));
+        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> resend(newPlayer));
         ServerTickEvents.END_SERVER_TICK.register(server -> {
+            if (resends != null) {
+                resends.flush();
+            }
             for (ServerWorld world : server.getWorlds()) {
                 Long2IntMap changes = PaintStore.of(world).drain();
                 if (!changes.isEmpty()) {
@@ -48,11 +59,19 @@ public final class PaintSync {
         });
     }
 
-    private static void sendAll(ServerPlayerEntity player) {
-        if (player.isDisconnected()) {
-            return;
+    /** Queued, never sent from the event itself: see {@link PaintResends}. */
+    private static void resend(ServerPlayerEntity player) {
+        PaintResends<ServerPlayerEntity> current = resends;
+        if (current != null) {
+            current.request(player.getUuid());
         }
-        send(player, packets(true, PaintStore.of(player.getServerWorld()).cells()));
+    }
+
+    /** The player can receive (checked by {@link PaintResends}). */
+    private static void sendAll(ServerPlayerEntity player) {
+        for (PaintPacket packet : packets(true, PaintStore.of(player.getServerWorld()).cells())) {
+            ServerPlayNetworking.send(player, packet);
+        }
     }
 
     private static void send(ServerPlayerEntity player, List<PaintPacket> packets) {
