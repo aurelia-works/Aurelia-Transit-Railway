@@ -67,10 +67,12 @@ public class VehicleRidingMovement {
 			ridingVehicleCooldown++;
 		} else {
 			// If no vehicles are updating the player's position, dismount the player
-			sendUpdate(true);
-			ridingDepotId = 0;
-			ridingSidingId = 0;
-			ridingVehicleId = 0;
+			stopRiding();
+		}
+
+		// The player got on a boat, minecart, horse or seat while riding the vehicle: that ride wins (MTR 4.1)
+		if (ridingVehicleId != 0 && isPassengerOfEntity()) {
+			stopRiding();
 		}
 
 		if (ridingPositionCache != null) {
@@ -132,7 +134,7 @@ public class VehicleRidingMovement {
 	 * Iterate through all open floors and doorways and see if the player is intersecting any of them. If so, start riding the vehicle.
 	 */
 	public static void startRiding(ObjectArrayList<Box> openFloorsAndDoorways, long depotId, long sidingId, long vehicleId, int carNumber, double x, double y, double z, double yaw) {
-		if (ridingVehicleId == 0 || isRiding(vehicleId)) {
+		if (canMountOn(vehicleId)) {
 			for (final Box floorOrDoorway : openFloorsAndDoorways) {
 				if (RenderVehicleHelper.boxContains(floorOrDoorway, x, y, z)) {
 					ridingDepotId = depotId;
@@ -153,6 +155,16 @@ public class VehicleRidingMovement {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Get off the vehicle now: tell the server and forget the vehicle.
+	 */
+	public static void stopRiding() {
+		sendUpdate(true);
+		ridingDepotId = 0;
+		ridingSidingId = 0;
+		ridingVehicleId = 0;
 	}
 
 	public static void movePlayer(
@@ -411,6 +423,18 @@ public class VehicleRidingMovement {
 			aureliaDoorRequest = false;
 			sendPositionUpdateTime = 0;
 		}
+	}
+
+	/**
+	 * A player already riding an entity (boat, minecart, horse, seat) cannot board a vehicle as well (MTR 4.1).
+	 */
+	private static boolean canMountOn(long vehicleId) {
+		return (ridingVehicleId == 0 || isRiding(vehicleId)) && !isPassengerOfEntity();
+	}
+
+	private static boolean isPassengerOfEntity() {
+		final ClientPlayerEntity clientPlayerEntity = MinecraftClient.getInstance().getPlayerMapped();
+		return clientPlayerEntity != null && clientPlayerEntity.data.hasVehicle();
 	}
 
 	private static double getFromScale(double min, double max, double percentage) {
