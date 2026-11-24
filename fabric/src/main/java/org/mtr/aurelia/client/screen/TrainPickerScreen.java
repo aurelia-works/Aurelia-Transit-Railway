@@ -14,6 +14,7 @@ import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.core.data.Siding;
 import org.mtr.core.data.VehicleCar;
 import org.mtr.core.operation.UpdateDataRequest;
+import org.mtr.libraries.it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.mod.InitClient;
 import org.mtr.mod.client.CustomResourceLoader;
@@ -22,13 +23,20 @@ import org.mtr.mod.packet.PacketUpdateData;
 import org.mtr.mod.resource.VehicleResource;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * ATR's train picker for a siding: the trains on the left, the siding's train car by car on the right, and a 3D preview
  * on a piece of track at the bottom. Hovering a train in the list shows that car; otherwise the whole train is shown.
- * Saves the same siding data as MTR's selector, which comes back when the "Train picker" Look switch is off.
+ * As in MTR 4.1, the cars of one train family (the pack's {@code family:} tag) fold under one row, and the search also
+ * matches the pack's other tags (country, type, doors, brand). Saves the same siding data as MTR's selector, which
+ * comes back when the "Train picker" Look switch is off.
  */
 public final class TrainPickerScreen extends Screen {
 
@@ -41,12 +49,20 @@ public final class TrainPickerScreen extends Screen {
 	private static final int STAGE_BOTTOM = 0xFF101317;
 	/** The header bar's height: the title and the Done button sit in it, the search box just under it. */
 	private static final int HEADER_BAR = 26;
+	private static final int FAMILY_INDENT = 8;
+	/** Families opened in the list, kept while the game runs so the picker reopens the way it was left. */
+	private static final Set<String> OPEN_FAMILIES = new HashSet<>();
 
 	private final Siding siding;
 	@Nullable
 	private final Screen previous;
 	private final List<VehicleResource> allTrains = new ObjectArrayList<>();
-	private final List<VehicleResource> shownTrains = new ObjectArrayList<>();
+	/** Each train's {@code family:} tag; a train without one stands on its own row. */
+	private final Map<String, String> familyOfTrain = new HashMap<>();
+	/** Each train's tag values in lower case, which the search also looks through. */
+	private final Map<String, String> tagTextOfTrain = new HashMap<>();
+	/** The list as drawn: family rows and train rows. */
+	private final List<Row> rows = new ObjectArrayList<>();
 	private final long openedAt = AureliaMotion.now();
 
 	private TextFieldWidget search;
@@ -55,6 +71,8 @@ public final class TrainPickerScreen extends Screen {
 	private boolean dragging;
 	@Nullable
 	private VehicleResource hoveredTrain;
+	@Nullable
+	private String hoveredFamily;
 	private int hoveredCar = -1;
 
 	public TrainPickerScreen(Siding siding, @Nullable Screen previous) {
@@ -62,6 +80,25 @@ public final class TrainPickerScreen extends Screen {
 		this.siding = siding;
 		this.previous = previous;
 		CustomResourceLoader.iterateVehicles(siding.getTransportMode(), allTrains::add);
+		readTags(CustomResourceLoader.getVehicleTags(siding.getTransportMode()));
+	}
+
+	/** Reads MTR's tag index, tag key to tag value to vehicle ids, once when the picker opens. */
+	private void readTags(@Nullable Object2ObjectAVLTreeMap<String, Object2ObjectAVLTreeMap<String, ObjectArrayList<String>>> tags) {
+		if (tags == null) {
+			return;
+		}
+		for (final Map.Entry<String, Object2ObjectAVLTreeMap<String, ObjectArrayList<String>>> key : tags.entrySet()) {
+			for (final Map.Entry<String, ObjectArrayList<String>> value : key.getValue().entrySet()) {
+				final String lowerValue = value.getKey().toLowerCase(Locale.ROOT);
+				for (final String vehicleId : value.getValue()) {
+					if (key.getKey().equals("family")) {
+						familyOfTrain.put(vehicleId, value.getKey());
+					}
+					tagTextOfTrain.merge(vehicleId, lowerValue, (a, b) -> a + " " + b);
+				}
+			}
+		}
 	}
 
 	@Override
@@ -122,41 +159,64 @@ public final class TrainPickerScreen extends Screen {
 		final int top = listTop();
 		final int bottom = height - MARGIN;
 		hoveredTrain = null;
-		if (shownTrains.isEmpty()) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.train_picker.nothing"), x + w / 2, top + 20, AureliaPalette.TEXT_DIM);
+		hoveredFamily = null;
+		if (rows.isEmpty()) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable(allTrains.isEmpty() ? "gui.aurelia.train_picker.nothing" : "gui.aurelia.train_picker.no_match"), x + w / 2, top + 20, AureliaPalette.TEXT_DIM);
 			return;
 		}
 		listScroll = Math.max(0, Math.min(listScroll, maxScroll()));
 		final double remaining = remainingLength();
 		context.enableScissor(x, top, x + w, bottom);
-		for (int i = 0; i < shownTrains.size(); i++) {
+		for (int i = 0; i < rows.size(); i++) {
 			final int rowY = top + i * ROW_HEIGHT - (int) listScroll;
 			if (rowY + ROW_HEIGHT < top || rowY > bottom) {
 				continue;
 			}
-			final VehicleResource train = shownTrains.get(i);
-			final boolean fits = fits(train, remaining);
+			final Row row = rows.get(i);
 			final boolean hovered = mouseX >= x && mouseX < x + w && mouseY >= Math.max(top, rowY) && mouseY < Math.min(bottom, rowY + ROW_HEIGHT - 2);
+			if (row.train == null) {
+				if (hovered) {
+					hoveredFamily = row.family;
+				}
+				renderFamilyRow(context, row, x, rowY, w, hovered);
+				continue;
+			}
+			final VehicleResource train = row.train;
+			final int rowX = x + (row.family == null ? 0 : FAMILY_INDENT);
+			final int rowW = w - (rowX - x);
+			final boolean fits = fits(train, remaining);
 			if (hovered) {
 				hoveredTrain = train;
 			}
-			AureliaChrome.rounded(context, x, rowY, w, ROW_HEIGHT - 2, 5, hovered && fits ? AureliaPalette.RAISED_HOVER : AureliaPalette.RAISED);
-			context.fill(x + 4, rowY + 5, x + 7, rowY + ROW_HEIGHT - 7, 0xFF000000 | train.getColor());
+			AureliaChrome.rounded(context, rowX, rowY, rowW, ROW_HEIGHT - 2, 5, hovered && fits ? AureliaPalette.RAISED_HOVER : AureliaPalette.RAISED);
+			context.fill(rowX + 4, rowY + 5, rowX + 7, rowY + ROW_HEIGHT - 7, 0xFF000000 | train.getColor());
 			final String length = fits ? Text.translatable("gui.aurelia.train_picker.length", metres(train.getLength())).getString() : Text.translatable("gui.aurelia.train_picker.too_long").getString();
 			final int lengthWidth = textRenderer.getWidth(length);
-			context.drawText(textRenderer, ellipsis(train.getName().getString(), w - 24 - lengthWidth), x + 12, rowY + 7, fits ? AureliaPalette.FG : AureliaPalette.TEXT_DIM, false);
-			context.drawText(textRenderer, length, x + w - 8 - lengthWidth, rowY + 7, fits ? AureliaPalette.TEXT_DIM : AureliaPalette.WARN, false);
+			context.drawText(textRenderer, ellipsis(train.getName().getString(), rowW - 24 - lengthWidth), rowX + 12, rowY + 7, fits ? AureliaPalette.FG : AureliaPalette.TEXT_DIM, false);
+			context.drawText(textRenderer, length, rowX + rowW - 8 - lengthWidth, rowY + 7, fits ? AureliaPalette.TEXT_DIM : AureliaPalette.WARN, false);
 			if (hovered && fits) {
-				plus(context, x + w - 16 - lengthWidth, rowY + 11);
+				plus(context, rowX + rowW - 16 - lengthWidth, rowY + 11);
 			}
 		}
 		context.disableScissor();
 		if (maxScroll() > 0) {
 			final int trackHeight = bottom - top;
-			final int thumb = Math.max(16, trackHeight * trackHeight / (shownTrains.size() * ROW_HEIGHT));
+			final int thumb = Math.max(16, trackHeight * trackHeight / (rows.size() * ROW_HEIGHT));
 			final int thumbY = top + (int) ((trackHeight - thumb) * listScroll / maxScroll());
 			AureliaChrome.rounded(context, x + w + 3, thumbY, 3, thumb, 1, AureliaPalette.LINE);
 		}
+	}
+
+	/** A family's row: its name, how many cars it holds, and an arrow that shows whether it is open. */
+	private void renderFamilyRow(DrawContext context, Row row, int x, int rowY, int w, boolean hovered) {
+		final boolean open = OPEN_FAMILIES.contains(row.family);
+		AureliaChrome.rounded(context, x, rowY, w, ROW_HEIGHT - 2, 5, hovered ? AureliaPalette.RAISED_HOVER : AureliaPalette.SURFACE);
+		AureliaChrome.roundedFrame(context, x, rowY, w, ROW_HEIGHT - 2, 5, AureliaPalette.LINE);
+		chevron(context, x + 6, rowY + 7, open);
+		final String count = String.valueOf(row.count);
+		final int countWidth = textRenderer.getWidth(count);
+		context.drawText(textRenderer, ellipsis(row.label, w - 28 - countWidth), x + 16, rowY + 7, AureliaPalette.FG, false);
+		context.drawText(textRenderer, count, x + w - 8 - countWidth, rowY + 7, AureliaPalette.TEXT_DIM, false);
 	}
 
 	/** The text cut to fit, ending in "..." when cut, so a clipped name reads as clipped. */
@@ -297,6 +357,14 @@ public final class TrainPickerScreen extends Screen {
 				hoveredCar = -1;
 				return true;
 			}
+			if (hoveredFamily != null) {
+				click();
+				if (!OPEN_FAMILIES.remove(hoveredFamily)) {
+					OPEN_FAMILIES.add(hoveredFamily);
+				}
+				filter();
+				return true;
+			}
 			if (hoveredTrain != null && fits(hoveredTrain, remainingLength())) {
 				click();
 				final ObjectArrayList<VehicleCar> newCars = new ObjectArrayList<>(cars);
@@ -350,14 +418,65 @@ public final class TrainPickerScreen extends Screen {
 		return false;
 	}
 
+	/**
+	 * Rebuilds the rows. A search lists every match flat; matching the name, the id or any tag value. Without one, the
+	 * cars of a family fold under one row in the order MTR lists them, and a family of one car stays a plain row.
+	 */
 	private void filter() {
 		final String query = search == null ? "" : search.getText().trim().toLowerCase(Locale.ROOT);
-		shownTrains.clear();
+		rows.clear();
+		if (!query.isEmpty()) {
+			for (final VehicleResource train : allTrains) {
+				if (train.getName().getString().toLowerCase(Locale.ROOT).contains(query) || train.getId().toLowerCase(Locale.ROOT).contains(query) || tagTextOfTrain.getOrDefault(train.getId(), "").contains(query)) {
+					rows.add(new Row(null, train, null, 0));
+				}
+			}
+			return;
+		}
+		final Map<String, List<VehicleResource>> families = new LinkedHashMap<>();
 		for (final VehicleResource train : allTrains) {
-			if (query.isEmpty() || train.getName().getString().toLowerCase(Locale.ROOT).contains(query) || train.getId().toLowerCase(Locale.ROOT).contains(query)) {
-				shownTrains.add(train);
+			final String family = familyOfTrain.get(train.getId());
+			// a train with no family gets a key of its own, so it keeps its place in MTR's order
+			families.computeIfAbsent(family == null ? "\0" + train.getId() : family, key -> new ObjectArrayList<>()).add(train);
+		}
+		for (final Map.Entry<String, List<VehicleResource>> entry : families.entrySet()) {
+			final List<VehicleResource> trains = entry.getValue();
+			if (trains.size() == 1) {
+				rows.add(new Row(null, trains.get(0), null, 0));
+				continue;
+			}
+			final String family = entry.getKey();
+			rows.add(new Row(family, null, familyLabel(trains, family), trains.size()));
+			if (OPEN_FAMILIES.contains(family)) {
+				for (final VehicleResource train : trains) {
+					rows.add(new Row(family, train, null, 0));
+				}
 			}
 		}
+	}
+
+	/**
+	 * What the cars' names share, such as "SP1900" from "SP1900 Trailer (Normal)" and "SP1900 Cab (Forwards, Normal)".
+	 * Only names that start with the first car's first word count, so "Christmas SP1900 Trailer" does not cut it to
+	 * nothing. Falls back to the first car's name.
+	 */
+	private static String familyLabel(List<VehicleResource> trains, String family) {
+		final String first = trains.get(0).getName().getString();
+		final int space = first.indexOf(' ');
+		final String firstWord = space < 0 ? first : first.substring(0, space);
+		String prefix = first;
+		for (final VehicleResource train : trains) {
+			final String name = train.getName().getString();
+			if (name.startsWith(firstWord)) {
+				int length = 0;
+				while (length < prefix.length() && length < name.length() && prefix.charAt(length) == name.charAt(length)) {
+					length++;
+				}
+				prefix = prefix.substring(0, length);
+			}
+		}
+		final String label = prefix.replaceAll("[\\s(,]+$", "");
+		return label.isEmpty() ? (first.isEmpty() ? family : first) : label;
 	}
 
 	/** Adds the train's cars again and again until the siding is full, as MTR's "duplicate" button does. */
@@ -428,6 +547,17 @@ public final class TrainPickerScreen extends Screen {
 		context.fill(x + 7, y + 7, x + 9, y + 9, AureliaPalette.TEXT_DIM);
 	}
 
+	/** A small arrow, pointing right when the family is shut and down when it is open. */
+	private static void chevron(DrawContext context, int x, int y, boolean open) {
+		for (int i = 0; i < 4; i++) {
+			if (open) {
+				context.fill(x + i, y + 2 + i, x + 7 - i, y + 3 + i, AureliaPalette.TEXT_DIM);
+			} else {
+				context.fill(x + 1 + i, y + i, x + 2 + i, y + 7 - i, AureliaPalette.TEXT_DIM);
+			}
+		}
+	}
+
 	private static void plus(DrawContext context, int cx, int cy) {
 		context.fill(cx - 3, cy - 1, cx + 4, cy, AureliaPalette.ACCENT_LIGHT);
 		context.fill(cx, cy - 4, cx + 1, cy + 3, AureliaPalette.ACCENT_LIGHT);
@@ -454,7 +584,7 @@ public final class TrainPickerScreen extends Screen {
 	}
 
 	private double maxScroll() {
-		return Math.max(0, shownTrains.size() * ROW_HEIGHT - (height - MARGIN - listTop()));
+		return Math.max(0, rows.size() * ROW_HEIGHT - (height - MARGIN - listTop()));
 	}
 
 	private int rightX() {
@@ -475,5 +605,9 @@ public final class TrainPickerScreen extends Screen {
 
 	private int doneX() {
 		return width - MARGIN - 60;
+	}
+
+	/** A family row when {@code train} is null; otherwise a train, under {@code family} when it is folded into one. */
+	private record Row(@Nullable String family, @Nullable VehicleResource train, @Nullable String label, int count) {
 	}
 }
