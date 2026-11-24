@@ -64,7 +64,7 @@ public final class AureliaClient implements ClientModInitializer {
 				Screens.getButtons(screen).add(button);
 				// MTR's map widget is registered before the button and takes every click over the map, so the button
 				// handles its own clicks before the dashboard sees them. Skipped while MAGIC's menu is open over it.
-				ScreenMouseEvents.allowMouseClick(screen).register((clickedScreen, mouseX, mouseY, mouseButton) -> magicMenuOpen(clickedScreen) || !button.mouseClicked(mouseX, mouseY, mouseButton));
+				ScreenMouseEvents.allowMouseClick(screen).register((clickedScreen, mouseX, mouseY, mouseButton) -> isMagicMenuOpen(clickedScreen) || !button.mouseClicked(mouseX, mouseY, mouseButton));
 			}
 		});
 		// Unbound by default, like ATU's hub.
@@ -125,12 +125,8 @@ public final class AureliaClient implements ClientModInitializer {
 		return MAGIC_LOADED;
 	}
 
-	public static boolean isMagicMenuOpen(Screen screen) {
-		return magicMenuOpen(screen);
-	}
-
 	/** MAGIC adds a public {@code jme$isOverlayMenuOpen()} to MTR's dashboard; its dropdown opens where the button is. */
-	private static boolean magicMenuOpen(Screen screen) {
+	public static boolean isMagicMenuOpen(Screen screen) {
 		if (!MAGIC_LOADED || !(screen instanceof DashboardScreen)) {
 			return false;
 		}
