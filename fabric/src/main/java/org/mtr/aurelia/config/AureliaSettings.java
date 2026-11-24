@@ -93,6 +93,7 @@ public final class AureliaSettings {
 		}
 		file = nextFile;
 		version = 0;
+		locked = false;
 		SECTIONS.clear();
 		final JsonObject existing = readObject(file);
 		if (existing == null && Files.isRegularFile(file)) {
@@ -115,11 +116,11 @@ public final class AureliaSettings {
 		}
 	}
 
-	/** One section as it is on disk, or an empty object when it was never written. Read only: put a changed one back. */
+	/** A copy of one section, or an empty object when it was never written. Change it and hand it back through {@link #put}. */
 	public static synchronized JsonObject section(String name) {
 		ensureLoaded();
 		final JsonObject section = SECTIONS.get(name);
-		return section == null ? new JsonObject() : section;
+		return section == null ? new JsonObject() : section.deepCopy();
 	}
 
 	/** Replaces one section and writes the whole file. */
