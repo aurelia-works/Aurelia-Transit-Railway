@@ -151,7 +151,7 @@ public final class FabricWorldWriter implements WorldWriter {
             return true;
         }
         Identifier type = BlockEntityType.getId(entity.getType());
-        Identifier block = Registries.BLOCK.getId(entity.getBlockState().getBlock());
+        Identifier block = Registries.BLOCK.getId(entity.getCachedState().getBlock());
         return type != null && MINECRAFT.equals(type.getNamespace()) && MINECRAFT.equals(block.getNamespace());
     }
 
