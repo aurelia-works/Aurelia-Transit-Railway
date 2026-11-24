@@ -64,7 +64,7 @@ public final class AureliaClient implements ClientModInitializer {
 				Screens.getButtons(screen).add(button);
 				// MTR's map widget is registered before the button and takes every click over the map, so the button
 				// handles its own clicks before the dashboard sees them. Skipped while MAGIC's menu is open over it.
-				ScreenMouseEvents.allowMouseClick(screen).register((clickedScreen, mouseX, mouseY, mouseButton) -> magicMenuOpen(clickedScreen) || !button.mouseClicked(mouseX, mouseY, mouseButton));
+				ScreenMouseEvents.allowMouseClick(screen).register((clickedScreen, mouseX, mouseY, mouseButton) -> isMagicMenuOpen(clickedScreen) || !button.mouseClicked(mouseX, mouseY, mouseButton));
 			}
 		});
 		// Unbound by default, like ATU's hub.
@@ -98,6 +98,9 @@ public final class AureliaClient implements ClientModInitializer {
 		EngineClient.register();
 		PassengerDrawSettings.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.client.ui.AureliaUiSettings.load(FabricLoader.getInstance().getConfigDir());
+		// settings.json is written a second after the last change, so a dragged slider writes it once; and again as the game stops
+		ClientTickEvents.END_CLIENT_TICK.register(client -> org.mtr.aurelia.config.AureliaSettings.saveIfDue(System.currentTimeMillis()));
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> org.mtr.aurelia.config.AureliaSettings.flush());
 		// the driver key box's glass door has see-through pixels
 		net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(org.mtr.mod.Blocks.DRIVER_KEY_DISPENSER.get().data, net.minecraft.client.render.RenderLayer.getCutout());
 		TapToast.register();
@@ -105,6 +108,7 @@ public final class AureliaClient implements ClientModInitializer {
 		org.mtr.aurelia.dashboard.UnifiedDashboardClient.register();
 		org.mtr.aurelia.route.RouteControlSettings.load();
 		org.mtr.aurelia.sound.SoundProfileStore.load(FabricLoader.getInstance().getConfigDir());
+		org.mtr.aurelia.client.voice.VoiceSettings.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.sound.SoundProfileReloadListener.register();
 		PassengerRenderer.register();
 		ClientOperators.register();
@@ -114,7 +118,6 @@ public final class AureliaClient implements ClientModInitializer {
 		BuildClient.register();
 		BuildPreviewRenderer.register();
 		org.mtr.aurelia.driving.DriverClient.register();
-		org.mtr.aurelia.crew.CrewClient.register();
 		org.mtr.aurelia.vehicle.client.RoadVehicleClient.register();
 		LOGGER.info("[ATR] Aurelia panel ready");
 	}
@@ -126,12 +129,8 @@ public final class AureliaClient implements ClientModInitializer {
 		return MAGIC_LOADED;
 	}
 
-	public static boolean isMagicMenuOpen(Screen screen) {
-		return magicMenuOpen(screen);
-	}
-
 	/** MAGIC adds a public {@code jme$isOverlayMenuOpen()} to MTR's dashboard; its dropdown opens where the button is. */
-	private static boolean magicMenuOpen(Screen screen) {
+	public static boolean isMagicMenuOpen(Screen screen) {
 		if (!MAGIC_LOADED || !(screen instanceof DashboardScreen)) {
 			return false;
 		}

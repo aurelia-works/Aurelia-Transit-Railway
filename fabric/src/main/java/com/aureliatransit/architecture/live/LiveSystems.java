@@ -2,7 +2,6 @@ package com.aureliatransit.architecture.live;
 
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.network.EditValidation;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
@@ -37,7 +36,6 @@ public final class LiveSystems {
 	}
 
 	public static void init() {
-		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> LiveStressCommand.register(dispatcher));
 		ServerPlayNetworking.registerGlobalReceiver(UPDATE_DISPLAY, (server, player, handler, buf, responseSender) -> {
 			final BlockPos pos;
 			final DisplayConfig config;

@@ -158,8 +158,10 @@ public final class UnifiedDashboardTest {
 		assertEquals(DashboardMode.ROAD, DashboardSettings.read(tempDir));
 
 		// Corrupt JSON falls back cleanly to TRAIN
-		Files.writeString(tempDir.resolve("aurelia").resolve("dashboard.json"), "{broken");
-		assertEquals(DashboardMode.TRAIN, DashboardSettings.read(tempDir));
+		final Path broken = tempDir.resolve("broken");
+		Files.createDirectories(broken.resolve("aurelia"));
+		Files.writeString(broken.resolve("aurelia").resolve("settings.json"), "{broken");
+		assertEquals(DashboardMode.TRAIN, DashboardSettings.read(broken));
 	}
 
 	@Test
