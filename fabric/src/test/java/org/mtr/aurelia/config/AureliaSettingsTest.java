@@ -50,7 +50,7 @@ public final class AureliaSettingsTest {
 		Files.createDirectories(dir);
 		final byte[] existing = "{\"version\":0}".getBytes(StandardCharsets.UTF_8);
 		Files.write(dir.resolve("settings.json"), existing);
-		final byte[] map = "{\"size\":150,\"scanPerTick\":12}".getBytes(StandardCharsets.UTF_8);
+		final byte[] map = "{\"railHue\":90,\"scanPerTick\":12}".getBytes(StandardCharsets.UTF_8);
 		Files.write(dir.resolve("map.json"), map);
 		Files.writeString(dir.resolve("passenger-draw.json"), "{\"draw\":false,\"drawDistance\":96}", StandardCharsets.UTF_8);
 		final Set<java.nio.file.attribute.PosixFilePermission> writable = Files.getPosixFilePermissions(dir);
@@ -64,7 +64,7 @@ public final class AureliaSettingsTest {
 			assertFalse(Files.exists(dir.resolve("map.json.migrated-v1")));
 
 			MapSettings.load(config);
-			assertEquals(150, MapSettings.size());
+			assertEquals(90, MapSettings.railHue());
 			assertEquals(12, MapSettings.scanPerTick());
 			PassengerDrawSettings.load(config);
 			assertFalse(PassengerDrawSettings.get().draw());
@@ -78,20 +78,20 @@ public final class AureliaSettingsTest {
 	public void malformedOldFileLeavesItsSectionOnDefaultsAndHoldsTheVersion(@TempDir Path config) throws Exception {
 		final Path dir = config.resolve("aurelia");
 		Files.createDirectories(dir);
-		Files.writeString(dir.resolve("map.json"), "{\"size\":150,\"minimap\":false}", StandardCharsets.UTF_8);
+		// an old map.json may still hold the minimap's switch (removed in #154): it must still load
+		Files.writeString(dir.resolve("map.json"), "{\"scanPerTick\":9,\"minimap\":false}", StandardCharsets.UTF_8);
 		Files.writeString(dir.resolve("ui.json"), "{not json", StandardCharsets.UTF_8);
 
 		AureliaSettings.load(config);
 		assertEquals(0, AureliaSettings.version());
 
 		MapSettings.load(config);
-		assertEquals(150, MapSettings.size());
-		assertFalse(MapSettings.minimap());
+		assertEquals(9, MapSettings.scanPerTick());
 		AureliaUiSettings.load(config);
 		assertTrue(AureliaUiSettings.enabled(ScreenId.DASHBOARD));
 
 		final JsonObject written = JsonParser.parseString(Files.readString(dir.resolve("settings.json"), StandardCharsets.UTF_8)).getAsJsonObject();
-		assertEquals(150, written.getAsJsonObject("map").get("size").getAsInt());
+		assertEquals(9, written.getAsJsonObject("map").get("scanPerTick").getAsInt());
 		assertFalse(written.has("ui"));
 		assertTrue(Files.isRegularFile(dir.resolve("map.json.migrated-v1")));
 		assertTrue(Files.isRegularFile(dir.resolve("ui.json")));
@@ -102,14 +102,14 @@ public final class AureliaSettingsTest {
 	public void versionOneFileWinsOverARestoredOldFile(@TempDir Path config) throws Exception {
 		final Path dir = config.resolve("aurelia");
 		Files.createDirectories(dir);
-		Files.writeString(dir.resolve("settings.json"), "{\"version\":1,\"map\":{\"size\":150,\"zoom\":200}}", StandardCharsets.UTF_8);
-		Files.writeString(dir.resolve("map.json"), "{\"size\":80,\"zoom\":50}", StandardCharsets.UTF_8);
+		Files.writeString(dir.resolve("settings.json"), "{\"version\":1,\"map\":{\"railHue\":120,\"scanPerTick\":8}}", StandardCharsets.UTF_8);
+		Files.writeString(dir.resolve("map.json"), "{\"railHue\":30,\"scanPerTick\":2}", StandardCharsets.UTF_8);
 
 		AureliaSettings.load(config);
 		assertEquals(1, AureliaSettings.version());
 		MapSettings.load(config);
-		assertEquals(150, MapSettings.size());
-		assertEquals(200, MapSettings.zoom());
+		assertEquals(120, MapSettings.railHue());
+		assertEquals(8, MapSettings.scanPerTick());
 
 		assertTrue(Files.isRegularFile(dir.resolve("map.json")));
 		assertFalse(Files.exists(dir.resolve("map.json.migrated-v1")));

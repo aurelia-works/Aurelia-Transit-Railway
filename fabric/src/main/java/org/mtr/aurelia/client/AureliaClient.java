@@ -98,6 +98,9 @@ public final class AureliaClient implements ClientModInitializer {
 		EngineClient.register();
 		PassengerDrawSettings.load(FabricLoader.getInstance().getConfigDir());
 		org.mtr.aurelia.client.ui.AureliaUiSettings.load(FabricLoader.getInstance().getConfigDir());
+		// settings.json is written a second after the last change, so a dragged slider writes it once; and again as the game stops
+		ClientTickEvents.END_CLIENT_TICK.register(client -> org.mtr.aurelia.config.AureliaSettings.saveIfDue(System.currentTimeMillis()));
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> org.mtr.aurelia.config.AureliaSettings.flush());
 		// the driver key box's glass door has see-through pixels
 		net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(org.mtr.mod.Blocks.DRIVER_KEY_DISPENSER.get().data, net.minecraft.client.render.RenderLayer.getCutout());
 		TapToast.register();

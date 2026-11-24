@@ -52,6 +52,8 @@ public final class AureliaSettings {
 	private static final String FILE = "settings.json";
 	private static final String VERSION_KEY = "version";
 	private static final String MIGRATED_SUFFIX = ".migrated-v1";
+	/** How long after the last change the file is written, so a dragged slider writes it once, when it stops. */
+	public static final long SAVE_DELAY_MILLIS = 1000;
 
 	/** Reads one old file into the section body it becomes, throwing when the file is not usable. */
 	@FunctionalInterface
@@ -81,6 +83,9 @@ public final class AureliaSettings {
 	/** A damaged file that could not be moved aside: never write over it. */
 	private static boolean locked;
 	private static int version;
+	/** A section changed since the file was last written. */
+	private static boolean dirty;
+	private static long changedAt;
 
 	private AureliaSettings() {
 	}
@@ -91,6 +96,7 @@ public final class AureliaSettings {
 		if (nextFile.equals(file)) {
 			return;
 		}
+		flush();
 		file = nextFile;
 		version = 0;
 		locked = false;
@@ -123,11 +129,27 @@ public final class AureliaSettings {
 		return section == null ? new JsonObject() : section.deepCopy();
 	}
 
-	/** Replaces one section and writes the whole file. */
+	/** Replaces one section. The file is written {@link #SAVE_DELAY_MILLIS} after the last change ({@link #saveIfDue}), or at {@link #flush}. */
 	public static synchronized void put(String name, JsonObject section) {
 		ensureLoaded();
 		SECTIONS.put(name, section);
-		save();
+		dirty = true;
+		changedAt = System.currentTimeMillis();
+	}
+
+	/** Writes the file once no section has changed for {@link #SAVE_DELAY_MILLIS}. Called every client tick. */
+	public static synchronized void saveIfDue(long now) {
+		if (dirty && now - changedAt >= SAVE_DELAY_MILLIS) {
+			flush();
+		}
+	}
+
+	/** Writes any change now: called as the game stops, and before another file is loaded. A failed write is logged once, not retried every tick. */
+	public static synchronized void flush() {
+		if (dirty) {
+			dirty = false;
+			save();
+		}
 	}
 
 	public static synchronized int version() {
