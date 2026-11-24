@@ -6,6 +6,7 @@ package org.mtr.aurelia.road.fabric;
 
 import net.fabricmc.loader.api.FabricLoader;
 import org.mtr.aurelia.road.fabric.apply.ApplyService;
+import org.mtr.aurelia.road.fabric.block.StratosBlocks;
 import org.mtr.aurelia.road.fabric.net.EditorNetworking;
 import org.mtr.aurelia.road.fabric.palette.GamePalettes;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ public final class StratosMod {
 
     /** Called once from ATR's common initialiser, on both the client and a dedicated server. */
     public static void register() {
+        StratosBlocks.register(); // before the palettes are read: the Stratos UK palette names these blocks
         ApplyService.register();
         GamePalettes.register();
         EditorNetworking.register();
