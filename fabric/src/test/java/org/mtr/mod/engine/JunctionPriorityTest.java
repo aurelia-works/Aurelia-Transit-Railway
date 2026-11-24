@@ -47,8 +47,9 @@ class JunctionPriorityTest {
 		assertTrue(giveWay.hold(7, 12, 11.5, true, 2_000));
 		// standing at the signal
 		assertTrue(giveWay.hold(7, 0, 0, true, 3_000));
-		// the express is through: the signal clears
-		assertFalse(giveWay.hold(7, 0, 0, false, 4_000));
+		// the express is through, but a single missed renewal is not the express leaving: it keeps holding briefly
+		assertTrue(giveWay.hold(7, 0, 0, false, 4_000));
+		assertFalse(giveWay.hold(7, 0, 0, false, 6_000));
 		// a train that never gave way at this signal and can no longer stop is not stopped in front of it
 		assertFalse(new GiveWay().hold(7, 12, 30, true, 2_000));
 	}
