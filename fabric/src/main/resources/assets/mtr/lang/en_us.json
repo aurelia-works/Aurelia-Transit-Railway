@@ -782,6 +782,7 @@
 	"item.mtr.zip_seat": "Zip Seat",
 	"item.mtr.road_car": "Car (retired)",
 	"tooltip.mtr.road_car.retired": "Road cars were removed from ATR. This item does nothing.",
+	"message.mtr.road_car_removed": "A road car from an older ATR was removed: road cars are no longer part of ATR.",
 	"entity.mtr.road_vehicle": "Hire bike",
 	"entity.mtr.road_vehicle.bicycle": "Hire bike",
 	"message.mtr.bike_share.hired": "Bike hired. Get off next to an empty rack to return it",
