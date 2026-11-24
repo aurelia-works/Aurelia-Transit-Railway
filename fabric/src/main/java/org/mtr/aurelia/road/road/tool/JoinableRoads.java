@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import org.mtr.aurelia.road.road.RoadJoins;
 import org.mtr.aurelia.road.road.RoadPlanParams;
+import org.mtr.aurelia.road.road.graph.RoadGraph;
 import org.mtr.aurelia.road.road.nodes.PlacedRoads;
 import org.mtr.aurelia.road.tool.Target;
 
@@ -45,19 +46,78 @@ public final class JoinableRoads {
     }
 
     private final Supplier<List<PlacedRoads.Road>> roads;
+    /** R-10+: the road being edited, which is among the roads but can't be joined (empty when drawing a new road). */
+    private final Optional<UUID> editing;
 
     /** The roads {@code roads} lists, newest first, asked each time. */
     public JoinableRoads(Supplier<List<PlacedRoads.Road>> roads) {
+        this(roads, Optional.empty());
+    }
+
+    private JoinableRoads(Supplier<List<PlacedRoads.Road>> roads, Optional<UUID> editing) {
         this.roads = Objects.requireNonNull(roads, "roads");
+        this.editing = Objects.requireNonNull(editing, "editing");
+    }
+
+    /**
+     * For editing the road {@code road} (R-10, R-10+): {@code roads} lists it with the others, newest first. Its ends may
+     * join the others' free ends, never its own; the others' ends drawn onto it are kept ({@link #incoming}).
+     */
+    public static JoinableRoads editing(UUID road, Supplier<List<PlacedRoads.Road>> roads) {
+        return new JoinableRoads(roads, Optional.of(road));
+    }
+
+    /** The road being edited, if this is an edit (R-10+). */
+    public Optional<UUID> editing() {
+        return this.editing;
+    }
+
+    /** Every road listed, the edited one included, by operation id (newest first). */
+    private Map<UUID, RoadPlanParams> all() {
+        Map<UUID, RoadPlanParams> all = new LinkedHashMap<>();
+        for (PlacedRoads.Road road : this.roads.get()) {
+            all.putIfAbsent(road.operationId(), road.params());
+        }
+        return all;
     }
 
     /** The roads that can be joined now, by operation id: for the planner, which checks a join against them. */
     public Map<UUID, RoadPlanParams> placed() {
-        Map<UUID, RoadPlanParams> placed = new LinkedHashMap<>();
-        for (PlacedRoads.Road road : this.roads.get()) {
-            placed.putIfAbsent(road.operationId(), road.params());
-        }
+        Map<UUID, RoadPlanParams> placed = all();
+        this.editing.ifPresent(placed::remove);
         return placed;
+    }
+
+    /** R-10+: the standing roads with the edited road among them, as the server plans an edit; {@link #placed} otherwise. */
+    public Map<UUID, RoadPlanParams> standing() {
+        return all();
+    }
+
+    /** R-10+: the other roads' ends drawn onto the edited road, each with its port; none when drawing a new road. */
+    public List<RoadJoins.Incoming> incoming() {
+        return this.editing.map(id -> RoadJoins.incoming(id, all())).orElse(List.of());
+    }
+
+    /**
+     * R-10+: the join end {@code index} of the edited road {@code road} has, when it was drawn onto a road still standing,
+     * to show it joined while it is edited.
+     */
+    public Optional<Join> joinOf(RoadPlanParams road, int index) {
+        RoadPlanParams.End end = road.ends().get(index);
+        if (end.snapRoadId().isEmpty() || end.snapPortIndex().isEmpty() || end.snapPortIndex().getAsInt() > 1) {
+            return Optional.empty();
+        }
+        UUID other = end.snapRoadId().get();
+        return this.roads.get().stream().filter(r -> r.operationId().equals(other) && !this.editing.equals(Optional.of(other))).findFirst()
+                .filter(r -> r.ports().size() == 2).map(r -> new Join(other, r.ports().get(end.snapPortIndex().getAsInt())));
+    }
+
+    /**
+     * R-10+: whether end {@code index} of the edited road {@code road} is joined, so it stays where it is while the road is
+     * edited: it was drawn onto a standing road, or another road was drawn onto it.
+     */
+    public boolean pinned(RoadPlanParams road, int index) {
+        return this.editing.isPresent() && (joinOf(road, index).isPresent() || incoming().stream().anyMatch(in -> in.index() == index));
     }
 
     /**
@@ -65,25 +125,30 @@ public final class JoinableRoads {
      * within {@link #HEIGHT} of its height.
      */
     public Optional<Join> near(int x, int y, int z) {
-        List<PlacedRoads.Road> roads = this.roads.get();
+        Map<UUID, PlacedRoads.Road> roads = new LinkedHashMap<>();
+        for (PlacedRoads.Road road : this.roads.get()) {
+            roads.putIfAbsent(road.operationId(), road);
+        }
+        Map<UUID, RoadPlanParams> standing = new LinkedHashMap<>();
+        roads.forEach((id, road) -> standing.put(id, road.params()));
+        RoadGraph graph = RoadGraph.of(standing); // G-10: its chunk index finds the ends nearby
         Join best = null;
         double bestDistance = RADIUS;
-        Map<UUID, RoadPlanParams> placed = null;
-        for (PlacedRoads.Road road : roads) { // newest first, so the newest wins a tie
-            for (RoadJoins.Port port : road.ports()) {
-                double dx = port.x() - x;
-                double dz = port.z() - z;
-                double distance = StrictMath.sqrt(dx * dx + dz * dz);
-                if (distance > bestDistance || (best != null && distance == bestDistance) || StrictMath.abs(port.y() - y) > HEIGHT) {
-                    continue;
-                }
-                if (placed == null) {
-                    placed = placed();
-                }
-                if (!RoadJoins.taken(road.operationId(), port.index(), placed)) {
-                    best = new Join(road.operationId(), port);
-                    bestDistance = distance;
-                }
+        for (RoadGraph.Port near : graph.portsNear(x, z, RADIUS)) { // newest road first, so the newest wins a tie
+            if (this.editing.equals(Optional.of(near.road()))) {
+                continue; // the road being edited can't join itself
+            }
+            double dx = near.x() - x;
+            double dz = near.z() - z;
+            double distance = StrictMath.sqrt(dx * dx + dz * dz);
+            if (distance > bestDistance || (best != null && distance == bestDistance) || StrictMath.abs(near.y() - y) > HEIGHT
+                    || graph.taken(near.road(), near.index())) {
+                continue;
+            }
+            List<RoadJoins.Port> ports = roads.get(near.road()).ports();
+            if (ports.size() == 2) {
+                best = new Join(near.road(), ports.get(near.index()));
+                bestDistance = distance;
             }
         }
         return Optional.ofNullable(best);
@@ -104,14 +169,19 @@ public final class JoinableRoads {
      * ({@link RoadJoins#orient}), with the dash pattern its joins call for ({@link RoadJoins#dashes}).
      */
     public RoadPlanParams finish(RoadPlanParams params) {
-        RoadPlanParams oriented = RoadJoins.orient(params);
+        List<RoadJoins.Incoming> incoming = incoming();
+        // R-10+: a road others are joined to keeps its way round, as their joins name its ends.
+        RoadPlanParams oriented = incoming.isEmpty() ? RoadJoins.orient(params) : params;
         Map<UUID, List<RoadJoins.Port>> ports = new LinkedHashMap<>();
         if (oriented.ends().stream().anyMatch(end -> end.snapRoadId().isPresent())) {
             for (PlacedRoads.Road road : this.roads.get()) {
-                ports.putIfAbsent(road.operationId(), road.ports());
+                if (!this.editing.equals(Optional.of(road.operationId()))) {
+                    ports.putIfAbsent(road.operationId(), road.ports());
+                }
             }
         }
-        return oriented.withDashes(RoadJoins.dashes(oriented, id -> Optional.ofNullable(ports.get(id)).filter(list -> list.size() == 2)));
+        return oriented.withDashes(RoadJoins.editDashes(oriented, id -> Optional.ofNullable(ports.get(id)).filter(list -> list.size() == 2),
+                incoming));
     }
 
     /** {@code end} joined to {@code join}: at its end's block and height, with the join named. */

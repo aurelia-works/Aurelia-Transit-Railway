@@ -329,7 +329,7 @@
   "stratos.road.reject.road_end_gone": "The road this one joins isn't there any more (undone or removed). Set that end again.",
   "stratos.road.reject.road_gone": "This road isn't there any more (undone or deleted). Pick another.",
   "stratos.road.reject.road_changed": "This road changed since you picked it. Pick it again.",
-  "stratos.road.reject.road_joined": "This road is joined to another road, and editing joined roads comes later. You can still rebuild or delete it.",
+  "stratos.road.reject.road_joined": "This change would pull the road away from a road joined to it. Keep its joined ends where they are and its lanes the same.",
   "stratos.road.reject.road_too_old": "Stratos no longer has what was here before this road (a world keeps the undo data of its last 200 edits), so it can't delete it exactly. Rebuild still works.",
   "stratos.road.reject.port_mismatch": "This road doesn't line up with the road end it joins. Set that end again.",
   "stratos.road.reject.profile_mismatch": "These roads have different layouts: %s can't join %s, as their lanes don't line up.",

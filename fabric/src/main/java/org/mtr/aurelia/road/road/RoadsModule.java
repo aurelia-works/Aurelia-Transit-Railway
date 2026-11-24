@@ -24,6 +24,7 @@ import org.mtr.aurelia.road.proto.Digest;
 import org.mtr.aurelia.road.proto.MalformedMessage;
 import org.mtr.aurelia.road.proto.PlanModule;
 import org.mtr.aurelia.road.proto.PlanResult;
+import org.mtr.aurelia.road.road.graph.RoadGraph;
 import org.mtr.aurelia.road.road.palette.BuiltInPalettes;
 import org.mtr.aurelia.road.road.palette.Palette;
 import org.mtr.aurelia.road.undo.OperationRecord;
@@ -113,7 +114,8 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
      *   <li>the road's plan as placed, when today's planner gives exactly the plan its latest operation placed (the
      *       record's plan hash, with that record's core version); and the same for the operation that first placed it, for
      *       the ground;</li>
-     *   <li>the blocks of the roads joined to it, at either end (owner: they keep what they share);</li>
+     *   <li>the blocks of the roads joined to it, at either end ({@link RoadGraph#neighbours}; owner: they keep what they
+     *       share);</li>
      *   <li>the guard for the player's answer: none yet asks, {@code KEEP} keeps hand edits, {@code OVERWRITE} writes over
      *       them.</li>
      * </ul>
@@ -136,11 +138,9 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
         Optional<BlockPlan> exact = asPlaced(byId.get(road.latest()), limits);
         Optional<BlockPlan> first = road.complete() ? asPlaced(byId.get(road.chain().get(0)), limits) : Optional.empty();
         Set<Long> keep = new HashSet<>();
-        for (RoadHistory.Road other : roads.values()) {
-            if (!other.id().equals(road.id()) && (joins(other.params(), road.id()) || joins(road.params(), other.id()))) {
-                RoadPlanner.asPlaced(other.params(), limits).plan().ifPresent(plan -> plan.blocks()
-                        .forEach(block -> keep.add(BlockChange.positionKey(block.x(), block.y(), block.z()))));
-            }
+        for (UUID neighbour : RoadGraph.of(RoadHistory.params(roads)).neighbours(road.id())) {
+            RoadPlanner.asPlaced(roads.get(neighbour).params(), limits).plan().ifPresent(plan -> plan.blocks()
+                    .forEach(block -> keep.add(BlockChange.positionKey(block.x(), block.y(), block.z()))));
         }
         ApplyJob.Guard guard = params.manualEdits().map(answer -> answer == RoadPlanParams.ManualEdits.KEEP ? ApplyJob.Guard.SKIP_CHANGED
                 : ApplyJob.Guard.NONE).orElse(ApplyJob.Guard.ASK);
@@ -174,11 +174,6 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
             return planned.plan();
         }
         return Optional.empty();
-    }
-
-    /** Whether an end of the road {@code params} joins the road {@code road}. */
-    private static boolean joins(RoadPlanParams params, UUID road) {
-        return params.ends().stream().anyMatch(end -> end.snapRoadId().filter(road::equals).isPresent());
     }
 
     /**

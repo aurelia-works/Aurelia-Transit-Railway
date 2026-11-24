@@ -149,8 +149,9 @@ public final class RoadPlanner {
     /** R-7: the road's parameters in a delete aren't the placed road's: it changed since it was picked. */
     public static final String ROAD_CHANGED = "ROAD_CHANGED";
     /**
-     * R-10: an edit (a rebuild with other ends, layout, node aid or shape) of a road another road joins, or that joins
-     * another: editing joined roads comes with R-10+ (owner, 2026-10-13).
+     * R-10: an edit (a rebuild with other ends, layout, node aid or shape) that would break a join: from R-10+, a road
+     * joined to the edited road would no longer join it as drawn (its end moved, or its lanes or dashes no longer carry
+     * on). Moving a joined end, which would re-plan the roads joined there too, isn't built yet.
      */
     public static final String ROAD_JOINED = "ROAD_JOINED";
     /**
@@ -225,6 +226,12 @@ public final class RoadPlanner {
 
     private static Outcome compute(RoadPlanParams params, WorldLimits limits, boolean wantShape, Map<UUID, RoadPlanParams> placed,
             boolean checkJoins) {
+        return compute(params, limits, wantShape, placed, checkJoins, List.of());
+    }
+
+    /** As {@link #compute(RoadPlanParams, WorldLimits, boolean, Map, boolean)}, for an edited road the ends {@code incoming} join. */
+    private static Outcome compute(RoadPlanParams params, WorldLimits limits, boolean wantShape, Map<UUID, RoadPlanParams> placed,
+            boolean checkJoins, List<RoadJoins.Incoming> incoming) {
         if (params.tool() == RoadPlanParams.Tool.REBUILD || params.tool() == RoadPlanParams.Tool.DELETE) {
             return edit(params, limits, wantShape, placed);
         }
@@ -259,7 +266,7 @@ public final class RoadPlanner {
         boolean clearing = params.tool() == RoadPlanParams.Tool.CLEAR_MARKERS;
         RoadProfile profile = RoadProfiles.byId(params.profileId()).orElseThrow();
         if (checkJoins && !clearing) { // clearing markers takes a road as placed, whatever it joined (R-5)
-            Optional<Outcome> joins = RoadJoins.refusal(params, profile, placed);
+            Optional<Outcome> joins = RoadJoins.refusal(params, profile, placed, incoming);
             if (joins.isPresent()) {
                 return joins.get();
             }
@@ -306,8 +313,13 @@ public final class RoadPlanner {
      *
      * <p><b>R-10</b> (owner, 2026-10-13): a rebuild with other parameters than the road's (other ends, layout, node aid or
      * shape; R-9's other palette alone stays a plain rebuild) edits it. It is planned as a new road would be, its ends'
-     * joins checked against the other standing roads (a moved end may join one, as when drawing a road), unless the road
-     * joins another or another joins it now ({@link #ROAD_JOINED}: R-10+).
+     * joins checked against the other standing roads (a moved end may join one, as when drawing a road).
+     *
+     * <p><b>R-10+</b>: a road that other roads join is edited too, as one operation, as long as each of them still joins
+     * it as it was drawn: the edited road's end there keeps its block and heading and the same lanes, and what that
+     * road's joins call for its dashes doesn't change ({@link RoadJoins#stillJoins}; otherwise {@link #ROAD_JOINED}). The
+     * edited road's dashes stay in step with them ({@link RoadJoins#editDashes}). Its own joins are checked as a new
+     * road's. The joined roads themselves aren't changed: what they share with it is kept (the module's replacement).
      */
     private static Outcome edit(RoadPlanParams params, WorldLimits limits, boolean wantShape, Map<UUID, RoadPlanParams> placed) {
         UUID id = params.targetRoadId().orElse(null);
@@ -322,12 +334,16 @@ public final class RoadPlanner {
             if (!rebuild) {
                 return refused(ROAD_CHANGED, Map.of());
             }
-            if (RoadJoins.taken(id, 0, placed) || RoadJoins.taken(id, 1, placed)) {
-                return refused(ROAD_JOINED, Map.of());
+            RoadPlanParams edited = params.road();
+            List<RoadJoins.Incoming> incoming = RoadJoins.incoming(id, placed);
+            for (RoadJoins.Incoming in : incoming) { // R-10+: the roads joined to it keep their joins
+                if (!RoadJoins.stillJoins(in, id, edited, placed)) {
+                    return refused(ROAD_JOINED, Map.of());
+                }
             }
             Map<UUID, RoadPlanParams> others = new LinkedHashMap<>(placed);
             others.remove(id); // the road can't join itself
-            return compute(params.road(), limits, wantShape, others, true);
+            return compute(edited, limits, wantShape, others, true, incoming);
         }
         Outcome asPlaced = compute(params.road(), limits, wantShape, Map.of(), false);
         PlanResult result = asPlaced.result();
