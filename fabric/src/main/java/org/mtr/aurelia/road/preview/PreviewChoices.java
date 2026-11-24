@@ -13,7 +13,7 @@ import java.util.Objects;
 
 /**
  * The preview's settings a player keeps across restarts (task UI-1c), from the hub's Settings: whether faces are shown or
- * only outlines, and how faces are drawn with a shader pack. Kept in config/stratos/client.json beside the road choices,
+ * only outlines, and how faces are drawn with a shader pack. Kept in config/aurelia/roads/client.json beside the road choices,
  * and read as leniently: anything missing, unknown or unreadable stands for the default.
  */
 public record PreviewChoices(boolean outlinesOnly, ShaderFaces shaderFaces) {

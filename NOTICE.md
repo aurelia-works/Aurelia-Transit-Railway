@@ -34,6 +34,9 @@ Included so far:
   `ops`, `preview`, `proto`, `road`, `schem`, `spi`, `terrain`, `tool`, `undo` and `world`, plus the road palettes and
   `core.properties` under `fabric/src/main/resources/org/mtr/aurelia/road/`. Copied from Stratos 0.1.0's core with
   the package renamed; all of it is Stratos's own work under the permission above.
+- Stratos's server side (P4): `org.mtr.aurelia.road.fabric` and its sub-packages `apply`, `net` and `palette`.
+  Rewritten from Stratos 0.1.0's Fabric layer for ATR's Yarn names; permissions are op levels only, with no
+  permissions library. Stratos's own work under the permission above.
 
 ### Deliberately not included
 

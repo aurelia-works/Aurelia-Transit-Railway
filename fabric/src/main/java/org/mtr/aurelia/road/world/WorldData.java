@@ -47,7 +47,7 @@ import org.mtr.aurelia.road.undo.UndoIndexJson;
 import org.mtr.aurelia.road.undo.UndoStore;
 
 /**
- * One world's Stratos data under {@code <world>/stratos/} (world-data-format; task F-5): its {@code meta.json}, the
+ * One world's Stratos data under {@code <world>/aurelia_roads/} (world-data-format; task F-5): its {@code meta.json}, the
  * operation records, the undo images and every player's undo history, per dimension.
  * <ul>
  *   <li><b>Loading</b> ({@link #load}): the downgrade guard first (§8): data newer than this Stratos ({@code formatVersion}
@@ -230,7 +230,7 @@ public final class WorldData {
         try {
             this.storage.delete("tmp");
         } catch (IOException e) {
-            this.log.accept("[stratos] couldn't empty stratos/tmp: " + e);
+            this.log.accept("[stratos] couldn't empty aurelia_roads/tmp: " + e);
         }
         UndoIndex index = UndoIndex.EMPTY;
         boolean indexRead = true;
@@ -517,7 +517,7 @@ public final class WorldData {
     }
 
     /**
-     * Whether every world save should reach Stratos (F-2+: {@code stratos_meta} stays dirty): it has something to save,
+     * Whether every world save should reach Stratos (F-2+: {@code aurelia_roads_meta} stays dirty): it has something to save,
      * or the journal keeps runs that world saves will retire.
      */
     public boolean wantsWorldSaves() {
