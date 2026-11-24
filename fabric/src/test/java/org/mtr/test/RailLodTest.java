@@ -65,6 +65,14 @@ public final class RailLodTest {
 		assertFalse(RailLod.inFarView(111, 8, 32, true, 16));
 	}
 
+	/** A road's hidden lane rail has no styles; the near pass draws nothing for it, so the far pass must not either. */
+	@Test
+	public void farViewSkipsUnstyledRailsUnlessHoldingARailTool() {
+		assertFalse(RailLod.drawnInFarView(false, false));
+		assertTrue(RailLod.drawnInFarView(false, true));
+		assertTrue(RailLod.drawnInFarView(true, false));
+	}
+
 	@Test
 	public void boxDistanceClampsToTheBox() {
 		assertEquals(0, RailLod.boxDistance(5, 5, 0, 0, 10, 10), 1E-9);

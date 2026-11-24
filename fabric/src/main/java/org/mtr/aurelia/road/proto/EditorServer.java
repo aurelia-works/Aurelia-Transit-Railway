@@ -827,14 +827,22 @@ public final class EditorServer {
      * about any track it left unbuilt or unremoved ({@code Notice}, T-2).
      */
     public void finished(Operations.Result result) {
-        // Side effects that weren't made or removed (track) go to the log with their reasons.
+        // Side effects that weren't made or removed (track) go to the log with their reasons; skipped ones in one line.
+        int skipped = 0;
         for (Operations.SideEffectOutcome outcome : result.sideEffects()) {
             SideEffectWriter.Result what = outcome.result();
-            if (what.outcome() != SideEffectWriter.Outcome.DONE) {
+            if (what.outcome() == SideEffectWriter.Outcome.SKIPPED) {
+                skipped++;
+            } else if (what.outcome() != SideEffectWriter.Outcome.DONE) {
                 this.log.accept("[stratos] " + result.kind().name().toLowerCase(Locale.ROOT) + " of operation "
                         + result.operationId().map(UUID::toString).orElse("?") + ": " + outcome.effect() + " " + what.outcome()
                         + (what.reason().isEmpty() ? "" : " (" + what.reason() + ")"));
             }
+        }
+        if (skipped > 0) {
+            this.log.accept("[stratos] " + result.kind().name().toLowerCase(Locale.ROOT) + " of operation "
+                    + result.operationId().map(UUID::toString).orElse("?") + ": " + skipped
+                    + " lanes got no hidden track because their ends aren't MTR node blocks (a road laid with another node aid)");
         }
         // Why an operation failed, for the log: the player's message has only its code (F-1+: the log names the block). A
         // delete's or rebuild's question about hand edits, or its "nothing to change", isn't a failure (R-7).
@@ -918,8 +926,8 @@ public final class EditorServer {
             int i = outcome.removal() ? 0 : 1;
             total[i]++;
             SideEffectWriter.Outcome what = outcome.result().outcome();
-            boolean fine = what == SideEffectWriter.Outcome.DONE
-                    || (outcome.removal() ? what == SideEffectWriter.Outcome.NOT_THERE : what == SideEffectWriter.Outcome.ALREADY_THERE);
+            boolean fine = what == SideEffectWriter.Outcome.DONE || (outcome.removal() ? what == SideEffectWriter.Outcome.NOT_THERE
+                    : what == SideEffectWriter.Outcome.ALREADY_THERE || what == SideEffectWriter.Outcome.SKIPPED);
             if (!fine) {
                 wrong[i]++;
             }

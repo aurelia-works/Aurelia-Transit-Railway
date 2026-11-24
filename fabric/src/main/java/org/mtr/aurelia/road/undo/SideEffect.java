@@ -15,7 +15,7 @@ public sealed interface SideEffect permits SideEffect.TrackRail {
      * Hidden MTR track between two lane nodes (ADR-0040; task T-2): the node blocks (where MTR's node sits, on top of the
      * road surface), their MTR headings (0–7, {@code LaneNode.mtrFacing}), the speed for a vehicle setting off from each
      * end in km/h, 0 for "not this way" (one way with traffic; spike S14), and the road's vertical shape with its radius
-     * (0 when it has none), so sloped track follows the road (G-3). {@code stratos_transit} makes it an MTR rail with no
+     * (0 when it has none), so sloped track follows the road (G-3). The track writer makes it an MTR rail with no
      * style. Core knows nothing of MTR.
      */
     record TrackRail(int ax, int ay, int az, int aFacing, int bx, int by, int bz, int bFacing, int speedFromA, int speedFromB, Shape shape,

@@ -182,7 +182,7 @@ public final class ApplyService {
     private static WorldData load(MinecraftServer server) {
         FabricWorldWriter.warmUp();
         helper = new HelperThread();
-        // The track writer (T-2): none until the MTR track writer is wired in.
+        // The track writer (T-2): MTR's hidden track.
         WorldData.Settings settings = new WorldData.Settings(UndoStore.DEFAULT_MEMORY_BYTES, UndoStore.DEFAULT_MAX_OPERATIONS, UndoStore.DEFAULT_MAX_BYTES, UUID::randomUUID,
                 SideEffects.writer(server), Instant::now, SharedConstants.getGameVersion().getSaveVersion().getId(),
                 "stratos " + StratosMod.version(), helper);

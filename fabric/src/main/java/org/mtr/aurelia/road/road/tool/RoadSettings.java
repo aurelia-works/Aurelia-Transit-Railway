@@ -29,7 +29,7 @@ import org.mtr.aurelia.road.tool.HudModel.Text;
  *       {@link #STEP}; a typed radius can be anything from {@link #MIN_RADIUS} to {@link #MAX_RADIUS}, to a tenth (MTR's
  *       rail screen takes tenths). MTR shortens it on a piece too short or steep for it, and so does the planner.</li>
  *   <li><b>The node aid</b> (R-6, T-2; owner, 2026-10-08): <b>Track</b> to start with, where it can be built (the
- *       server has Stratos Transit and the game has MTR's node block); otherwise blue-wool markers. {@code '} goes
+ *       server can build MTR track); otherwise blue-wool markers. {@code '} goes
  *       Track → blue wool → MTR nodes placed already facing the right way → none → Track, leaving out Track where it
  *       can't be built and MTR nodes where the game has no node block.</li>
  *   <li><b>The palette</b> (R-9; owner, 2026-10-10): Stratos UK to start (B-1, ADR-0044); the hub's palette button steps
