@@ -9,6 +9,7 @@ import org.mtr.libraries.com.google.gson.JsonParser;
 import javax.annotation.Nullable;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -120,7 +121,11 @@ public final class MapPins {
 		root.add("landmarks", landmarks);
 		try {
 			Files.createDirectories(folder);
-			Files.writeString(folder.resolve(FILE), root.toString());
+			// written beside it and moved over it, so a crash mid-write leaves the old pins rather than none
+			final Path file = folder.resolve(FILE);
+			final Path temp = folder.resolve(FILE + ".tmp");
+			Files.writeString(temp, root.toString());
+			Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 		} catch (Exception e) {
 			AureliaClient.LOGGER.warn("[ATR] map pins could not be saved in {}", folder, e);
 		}
