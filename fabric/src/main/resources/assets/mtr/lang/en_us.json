@@ -782,8 +782,6 @@
 	"item.mtr.zip_seat": "Zip Seat",
 	"item.mtr.road_car": "Car",
 	"entity.mtr.road_vehicle": "Car",
-	"message.mtr.road_vehicle.off": "Road vehicles are switched off on this server",
-	"message.mtr.road_vehicle.no_room": "There is no room for the car here",
 	"entity.mtr.road_vehicle.bicycle": "Hire bike",
 	"message.mtr.bike_share.hired": "Bike hired. Get off next to an empty rack to return it",
 	"message.mtr.bike_share.returned": "Bike returned to the rack",
