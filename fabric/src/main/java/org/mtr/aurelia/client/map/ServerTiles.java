@@ -20,7 +20,7 @@ import java.util.Arrays;
 
 /**
  * The client half of the server-drawn map ({@link ServerMapTiles}): asks the server which squares have saved chunks (again if no list came),
- * then, while a map view is open, asks for the ones in view this client has never explored, nearest the view's centre
+ * then, while a full-screen map is open, asks for the ones in view this client has never explored, nearest the view's centre
  * first and a few at a time. A square that arrives becomes part of the explored map and is saved with it, so it is asked
  * for once. A server without ATR's map never answers, and the map simply shows what this client explored.
  */
@@ -111,13 +111,19 @@ public final class ServerTiles {
 	}
 
 	/**
-	 * Asks for the unexplored squares in this view of region range. Render thread; scans the server's list only when the
-	 * view moves to other squares or what is known changes, and allocates only when it sends.
+	 * Asks for the unexplored squares in a full-screen map view: the N map and MTR's dashboard map call this, the minimap
+	 * never does, so walking about with it on downloads nothing. Render thread; scans the server's list only when the view
+	 * moves to other squares or what is known changes, and allocates only when it sends.
 	 */
-	public static void askInView(ExploredMap map, int firstX, int lastX, int firstZ, int lastZ) {
-		if (dimension == null) {
+	public static void askInView(int width, int height, double centerX, double centerZ, double scale) {
+		final ExploredMap map = MapClient.map();
+		if (dimension == null || map == null || width <= 0 || height <= 0) {
 			return;
 		}
+		final int firstX = MapRegion.regionOf((int) Math.floor(centerX - width / 2.0 / scale));
+		final int lastX = MapRegion.regionOf((int) Math.floor(centerX + width / 2.0 / scale));
+		final int firstZ = MapRegion.regionOf((int) Math.floor(centerZ - height / 2.0 / scale));
+		final int lastZ = MapRegion.regionOf((int) Math.floor(centerZ + height / 2.0 / scale));
 		final long now = System.currentTimeMillis();
 		if (!listed) {
 			if (now - listAskedAt > LIST_RETRY_MILLIS && ClientPlayNetworking.canSend(ServerMapTiles.LIST)) {

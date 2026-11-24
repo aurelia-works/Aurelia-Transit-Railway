@@ -58,6 +58,7 @@ public final class WorldMapScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		MapView.draw(context, 0, BAR, width, height - BAR, camera);
+		ServerTiles.askInView(width, height - BAR, camera.centerX(), camera.centerZ(), camera.scale());
 		context.fill(0, 0, width, BAR, BAR_BG);
 		super.render(context, mouseX, mouseY, delta);
 		final int worldX = (int) Math.floor(camera.worldX(mouseX, 0, width));

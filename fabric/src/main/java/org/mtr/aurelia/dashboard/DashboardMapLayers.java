@@ -4,6 +4,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import org.mtr.aurelia.client.map.MapGround;
+import org.mtr.aurelia.client.map.ServerTiles;
 import org.mtr.core.data.AreaBase;
 import org.mtr.core.data.Station;
 import org.mtr.mod.client.MinecraftClientData;
@@ -31,6 +32,7 @@ public final class DashboardMapLayers {
 	public static void ground(DrawContext context, int left, int top, int width, int height, double centerX, double centerZ, double scale) {
 		context.enableScissor(left, top, left + width, top + height);
 		MapGround.draw(context, left, top, width, height, centerX, centerZ, scale);
+		ServerTiles.askInView(width, height, centerX, centerZ, scale);
 		context.disableScissor();
 	}
 

@@ -11,8 +11,10 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.WorldSavePath;
 import net.minecraft.world.dimension.DimensionType;
+import org.mtr.aurelia.Operators;
 import org.mtr.aurelia.dashboard.DashboardPackets;
 import org.mtr.libraries.com.google.gson.JsonParser;
+import org.mtr.libraries.it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.mtr.mod.Init;
 
 import java.io.ByteArrayOutputStream;
@@ -39,7 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * under {@code <world>/aurelia/map/<dimension>/}, a folder of their own, and drawn again at most every
  * {@link #REDRAW_MILLIS} once their chunks changed. {@code config/aurelia/server-map.json} turns it off with
  * {@code "enabled": false}, and picks who is answered with {@code "players"}: {@code "ops"} (the default: operators and
- * creative players, since it shows the whole saved world, other players' bases included) or {@code "all"} (anyone who
+ * the single-player host, since it shows the whole saved world, other players' bases included) or {@code "all"} (anyone who
  * may open the dashboard). A player gets the list of squares at most every {@link #LIST_MILLIS}, from a listing kept for
  * that long, and has at most {@link #MAX_QUEUED} squares waiting to be drawn, counted until they are done even across a
  * reconnect.
@@ -80,6 +82,8 @@ public final class ServerMapTiles {
 		/** When the keys were listed; 0 before the first listing. */
 		private long made;
 		private long[] keys = new long[0];
+		/** The same keys, so a request for a square not listed is ignored. */
+		private LongOpenHashSet listed = new LongOpenHashSet();
 		private boolean making;
 		private final List<ServerPlayerEntity> waiting = new ArrayList<>();
 	}
@@ -111,9 +115,8 @@ public final class ServerMapTiles {
 		if (!enabled || player.getServerWorld().getDimension().hasCeiling()) {
 			return false;
 		}
-		return everyone
-				? DashboardPackets.isAllowed(player.isCreative(), player.hasPermissionLevel(2), DashboardPackets.hasDashboardItem(player))
-				: player.hasPermissionLevel(2) || player.isCreative();
+		final boolean operator = Operators.isOperator(player);
+		return everyone ? DashboardPackets.isAllowed(operator, DashboardPackets.hasDashboardItem(player)) : operator;
 	}
 
 	private static void list(MinecraftServer server, ServerPlayerEntity player) {
@@ -146,6 +149,7 @@ public final class ServerMapTiles {
 				listing.making = false;
 				listing.made = System.currentTimeMillis();
 				listing.keys = keys;
+				listing.listed = new LongOpenHashSet(keys);
 				for (final ServerPlayerEntity waiting : listing.waiting) {
 					if (!waiting.isDisconnected()) {
 						sendList(waiting, dimension, keys);
@@ -203,7 +207,12 @@ public final class ServerMapTiles {
 		final int bottomY = world.getBottomY();
 		final int height = world.getHeight();
 		final UUID uuid = player.getUuid();
+		final Listing listing = LISTINGS.get(dimension);
 		for (final long key : keys) {
+			// only squares the listing holds, so the cache never grows past the world's saved chunks
+			if (listing == null || !listing.listed.contains(key)) {
+				continue;
+			}
 			// counted until drawn, not reset when the player reconnects, so the queue can only grow by what is done
 			if (QUEUED.getOrDefault(uuid, 0) >= MAX_QUEUED || QUEUED_ALL.get() >= MAX_QUEUED_ALL) {
 				return;
@@ -281,7 +290,7 @@ public final class ServerMapTiles {
 			enabled = !root.has("enabled") || root.get("enabled").getAsBoolean();
 			everyone = root.has("players") && "all".equalsIgnoreCase(root.get("players").getAsString());
 		} catch (Exception e) {
-			Init.LOGGER.warn("[ATR] {} could not be read; the server map answers operators and creative players only", file, e);
+			Init.LOGGER.warn("[ATR] {} could not be read; the server map answers operators and the single-player host only", file, e);
 		}
 	}
 }
