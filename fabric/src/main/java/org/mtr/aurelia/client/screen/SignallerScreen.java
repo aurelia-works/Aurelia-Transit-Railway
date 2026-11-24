@@ -1,5 +1,6 @@
 package org.mtr.aurelia.client.screen;
 
+import org.mtr.aurelia.client.ClientOperators;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -84,7 +85,7 @@ public final class SignallerScreen extends Screen {
 	}
 
 	private void toggle(Route route) {
-		if (route == null || JunctionPriority.isExpress(route) || client == null || client.player == null || !client.player.hasPermissionLevel(2)) {
+		if (route == null || JunctionPriority.isExpress(route) || !ClientOperators.isOperator(client)) {
 			return;
 		}
 		// the list redraws when the server sends the new set back

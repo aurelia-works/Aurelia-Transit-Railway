@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station.world;
 
+import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.station.Heading;
 import com.aureliatransit.architecture.station.LayoutValidator;
 import com.aureliatransit.architecture.station.LocalFrame;
@@ -55,7 +56,7 @@ public final class StationCommand {
 	 * player path, and the scripted visual shots pass {@code -Datr.visualshots=...} so their {@code ata_station plan} steps work.
 	 */
 	static void register(CommandDispatcher<ServerCommandSource> dispatcher, boolean withPlan) {
-		final var root = CommandManager.literal("ata_station").requires(source -> source.hasPermissionLevel(2))
+		final var root = CommandManager.literal("ata_station").requires(source -> Operators.isOperatorSource(source))
 				.executes(StationCommand::help)
 				.then(CommandManager.literal("help").executes(StationCommand::help));
 		if (withPlan) {

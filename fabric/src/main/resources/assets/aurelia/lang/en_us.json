@@ -197,7 +197,7 @@
 	"gui.aurelia.jump.search": "Search",
 	"gui.aurelia.jump.go": "Jump",
 	"gui.aurelia.jump.none": "Nothing to jump to. Open this from the MTR dashboard.",
-	"gui.aurelia.jump.no_permission": "Jumping uses /tp: you need operator rights or cheats on.",
+	"gui.aurelia.jump.no_permission": "Jumping is for operators and the host of a single-player world.",
 	"gui.aurelia.tools.melodies": "Vehicle melodies: %s",
 	"gui.aurelia.voice": "Announcer voice: %s",
 	"gui.aurelia.voice.computer": "computer's own",
