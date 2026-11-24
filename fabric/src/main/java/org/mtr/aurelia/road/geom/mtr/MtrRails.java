@@ -1,6 +1,6 @@
 /*
- * Ported from Minecraft Transit Railway's Transport-Simulation-Core, MIT licensed (see LICENSE-MTR.txt);
- * this copy came through Stratos. MTR's notice below is unchanged, and MIT governs this file.
+ * Derived from Stratos, (c) 2026 IndusGaming. All Rights Reserved.
+ * Used with permission — see NOTICE.md. Unlike the rest of this package, this file is Stratos's own code, not a port of MTR.
  */
 package org.mtr.aurelia.road.geom.mtr;
 

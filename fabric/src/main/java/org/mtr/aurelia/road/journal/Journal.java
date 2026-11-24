@@ -562,7 +562,7 @@ public final class Journal {
         return retired;
     }
 
-    /** Whether the journal keeps any run not yet retired (server thread): {@code stratos_meta} stays dirty meanwhile. */
+    /** Whether the journal keeps any run not yet retired (server thread): {@code aurelia_roads_meta} stays dirty meanwhile. */
     public boolean keepsRuns() {
         return !this.runs.isEmpty();
     }

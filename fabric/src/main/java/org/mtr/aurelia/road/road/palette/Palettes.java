@@ -18,7 +18,7 @@ import java.util.Optional;
  *   <li><b>Current:</b> by id, in the order the hub offers them (built-ins first). A road's {@code paletteId} names one;
  *       the server's are loaded when a world opens and sent to each player, so both sides plan with the same ones.</li>
  *   <li><b>Snapshots:</b> by snapshot id ({@link Palette#snapshotId}): every current palette's, the provisional palette
- *       Stratos used before R-9, and on the server the world's ({@code <world>/stratos/palettes/}). A road's record names
+ *       Stratos used before R-9, and on the server the world's ({@code <world>/aurelia_roads/palettes/}). A road's record names
  *       the snapshot it was built with, so the server can plan it exactly as placed ({@link #pinned}).</li>
  * </ul>
  */
