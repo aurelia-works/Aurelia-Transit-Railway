@@ -1,6 +1,7 @@
 package org.mtr.mod.engine;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -24,6 +25,7 @@ public final class EngineSettings {
 
 	public static final Identifier SYNC = new Identifier("mtr", "atr_engine");
 	public static final Identifier SET = new Identifier("mtr", "atr_engine_set");
+	public static final Identifier LAG = new Identifier("mtr", "atr_engine_lag");
 	private static final String FILE = "atr_engine";
 
 	private static volatile boolean[] enabled = defaults();
@@ -35,6 +37,16 @@ public final class EngineSettings {
 		return enabled[feature.ordinal()];
 	}
 
+	/**
+	 * Client: takes the values the server sent, so the client's own train prediction (hills, for one) matches the
+	 * server's. In single player this is the same copy the server uses, and the values are the same.
+	 */
+	public static void mirror(Map<EngineFeature, Boolean> values) {
+		final boolean[] next = defaults();
+		values.forEach((feature, value) -> next[feature.ordinal()] = value);
+		enabled = next;
+	}
+
 	public static void registerServer() {
 		// as soon as the overworld exists, before MTR's simulators build any paths
 		ServerWorldEvents.LOAD.register((server, world) -> {
@@ -42,7 +54,24 @@ public final class EngineSettings {
 				enabled = state(world).values.clone();
 			}
 		});
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> enabled = defaults());
+		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+			enabled = defaults();
+			EngineLag.clear();
+		});
+		// once a second, operators get the lag of the dimension they are in
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			if (server.getTicks() % 20 == 0 && enabled(EngineFeature.LAG_READOUT)) {
+				server.getPlayerManager().getPlayerList().forEach(player -> {
+					if (player.hasPermissionLevel(2)) {
+						final EngineLag.Reading reading = EngineLag.reading(org.mtr.mod.Init.getWorldId(new org.mtr.mapping.holder.World(player.getServerWorld())));
+						final PacketByteBuf buf = PacketByteBufs.create();
+						buf.writeVarLong(reading.averageMicros());
+						buf.writeVarLong(reading.worstMicros());
+						ServerPlayNetworking.send(player, LAG, buf);
+					}
+				});
+			}
+		});
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> send(handler.getPlayer()));
 		ServerPlayNetworking.registerGlobalReceiver(SET, (server, player, handler, buf, response) -> {
 			final int ordinal = buf.readVarInt();

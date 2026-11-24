@@ -50,10 +50,17 @@ public final class PassengerNetwork {
 		}
 	}
 
-	public record Passenger(long destinationStationId, long spawnMillis) {
+	/**
+	 * @param destinationStationId where they are going
+	 * @param legStationId         where they get off this train: the destination, or a station where they change
+	 */
+	public record Passenger(long destinationStationId, long legStationId, long spawnMillis) {
 	}
 
-	public record Exchange(int alighted, int boarded) {
+	/**
+	 * @param more someone was still waiting to get off or on when this second's moves ran out
+	 */
+	public record Exchange(int alighted, int boarded, boolean more) {
 	}
 
 	/** A passenger who waits this long gives up and goes home. */
@@ -73,6 +80,18 @@ public final class PassengerNetwork {
 	 * here can reach. A platform no route serves gets nobody.
 	 */
 	public void spawn(long platformId, long[] destinations, double minutes, Settings settings, long now, Random random) {
+		spawn(platformId, destinations, null, minutes, settings, now, random);
+	}
+
+	/**
+	 * Like {@link #spawn(long, long[], double, Settings, long, Random)}, with destinations that may need a change of
+	 * train: each passenger's first train is the one {@code routes} picks from this station.
+	 */
+	public void spawn(long platformId, PassengerRoutes routes, double minutes, Settings settings, long now, Random random) {
+		spawn(platformId, routes.destinations(platformId), routes, minutes, settings, now, random);
+	}
+
+	private void spawn(long platformId, long[] destinations, PassengerRoutes routes, double minutes, Settings settings, long now, Random random) {
 		if (destinations.length == 0 || settings.perPlatformPerMinute() <= 0) {
 			return;
 		}
@@ -84,7 +103,8 @@ public final class PassengerNetwork {
 				carry = 0;
 				break;
 			}
-			queue.add(new Passenger(destinations[random.nextInt(destinations.length)], now));
+			final long destination = destinations[random.nextInt(destinations.length)];
+			queue.add(new Passenger(destination, routes == null ? destination : routes.firstLeg(platformId, destination), now));
 			total++;
 		}
 		spawnCarry.put(platformId, carry);
@@ -99,8 +119,17 @@ public final class PassengerNetwork {
 	 * @param doorsOpen        MTR's door command is open; closed doors keep everyone where they are
 	 */
 	public Exchange exchange(long vehicleId, long platformId, long stationId, Set<Long> upcomingStations, int cars, Settings settings, boolean doorsOpen) {
+		return exchange(vehicleId, platformId, stationId, upcomingStations, cars, settings, doorsOpen, null, 0);
+	}
+
+	/**
+	 * Like {@link #exchange(long, long, long, Set, int, Settings, boolean)}. Riders who get off at a station that is
+	 * not their destination change trains: they wait on the platform {@code routes} picks for their next train.
+	 * Anyone with no way on from here leaves the station.
+	 */
+	public Exchange exchange(long vehicleId, long platformId, long stationId, Set<Long> upcomingStations, int cars, Settings settings, boolean doorsOpen, PassengerRoutes routes, long now) {
 		if (!doorsOpen) {
-			return new Exchange(0, 0);
+			return new Exchange(0, 0, false);
 		}
 		final List<Passenger> onboard = riding.computeIfAbsent(vehicleId, id -> new ArrayList<>());
 		int moves = Math.max(1, cars) * MOVES_PER_CAR;
@@ -108,13 +137,15 @@ public final class PassengerNetwork {
 		final Iterator<Passenger> riders = onboard.iterator();
 		while (riders.hasNext() && moves > 0) {
 			final Passenger passenger = riders.next();
-			if (passenger.destinationStationId() == stationId || !upcomingStations.contains(passenger.destinationStationId())) {
+			if (passenger.legStationId() == stationId || !upcomingStations.contains(passenger.legStationId())) {
 				riders.remove();
 				alighted++;
 				moves--;
+				if (!change(passenger, stationId, routes, now)) {
+					total--;
+				}
 			}
 		}
-		total -= alighted;
 		alightedTotal += alighted;
 
 		int boarded = 0;
@@ -124,7 +155,7 @@ public final class PassengerNetwork {
 			final Iterator<Passenger> waiters = queue.iterator();
 			while (waiters.hasNext() && moves > 0 && onboard.size() < capacity) {
 				final Passenger passenger = waiters.next();
-				if (passenger.destinationStationId() != stationId && upcomingStations.contains(passenger.destinationStationId())) {
+				if (passenger.legStationId() != stationId && upcomingStations.contains(passenger.legStationId())) {
 					waiters.remove();
 					onboard.add(passenger);
 					boarded++;
@@ -133,7 +164,41 @@ public final class PassengerNetwork {
 			}
 		}
 		boardedTotal += boarded;
-		return new Exchange(alighted, boarded);
+		return new Exchange(alighted, boarded, moves == 0 && (stillToAlight(onboard, stationId, upcomingStations) || stillToBoard(queue, stationId, upcomingStations, onboard.size() < capacity)));
+	}
+
+	private static boolean stillToAlight(List<Passenger> onboard, long stationId, Set<Long> upcomingStations) {
+		for (final Passenger passenger : onboard) {
+			if (passenger.legStationId() == stationId || !upcomingStations.contains(passenger.legStationId())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean stillToBoard(ArrayDeque<Passenger> queue, long stationId, Set<Long> upcomingStations, boolean room) {
+		if (queue == null || !room) {
+			return false;
+		}
+		for (final Passenger passenger : queue) {
+			if (passenger.legStationId() != stationId && upcomingStations.contains(passenger.legStationId())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** A rider off at a station short of their destination waits for their next train; false when they leave instead. */
+	private boolean change(Passenger passenger, long stationId, PassengerRoutes routes, long now) {
+		if (routes == null || passenger.destinationStationId() == stationId) {
+			return false;
+		}
+		final PassengerRoutes.Leg leg = routes.leg(stationId, passenger.destinationStationId());
+		if (leg == null) {
+			return false;
+		}
+		waiting.computeIfAbsent(leg.platformId(), id -> new ArrayDeque<>()).add(new Passenger(passenger.destinationStationId(), leg.stationId(), now));
+		return true;
 	}
 
 	/** Waiting passengers who have given up go home. */
