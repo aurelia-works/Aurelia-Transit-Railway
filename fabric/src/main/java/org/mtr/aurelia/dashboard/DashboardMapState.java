@@ -3,7 +3,7 @@ package org.mtr.aurelia.dashboard;
 import org.mtr.aurelia.map.MapCamera;
 
 /**
- * Shared map camera coordinates and zoom preserved across all five unified dashboard modes.
+ * Shared map camera coordinates and zoom preserved across all four unified dashboard modes.
  * Both MTR's {@code WidgetMap} and Aurelia's {@link MapCamera} measure {@code (centerX, centerZ)} in world blocks
  * and {@code scale} in GUI pixels per block.
  */
