@@ -83,7 +83,7 @@ public final class StationStudioClient {
 	}
 
 	/** Starts the studio without opening a browser (the dev screenshot hook); failures only go to the log. */
-	static void startQuietly() {
+	public static void startQuietly() {
 		try {
 			start();
 		} catch (IOException | RuntimeException | LinkageError e) {

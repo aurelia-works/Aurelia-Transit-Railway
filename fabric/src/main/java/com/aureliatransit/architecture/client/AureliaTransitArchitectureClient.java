@@ -36,7 +36,6 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 
 	@Override
 	public void onInitializeClient() {
-		DevScreenshots.init();
 		FreePlacementRender.init();
 		LiveClient.init();
 		AirportClient.init();
