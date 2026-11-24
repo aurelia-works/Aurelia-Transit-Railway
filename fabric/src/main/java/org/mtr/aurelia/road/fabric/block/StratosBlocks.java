@@ -78,7 +78,7 @@ public final class StratosBlocks {
     }
 
     private static MapColor droppedKerbColour(BlockState state) {
-        return state.get(DroppedKerbBlock.COLOUR) == TactileColour.RED ? MapColor.RED : MapColor.WHITE_TERRACOTTA;
+        return state.get(DroppedKerbBlock.COLOUR) == TactileColour.RED ? MapColor.RED : MapColor.TERRACOTTA_WHITE;
     }
 
     private static AbstractBlock.Settings stone(MapColor colour) {
