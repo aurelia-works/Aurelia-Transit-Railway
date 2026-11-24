@@ -29,13 +29,28 @@ public enum StationClass {
 		return name().toLowerCase(Locale.ROOT);
 	}
 
-	/** The class a request names; anything unknown, blank or null is {@link #AUTO}. */
+	/**
+	 * The class a request names; anything unknown, blank or null is {@link #AUTO}. The plan's names for the classes (Jah, 11-11: halt,
+	 * local, hub, terminal) are words for the ones here: "local" is {@link #REGIONAL}, "hub" {@link #CITY} and "terminal"
+	 * {@link #GRAND}, the full building with its concourse.
+	 */
 	public static StationClass of(String text) {
 		if (text == null) {
 			return AUTO;
 		}
+		final String key = text.strip().toLowerCase(Locale.ROOT);
+		switch (key) {
+			case "local":
+				return REGIONAL;
+			case "hub":
+				return CITY;
+			case "terminal":
+				return GRAND;
+			default:
+				break;
+		}
 		for (final StationClass value : values()) {
-			if (value.key().equals(text.strip().toLowerCase(Locale.ROOT))) {
+			if (value.key().equals(key)) {
 				return value;
 			}
 		}
