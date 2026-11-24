@@ -27,6 +27,15 @@ public final class PassengerNetwork {
 
 		/** Off until an operator switches it on, so an old world runs exactly as before. */
 		public static final Settings DEFAULT = new Settings(false, 6, 40, 4000, 40);
+		/** A world made with this version starts with passengers on (Jah 2026-11-23: every switch on by default). */
+		public static final Settings NEW_WORLD = new Settings(true, DEFAULT.perPlatformPerMinute, DEFAULT.maxWaitingPerPlatform, DEFAULT.maxTotal, DEFAULT.seatsPerCar);
+		/** A world played for less than this, in ticks, when passengers first load counts as new. */
+		public static final long NEW_WORLD_TICKS = 20 * 60;
+
+		/** Passengers start on in a world that has not been played yet, off in an older one that has no passenger file. */
+		public static Settings forFirstLoad(long worldTime) {
+			return worldTime < NEW_WORLD_TICKS ? NEW_WORLD : DEFAULT;
+		}
 		public static final int MAX_PER_MINUTE = 60;
 		public static final int MAX_WAITING = 200;
 		public static final int MAX_TOTAL = 20000;
