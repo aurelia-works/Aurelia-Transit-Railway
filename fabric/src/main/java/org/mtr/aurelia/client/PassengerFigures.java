@@ -81,7 +81,7 @@ public final class PassengerFigures {
 		/** @return the height of the floor at x, z, or NaN when there is none */
 		double top(double x, double z, int railY);
 
-		/** @return whether the floor at x, z is a platform block */
+		/** @return whether x, z is a platform block, or a platform screen door, where a train opens its doors */
 		default boolean platform(double x, double z, int railY) {
 			return false;
 		}
@@ -102,7 +102,7 @@ public final class PassengerFigures {
 
 	/**
 	 * Where {@code count} figures stand, written into {@code out} as x, y, z triples. They stand clear of the train on
-	 * the floor beside the rail: on the side made of platform blocks, else the higher side, and on both sides of an island.
+	 * the floor beside the rail: on the side trains open their doors to, else the higher side, and on both sides of an island.
 	 */
 	public static void spots(double x1, double y1, double z1, double x2, double y2, double z2, int count, Ground ground, double[] out) {
 		final double dx = x2 - x1;
@@ -157,7 +157,7 @@ public final class PassengerFigures {
 		return top;
 	}
 
-	/** The first distance from the rail with a floor on this side, its height, and 1 when that floor is a platform block; null when this side has none. */
+	/** The first distance from the rail with a floor on this side, its height, and 1 when that side has platform blocks or screen doors; null when this side has none. */
 	private static double[] edge(double x1, double z1, double dx, double dz, double sideX, double sideZ, Ground ground, int railY) {
 		for (int offset = EDGE_NEAREST; offset <= EDGE_FARTHEST; offset++) {
 			double height = Double.NaN;
@@ -168,9 +168,12 @@ public final class PassengerFigures {
 				}
 			}
 			if (!Double.isNaN(height)) {
+				// the platform blocks or screen doors can be on the floor itself or on the edge between it and the rail
 				boolean platform = false;
-				for (double t = 0.25; t < 1 && !platform; t += 0.25) {
-					platform = ground.platform(x1 + dx * t + sideX * offset, z1 + dz * t + sideZ * offset, railY);
+				for (int edgeOffset = EDGE_NEAREST; edgeOffset <= offset && !platform; edgeOffset++) {
+					for (double t = 0.25; t < 1 && !platform; t += 0.25) {
+						platform = ground.platform(x1 + dx * t + sideX * edgeOffset, z1 + dz * t + sideZ * edgeOffset, railY);
+					}
 				}
 				return new double[]{offset, height, platform ? 1 : 0};
 			}
@@ -179,7 +182,7 @@ public final class PassengerFigures {
 	}
 
 	/**
-	 * Whether people wait on this side of the rail. When only one side is made of platform blocks, that side; otherwise
+	 * Whether people wait on this side of the rail. When only one side has platform blocks or screen doors (where trains open their doors), that side; otherwise
 	 * the higher side, or both when they are level, as on an island.
 	 */
 	private static boolean useSide(double[] side, double[] other) {

@@ -2,6 +2,7 @@ package org.mtr.aurelia.client;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.StairsBlock;
@@ -35,6 +36,7 @@ import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair
 import org.mtr.mapping.holder.Box;
 import org.mtr.mod.block.BlockEscalatorSide;
 import org.mtr.mod.block.BlockEscalatorStep;
+import org.mtr.mod.block.BlockPSDAPGBase;
 import org.mtr.mod.block.PlatformHelper;
 import org.mtr.mod.client.CustomResourceLoader;
 import org.mtr.mod.client.MinecraftClientData;
@@ -321,10 +323,18 @@ public final class PassengerRenderer {
 				return y == Integer.MIN_VALUE ? Double.NaN : y + world.getBlockState(mutable.set(MathHelper.floor(x), y, MathHelper.floor(z))).getCollisionShape(world, mutable).getMax(Direction.Axis.Y);
 			}
 
+			/** Where MTR opens a train's doors: platform blocks, and platform screen doors or gates. */
 			@Override
 			public boolean platform(double x, double z, int railY) {
-				final int y = floorBlock(world, x, z, railY);
-				return y != Integer.MIN_VALUE && world.getBlockState(mutable.set(MathHelper.floor(x), y, MathHelper.floor(z))).getBlock() instanceof PlatformHelper;
+				final int blockX = MathHelper.floor(x);
+				final int blockZ = MathHelper.floor(z);
+				for (int y = railY - 2; y <= railY + 3; y++) {
+					final Block block = world.getBlockState(mutable.set(blockX, y, blockZ)).getBlock();
+					if (block instanceof PlatformHelper || block instanceof BlockPSDAPGBase) {
+						return true;
+					}
+				}
+				return false;
 			}
 		};
 	}

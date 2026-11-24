@@ -96,6 +96,27 @@ public final class PassengerFiguresTest {
 		}
 	}
 
+	/** No platform blocks, but screen doors along one edge: people wait behind the doors, where the train opens. */
+	@Test
+	public void figuresWaitBehindTheScreenDoors() {
+		final PassengerFigures.Ground ground = new PassengerFigures.Ground() {
+			@Override
+			public double top(double x, double z, int railY) {
+				return z >= 2 && z < 3 ? Double.NaN : 64;
+			}
+
+			@Override
+			public boolean platform(double x, double z, int railY) {
+				return z >= 2 && z < 3;
+			}
+		};
+		final double[] spots = new double[8 * 3];
+		PassengerFigures.spots(0, 64, 0, 32, 64, 0, 8, ground, spots);
+		for (int i = 0; i < 8; i++) {
+			Assertions.assertTrue(spots[i * 3 + 2] >= 3, "figure " + i + " z " + spots[i * 3 + 2]);
+		}
+	}
+
 	/** People gather at the stopped train's doors, and shuffle aside while its passengers get off. */
 	@Test
 	public void crowdWaitsByTheDoorsAndStepsAside() {
