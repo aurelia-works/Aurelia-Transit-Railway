@@ -3,50 +3,79 @@ on:
   push:
     branches: [master]
   pull_request:
-# ATA's four slowest unit test classes: ata-slow-unit runs them, ata-unit leaves them out
+  merge_group:
+# ATA's slowest unit tests: ata-slow-unit runs them, ata-unit leaves them out (the rest of StationAuditTest stays in ata-unit)
 env:
-  SLOW_UNIT_TESTS: '*StationPlannerTest,*RealCitiesATest,*CityLandmarksTest,*StationAuditTest'
+  SLOW_UNIT_TESTS: '*StationPlannerTest,*RealCitiesATest,*CityLandmarksTest,*StationAuditTest.everyPlannablePlanPasses*'
+  # The build and CI: a pull request that changes them runs the slow tier too
+  BUILD_PATHS: '^\.github/|^libs/|^buildSrc/|^gradle/|(^|/)[^/]*\.gradle$|^gradle\.properties$'
+  # The code the station sweeps (ata-slow-unit) exercise: the station package, the ATA packages it imports, its tests, and
+  # the build. A run that touches none of it skips the sweeps; master always runs them.
+  STATION_PATHS: '^fabric/src/(main|ataTest)/java/com/aureliatransit/architecture/(station|block|bridge|text|network|registry|airport|live)/|^libs/|^buildSrc/|^gradle/|(^|/)[^/]*\.gradle$|^gradle\.properties$|^fabric/ata-test-times\.properties$|^\.github/'
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
-# The suites are split over jobs that run side by side, so the run takes as long as the slowest job: ATR's build and tests,
-# ATA's unit tests in 6 shards, ATA's four slowest unit test classes one per job (StationPlannerTest over two), and ATA's game
-# tests in 3 servers (the airport rebuild test and the plane-leaves-a-gate test, each real-time MTR waits over 3 minutes, alone
-# in one each; everything else in the third).
-# A pull request that only changes docs skips them all (job "changes"). Job "ci-ok" is the one check to require: it fails when
-# any job failed, and when a job was skipped without "changes" having said docs only.
+# Two tiers. A pull request runs the fast tier: ATR's build and tests and ATA's unit tests in 8 shards. The merge queue
+# (merge_group) and master also run the slow tier: ATA's slowest unit tests (StationAuditTest's plan sweep over three jobs by
+# track count, StationPlannerTest over two, RealCitiesATest, CityLandmarksTest) and ATA's game tests in 3 servers (the airport
+# rebuild test and the plane-leaves-a-gate test, each real-time MTR waits over 3 minutes, alone in one each; everything else in
+# the third). The jobs run side by side, so a run takes as long as its slowest job.
+# A pull request that changes the build or CI itself (BUILD_PATHS) runs both tiers, so a change to them is tested in full.
+# A pull request that only changes docs skips them all, and a run that leaves the station code alone skips the sweeps
+# (job "changes"). Job "ci-ok" is the one check to require: it fails when any job failed, and when a job was skipped that
+# this event should have run.
 jobs:
-  # Docs only? Only when every changed file is Markdown or under docs/ or archive/. Anything else, a push to master, or any
-  # doubt (the file list could not be read, or is empty) runs everything.
+  # Docs only? Only when every changed file is Markdown or under docs/ or archive/. Slow tier? Always, except on a pull request
+  # that changes nothing in BUILD_PATHS. Station code? When a changed file matches STATION_PATHS. A push to master, or any
+  # doubt (the file list could not be read, is empty, or is cut off at the compare API's 300 files), runs everything.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
+      contents: read
       pull-requests: read
     outputs:
       code: ${{ steps.detect.outputs.code }}
+      slow: ${{ steps.detect.outputs.slow }}
+      station: ${{ steps.detect.outputs.station }}
     steps:
       - id: detect
         uses: actions/github-script@v7
         with:
           script: |
-            let code = true;
+            let code = true, slow = true, station = true;
             try {
+              let files = null;
               if (context.eventName === "pull_request") {
-                const files = await github.paginate(github.rest.pulls.listFiles, {
+                files = await github.paginate(github.rest.pulls.listFiles, {
                   owner: context.repo.owner, repo: context.repo.repo, pull_number: context.payload.pull_request.number, per_page: 100,
                 });
-                const docs = (name) => /\.md$/i.test(name) || name.startsWith("docs/") || name.startsWith("archive/");
+              } else if (context.eventName === "merge_group") {
+                const group = context.payload.merge_group;
+                const compare = await github.rest.repos.compareCommitsWithBasehead({
+                  owner: context.repo.owner, repo: context.repo.repo, basehead: `${group.base_sha}...${group.head_sha}`,
+                });
+                files = compare.data.files && compare.data.files.length < 300 ? compare.data.files : null;
+              }
+              if (files !== null) {
                 // a rename counts with both of its names
                 const names = files.flatMap((f) => [f.filename, f.previous_filename].filter(Boolean));
+                const docs = (name) => /\.md$/i.test(name) || name.startsWith("docs/") || name.startsWith("archive/");
+                const buildPaths = new RegExp(process.env.BUILD_PATHS), stationPaths = new RegExp(process.env.STATION_PATHS);
                 code = names.length === 0 || !names.every(docs);
-                core.info(`${names.length} changed paths, code: ${code}`);
+                slow = context.eventName !== "pull_request" || names.length === 0 || names.some((name) => buildPaths.test(name));
+                station = names.length === 0 || names.some((name) => stationPaths.test(name));
+                core.info(`${names.length} changed paths, code: ${code}, slow tier: ${slow}, station: ${station}`);
               }
             } catch (e) {
               core.warning(`could not read the changed files, running everything: ${e.message}`);
               code = true;
+              slow = true;
+              station = true;
             }
             core.setOutput("code", code ? "true" : "false");
+            core.setOutput("slow", slow ? "true" : "false");
+            core.setOutput("station", station ? "true" : "false");
   build:
     needs: changes
     if: needs.changes.outputs.code == 'true'
@@ -54,14 +83,13 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      # Loom's Minecraft download and remap takes ~18 min cold; this job saves the Gradle cache on every run, the test jobs
-      # only read it (twelve jobs saving the same cache cost 16 to 36 s each on master)
+      # Loom's Minecraft download and remap takes ~18 min cold. Every job saves its own Gradle cache on master and only reads
+      # it elsewhere: a job restores its own last entry first, so a job that never saved kept restoring a stale one and fetched
+      # ATA's test jars from Maven Central cold (429 Too Many Requests). Saving costs 16 to 36 s a job, on master only.
       - uses: ./.github/actions/setup
-        with:
-          cache-read-only: 'false'
-      # Pull requests: compile and ATR's unit tests (Fabric 1.20.1); ATA's suites run in the jobs below
+      # Pull requests and the merge queue: compile and ATR's unit tests (Fabric 1.20.1); ATA's suites run in the jobs below
       - name: Compile and unit tests
-        if: github.event_name == 'pull_request'
+        if: github.event_name != 'push'
         run: ./gradlew setupFiles :fabric:test -x runGameTest
       # master: the full jar build
       - name: Build the jar
@@ -74,15 +102,15 @@ jobs:
           name: ATR-fabric-1.20.1
           path: build/release/*.jar
           retention-days: 7
-      # The test shards only read the cache, and this job never resolves ATA's test classpath, so the two jars only ATA's
-      # tests use (junit-jupiter-params, fabric-loader-junit; fabric/build.gradle) were fetched cold in all fourteen of
-      # them, which is where the Maven download flakes came from
+      # This job never resolves ATA's test classpath otherwise, so its cache would lack the two jars only ATA's tests use
+      # (junit-jupiter-params, fabric-loader-junit; fabric/build.gradle). A test job with no entry of its own yet (a new
+      # shard or matrix entry) falls back to this one.
       - name: Warm the cache with ATA's test dependencies
         if: github.event_name == 'push'
         # cache only: a Maven flake here must not fail the run, or it would block the release it exists to protect
         continue-on-error: true
         run: ./gradlew setupFiles :fabric:compileAtaTestJava
-  # ATA's unit tests over 6 jobs, balanced by each class's time on CI (-Pata.tests.shard, fabric/build.gradle,
+  # ATA's unit tests over 8 jobs, balanced by each class's time on CI (-Pata.tests.shard, fabric/build.gradle,
   # fabric/ata-test-times.properties)
   ata-unit:
     needs: changes
@@ -92,7 +120,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ['1/6', '2/6', '3/6', '4/6', '5/6', '6/6']
+        shard: ['1/8', '2/8', '3/8', '4/8', '5/8', '6/8', '7/8', '8/8']
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -107,19 +135,29 @@ jobs:
           path: fabric/build/test-results/ataTest/*.xml
           retention-days: 7
           if-no-files-found: ignore
-  # The four slowest ATA unit test classes, one job each (StationAuditTest's plan sweep alone takes 150 s), StationPlannerTest over two
+  # The slowest ATA unit tests, slow tier, station code only: StationAuditTest's plan sweep over three jobs by track count (all
+  # 32 counts in one job took ~10 min), StationPlannerTest over two, RealCitiesATest and CityLandmarksTest one job each
   ata-slow-unit:
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && needs.changes.outputs.slow == 'true' && needs.changes.outputs.station == 'true'
     name: ata-slow-unit (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        # tests: comma-separated --tests patterns; skip: patterns left out. StationPlannerTest's two sweeps (shed matrix and
-        # every width and length, ~65 s of its ~115 s) run in a job of their own.
+        # tests: comma-separated --tests patterns; skip: patterns left out; sweep: StationAuditTest's sweep shard (i/n).
+        # StationPlannerTest's two sweeps (shed matrix and every width and length) run in a job of their own.
         include:
+          - name: '*StationAuditTest sweep 1/3'
+            tests: '*StationAuditTest.everyPlannablePlanPasses*'
+            sweep: '1/3'
+          - name: '*StationAuditTest sweep 2/3'
+            tests: '*StationAuditTest.everyPlannablePlanPasses*'
+            sweep: '2/3'
+          - name: '*StationAuditTest sweep 3/3'
+            tests: '*StationAuditTest.everyPlannablePlanPasses*'
+            sweep: '3/3'
           - name: '*StationPlannerTest sweeps'
             tests: '*StationPlannerTest.shedMatrix*,*StationPlannerTest.everyWidthAndLength*'
           - name: '*StationPlannerTest'
@@ -129,8 +167,6 @@ jobs:
             tests: '*RealCitiesATest'
           - name: '*CityLandmarksTest'
             tests: '*CityLandmarksTest'
-          - name: '*StationAuditTest'
-            tests: '*StationAuditTest'
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -138,15 +174,18 @@ jobs:
         env:
           TESTS: ${{ matrix.tests }}
           SKIP: ${{ matrix.skip }}
+          SWEEP: ${{ matrix.sweep }}
         run: |
           args=()
           IFS=',' read -ra patterns <<< "$TESTS"
           for p in "${patterns[@]}"; do args+=(--tests "$p"); done
           if [ -n "$SKIP" ]; then args+=("-Pata.tests.exclude=$SKIP"); fi
+          if [ -n "$SWEEP" ]; then args+=("-Pata.sweep.shard=$SWEEP"); fi
           ./gradlew setupFiles :fabric:ataTest "${args[@]}"
+  # Slow tier
   ata-gametest:
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && needs.changes.outputs.slow == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -159,7 +198,8 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Game tests ${{ matrix.classes }}
         run: ./gradlew setupFiles :fabric:runGameTest '-Pata.gametests=${{ matrix.classes }}' --stacktrace
-  # The one check to require. A skipped job passes only when "changes" said docs only; a failed or cancelled job never does.
+  # The one check to require. A skipped job passes only when "changes" skipped it on purpose: docs only, the slow tier on a pull
+  # request, or the sweeps in a run that leaves the station code alone. A failed or cancelled job never does.
   ci-ok:
     if: always()
     needs: [changes, build, ata-unit, ata-slow-unit, ata-gametest]
@@ -174,18 +214,25 @@ jobs:
           import json, os, sys
           needs = json.loads(os.environ["NEEDS"])
           changes = needs.pop("changes")
-          code = changes.get("outputs", {}).get("code")
+          outputs = changes.get("outputs", {})
+          code, slow, station = outputs.get("code"), outputs.get("slow"), outputs.get("station")
           bad = []
-          if changes["result"] != "success" or code not in ("true", "false"):
-              bad.append(f"changes: {changes['result']}, code={code!r}")
+          if changes["result"] != "success" or any(v not in ("true", "false") for v in (code, slow, station)):
+              bad.append(f"changes: {changes['result']}, code={code!r}, slow={slow!r}, station={station!r}")
+          def skip_ok(name):
+              if code == "false":
+                  return True
+              if name in ("ata-slow-unit", "ata-gametest") and slow == "false":
+                  return True
+              return name == "ata-slow-unit" and station == "false"
           for name, job in needs.items():
               result = job["result"]
-              if result == "success" or (result == "skipped" and code == "false"):
+              if result == "success" or (result == "skipped" and skip_ok(name)):
                   continue
               bad.append(f"{name}: {result}")
           for name, job in needs.items():
               print(f"{name}: {job['result']}")
-          print(f"docs only: {code == 'false'}")
+          print(f"docs only: {code == 'false'}, slow tier: {slow == 'true'}, station code: {station == 'true'}")
           if bad:
               sys.exit("not green: " + "; ".join(bad))
           PY

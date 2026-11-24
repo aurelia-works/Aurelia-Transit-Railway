@@ -30,11 +30,13 @@ A fork of Minecraft Transit Railway 4.0.5 for Fabric 1.20.1. The mod id stays `m
 
 ## Pull requests
 - This repo is a GitHub fork of MTR (Minecraft-Transit-Railway). Every PR goes to `aurelia-works/Aurelia-Transit-Railway` with base `master`, never to MTR or its Transport-Simulation-Core. Open it with `gh pr create -R aurelia-works/Aurelia-Transit-Railway --base master` and give the PR's URL. Never hand out a `/pull/new/<branch>` link: on a fork GitHub aims it at MTR.
-- Never merge to `master` locally or push to it. A PR merges after green `ci-ok` and a reviewer's pass.
+- Never merge to `master` locally or push to it. A PR merges after green `ci-ok` and a reviewer's pass, through the merge queue.
 
 ## CI
-- A pull request that changes only Markdown, `docs/` or `archive/` skips the build and test jobs. Anything else runs everything.
-- `ci-ok` is the one check that says a run is good. It fails when a job failed, was cancelled, or was skipped on a code change.
+- Two tiers. A pull request runs the fast tier: ATR's build and unit tests, and ATA's unit tests in 8 shards. The merge queue and master also run the slow tier: ATA's station sweeps (`ata-slow-unit`) and game tests. A PR's green `ci-ok` says the fast tier passed; the queue's `ci-ok` decides the merge.
+- A station change can pass its PR and still fail the sweeps in the queue, so run the sweep classes it touches locally first (`StationAuditTest`, `StationPlannerTest`, `RealCitiesATest`, `CityLandmarksTest`).
+- A pull request that changes only Markdown, `docs/` or `archive/` skips the build and test jobs. A merge group that touches no station code (`STATION_PATHS` in `ci.yml`) skips the sweeps. Master always runs everything.
+- `ci-ok` is the one check that says a run is good. It fails when a job failed, was cancelled, or was skipped where that event should run it.
 - `evidence` wants four headings in the PR body: What changed, Testing, Risk, How to revert.
 
 ## How to work
