@@ -278,7 +278,8 @@ public final class TrackWriter implements SideEffectWriter {
         RailType best = null;
         RailType slowest = null;
         for (RailType type : RailType.values()) {
-            if (!type.canAccelerate || type.railShape != Rail.Shape.QUADRATIC) {
+            // MTR's plain train connectors, WOODEN to DIAMOND; not platforms, sidings, cable cars or runways
+            if (type.ordinal() > RailType.DIAMOND.ordinal() || !type.canAccelerate || type.railShape != Rail.Shape.QUADRATIC) {
                 continue;
             }
             if (slowest == null || type.speedLimit < slowest.speedLimit) {
