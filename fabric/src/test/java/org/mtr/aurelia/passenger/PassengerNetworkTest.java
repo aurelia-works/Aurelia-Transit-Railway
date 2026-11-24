@@ -159,6 +159,19 @@ public final class PassengerNetworkTest {
 		Assertions.assertEquals(0, network.total());
 	}
 
+	/** A crowd bigger than one second of boarding says so, which is what keeps the doors open; once everyone is on, it stops. */
+	@Test
+	public void aCrowdStillBoardingIsReported() {
+		final PassengerNetwork network = new PassengerNetwork();
+		network.spawn(PLATFORM_A, new long[]{B}, 1, SETTINGS, 0, new Random(7));
+		Assertions.assertTrue(network.waitingAt(PLATFORM_A) > PassengerNetwork.MOVES_PER_CAR);
+		Assertions.assertTrue(network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, SETTINGS, true).more());
+		for (int i = 0; i < 20 && network.waitingAt(PLATFORM_A) > 0; i++) {
+			network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, SETTINGS, true);
+		}
+		Assertions.assertFalse(network.exchange(TRAIN, PLATFORM_A, A, Set.of(B), 1, SETTINGS, true).more());
+	}
+
 	/**
 	 * The route table is worked out again only when the routes change, and the slow search for changes runs off the
 	 * simulation thread: until it is ready, passengers use the direct trains.

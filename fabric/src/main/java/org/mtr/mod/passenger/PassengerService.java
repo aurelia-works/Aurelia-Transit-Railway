@@ -86,6 +86,7 @@ public final class PassengerService {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> PassengerCommand.register(dispatcher));
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> settings = state(server).settings);
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+			BoardingHold.clear();
 			NETWORKS.clear();
 			STATS.clear();
 			COUNTS.clear();
@@ -156,6 +157,8 @@ public final class PassengerService {
 			for (final Simulator simulator : simulators) {
 				simulator.run(() -> update(simulator));
 			}
+		} else {
+			BoardingHold.clear();
 		}
 		server.getPlayerManager().getPlayerList().forEach(PassengerService::send);
 	}
@@ -185,6 +188,7 @@ public final class PassengerService {
 			network.expire(now);
 
 			final Set<Long> vehicleIds = new HashSet<>();
+			final Set<Long> stillBoarding = new HashSet<>();
 			int riding = 0;
 			for (final Vehicle vehicle : vehicles(simulator)) {
 				vehicleIds.add(vehicle.getId());
@@ -195,12 +199,16 @@ public final class PassengerService {
 					if (platform != null && platform.area != null && route != null) {
 						final int cars = Math.max(1, vehicle.vehicleExtraData.immutableVehicleCars.size());
 						// MTR keeps the door target open while a train is dwelling with its doors released
-						network.exchange(vehicle.getId(), platformId, platform.area.getId(), upcomingStations(route, platformId, vehicle.vehicleExtraData.getStopIndex()), cars, current, vehicle.vehicleExtraData.getDoorMultiplier() > 0, routes, now);
+						final PassengerNetwork.Exchange exchange = network.exchange(vehicle.getId(), platformId, platform.area.getId(), upcomingStations(route, platformId, vehicle.vehicleExtraData.getStopIndex()), cars, current, vehicle.vehicleExtraData.getDoorMultiplier() > 0, routes, now);
+						if (exchange.more()) {
+							stillBoarding.add(vehicle.getId());
+						}
 					}
 				}
 				riding += network.ridingOn(vehicle.getId());
 			}
 			network.retain(vehicleIds, platformsToKeep(simulator));
+			BoardingHold.set(dimension, stillBoarding);
 
 			final double micros = (System.nanoTime() - start) / 1000D;
 			final double cost = COST.getOrDefault(dimension, micros) * 0.9 + micros * 0.1;
