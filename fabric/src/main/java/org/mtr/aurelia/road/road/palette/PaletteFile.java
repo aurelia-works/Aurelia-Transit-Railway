@@ -35,10 +35,11 @@ import org.mtr.aurelia.road.json.StrictJson;
  * }
  * </pre>
  * A family may also say {@code "raise": 1} (eighths of a block above the road, B-1's footway and kerb) and, for the kerb,
- * {@code "edge": true} (its {@code facing} and {@code shape} set to face the road), and, from B-2, for a marking,
+ * {@code "edge": true} (its {@code facing} and {@code shape} set to face the road; the gully and dropped kerb roles too,
+ * with {@code facing} only), and, from B-2, for a marking,
  * {@code "line": true} (its {@code chord} set where the line crosses each block); see {@link Family}.
  * Read strictly like Stratos's other files: an unknown field or role, a missing required role, an empty list, a partial
- * block or a raise for the foundation or the marker, an edge on another role than the kerb, a line on another role than
+ * block or a raise for the foundation or the marker, an edge on another role than the kerb, gully or dropped kerb, a line on another role than
  * a marking, or (in a file people write,
  * {@link #read}) a last candidate that isn't all {@code minecraft:} blocks refuses the file. A snapshot ({@link Palette#snapshotJson}) is the same format with one
  * candidate per role, the one the game chose, and no name.
@@ -76,8 +77,11 @@ public record PaletteFile(String id, Optional<String> name, int dataVersion, Map
                 if (!role.surface() && (family.steps() > 1 || family.raise() > 0)) {
                     throw new IllegalArgumentException("roles." + role.id() + " is a full block only: it has no half, layers or raise");
                 }
-                if (family.edge() && role != PaletteRole.KERB) {
-                    throw new IllegalArgumentException("roles." + role.id() + " can't have edge: only the kerb turns to face the road");
+                if (family.edge() && role != PaletteRole.KERB && role != PaletteRole.GULLY && role != PaletteRole.DROPPED_KERB) {
+                    throw new IllegalArgumentException("roles." + role.id() + " can't have edge: only the kerb, gully and dropped kerb turn to face the road");
+                }
+                if (family.edge() && role == PaletteRole.KERB && !family.hasProperty(Family.EDGE_PROPERTIES.get(1))) {
+                    throw new IllegalArgumentException("roles.kerb: an edge kerb's states have " + String.join(" and ", Family.EDGE_PROPERTIES) + ": " + family.full());
                 }
                 if (family.line() && role != PaletteRole.MARKING_WHITE && role != PaletteRole.MARKING_YELLOW) {
                     throw new IllegalArgumentException("roles." + role.id() + " can't have line: only the markings are painted along a chord");

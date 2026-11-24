@@ -23,6 +23,10 @@ public enum PaletteRole {
     KERB("kerb", true, true),
     FOOTWAY("footway", true, true),
     GUTTER("gutter", true, true),
+    /** B-4: a gully beside the kerb. Optional: a palette without it places none. */
+    GULLY("gully", true, false),
+    /** Crossings (ATR P11): a dropped kerb with tactile paving. Optional: a palette without it places no crossings. */
+    DROPPED_KERB("dropped_kerb", true, false),
     VERGE("verge", true, false),
     HARD_STRIP("hard_strip", true, false),
     CENTRAL_RESERVATION("central_reservation", true, false),
@@ -68,9 +72,10 @@ public enum PaletteRole {
         return Optional.empty();
     }
 
-    /** The role giving {@code column} its blocks: its paint's colour where a line is painted, else its band's. */
+    /** The role giving {@code column} its blocks: its detail's, else its paint's colour where a line is painted, else its band's. */
     public static PaletteRole of(Column column) {
-        String id = column.paint().map(colour -> colour.paletteRole()).orElse(column.band().paletteRole());
+        String id = column.detail().map(Column.Detail::paletteRole)
+                .orElseGet(() -> column.paint().map(colour -> colour.paletteRole()).orElse(column.band().paletteRole()));
         return byId(id).orElseThrow(() -> new IllegalStateException("No palette role called " + id));
     }
 }

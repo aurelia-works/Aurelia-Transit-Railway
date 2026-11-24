@@ -15,8 +15,9 @@ import java.util.List;
  * <ul>
  *   <li><b>Stratos UK</b> ({@code stratos-uk.json}; B-1, ADR-0044): Stratos's own blocks in eighth-block layers. Asphalt
  *       for the road, its gutters and (until B-2's lines) its markings; footway flags, and kerbs facing the road, both a
- *       layer (125 mm) above it; stone under the road, blue wool markers. Each role falls back to Vanilla's family. The
- *       default palette.</li>
+ *       layer (125 mm) above it; stone under the road, blue wool markers. From ATR P11 also gullies (B-4) and dropped kerbs
+ *       at crossings, so its snapshot id changed; roads placed before keep theirs. Each role falls back to Vanilla's
+ *       family. The default palette.</li>
  *   <li><b>Vanilla</b> ({@code vanilla.json}; owner, 2026-10-10): matched families (ADR-0044), each part's full block with
  *       its own slab: polished deepslate for the asphalt, smooth quartz for white lines, polished andesite for the kerb and
  *       gutter, smooth stone for the footway; stone under the road, blue wool markers. For worlds that must never depend

@@ -185,6 +185,16 @@ public final class Palette implements BlockPalette {
     }
 
     @Override
+    public boolean gullies() {
+        return kerbEdges() && family(PaletteRole.GULLY).map(Family::edge).orElse(false);
+    }
+
+    @Override
+    public boolean droppedKerbs() {
+        return kerbEdges() && family(PaletteRole.DROPPED_KERB).map(Family::edge).orElse(false);
+    }
+
+    @Override
     public String foundation() {
         return require(PaletteRole.FOUNDATION).full();
     }

@@ -47,6 +47,22 @@ public interface BlockPalette {
     }
 
     /**
+     * Whether it places gullies (B-4): it has a gully that turns to face the kerb ({@link Column.Detail#GULLY}). Old
+     * palette snapshots have none, so roads placed with them plan as they were.
+     */
+    default boolean gullies() {
+        return false;
+    }
+
+    /**
+     * Whether it places dropped kerbs at crossings (ATR P11): it has a dropped kerb that turns to face the road
+     * ({@link Column.Detail#DROPPED_KERB}).
+     */
+    default boolean droppedKerbs() {
+        return false;
+    }
+
+    /**
      * Whether its {@code colour} marking is drawn with line blocks (B-2; ADR-0046): the plan then traces each such line to
      * every block its paint touches ({@link Column#chord()}), instead of painting whole columns.
      */
