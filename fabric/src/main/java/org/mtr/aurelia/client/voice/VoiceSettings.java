@@ -1,18 +1,21 @@
 package org.mtr.aurelia.client.voice;
 
 import net.fabricmc.loader.api.FabricLoader;
-import org.mtr.aurelia.client.AureliaClient;
+import org.mtr.aurelia.config.AureliaSettings;
+import org.mtr.libraries.com.google.gson.JsonElement;
+import org.mtr.libraries.com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Properties;
 
 /**
- * The player's announcer voice choices, in {@code config/aurelia/voice.properties}: our own voice or the computer's,
+ * The player's announcer voice choices, the {@code voice} section of {@code config/aurelia/settings.json} (formerly
+ * {@code voice.properties}, whose keys and string values are kept as they were): our own voice or the computer's,
  * which voice per language, and how fast it talks. A missing file means our voice, each language's first voice, normal
  * speed.
  */
@@ -71,8 +74,36 @@ public final class VoiceSettings {
 		save();
 	}
 
-	private static Path file() {
-		return FabricLoader.getInstance().getConfigDir().resolve(AureliaClient.MOD_ID).resolve("voice.properties");
+	/** Reads the old {@code voice.properties} into the section body settings.json keeps, keys untouched. */
+	public static JsonObject readLegacy(Path file) throws IOException {
+		final Properties properties = new Properties();
+		try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+			properties.load(reader);
+		}
+		return toJson(properties);
+	}
+
+	public static synchronized void load(Path configDir) {
+		AureliaSettings.load(configDir);
+		loaded = true;
+		apply(AureliaSettings.section(AureliaSettings.VOICE));
+	}
+
+	private static void apply(JsonObject json) {
+		PROPERTIES.clear();
+		for (final Map.Entry<String, JsonElement> entry : json.entrySet()) {
+			if (entry.getValue().isJsonPrimitive()) {
+				PROPERTIES.setProperty(entry.getKey(), entry.getValue().getAsString());
+			}
+		}
+	}
+
+	private static JsonObject toJson(Properties properties) {
+		final JsonObject json = new JsonObject();
+		for (final String name : properties.stringPropertyNames()) {
+			json.addProperty(name, properties.getProperty(name));
+		}
+		return json;
 	}
 
 	private static void load() {
@@ -80,25 +111,10 @@ public final class VoiceSettings {
 			return;
 		}
 		loaded = true;
-		final Path file = file();
-		if (Files.exists(file)) {
-			try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-				PROPERTIES.load(reader);
-			} catch (IOException e) {
-				AureliaClient.LOGGER.error("[ATR] Could not read {}; using the default voice", file, e);
-			}
-		}
+		load(FabricLoader.getInstance().getConfigDir());
 	}
 
 	private static void save() {
-		final Path file = file();
-		try {
-			Files.createDirectories(file.getParent());
-			try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-				PROPERTIES.store(writer, "Aurelia Transit Railway announcer voice");
-			}
-		} catch (IOException e) {
-			AureliaClient.LOGGER.error("[ATR] Could not save {}", file, e);
-		}
+		AureliaSettings.put(AureliaSettings.VOICE, toJson(PROPERTIES));
 	}
 }
