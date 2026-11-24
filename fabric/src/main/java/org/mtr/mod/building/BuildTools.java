@@ -65,8 +65,9 @@ public final class BuildTools {
 		});
 	}
 
+	/** Operators only (permission level 2); creative mode alone is not enough on a shared server. */
 	public static boolean mayBuild(PlayerEntity player) {
-		return player.isCreative() || player.hasPermissionLevel(2);
+		return player.hasPermissionLevel(2);
 	}
 
 	public static ActionResult markStation(PlayerEntity player, World world, net.minecraft.util.math.BlockPos pos, boolean sneak) {

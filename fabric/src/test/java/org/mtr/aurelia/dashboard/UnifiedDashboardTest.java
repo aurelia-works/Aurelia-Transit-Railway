@@ -52,11 +52,10 @@ public final class UnifiedDashboardTest {
 		assertEquals(DashboardMode.TRAIN, DashboardMode.resolveOpenMode(TransportMode.TRAIN, false, DashboardMode.ROAD));
 		assertEquals(DashboardMode.BOAT, DashboardMode.resolveOpenMode(TransportMode.BOAT, false, DashboardMode.ROAD));
 
-		// Server open packet allows creative, op, or survival players carrying any dashboard item
-		assertFalse(DashboardPackets.isAllowed(false, false, false));
-		assertTrue(DashboardPackets.isAllowed(true, false, false));
-		assertTrue(DashboardPackets.isAllowed(false, true, false));
-		assertTrue(DashboardPackets.isAllowed(false, false, true));
+		// Server open packet allows ops, or players carrying any dashboard item; creative mode alone does not
+		assertFalse(DashboardPackets.isAllowed(false, false));
+		assertTrue(DashboardPackets.isAllowed(true, false));
+		assertTrue(DashboardPackets.isAllowed(false, true));
 		assertTrue(DashboardPackets.isDashboardItemId("mtr:dashboard"));
 		assertTrue(DashboardPackets.isDashboardItemId("mtr:dashboard_4"));
 		assertFalse(DashboardPackets.isDashboardItemId("minecraft:stick"));
