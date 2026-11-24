@@ -52,6 +52,9 @@ public final class MapOverview {
 	private int hand;
 	private int frame;
 	private int makesLeft;
+	/** Every slot was on screen when a tile last needed one (this frame or the one before): no new tile is read or made meanwhile. */
+	private boolean fullThisFrame;
+	private boolean fullLastFrame;
 	/** Goes up on {@link #clear}, so tiles still being read for the previous map are thrown away. */
 	private int generation;
 
@@ -66,6 +69,8 @@ public final class MapOverview {
 	public void beginFrame() {
 		frame++;
 		makesLeft = MAKES_PER_FRAME;
+		fullLastFrame = fullThisFrame;
+		fullThisFrame = false;
 		Tile tile;
 		for (int i = 0; i < UPLOADS_PER_FRAME && (tile = arrived.poll()) != null; i++) {
 			if (tile.generation != generation || !reading.remove(tile.key)) {
@@ -91,6 +96,10 @@ public final class MapOverview {
 		final long key = MapRegion.key(regionX, regionZ);
 		int slot = slotOf.get(key);
 		final MapRegion region = map.loadedRegion(regionX, regionZ);
+		if (slot < 0 && (fullThisFrame || fullLastFrame)) {
+			// no slot to put it in: reading or making it now would only be thrown away
+			return -1;
+		}
 		if (region != null) {
 			if ((slot < 0 || slotVersion[slot] != region.version() && frame - slotMade[slot] >= REMAKE_FRAMES) && makesLeft > 0) {
 				makesLeft--;
@@ -135,6 +144,8 @@ public final class MapOverview {
 		arrived.clear();
 		used = 0;
 		hand = 0;
+		fullThisFrame = false;
+		fullLastFrame = false;
 		generation++;
 		if (staging != null) {
 			staging.close();
@@ -201,18 +212,23 @@ public final class MapOverview {
 		return slot;
 	}
 
-	/** A free slot; when all are used, the next one round from the last taken that was not drawn this frame. */
+	/**
+	 * A free slot; when all are used, the next one round from the last taken that was not drawn this frame or the one
+	 * before (a tile drawn last frame is likely on screen again now). -1, and no reads or makes for a frame or two, when
+	 * every slot is in use.
+	 */
 	private int take() {
 		if (used < MAX_SLOTS) {
 			return used++;
 		}
 		for (int i = 0; i < MAX_SLOTS; i++) {
 			hand = (hand + 1) % MAX_SLOTS;
-			if (slotFrame[hand] != frame) {
+			if (slotFrame[hand] < frame - 1) {
 				slotOf.remove(slotKey[hand]);
 				return hand;
 			}
 		}
+		fullThisFrame = true;
 		return -1;
 	}
 }
