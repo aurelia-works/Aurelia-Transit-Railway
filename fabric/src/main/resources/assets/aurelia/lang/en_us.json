@@ -481,7 +481,7 @@
 	"gui.aurelia.key_box.name.advanced": "Advanced key",
 	"gui.aurelia.key_box.name.guard": "Guard key",
 	"key.aurelia.wrench_mode": "Switch ATR wrench mode",
-	"key.aurelia.atr_menu": "Open the ATR menu",
+	"key.aurelia.atr_menu": "Open the ATR panel",
 	"gui.aurelia.passengers.enabled": "Passengers: %s",
 	"gui.aurelia.passengers.tooltip": "Passengers appear on platforms, board trains going to their station and get off there. They are plain records on the server, not mobs. On in new worlds; an older world keeps them off until you turn them on.",
 	"gui.aurelia.passengers.per_minute": "New per platform per minute: %s",
