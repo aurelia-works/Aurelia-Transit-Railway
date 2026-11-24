@@ -89,7 +89,6 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		StationSystems.init();
 		BridgeSystems.init();
 		org.mtr.aurelia.pack.AureliaPacks.registerServer();
-		org.mtr.aurelia.crew.CrewServer.registerServer();
 		LOGGER.info("Registered {} Aurelia Transit Architecture blocks (MTR platform door contract: {}, MTR fares: {})", ModBlocks.entries().size(),
 				MtrPlatformContract.available() ? "enabled" : "unavailable", MtrFareContract.available() ? "enabled" : "unavailable");
 	}
