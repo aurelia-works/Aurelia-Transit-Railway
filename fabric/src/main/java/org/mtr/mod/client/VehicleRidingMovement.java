@@ -418,7 +418,8 @@ public class VehicleRidingMovement {
 	private static void sendUpdate(boolean dismount, boolean protectionBrake) {
 		if (ridingVehicleId != 0) {
 			final boolean brake = pressingBrakeTicks == 1 || protectionBrake;
-			final boolean doors = pressingDoorsTicks == 1 || aureliaDoorRequest;
+			// A protection brake update repeats the key state of this tick, so it must not toggle the doors a second time
+			final boolean doors = !protectionBrake && (pressingDoorsTicks == 1 || aureliaDoorRequest);
 			InitClient.REGISTRY_CLIENT.sendPacketToServer(PacketUpdateVehicleRidingEntities.create(ridingSidingId, ridingVehicleId, dismount ? -1 : ridingVehicleCarNumber, ridingVehicleX, ridingVehicleY, ridingVehicleZ, isOnGangway, isHoldingDriverKey, !protectionBrake && pressingAccelerateTicks == 1, brake, doors, !protectionBrake && pressingAtoTicks == 1));
 			aureliaDoorRequest = false;
 			sendPositionUpdateTime = 0;
