@@ -1,0 +1,33 @@
+{
+  "format": 1,
+  "id": "stratos_uk",
+  "dataVersion": 3465,
+  "roles": {
+    "surface": [
+      { "full": "stratos:asphalt[layers=8]", "layers": "stratos:asphalt[layers={layers}]" },
+      { "full": "minecraft:polished_deepslate", "half": "minecraft:polished_deepslate_slab[type=bottom,waterlogged=false]" }
+    ],
+    "marking_white": [
+      { "full": "stratos:white_line[chord=0,layers=8]", "layers": "stratos:white_line[chord=0,layers={layers}]", "line": true },
+      { "full": "minecraft:smooth_quartz", "half": "minecraft:smooth_quartz_slab[type=bottom,waterlogged=false]" }
+    ],
+    "kerb": [
+      { "full": "stratos:kerb[facing=north,layers=8,shape=straight]", "layers": "stratos:kerb[facing=north,layers={layers},shape=straight]", "raise": 1, "edge": true },
+      { "full": "minecraft:polished_andesite", "half": "minecraft:polished_andesite_slab[type=bottom,waterlogged=false]" }
+    ],
+    "footway": [
+      { "full": "stratos:footway_flags[layers=8]", "layers": "stratos:footway_flags[layers={layers}]", "raise": 1 },
+      { "full": "minecraft:smooth_stone", "half": "minecraft:smooth_stone_slab[type=bottom,waterlogged=false]" }
+    ],
+    "gutter": [
+      { "full": "stratos:asphalt[layers=8]", "layers": "stratos:asphalt[layers={layers}]" },
+      { "full": "minecraft:polished_andesite", "half": "minecraft:polished_andesite_slab[type=bottom,waterlogged=false]" }
+    ],
+    "foundation": [
+      { "full": "minecraft:stone" }
+    ],
+    "node_marker": [
+      { "full": "minecraft:blue_wool" }
+    ]
+  }
+}
