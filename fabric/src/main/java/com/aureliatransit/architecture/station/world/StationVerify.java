@@ -93,7 +93,10 @@ public final class StationVerify {
 			final String state = RailEdges.worldState(block.state(), heading);
 			final BlockState expected = BlockStateResolver.withState(BlockStateResolver.state(wanted.get(), heading), state);
 			final String why = differs(expected, found, state);
-			if (why == null) {
+			if (why == null && StreetPaint.paintMissing(world, pos, block.state(), heading, found)) {
+				differing++;
+				note(mismatches, pos, describe(expected) + " with its painted " + StreetPaint.line(block.state()).id() + " line", found);
+			} else if (why == null) {
 				matched++;
 			} else {
 				differing++;

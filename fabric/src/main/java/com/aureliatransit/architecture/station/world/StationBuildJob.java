@@ -258,6 +258,7 @@ public final class StationBuildJob {
 		MtrRailContract.remove(world, new ArrayList<>(staleRails));
 		final UndoLog log = new UndoLog(world.getRegistryKey());
 		log.copySoil(last);
+		log.copyPaint(last);
 		log.copyRails(last, railNodesNow);
 		// kept cells carry over first; then the left-out ones, oldest first, so the undo phase takes them newest first
 		final Set<BlockPos> leaving = new HashSet<>(diff.remove());
@@ -560,7 +561,7 @@ public final class StationBuildJob {
 		}
 		world.setBlockState(pos, wanted, original != null ? removalFlags(world.getBlockState(pos)) : Block.NOTIFY_ALL);
 		final BlockState after = world.getBlockState(pos);
-		StreetPaint.build(world, pos, op, after);
+		StreetPaint.build(world, pos, op, after, log);
 		log.add(new UndoLog.Entry(pos, before, after, previousEntity), key(prepared));
 		done++;
 		if (op.kind() != WorldOp.Kind.CLEAR) {
@@ -913,9 +914,11 @@ public final class StationBuildJob {
 			final BlockState processed = Block.postProcessState(entry.previous(), world, pos);
 			world.setBlockState(pos, processed.getBlock() == entry.previous().getBlock() ? processed : entry.previous(), removalFlags(current));
 			restoreBlockEntity(world, pos, entry.previousEntity());
+			StreetPaint.undo(world, pos, log.previousPaint(pos));
 			restored++;
 			restoreSoil(pos.down());
 		} else if (current.getBlock() == entry.previous().getBlock()) {
+			StreetPaint.undo(world, pos, log.previousPaint(pos));
 			restored++; // a neighbour put it back already (the lower half of a two-high block goes with its upper half)
 		} else {
 			skipped++;

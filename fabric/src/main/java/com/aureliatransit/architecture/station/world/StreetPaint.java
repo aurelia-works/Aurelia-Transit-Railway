@@ -55,14 +55,35 @@ public final class StreetPaint {
 
 	/**
 	 * Paints, or clears, the cell an op has just built: its line on ATR's asphalt, and nothing on asphalt that has none, so a
-	 * line left from before does not show through.
+	 * line left from before does not show through. The paint it replaces goes in the undo log first.
 	 */
-	static void build(ServerWorld world, BlockPos pos, WorldOp op, BlockState placed) {
+	static void build(ServerWorld world, BlockPos pos, WorldOp op, BlockState placed, UndoLog log) {
 		if (StratosMod.standsDown() || !placed.isOf(StratosBlocks.ASPHALT)) {
 			return;
 		}
 		final LineKind line = line(op.state());
-		PaintStore.of(world).set(pos.asLong(), line == null ? 0 : PaintLines.value(line, chord(op.facing())));
+		final PaintStore paint = PaintStore.of(world);
+		log.coverPaint(pos, paint.get(pos.asLong()));
+		paint.set(pos.asLong(), line == null ? 0 : PaintLines.value(line, chord(op.facing())));
+	}
+
+	/**
+	 * Whether a built cell lacks the paint its planned state asks for: the block can match while the paint is missing.
+	 * False when the state paints nothing, roads stand down, or the cell is not ATR's asphalt (the block check reports that).
+	 */
+	static boolean paintMissing(ServerWorld world, BlockPos pos, String state, Heading facing, BlockState found) {
+		final LineKind line = line(state);
+		if (line == null || StratosMod.standsDown() || !found.isOf(StratosBlocks.ASPHALT)) {
+			return false;
+		}
+		return PaintStore.of(world).get(pos.asLong()) != PaintLines.value(line, chord(facing));
+	}
+
+	/** Puts back the paint a cell held before the build painted it; {@code previous} null when the build never did. */
+	static void undo(ServerWorld world, BlockPos pos, Integer previous) {
+		if (previous != null && !StratosMod.standsDown()) {
+			PaintStore.of(world).set(pos.asLong(), previous);
+		}
 	}
 
 	/** A straight line through the middle of a cell, along {@code facing}. */

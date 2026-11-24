@@ -58,6 +58,8 @@ public final class UndoLog {
 	/** Each written cell's rebuild key (block state and text, see {@link StationBuildJob#key}), last write wins, in write order. */
 	private final Map<BlockPos, String> keys = new LinkedHashMap<>();
 	private final Map<BlockPos, BlockState> coveredSoil = new HashMap<>();
+	/** The road paint each cell held before the build first painted it (0 for none); undo puts it back. */
+	private final Map<BlockPos, Integer> previousPaint = new HashMap<>();
 	/** One stop of each MTR lift the build formed; undo deletes those lifts before the blocks. */
 	private final List<BlockPos> lifts = new ArrayList<>();
 	/** Both nodes of every MTR platform rail the build laid. */
@@ -144,6 +146,9 @@ public final class UndoLog {
 		}
 		for (final Map.Entry<BlockPos, BlockState> soil : coveredSoil.entrySet()) {
 			batched(soil(soil.getKey(), soil.getValue()));
+		}
+		for (final Map.Entry<BlockPos, Integer> paint : previousPaint.entrySet()) {
+			batched(paint(paint.getKey(), paint.getValue()));
 		}
 		for (final BlockPos stop : lifts) {
 			batched(position("lift", stop));
@@ -242,6 +247,28 @@ public final class UndoLog {
 		if (coveredSoil.putIfAbsent(pos, soil) == null && journaling()) {
 			record(soil(pos, soil));
 		}
+	}
+
+	/** Remembers the paint a cell held the first time the build paints it, so undo can put it back. */
+	void coverPaint(BlockPos pos, int previous) {
+		if (previousPaint.putIfAbsent(pos, previous) == null && journaling()) {
+			record(paint(pos, previous));
+		}
+	}
+
+	/** The paint {@code pos} held before the build painted it (0 for none), or null when the build never painted it. */
+	@Nullable
+	Integer previousPaint(BlockPos pos) {
+		return previousPaint.get(pos);
+	}
+
+	/** Paint taken over by a rebuild at the same spot, as {@link #copySoil}: the first build's original stays. */
+	void copyPaint(UndoLog from) {
+		from.previousPaint.forEach((pos, value) -> {
+			if (previousPaint.putIfAbsent(pos, value) == null && journaling()) {
+				record(paint(pos, value));
+			}
+		});
 	}
 
 	/** The covered soil state at {@code pos}, or null. */
@@ -448,6 +475,14 @@ public final class UndoLog {
 		return soil;
 	}
 
+	private static NbtCompound paint(BlockPos pos, int value) {
+		final NbtCompound record = new NbtCompound();
+		record.putString("type", "paint");
+		record.putLong("pos", pos.asLong());
+		record.putInt("value", value);
+		return record;
+	}
+
 	private static NbtCompound position(String type, BlockPos pos) {
 		final NbtCompound record = new NbtCompound();
 		record.putString("type", type);
@@ -513,6 +548,7 @@ public final class UndoLog {
 					coveredSoil.put(BlockPos.fromLong(record.getLong("pos")), state);
 				}
 			}
+			case "paint" -> previousPaint.putIfAbsent(BlockPos.fromLong(record.getLong("pos")), record.getInt("value"));
 			case "lift" -> lifts.add(BlockPos.fromLong(record.getLong("pos")));
 			case "rail" -> railNodes.add(BlockPos.fromLong(record.getLong("pos")));
 			case "station" -> stations.add(record.getLong("id"));
