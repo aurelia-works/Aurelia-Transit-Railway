@@ -18,7 +18,6 @@ import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.mtr.aurelia.client.AureliaClient;
-import org.mtr.aurelia.client.screen.RoadDashboardScreen;
 import org.mtr.aurelia.client.ui.AureliaChrome;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.core.data.TransportMode;
@@ -34,8 +33,7 @@ import java.util.function.Consumer;
 /**
  * Client coordinator for the unified Transit Dashboard:
  * <ul>
- *   <li>Attaches the five-mode header bar ({@code Train | Bus & Road | Boat | Cable Car | Plane}) to {@link DashboardScreen}
- *       and {@link RoadDashboardScreen} at identical pixel bounds.</li>
+ *   <li>Attaches the four-mode header bar ({@code Train | Boat | Cable Car | Plane}) to {@link DashboardScreen}.</li>
  *   <li>Switches modes in place while preserving map camera center & zoom and disposing {@code WorldMap} tile textures.</li>
  *   <li>Routes legacy item packets ({@code dashboard_2..4}) to their dedicated starting mode and primary {@code dashboard}
  *       (plus ATR menu / Aurelia panel entries) to the last selected mode.</li>
@@ -153,9 +151,6 @@ public final class UnifiedDashboardClient {
 	}
 
 	public static DashboardMode modeOfDashboardScreen(@Nullable Screen screen) {
-		if (screen instanceof RoadDashboardScreen) {
-			return DashboardMode.ROAD;
-		}
 		if (screen instanceof DashboardCameraAccess access) {
 			return DashboardMode.fromTransportMode(access.atr$transportMode());
 		}
@@ -166,7 +161,7 @@ public final class UnifiedDashboardClient {
 	public static Screen findDashboardInChain(@Nullable Screen start) {
 		Screen cursor = start;
 		for (int depth = 0; cursor != null && depth < MAX_PARENT_DEPTH; depth++) {
-			if (cursor instanceof DashboardCameraAccess || cursor instanceof RoadDashboardScreen) {
+			if (cursor instanceof DashboardCameraAccess) {
 				return cursor;
 			}
 			if (cursor instanceof DashboardParentAccess parentAccess) {
@@ -288,15 +283,11 @@ public final class UnifiedDashboardClient {
 	}
 
 	private static void openModeWithState(MinecraftClient client, DashboardMode target, DashboardMapState mapState) {
-		if (target == DashboardMode.ROAD) {
-			client.setScreen(new RoadDashboardScreen(mapState));
-		} else {
-			final TransportMode mode = target.transportMode != null ? target.transportMode : TransportMode.TRAIN;
-			final DashboardScreen screen = new DashboardScreen(mode);
-			client.setScreen(screen);
-			if (screen instanceof DashboardCameraAccess access) {
-				access.atr$applyMapState(mapState);
-			}
+		final TransportMode mode = target.transportMode != null ? target.transportMode : TransportMode.TRAIN;
+		final DashboardScreen screen = new DashboardScreen(mode);
+		client.setScreen(screen);
+		if (screen instanceof DashboardCameraAccess access) {
+			access.atr$applyMapState(mapState);
 		}
 	}
 
@@ -304,9 +295,6 @@ public final class UnifiedDashboardClient {
 		final Screen dashboard = findDashboardInChain(screen);
 		if (dashboard instanceof DashboardCameraAccess access) {
 			return access.atr$captureMapState();
-		}
-		if (dashboard instanceof RoadDashboardScreen road) {
-			return road.captureMapState();
 		}
 		return defaultMapState(client);
 	}

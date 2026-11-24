@@ -6,13 +6,13 @@ import javax.annotation.Nullable;
 import java.util.Locale;
 
 /**
- * The five modes of ATR's unified Transit Dashboard: the four MTR rail/water/cable/air modes plus Bus & Road.
+ * The four modes of ATR's unified Transit Dashboard: MTR's rail, water, cable and air modes. A remembered "road" mode
+ * from before the Bus & Road dashboard was removed falls back like any unknown id.
  * Pure data with no Minecraft client types so unit tests can exercise mode resolution directly.
  */
 public enum DashboardMode {
 
 	TRAIN("train", TransportMode.TRAIN, 26, 42),
-	ROAD("road", null, 56, 72),
 	BOAT("boat", TransportMode.BOAT, 22, 38),
 	CABLE_CAR("cable_car", TransportMode.CABLE_CAR, 49, 65),
 	AIRPLANE("airplane", TransportMode.AIRPLANE, 27, 43);

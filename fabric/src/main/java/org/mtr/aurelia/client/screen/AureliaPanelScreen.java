@@ -202,8 +202,6 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private int architectureFirst;
 	private static final int ARCHITECTURE_ROWS = 16;
 	private boolean hologramMore;
-	/** Vehicles tab: the colour picker paints the hire bikes instead of the cars. */
-	private boolean paintBikes;
 	private int drivingFirst;
 	private int engineFirst;
 	private int mapFirst;
@@ -652,8 +650,8 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	}
 
 	/**
-	 * Road vehicles: on/off, the body colour (a picker, with a swatch beside the switch), size and top speed.
-	 * The server owns these, so speed, size and the switch apply to everyone. Operators and the single player host only.
+	 * Hire bikes: on/off, the bike colour (a picker, with a swatch beside the switch), size, top speed and bike share.
+	 * The server owns these, so they apply to everyone. Operators and the single player host only.
 	 */
 	private void initVehicles() {
 		final int left = columnLeft();
@@ -663,30 +661,20 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			b.setMessage(vehiclesEnabledLabel());
 		}).dimensions(left, top, BUTTON_WIDTH - VEHICLE_SWATCH - 4, 20).build()).active = mayEdit;
 		addDrawableChild(new ColourPickerWidget(left + 1, top + ROW + 1, BUTTON_WIDTH - 2, ROW * 2 - 6, vehicleColour(),
-				colour -> RoadVehicles.setClientSettings(withVehicleColour(colour)),
-				colour -> RoadVehicleClient.request(withVehicleColour(colour)))).active = mayEdit;
+				colour -> RoadVehicles.setClientSettings(RoadVehicles.settings(true).withBikeColour(colour)),
+				colour -> RoadVehicleClient.request(RoadVehicles.settings(true).withBikeColour(colour)))).active = mayEdit;
 		addDrawableChild(new RangeSlider(left, top + ROW * 3, RoadVehicleSettings.SIZE_MIN, RoadVehicleSettings.SIZE_MAX, 5, () -> RoadVehicles.settings(true).sizePercent(),
 				value -> RoadVehicleClient.request(RoadVehicles.settings(true).withSize((int) value)), value -> Text.translatable("gui.aurelia.vehicles.size", value.intValue()))).active = mayEdit;
 		addDrawableChild(new RangeSlider(left, top + ROW * 4, RoadVehicleSettings.SPEED_MIN, RoadVehicleSettings.SPEED_MAX, 5, () -> RoadVehicles.settings(true).maxSpeedKmh(),
 				value -> RoadVehicleClient.request(RoadVehicles.settings(true).withSpeed((int) value)), value -> Text.translatable("gui.aurelia.vehicles.speed", value.intValue()))).active = mayEdit;
-		// Bike share on/off, and which paint the picker above edits.
-		final int half = (BUTTON_WIDTH - 4) / 2;
 		addDrawableChild(ButtonWidget.builder(bikeShareLabel(), b -> {
 			RoadVehicleClient.request(RoadVehicles.settings(true).withBikeShare(!RoadVehicles.settings(true).bikeShare()));
 			b.setMessage(bikeShareLabel());
-		}).dimensions(left, top + ROW * 5, half, 20).build()).active = mayEdit;
-		addDrawableChild(ButtonWidget.builder(Text.translatable(paintBikes ? "gui.aurelia.vehicles.paint.bikes" : "gui.aurelia.vehicles.paint.cars"), b -> {
-			paintBikes = !paintBikes;
-			clearAndInit();
-		}).dimensions(left + half + 4, top + ROW * 5, BUTTON_WIDTH - half - 4, 20).build()).active = mayEdit;
+		}).dimensions(left, top + ROW * 5, BUTTON_WIDTH, 20).build()).active = mayEdit;
 	}
 
-	private int vehicleColour() {
-		return paintBikes ? RoadVehicles.settings(true).bikeColour() : RoadVehicles.settings(true).colour();
-	}
-
-	private RoadVehicleSettings withVehicleColour(int colour) {
-		return paintBikes ? RoadVehicles.settings(true).withBikeColour(colour) : RoadVehicles.settings(true).withColour(colour);
+	private static int vehicleColour() {
+		return RoadVehicles.settings(true).bikeColour();
 	}
 
 	private static Text bikeShareLabel() {
@@ -703,7 +691,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		final int colour = vehicleColour();
 		context.fill(x, top, x + VEHICLE_SWATCH, top + 20, 0xFFFFFFFF);
 		context.fill(x + 1, top + 1, x + VEHICLE_SWATCH - 1, top + 19, 0xFF000000 | colour);
-		final Text status = RoadVehicleClient.mayEdit(client) ? Text.translatable(paintBikes ? "gui.aurelia.vehicles.bike_colour" : "gui.aurelia.vehicles.colour", String.format("#%06X", colour)) : Text.translatable("gui.aurelia.vehicles.operators");
+		final Text status = RoadVehicleClient.mayEdit(client) ? Text.translatable("gui.aurelia.vehicles.bike_colour", String.format("#%06X", colour)) : Text.translatable("gui.aurelia.vehicles.operators");
 		context.drawCenteredTextWithShadow(textRenderer, status, centerX(), top - 12, RoadVehicleClient.mayEdit(client) ? 0xAAAAAA : 0xFF5555);
 	}
 

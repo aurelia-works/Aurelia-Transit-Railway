@@ -146,6 +146,9 @@ public class RoadVehicleEntity extends Entity {
 			followServer();
 			prevWheelSpin = wheelSpin;
 			wheelSpin += (float) (speed() / (kind().wheelRadius * scale));
+		} else if (kind() == RoadVehicleKind.CAR) {
+			// Road cars were removed; one left in an old world is dropped on its first tick. Bikes carry on.
+			discard();
 		} else {
 			drive(scale);
 		}
@@ -343,7 +346,7 @@ public class RoadVehicleEntity extends Entity {
 
 	@Override
 	public ItemStack getPickBlockStack() {
-		return kind() == RoadVehicleKind.CAR ? new ItemStack(RoadVehicles.CAR_ITEM) : ItemStack.EMPTY;
+		return ItemStack.EMPTY;
 	}
 
 	@Override
