@@ -29,8 +29,12 @@ import org.mtr.aurelia.road.road.RoadPlanParams;
  * {@code formatVersion} stays 1. A join to a road that isn't standing (deleted, undone) is no join.
  *
  * <p>Ports come from the ends' blocks and headings alone, with nothing solved, so the graph is cheap to build for every
- * request. Not yet here: junctions, the continuation classifier's other statuses, and ADR-0045's structure types (Slice
- * D and Phase 3).
+ * request. Not yet here: the continuation classifier's other statuses, and ADR-0045's structure types (Phase 3).
+ *
+ * <p><b>Junctions</b> (G-11, Slice D): a junction's parameters ({@link RoadPlanParams.Tool#JUNCTION}) give it one
+ * {@link #arms arm} per end, each a port a road joins; an arm drawn onto a road end ({@link #armJoins}) takes that end
+ * ({@link #taken}). Arms have their own accessors: {@link #ports}, {@link #portsNear}, {@link #joins} and
+ * {@link #neighbours} stay roads only. With no junctions given, the graph is as it was.
  */
 public final class RoadGraph {
     /** No roads. */
@@ -63,10 +67,18 @@ public final class RoadGraph {
     private final Map<Long, List<Port>> chunks = new HashMap<>();
     /** Each road's place in the order given. */
     private final Map<UUID, Integer> rank = new HashMap<>();
+    /** Each junction's arms, in the order given. */
+    private final Map<UUID, List<Port>> arms = new LinkedHashMap<>();
+    /** Junction arms drawn onto road ends: {@code road} is the junction, {@code index} its arm. */
+    private final List<Join> armJoins = new ArrayList<>();
 
     private RoadGraph(Map<UUID, RoadPlanParams> roads) {
         this.roads = Collections.unmodifiableMap(new LinkedHashMap<>(roads));
         this.roads.forEach((id, params) -> {
+            if (params.tool() == RoadPlanParams.Tool.JUNCTION && params.junction().isPresent()) {
+                this.arms.put(id, arms(id, params));
+                return;
+            }
             if (!params.isRoad() || params.ends().size() != 2) {
                 return;
             }
@@ -89,6 +101,27 @@ public final class RoadGraph {
                 }
             }
         });
+        this.arms.forEach((id, ports) -> {
+            List<RoadPlanParams.End> ends = this.roads.get(id).ends();
+            for (int i = 0; i < ends.size(); i++) {
+                Optional<UUID> other = ends.get(i).snapRoadId();
+                OptionalInt otherIndex = ends.get(i).snapPortIndex();
+                if (other.isPresent() && otherIndex.isPresent() && otherIndex.getAsInt() <= 1 && this.ports.containsKey(other.get())) {
+                    this.armJoins.add(new Join(id, i, other.get(), otherIndex.getAsInt()));
+                }
+            }
+        });
+    }
+
+    /** A junction's arms: one per end, facing the way a road leaving it runs, each with its own layout (or the junction's). */
+    private static List<Port> arms(UUID id, RoadPlanParams params) {
+        List<String> profiles = params.junction().orElseThrow().armProfiles();
+        List<Port> arms = new ArrayList<>();
+        for (int i = 0; i < params.ends().size(); i++) {
+            RoadPlanParams.End end = params.ends().get(i);
+            arms.add(new Port(id, i, end.x(), end.y(), end.z(), end.heading(), i < profiles.size() ? profiles.get(i) : params.profileId()));
+        }
+        return List.copyOf(arms);
     }
 
     /** The graph of the standing roads {@code roads} (their parameters by road id), in the order given. */
@@ -106,6 +139,21 @@ public final class RoadGraph {
         return this.ports.getOrDefault(road, List.of());
     }
 
+    /** The arms of junction {@code junction}, or none when it isn't here. */
+    public List<Port> arms(UUID junction) {
+        return this.arms.getOrDefault(junction, List.of());
+    }
+
+    /** The junctions, in the order given. */
+    public Set<UUID> junctions() {
+        return Collections.unmodifiableSet(this.arms.keySet());
+    }
+
+    /** Every junction arm drawn onto a standing road's end: {@code road} is the junction and {@code index} its arm. */
+    public List<Join> armJoins() {
+        return Collections.unmodifiableList(this.armJoins);
+    }
+
     /** Every join between two standing roads. */
     public List<Join> joins() {
         return Collections.unmodifiableList(this.joins);
@@ -113,11 +161,16 @@ public final class RoadGraph {
 
     /**
      * Whether end {@code index} of road {@code road} is joined: it was drawn onto a standing road's end, or a standing
-     * road's end was drawn onto it. A second road there would make a junction (Slice D).
+     * road's end was drawn onto it, or a junction's arm was (G-11). A second road there would make a junction (Slice D).
      */
     public boolean taken(UUID road, int index) {
         for (Join join : this.joins) {
             if (join.road().equals(road) && join.index() == index || join.joins().equals(road) && join.joinsIndex() == index) {
+                return true;
+            }
+        }
+        for (Join join : this.armJoins) {
+            if (join.joins().equals(road) && join.joinsIndex() == index) {
                 return true;
             }
         }
