@@ -74,6 +74,9 @@ public final class MapGround {
 		final double originZ = top + height / 2.0 - centerZ * scale;
 		final float size = (float) (MapRegion.SIZE * scale);
 		RenderSystem.setShader(GameRenderer::getPositionTexProgram);
+		// unseen pixels are clear: the shader drops fully clear ones, and blending keeps any edge texel from darkening what is under it
+		RenderSystem.enableBlend();
+		RenderSystem.defaultBlendFunc();
 
 		// tiles first: the whole view far out, and what is still loading close in
 		for (int i = 0; i < count; i++) {
@@ -105,6 +108,7 @@ public final class MapGround {
 		}
 
 		if (scale < FULL_MIN_SCALE || count > FULL_MAX_REGIONS) {
+			RenderSystem.disableBlend();
 			return;
 		}
 		final MapTextures textures = MapClient.textures();
@@ -131,6 +135,7 @@ public final class MapGround {
 				BufferRenderer.drawWithGlobalProgram(buffer.end());
 			}
 		}
+		RenderSystem.disableBlend();
 	}
 
 	private static void quad(BufferBuilder buffer, Matrix4f matrix, float x1, float y1, float x2, float y2, float u1, float v1, float u2, float v2) {
