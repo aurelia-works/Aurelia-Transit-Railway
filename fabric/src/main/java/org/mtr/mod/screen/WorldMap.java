@@ -1,6 +1,7 @@
 package org.mtr.mod.screen;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import org.mtr.libraries.it.unimi.dsi.fastutil.ints.IntIntImmutablePair;
 import org.mtr.mapping.holder.*;
 import org.mtr.mapping.mapper.MinecraftClientHelper;
@@ -32,10 +33,13 @@ public class WorldMap {
 			updateMap(World.cast(world), player);
 		}
 
-		for (final MapImage mapImage : new Object2ObjectOpenHashMap<>(mapImages).values()) {
+		// ATR: drop unloaded chunks in place instead of copying the whole map every frame
+		final ObjectIterator<MapImage> iterator = mapImages.values().iterator();
+		while (iterator.hasNext()) {
+			final MapImage mapImage = iterator.next();
 			if (!world.getChunkManager().isChunkLoaded(mapImage.chunkX, mapImage.chunkZ)) {
 				mapImage.dispose();
-				mapImages.remove(new IntIntImmutablePair(mapImage.chunkX, mapImage.chunkZ));
+				iterator.remove();
 			}
 		}
 

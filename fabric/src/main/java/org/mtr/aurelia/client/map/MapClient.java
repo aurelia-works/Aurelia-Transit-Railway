@@ -29,6 +29,7 @@ public final class MapClient {
 
 	private static final ChunkScanner SCANNER = new ChunkScanner();
 	private static final MapTextures TEXTURES = new MapTextures();
+	private static final MapOverview OVERVIEW = new MapOverview();
 	private static KeyBinding openKey;
 	@Nullable
 	private static ExploredMap map;
@@ -67,6 +68,10 @@ public final class MapClient {
 
 	public static MapTextures textures() {
 		return TEXTURES;
+	}
+
+	public static MapOverview overview() {
+		return OVERVIEW;
 	}
 
 	public static KeyBinding openKey() {
@@ -113,7 +118,7 @@ public final class MapClient {
 			return;
 		}
 		close();
-		map = new ExploredMap(folder, TEXTURES::drop);
+		map = new ExploredMap(folder, MapClient::dropped);
 		network = new SeenNetwork(folder);
 		SCANNER.reset();
 		nextSave = System.currentTimeMillis() + SAVE_MILLIS;
@@ -129,7 +134,14 @@ public final class MapClient {
 			network = null;
 		}
 		TEXTURES.clear();
+		OVERVIEW.clear();
 		SCANNER.reset();
+	}
+
+	/** A region left memory: its full texture goes, its overview tile stays. */
+	private static void dropped(long key) {
+		TEXTURES.drop(key);
+		OVERVIEW.forget(key);
 	}
 
 	private static Path folder(MinecraftClient client, ClientWorld world) {
