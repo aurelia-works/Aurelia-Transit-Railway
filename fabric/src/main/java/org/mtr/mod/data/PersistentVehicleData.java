@@ -4,6 +4,7 @@ import org.mtr.aurelia.sound.ProfileSounds;
 import org.mtr.aurelia.sound.SoundProfile;
 import org.mtr.aurelia.sound.SoundProfileRegistry;
 import org.mtr.aurelia.sound.SoundProfileStore;
+import org.mtr.core.data.PathData;
 import org.mtr.core.data.TransportMode;
 import org.mtr.core.data.Vehicle;
 import org.mtr.core.data.VehicleCar;
@@ -45,6 +46,11 @@ public final class PersistentVehicleData {
 	private ProfileSounds appliedProfileSounds;
 	private final ObjectArrayList<ObjectArrayList<ScrollingText>> scrollingTexts = new ObjectArrayList<>();
 	private final ObjectArrayList<Oscillation> oscillations = new ObjectArrayList<>();
+	private final ObjectArrayList<VehicleSoundBase.RunSoundInfo> runSoundStates = new ObjectArrayList<>();
+	private double runSoundRailProgress;
+	@Nullable
+	private VehicleExtraData runSoundVehicleExtraData;
+	private boolean runSoundStatesStale;
 	private final Object2ObjectOpenHashMap<String, DoorMovementInterpolation> doorMovementInterpolations = new Object2ObjectOpenHashMap<>();
 
 	public PersistentVehicleData(ObjectImmutableList<VehicleCar> immutableVehicleCars, TransportMode transportMode) {
@@ -114,6 +120,36 @@ public final class PersistentVehicleData {
 			nextAnnouncementRailProgress = railProgress + vehicleExtraData.getTotalVehicleLength() * 1.5;
 		}
 		oscillations.forEach(oscillation -> oscillation.tick(millisElapsed));
+
+		// Which rail each car is on is worked out only when a car plays its motor sound (see playMotorSound), so trains
+		// that are out of earshot or have no sound cost nothing here
+		runSoundRailProgress = railProgress;
+		runSoundVehicleExtraData = vehicleExtraData;
+		runSoundStatesStale = true;
+	}
+
+	/** Which rail each car is on, so its run sound can change with the rail under it. */
+	private void updateRunSoundStates() {
+		runSoundStatesStale = false;
+		runSoundStates.clear();
+		final VehicleExtraData vehicleExtraData = runSoundVehicleExtraData;
+		if (vehicleExtraData != null && !vehicleExtraData.immutablePath.isEmpty()) {
+			double headRailProgress = runSoundRailProgress;
+			for (int i = 0; i < vehicleExtraData.immutableVehicleCars.size(); i++) {
+				final VehicleCar vehicleCar = vehicleExtraData.immutableVehicleCars.get(i);
+				final double carLength = vehicleCar.getLength();
+				final double tailRailProgress = headRailProgress - carLength;
+
+				// getElement wraps a negative index to the last rail, so a progress before the path must not stay negative
+				final int thisPathIndex = Math.max(0, Utilities.getIndexFromConditionalList(vehicleExtraData.immutablePath, headRailProgress));
+				final int lastPathIndex = Math.max(0, Utilities.getIndexFromConditionalList(vehicleExtraData.immutablePath, tailRailProgress));
+				final PathData thisPathData = Utilities.getElement(vehicleExtraData.immutablePath, thisPathIndex);
+				final PathData lastPathData = thisPathIndex == lastPathIndex ? thisPathData : Utilities.getElement(vehicleExtraData.immutablePath, lastPathIndex);
+				final float pathDelta = thisPathIndex == lastPathIndex ? 1 : (float) Math.min(1, (headRailProgress - lastPathData.getEndDistance()) / carLength);
+				runSoundStates.add(VehicleSoundBase.RunSoundInfo.create(lastPathData.getRail(), thisPathData.getRail(), pathDelta));
+				headRailProgress -= carLength;
+			}
+		}
 	}
 
 	public double getDoorValue() {
@@ -162,7 +198,11 @@ public final class PersistentVehicleData {
 	}
 
 	public void playMotorSound(VehicleResource vehicleResource, int carNumber, BlockPos bogiePosition, float speed, float speedChange, float acceleration, boolean isOnRoute) {
-		getVehicleSoundBase(vehicleResource, carNumber).playMotorSound(bogiePosition, speed, speedChange, acceleration, isOnRoute);
+		if (runSoundStatesStale) {
+			updateRunSoundStates();
+		}
+		final VehicleSoundBase.RunSoundInfo runSound = carNumber >= 0 && carNumber < runSoundStates.size() ? runSoundStates.get(carNumber) : null;
+		getVehicleSoundBase(vehicleResource, carNumber).playVehicleSound(new VehicleSoundBase.VehicleSoundParameters(runSound, bogiePosition, speed, speedChange, acceleration, isOnRoute));
 	}
 
 	public void playDoorSound(VehicleResource vehicleResource, int carNumber, BlockPos vehiclePosition) {
