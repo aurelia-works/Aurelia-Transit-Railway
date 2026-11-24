@@ -1,6 +1,5 @@
 package org.mtr.mod.client;
 
-import com.mojang.text2speech.Narrator;
 import org.mtr.libraries.it.unimi.dsi.fastutil.booleans.BooleanArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.mapping.holder.*;
@@ -190,7 +189,7 @@ public interface IDrawing {
 
 	static void narrateOrAnnounce(String narrateMessage, ObjectArrayList<MutableText> chatMessages) {
 		if (Config.getClient().getTextToSpeechAnnouncements() && !narrateMessage.isEmpty() && !TtsVolume.muted()) {
-			Narrator.getNarrator().say(narrateMessage, true);
+			org.mtr.aurelia.client.voice.AnnouncerVoice.say(narrateMessage);
 		}
 		if (Config.getClient().getChatAnnouncements() && !chatMessages.isEmpty()) {
 			final ClientPlayerEntity player = MinecraftClient.getInstance().getPlayerMapped();

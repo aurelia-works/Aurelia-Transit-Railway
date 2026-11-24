@@ -10,7 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Client looks for the one wrench and the ATR menu, in a new file {@code config/aurelia/wrench.json}. Missing file, missing
+ * Client looks for the one wrench, in a new file {@code config/aurelia/wrench.json}. Missing file, missing
  * key or a value that is not a boolean keeps the default (on), so old configs are untouched and need no migration.
  */
 public final class WrenchSettings {
@@ -36,16 +36,6 @@ public final class WrenchSettings {
 
 	public static void toggleActionBar() {
 		actionBar = !actionBar;
-		save();
-	}
-
-	/** Whether the ATR menu uses the dark Aurelia look; off leaves the vanilla background. */
-	public static boolean menuLook() {
-		return menuLook;
-	}
-
-	public static void toggleMenuLook() {
-		menuLook = !menuLook;
 		save();
 	}
 

@@ -215,7 +215,7 @@ public final class UnifiedDashboardClient {
 	}
 
 	/**
-	 * Opens the unified Transit Dashboard from a UI shortcut (such as {@code AtrMenuScreen} or {@code AureliaPanelScreen}).
+	 * Opens the unified Transit Dashboard from a UI shortcut (such as {@code AureliaPanelScreen}).
 	 * If a dashboard screen is already open in the {@code parent} chain, returns directly to it without a server round-trip
 	 * or {@code WorldMap} texture churn; otherwise requests fresh {@code LIST_DATA} when permitted.
 	 */

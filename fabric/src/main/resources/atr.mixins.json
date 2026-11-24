@@ -23,9 +23,12 @@
 		"JunctionPriorityMixin",
 		"NameColorDataBaseSchemaAccessor",
 		"SidingPathFinderAccessor",
-		"SidingPathFinderRouteControlMixin"
+		"SidingPathFinderRouteControlMixin",
+		"KeyBoxKeysOutMixin"
 	],
 	"client": [
+		"TrainPickerOpenMixin",
+		"VehicleSelectorScreenAccessor",
 		"BlockEntityCounterMixin",
 		"DebugHudMixin",
 		"DriverSpeedMessageMixin",
@@ -41,6 +44,8 @@
 		"DashboardItemMixin",
 		"DashboardMapMixin",
 		"DashboardOpenMixin",
+		"KeyBoxOpenMixin",
+		"KeyBoxRenderMixin",
 		"AureliaFieldMixin",
 		"AureliaShortSliderMixin",
 		"AureliaSliderMixin",
