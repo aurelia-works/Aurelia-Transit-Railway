@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.network;
 
+import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.block.InfoDisplayBlock;
 import com.aureliatransit.architecture.block.NameSignBlock;
@@ -176,7 +177,7 @@ public final class ModPackets {
 				return;
 			}
 			server.execute(() -> {
-				if (!player.hasPermissionLevel(StationActions.PERMISSION_LEVEL)) {
+				if (!Operators.isOperator(player)) {
 					return;
 				}
 				StationBuildSettings.set(server, pace);

@@ -1,5 +1,6 @@
 package org.mtr.aurelia.client.screen;
 
+import org.mtr.aurelia.client.ClientOperators;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.TrainView;
 import net.minecraft.client.gui.DrawContext;
@@ -98,7 +99,7 @@ public final class TrainInspectorScreen extends Screen {
 	}
 
 	private boolean canTeleport() {
-		return client.player != null && client.player.hasPermissionLevel(2);
+		return ClientOperators.isOperator(client);
 	}
 
 	private void updateButtons() {
@@ -111,7 +112,7 @@ public final class TrainInspectorScreen extends Screen {
 		if (train == null || !canTeleport()) {
 			return;
 		}
-		client.player.networkHandler.sendCommand(String.format(Locale.ROOT, "tp @s %.1f %.1f %.1f", train.x(), train.y() + 1, train.z()));
+		client.player.networkHandler.sendCommand(String.format(Locale.ROOT, "atr_jump %.1f %.1f %.1f", train.x(), train.y() + 1, train.z()));
 		client.setScreen(null);
 	}
 
