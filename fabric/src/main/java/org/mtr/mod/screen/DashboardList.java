@@ -1,7 +1,6 @@
 package org.mtr.mod.screen;
 
 import org.mtr.libraries.it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
-import org.mtr.libraries.it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectSet;
 import org.mtr.mapping.holder.ClickableWidget;
@@ -50,6 +49,8 @@ public class DashboardList implements IGui {
 
 	private ObjectArrayList<DashboardListItem> dataSorted = new ObjectArrayList<>();
 	private final Int2ObjectAVLTreeMap<DashboardListItem> dataFiltered = new Int2ObjectAVLTreeMap<>();
+	/** The keys of {@link #dataFiltered} in order, rebuilt with it in {@link #tick()} so a frame does not copy and sort them per row. */
+	private int[] filteredKeys = new int[0];
 	private int hoverIndex, page, totalPages;
 
 	private boolean hasFind;
@@ -130,13 +131,15 @@ public class DashboardList implements IGui {
 		buttonNextPage.setX2(x + SQUARE_SIZE * 3);
 		textFieldSearch.setX2(x + SQUARE_SIZE * 4 + TEXT_FIELD_PADDING / 2);
 
-		final String text = textFieldSearch.getText2();
+		final String text = textFieldSearch.getText2().toLowerCase(Locale.ENGLISH);
 		dataFiltered.clear();
 		for (int i = 0; i < dataSorted.size(); i++) {
-			if (dataSorted.get(i).getName(true).toLowerCase(Locale.ENGLISH).contains(text.toLowerCase(Locale.ENGLISH))) {
+			if (text.isEmpty() || dataSorted.get(i).getName(true).toLowerCase(Locale.ENGLISH).contains(text)) {
 				dataFiltered.put(i, dataSorted.get(i));
 			}
 		}
+		// an AVL tree map's keys come out sorted
+		filteredKeys = dataFiltered.keySet().toIntArray();
 
 		final int dataSize = dataFiltered.size();
 		totalPages = dataSize == 0 ? 1 : (int) Math.ceil((double) dataSize / itemsToShow());
@@ -170,9 +173,7 @@ public class DashboardList implements IGui {
 		for (int i = 0; i < itemsToShow; i++) {
 			if (i + itemsToShow * page < dataFiltered.size()) {
 				final int drawY = SQUARE_SIZE * i + TEXT_PADDING + TOP_OFFSET;
-				final IntArrayList sortedKeys = new IntArrayList(dataFiltered.keySet());
-				Collections.sort(sortedKeys);
-				final DashboardListItem data = dataFiltered.get(sortedKeys.getInt(i + itemsToShow * page));
+				final DashboardListItem data = dataFiltered.get(filteredKeys[i + itemsToShow * page]);
 
 				final GuiDrawing guiDrawing = new GuiDrawing(graphicsHolder);
 				guiDrawing.beginDrawingRectangle();
@@ -243,14 +244,7 @@ public class DashboardList implements IGui {
 	}
 
 	public int getHoverItemIndex() {
-		final IntArrayList sortedKeys = new IntArrayList(dataFiltered.keySet());
-		Collections.sort(sortedKeys);
-		final int sortedIndex = hoverIndex + itemsToShow() * page;
-		if (sortedIndex >= 0 && sortedIndex < sortedKeys.size()) {
-			return sortedKeys.getInt(sortedIndex);
-		} else {
-			return -1;
-		}
+		return keyAtPosition(filteredKeys, hoverIndex + itemsToShow() * page);
 	}
 
 	private void setPage(int newPage) {
@@ -305,9 +299,7 @@ public class DashboardList implements IGui {
 	 */
 	public int getRowIndexAt(double mouseX, double mouseY) {
 		final int position = rowIndexAt(mouseX, mouseY, x, y + TOP_OFFSET, width - (hasFind ? SQUARE_SIZE : 0), SQUARE_SIZE, itemsToShow(), page, dataFiltered.size());
-		final IntArrayList sortedKeys = new IntArrayList(dataFiltered.keySet());
-		Collections.sort(sortedKeys);
-		return keyAtPosition(sortedKeys.toIntArray(), position);
+		return keyAtPosition(filteredKeys, position);
 	}
 
 	/**
