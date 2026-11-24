@@ -1,19 +1,21 @@
 package org.mtr.aurelia.client.screen;
 
-import com.aureliatransit.architecture.client.AirportWrenchScreen;
-import com.aureliatransit.architecture.client.AtrMenuScreen;
+import com.aureliatransit.architecture.client.CodexScreen;
 import com.aureliatransit.architecture.client.HologramSettings;
 import com.aureliatransit.architecture.client.StationHologramRenderer;
 import com.aureliatransit.architecture.client.StationPaceSlider;
 import com.aureliatransit.architecture.client.StationStudioClient;
 import com.aureliatransit.architecture.client.StationWrenchScreen;
+import com.aureliatransit.architecture.client.WrenchSettings;
 import com.aureliatransit.architecture.registry.ModItems;
+import com.aureliatransit.architecture.station.world.StationWrenchItem;
+import com.aureliatransit.architecture.station.world.WrenchMode;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.item.Item;
+import net.minecraft.registry.Registries;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.StringVisitable;
@@ -68,7 +70,6 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
@@ -89,7 +90,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private static final int VEHICLE_SWATCH = 20;
 	/** The Tools grid packs its rows closer, so two columns of tools fit on a 240 high screen. */
 	private static final int TOOL_ROW = 22;
-	/** The bar along the top: the panel's name and the ATR menu button. */
+	/** The bar along the top: the panel's name. */
 	private static final int HEADER = 22;
 	/** The tab list down the left side, one row per tab, in four groups. */
 	private static final int SIDEBAR = 104;
@@ -189,9 +190,9 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private static final int TRAIN_SOUND_ROWS = 15;
 	private int buildFirst;
 	private static final int BUILD_ROWS = 10;
-	/** The Architecture tab's rows: studio, the two wrenches, hologram, fallback, More, tint and layer, then build pace (operators). */
+	/** The Architecture tab's rows: studio, the four wrench modes, give wrench, action bar, the four guide buttons, hologram switches and build pace (operators). */
 	private int architectureFirst;
-	private static final int ARCHITECTURE_ROWS = 8;
+	private static final int ARCHITECTURE_ROWS = 16;
 	private boolean hologramMore;
 	/** Vehicles tab: the colour picker paints the hire bikes instead of the cars. */
 	private boolean paintBikes;
@@ -221,8 +222,6 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			}
 			y += GROUP_GAP;
 		}
-		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.menu.open"), b -> client.setScreen(new AtrMenuScreen(this, AtrMenuScreen.Tab.BUILD)))
-				.dimensions(width - 98, 2, 90, 18).build());
 		switch (tab) {
 			case RENDERING -> initRendering();
 			case TOOLS -> initTools();
@@ -1010,7 +1009,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		return itemStack.getItem() == Items.RAIL_BUILDER.get().data;
 	}
 
-	/** ATA's tools: Station Studio opens in the browser; each wrench screen edits the wrench in the player's hand. */
+	/** ATA's tools: Station Studio opens in the browser; each wrench mode button opens the wrench in the player's hand; guide buttons open the Station Codex. */
 	private void initArchitecture() {
 		final int left = columnLeft();
 		architectureFirst = Math.max(0, Math.min(architectureFirst, architectureRows() - visibleRows()));
@@ -1020,50 +1019,99 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.studio.tooltip")));
 		}
 		if (architectureRow(1)) {
-			addWrenchButton("station", ModItems.STATION_WRENCH, StationWrenchScreen::open, architectureY(1));
+			addWrenchButton("station", WrenchMode.STATION, architectureY(1));
 		}
 		if (architectureRow(2)) {
-			addWrenchButton("airport", ModItems.AIRPORT_WRENCH, AirportWrenchScreen::open, architectureY(2));
+			addWrenchButton("airport", WrenchMode.AIRPORT, architectureY(2));
 		}
 		if (architectureRow(3)) {
+			addWrenchButton("bridge", WrenchMode.BRIDGE, architectureY(3));
+		}
+		if (architectureRow(4)) {
+			addWrenchButton("earthworks", WrenchMode.EARTHWORKS, architectureY(4));
+		}
+		if (architectureRow(5)) {
+			final ButtonWidget give = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.give"), b -> {
+				if (client != null && client.player != null) {
+					client.player.networkHandler.sendChatCommand("give @s " + Registries.ITEM.getId(ModItems.WRENCH));
+				}
+			}).dimensions(left, architectureY(5), BUTTON_WIDTH, 20).build());
+			give.active = operator();
+			give.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.give.tooltip")));
+		}
+		if (architectureRow(6)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.action_bar", ScreenTexts.onOrOff(WrenchSettings.actionBar())), b -> {
+				WrenchSettings.toggleActionBar();
+				b.setMessage(Text.translatable("gui.aurelia.architecture.action_bar", ScreenTexts.onOrOff(WrenchSettings.actionBar())));
+			}).dimensions(left, architectureY(6), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.action_bar.tooltip")));
+		}
+		if (architectureRow(7)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.codex"), b -> {
+				close();
+				CodexScreen.open();
+			}).dimensions(left, architectureY(7), BUTTON_WIDTH, 20).build());
+		}
+		if (architectureRow(8)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.guide.start"), b -> {
+				close();
+				CodexScreen.openChapter("Getting started");
+			}).dimensions(left, architectureY(8), BUTTON_WIDTH, 20).build());
+		}
+		if (architectureRow(9)) {
+			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.guide.wayfinding"), b -> {
+				close();
+				CodexScreen.openChapter("Finding your way");
+			}).dimensions(left, architectureY(9), BUTTON_WIDTH, 20).build())
+					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.guide.wayfinding.tooltip")));
+		}
+		if (architectureRow(10)) {
+			final ButtonWidget item = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.guide.item"), b -> {
+				if (client != null && client.player != null) {
+					client.player.networkHandler.sendChatCommand("ata_guide");
+				}
+			}).dimensions(left, architectureY(10), BUTTON_WIDTH, 20).build());
+			item.active = operator();
+		}
+		if (architectureRow(11)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram", ScreenTexts.onOrOff(HologramSettings.enabled())), b -> {
 				HologramSettings.setEnabled(!HologramSettings.enabled());
 				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram", ScreenTexts.onOrOff(HologramSettings.enabled())));
-			}).dimensions(left, architectureY(3), BUTTON_WIDTH, 20).build())
+			}).dimensions(left, architectureY(11), BUTTON_WIDTH, 20).build())
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.tooltip")));
 		}
-		if (architectureRow(4)) {
+		if (architectureRow(12)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram.fallback", ScreenTexts.onOrOff(HologramSettings.particles())), b -> {
 				HologramSettings.setParticles(!HologramSettings.particles());
 				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram.fallback", ScreenTexts.onOrOff(HologramSettings.particles())));
-			}).dimensions(left, architectureY(4), BUTTON_WIDTH, 20).build())
+			}).dimensions(left, architectureY(12), BUTTON_WIDTH, 20).build())
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.fallback.tooltip")));
 		}
-		if (architectureRow(5)) {
+		if (architectureRow(13)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram." + (hologramMore ? "less" : "more")), b -> {
 				hologramMore = !hologramMore;
 				clearAndInit();
-			}).dimensions(left, architectureY(5), BUTTON_WIDTH, 20).build())
+			}).dimensions(left, architectureY(13), BUTTON_WIDTH, 20).build())
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.more.tooltip")));
 		}
-		if (hologramMore && architectureRow(6)) {
+		if (hologramMore && architectureRow(14)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram.tint", ScreenTexts.onOrOff(HologramSettings.tint())), b -> {
 				HologramSettings.setTint(!HologramSettings.tint());
 				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram.tint", ScreenTexts.onOrOff(HologramSettings.tint())));
-			}).dimensions(left, architectureY(6), BUTTON_WIDTH, 20).build())
+			}).dimensions(left, architectureY(14), BUTTON_WIDTH, 20).build())
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.tint.tooltip")));
 		}
-		if (hologramMore && architectureRow(7)) {
+		if (hologramMore && architectureRow(15)) {
 			final int all = StationHologramRenderer.minLayer() - 1;
 			final int highest = Math.max(all + 1, StationHologramRenderer.maxLayer());
-			addDrawableChild(new RangeSlider(left, architectureY(7), all, highest, 1,
+			addDrawableChild(new RangeSlider(left, architectureY(15), all, highest, 1,
 					() -> HologramSettings.layer() == HologramSettings.ALL_LAYERS ? all : HologramSettings.layer(),
 					value -> HologramSettings.setLayer(value <= all ? HologramSettings.ALL_LAYERS : (int) Math.round(value)),
 					value -> value <= all ? Text.translatable("gui.aurelia.architecture.hologram.layer.all")
 							: Text.translatable("gui.aurelia.architecture.hologram.layer", value.intValue())))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.layer.tooltip")));
 		}
-		final int pace = hologramMore ? ARCHITECTURE_ROWS : 6;
+		final int pace = hologramMore ? ARCHITECTURE_ROWS : ARCHITECTURE_ROWS - 2;
 		if (operator() && architectureRow(pace)) {
 			addDrawableChild(new StationPaceSlider(columnLeft(), architectureY(pace), BUTTON_WIDTH))
 					.setTooltip(Tooltip.of(Text.translatable("screen.aurelia_transit_architecture.station_wrench.pace.tip")));
@@ -1071,7 +1119,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	}
 
 	private int architectureRows() {
-		return (hologramMore ? ARCHITECTURE_ROWS : 6) + (operator() ? 1 : 0);
+		return (hologramMore ? ARCHITECTURE_ROWS : ARCHITECTURE_ROWS - 2) + (operator() ? 1 : 0);
 	}
 
 	private boolean operator() {
@@ -1086,21 +1134,24 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		return top + (row - architectureFirst) * ROW;
 	}
 
-	private void addWrenchButton(String key, Item wrench, Consumer<Hand> open, int y) {
-		final Hand hand = heldHand(wrench);
-		final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture." + key), b -> open.accept(hand))
-				.dimensions(columnLeft(), y, BUTTON_WIDTH, 20).build());
+	private void addWrenchButton(String key, WrenchMode mode, int y) {
+		final Hand hand = heldHand();
+		final ButtonWidget button = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture." + key), b -> {
+			if (hand != null) {
+				StationWrenchScreen.openMode(hand, mode);
+			}
+		}).dimensions(columnLeft(), y, BUTTON_WIDTH, 20).build());
 		button.active = hand != null;
 		button.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture." + key + (hand == null ? ".hold" : ".tooltip"))));
 	}
 
 	@Nullable
-	private Hand heldHand(Item item) {
+	private Hand heldHand() {
 		if (client == null || client.player == null) {
 			return null;
 		}
 		for (final Hand hand : Hand.values()) {
-			if (client.player.getStackInHand(hand).isOf(item)) {
+			if (client.player.getStackInHand(hand).getItem() instanceof StationWrenchItem) {
 				return hand;
 			}
 		}

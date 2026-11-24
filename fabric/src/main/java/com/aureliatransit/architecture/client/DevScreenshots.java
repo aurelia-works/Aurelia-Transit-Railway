@@ -10,6 +10,7 @@ import net.minecraft.item.Items;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
+import org.mtr.aurelia.client.screen.AureliaPanelScreen;
 
 import java.io.File;
 import java.io.IOException;
@@ -127,7 +128,7 @@ final class DevScreenshots {
 	/** Opens the screen a request names; returns whether one was opened. */
 	private static boolean openScreen(MinecraftClient client, String content) {
 		if (content.contains("open=menu")) {
-			AtrMenuScreen.open(client.currentScreen, AtrMenuScreen.Tab.BUILD);
+			client.setScreen(new AureliaPanelScreen(client.currentScreen, AureliaPanelScreen.Tab.ARCHITECTURE));
 		} else if (content.contains("open=wrench")) {
 			StationWrenchScreen.open(Hand.MAIN_HAND);
 			if (client.currentScreen == null) {

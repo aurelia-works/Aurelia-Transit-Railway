@@ -1,6 +1,5 @@
 package org.mtr.aurelia.client.screen;
 
-import com.aureliatransit.architecture.client.AtrMenuScreen;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
@@ -168,10 +167,10 @@ public final class RoadDashboardScreen extends Screen {
 				atrRect.x(), atrRect.y(), atrRect.width(), atrRect.height(),
 				0, 0, DashboardLayout.ICON_BUTTON_SIZE, DASHBOARD_BUTTON_TEXTURE,
 				DashboardLayout.ICON_BUTTON_SIZE, DashboardLayout.ICON_BUTTON_SIZE * 2,
-				b -> client.setScreen(new AtrMenuScreen(this, AtrMenuScreen.Tab.BUILD)),
-				Text.translatable("gui.aurelia.menu.title")
+				b -> client.setScreen(new AureliaPanelScreen(this, AureliaPanelScreen.Tab.ARCHITECTURE)),
+				Text.translatable("gui.aurelia.panel.tab.architecture")
 		);
-		atrButton.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.menu.title")));
+		atrButton.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.panel.tab.architecture")));
 		addDrawableChild(atrButton);
 
 		// Unified 5-mode switcher bar
@@ -559,7 +558,7 @@ public final class RoadDashboardScreen extends Screen {
 		return client != null && client.player != null && client.player.hasPermissionLevel(2);
 	}
 
-	/** Uses {@code /give @s}, which requires operator permission level 2 (matching {@link AtrMenuScreen}). */
+	/** Uses {@code /give @s}, which requires operator permission level 2 (matching {@link AureliaPanelScreen}). */
 	private boolean canGiveItems() {
 		return client != null && client.player != null && client.player.hasPermissionLevel(2);
 	}
