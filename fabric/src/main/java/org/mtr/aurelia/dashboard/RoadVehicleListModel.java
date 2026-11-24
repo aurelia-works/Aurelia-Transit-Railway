@@ -268,7 +268,7 @@ public final class RoadVehicleListModel {
 	}
 
 	/**
-	 * Computes the {@code /tp} command for a station: stands one block above the first platform midpoint via
+	 * Computes the {@code /atr_jump} command for a station: stands one block above the first platform midpoint via
 	 * {@link JumpTarget#standOn} (safe for elevated and underground stations), falling back to {@code fallbackPlayerY}
 	 * only when {@code station.savedRails} is empty.
 	 */
@@ -284,7 +284,7 @@ public final class RoadVehicleListModel {
 				return JumpTarget.command(standOn.get());
 			}
 		}
-		return String.format(Locale.ROOT, "tp @s %.1f %.1f %.1f", row.x() + 0.5, fallbackPlayerY, row.z() + 0.5);
+		return String.format(Locale.ROOT, "atr_jump %.1f %.1f %.1f", row.x() + 0.5, fallbackPlayerY, row.z() + 0.5);
 	}
 
 	/**

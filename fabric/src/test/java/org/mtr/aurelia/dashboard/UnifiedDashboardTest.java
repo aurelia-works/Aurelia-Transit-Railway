@@ -360,12 +360,12 @@ public final class UnifiedDashboardTest {
 		assertEquals(0, emptyRow.routes());
 
 		// Station teleport stands 1 block above platform rail midpoint instead of using player's ground Y (64)
-		assertEquals("tp @s 100 23 0", RoadVehicleListModel.stationTeleportCommand(underground, deepRow, 64.0));
+		assertEquals("atr_jump 100 23 0", RoadVehicleListModel.stationTeleportCommand(underground, deepRow, 64.0));
 		assertTrue(
-				java.util.Set.of("tp @s 10 111 0", "tp @s 10 64 6").contains(RoadVehicleListModel.stationTeleportCommand(elevatedHub, hubRow, 64.0)),
+				java.util.Set.of("atr_jump 10 111 0", "atr_jump 10 64 6").contains(RoadVehicleListModel.stationTeleportCommand(elevatedHub, hubRow, 64.0)),
 				"elevated/multi-platform hub teleports onto one of its savedRails"
 		);
 		// Only falls back to player Y when savedRails is empty
-		assertEquals("tp @s 200.5 64.0 0.5", RoadVehicleListModel.stationTeleportCommand(unplatformed, emptyRow, 64.0));
+		assertEquals("atr_jump 200.5 64.0 0.5", RoadVehicleListModel.stationTeleportCommand(unplatformed, emptyRow, 64.0));
 	}
 }
