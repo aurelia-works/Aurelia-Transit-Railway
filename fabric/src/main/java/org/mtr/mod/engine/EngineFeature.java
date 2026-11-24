@@ -11,7 +11,9 @@ public enum EngineFeature {
 	/** Passengers go anywhere the network reaches, changing trains up to twice; off, they ride one train only. */
 	PASSENGER_CHANGES("passenger_changes"),
 	/** A train keeps its doors open while people are still getting on and off, up to a limit. */
-	BOARDING_DWELL("boarding_dwell");
+	BOARDING_DWELL("boarding_dwell"),
+	/** The Engine tab shows how long the simulation takes per tick; off, the server stops sending it. */
+	LAG_READOUT("lag_readout");
 
 	public final String key;
 
