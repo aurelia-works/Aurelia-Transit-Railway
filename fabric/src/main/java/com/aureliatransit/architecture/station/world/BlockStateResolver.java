@@ -105,9 +105,10 @@ public final class BlockStateResolver {
 				railSkipped = true;
 				continue;
 			}
-			final Optional<Block> block = cache.computeIfAbsent(op.blockId(), BlockStateResolver::block);
+			final String id = StreetPaint.blockId(op);
+			final Optional<Block> block = cache.computeIfAbsent(id, BlockStateResolver::block);
 			if (block.isEmpty()) {
-				missing.add(op.blockId());
+				missing.add(id);
 			} else {
 				prepared.add(new Prepared(op, withState(state(block.get(), op.facing()), RailEdges.worldState(op.state(), op.facing()))));
 			}

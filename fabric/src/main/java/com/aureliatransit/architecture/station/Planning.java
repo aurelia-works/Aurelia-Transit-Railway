@@ -710,6 +710,8 @@ final class Planning extends PlanAirport {
 					continue;
 				}
 				String block;
+				LocalDir front = out;
+				String state = "";
 				if (k < BUS_KERB) {
 					block = LOT_PAVING;
 				} else if (k == BUS_KERB) {
@@ -718,18 +720,22 @@ final class Planning extends PlanAirport {
 					// the zebra: white bars along the way across, a road's width apart
 					block = Math.floorMod(x - x0, 2) == 0 ? SQUARE_ROAD_MARK : SQUARE_ROAD;
 				} else if (k < BUS_CENTRE) {
-					// the bay lane: a white line across it at each end of a bay, one line where two bays meet
+					// the bay lane: a white line painted across it at each end of a bay, one line where two bays meet
 					boolean end = false;
 					for (final int bay : bays) {
 						end |= x == bay || x == bay + BUS_BAY - 1 && !bays.contains(bay + BUS_BAY);
 					}
-					block = end ? SQUARE_ROAD_MARK : SQUARE_ROAD;
+					block = SQUARE_ROAD;
+					state = end ? SQUARE_ROAD_LINE : "";
 				} else if (k == BUS_CENTRE) {
-					block = Math.floorMod(x - xLo, 6) < 2 ? SQUARE_ROAD_MARK : SQUARE_ROAD;
+					// the dashed centre line, painted along the street
+					block = SQUARE_ROAD;
+					front = f.dir(PlanLandmark.Dir.RIGHT);
+					state = Math.floorMod(x - xLo, 6) < 2 ? SQUARE_ROAD_LINE : "";
 				} else {
 					block = SQUARE_ROAD;
 				}
-				put(Role.FLOOR, u, floorY, v, out, block);
+				put(Role.FLOOR, u, floorY, v, front, block, state);
 			}
 		}
 		for (int i = 0; i < bays.size(); i++) {
@@ -764,10 +770,20 @@ final class Planning extends PlanAirport {
 	/** The e-paper departure board on a bus stop's pole. */
 	static final String BUS_DEPARTURES = "aurelia_transit_architecture:bus_epaper_board";
 
-	/** The street past a Dutch station square: asphalt, its centre line and zebra crossings in white. */
-	static final String SQUARE_ROAD = "minecraft:gray_concrete";
+	/**
+	 * The street past a station square or along a bus station: the road editor's asphalt, its lines painted on it as the road
+	 * editor paints them ({@link #SQUARE_ROAD_LINE}) and its zebra crossings' bars in white blocks.
+	 */
+	static final String SQUARE_ROAD = "stratos:asphalt";
 
 	static final String SQUARE_ROAD_MARK = "minecraft:white_concrete";
+
+	/**
+	 * The state of an asphalt cell with a white line painted through its middle, along the way the cell faces. Asphalt has no
+	 * such property, so the game's own state leaves it out; the build reads it and paints the line
+	 * ({@code world.StreetPaint}).
+	 */
+	static final String SQUARE_ROAD_LINE = "stratos_paint=white_line";
 
 	/** A Dutch cycle path: red asphalt between the kerb and the verge. */
 	static final String SQUARE_CYCLE_PATH = "minecraft:red_terracotta";
@@ -831,8 +847,9 @@ final class Planning extends PlanAirport {
 				LocalDir front = LocalDir.PLUS_V;
 				String state = "";
 				if (a < SQ_ROAD) {
-					final boolean mark = across ? a % 2 == 0 : a == SQ_ROAD / 2 && along % 6 < 3;
-					block = mark ? SQUARE_ROAD_MARK : SQUARE_ROAD;
+					// the zebra's bars are white blocks; the dashed centre line is paint on the asphalt, along the street
+					block = across && a % 2 == 0 ? SQUARE_ROAD_MARK : SQUARE_ROAD;
+					state = !across && a == SQ_ROAD / 2 && along % 6 < 3 ? SQUARE_ROAD_LINE : "";
 				} else if (a == SQ_KERB) {
 					block = across ? LOT_PAVING : LOT_KERB;
 					front = LocalDir.MINUS_U;

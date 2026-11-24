@@ -560,6 +560,7 @@ public final class StationBuildJob {
 		}
 		world.setBlockState(pos, wanted, original != null ? removalFlags(world.getBlockState(pos)) : Block.NOTIFY_ALL);
 		final BlockState after = world.getBlockState(pos);
+		StreetPaint.build(world, pos, op, after);
 		log.add(new UndoLog.Entry(pos, before, after, previousEntity), key(prepared));
 		done++;
 		if (op.kind() != WorldOp.Kind.CLEAR) {

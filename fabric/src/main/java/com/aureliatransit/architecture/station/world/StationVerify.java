@@ -82,7 +82,7 @@ public final class StationVerify {
 				continue;
 			}
 			loaded.add(chunk);
-			final Optional<Block> wanted = BlockStateResolver.block(block.blockId());
+			final Optional<Block> wanted = BlockStateResolver.block(StreetPaint.blockId(block.blockId(), block.state()));
 			final BlockState found = world.getBlockState(pos);
 			if (wanted.isEmpty()) {
 				differing++;
