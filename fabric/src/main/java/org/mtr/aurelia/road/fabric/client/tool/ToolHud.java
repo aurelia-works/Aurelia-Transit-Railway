@@ -184,7 +184,8 @@ public final class ToolHud {
             return;
         }
         // UI-1c: while Settings covers the panel's place (GUI scales 3 and 4), the panel and its messages hide.
-        Box place = new Box(graphics.getScaledWindowWidth() - MARGIN - WIDTH, MARGIN, WIDTH, HubScreen.top(graphics.getScaledWindowHeight()) - MARGIN);
+        Box place = new Box(graphics.getScaledWindowWidth() - MARGIN - WIDTH, MARGIN, WIDTH,
+                StrictMath.max(0, HubScreen.top(graphics.getScaledWindowHeight()) - MARGIN));
         if (minecraft.currentScreen instanceof HubScreen screen && screen.settingsArea().filter(place::overlaps).isPresent()) {
             return;
         }
