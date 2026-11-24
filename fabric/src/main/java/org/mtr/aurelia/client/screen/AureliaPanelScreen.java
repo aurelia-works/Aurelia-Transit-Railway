@@ -199,13 +199,11 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private int architectureFirst;
 	private static final int ARCHITECTURE_ROWS = 16;
 	private boolean hologramMore;
-	/** Vehicles tab: the colour picker paints the hire bikes instead of the cars. */
-	private boolean paintBikes;
 	private int drivingFirst;
 	private int engineFirst;
 	private int mapFirst;
-	private static final int MAP_ROWS = 11;
-	private static final int DRIVING_ROWS = 7;
+	private static final int MAP_ROWS = 7;
+	private static final int DRIVING_ROWS = 4;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
 	private static final int PASSENGER_ROWS = 17;
 
@@ -648,8 +646,8 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	}
 
 	/**
-	 * Road vehicles: on/off, the body colour (a picker, with a swatch beside the switch), size and top speed.
-	 * The server owns these, so speed, size and the switch apply to everyone. Operators and the single player host only.
+	 * Hire bikes: on/off, the bike colour (a picker, with a swatch beside the switch), size, top speed and bike share.
+	 * The server owns these, so they apply to everyone. Operators and the single player host only.
 	 */
 	private void initVehicles() {
 		final int left = columnLeft();
@@ -659,30 +657,20 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			b.setMessage(vehiclesEnabledLabel());
 		}).dimensions(left, top, BUTTON_WIDTH - VEHICLE_SWATCH - 4, 20).build()).active = mayEdit;
 		addDrawableChild(new ColourPickerWidget(left + 1, top + ROW + 1, BUTTON_WIDTH - 2, ROW * 2 - 6, vehicleColour(),
-				colour -> RoadVehicles.setClientSettings(withVehicleColour(colour)),
-				colour -> RoadVehicleClient.request(withVehicleColour(colour)))).active = mayEdit;
+				colour -> RoadVehicles.setClientSettings(RoadVehicles.settings(true).withBikeColour(colour)),
+				colour -> RoadVehicleClient.request(RoadVehicles.settings(true).withBikeColour(colour)))).active = mayEdit;
 		addDrawableChild(new RangeSlider(left, top + ROW * 3, RoadVehicleSettings.SIZE_MIN, RoadVehicleSettings.SIZE_MAX, 5, () -> RoadVehicles.settings(true).sizePercent(),
 				value -> RoadVehicleClient.request(RoadVehicles.settings(true).withSize((int) value)), value -> Text.translatable("gui.aurelia.vehicles.size", value.intValue()))).active = mayEdit;
 		addDrawableChild(new RangeSlider(left, top + ROW * 4, RoadVehicleSettings.SPEED_MIN, RoadVehicleSettings.SPEED_MAX, 5, () -> RoadVehicles.settings(true).maxSpeedKmh(),
 				value -> RoadVehicleClient.request(RoadVehicles.settings(true).withSpeed((int) value)), value -> Text.translatable("gui.aurelia.vehicles.speed", value.intValue()))).active = mayEdit;
-		// Bike share on/off, and which paint the picker above edits.
-		final int half = (BUTTON_WIDTH - 4) / 2;
 		addDrawableChild(ButtonWidget.builder(bikeShareLabel(), b -> {
 			RoadVehicleClient.request(RoadVehicles.settings(true).withBikeShare(!RoadVehicles.settings(true).bikeShare()));
 			b.setMessage(bikeShareLabel());
-		}).dimensions(left, top + ROW * 5, half, 20).build()).active = mayEdit;
-		addDrawableChild(ButtonWidget.builder(Text.translatable(paintBikes ? "gui.aurelia.vehicles.paint.bikes" : "gui.aurelia.vehicles.paint.cars"), b -> {
-			paintBikes = !paintBikes;
-			clearAndInit();
-		}).dimensions(left + half + 4, top + ROW * 5, BUTTON_WIDTH - half - 4, 20).build()).active = mayEdit;
+		}).dimensions(left, top + ROW * 5, BUTTON_WIDTH, 20).build()).active = mayEdit;
 	}
 
-	private int vehicleColour() {
-		return paintBikes ? RoadVehicles.settings(true).bikeColour() : RoadVehicles.settings(true).colour();
-	}
-
-	private RoadVehicleSettings withVehicleColour(int colour) {
-		return paintBikes ? RoadVehicles.settings(true).withBikeColour(colour) : RoadVehicles.settings(true).withColour(colour);
+	private static int vehicleColour() {
+		return RoadVehicles.settings(true).bikeColour();
 	}
 
 	private static Text bikeShareLabel() {
@@ -699,7 +687,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		final int colour = vehicleColour();
 		context.fill(x, top, x + VEHICLE_SWATCH, top + 20, 0xFFFFFFFF);
 		context.fill(x + 1, top + 1, x + VEHICLE_SWATCH - 1, top + 19, 0xFF000000 | colour);
-		final Text status = RoadVehicleClient.mayEdit(client) ? Text.translatable(paintBikes ? "gui.aurelia.vehicles.bike_colour" : "gui.aurelia.vehicles.colour", String.format("#%06X", colour)) : Text.translatable("gui.aurelia.vehicles.operators");
+		final Text status = RoadVehicleClient.mayEdit(client) ? Text.translatable("gui.aurelia.vehicles.bike_colour", String.format("#%06X", colour)) : Text.translatable("gui.aurelia.vehicles.operators");
 		context.drawCenteredTextWithShadow(textRenderer, status, centerX(), top - 12, RoadVehicleClient.mayEdit(client) ? 0xAAAAAA : 0xFF5555);
 	}
 
@@ -1307,7 +1295,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			return true;
 		}
 		if (tab == Tab.ENGINE) {
-			final int newFirstRow = Math.max(0, Math.min(org.mtr.mod.engine.EngineFeature.values().length - engineVisible(), engineFirst - (int) Math.signum(amount)));
+			final int newFirstRow = Math.max(0, Math.min(engineRows() - engineVisible(), engineFirst - (int) Math.signum(amount)));
 			if (newFirstRow != engineFirst) {
 				engineFirst = newFirstRow;
 				clearAndInit();
@@ -1402,7 +1390,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			case PASSENGERS -> scrollLine(context, passengerFirst, passengerVisible(), PASSENGER_ROWS);
 			case MAP -> scrollLine(context, mapFirst, visibleRows(), MAP_ROWS);
 			case ENGINE -> {
-				scrollLine(context, engineFirst, engineVisible(), org.mtr.mod.engine.EngineFeature.values().length);
+				scrollLine(context, engineFirst, engineVisible(), engineRows());
 				renderEngineLag(context);
 			}
 			default -> {
@@ -1456,8 +1444,8 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	}
 
 	/**
-	 * Driver aids: AWS, TPWS, the score line, the stop board, how long AWS waits for an acknowledgement, and the cab
-	 * HUD size. Rows read the same client config as the other tabs, so old configs keep their defaults.
+	 * Driver aids: AWS, TPWS, how long AWS waits for an acknowledgement, and the cab HUD size. Rows read the same client
+	 * config as the other tabs, so old configs keep their defaults.
 	 */
 	private void initDriving() {
 		drivingFirst = Math.max(0, Math.min(drivingFirst, DRIVING_ROWS - visibleRows()));
@@ -1475,82 +1463,41 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			}).dimensions(left, drivingY(1), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.tpws.tooltip")));
 		}
 		if (drivingRow(2)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.driving.score", ScreenTexts.onOrOff(config.getDrivingScoreHud())), b -> {
-				config.toggleDrivingScoreHud();
-				b.setMessage(Text.translatable("gui.aurelia.driving.score", ScreenTexts.onOrOff(config.getDrivingScoreHud())));
-			}).dimensions(left, drivingY(2), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.score.tooltip")));
-		}
-		if (drivingRow(3)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.driving.stop_marker", ScreenTexts.onOrOff(config.getDrivingStopMarker())), b -> {
-				config.toggleDrivingStopMarker();
-				b.setMessage(Text.translatable("gui.aurelia.driving.stop_marker", ScreenTexts.onOrOff(config.getDrivingStopMarker())));
-			}).dimensions(left, drivingY(3), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.stop_marker.tooltip")));
-		}
-		if (drivingRow(4)) {
-			addDrawableChild(new RangeSlider(left, drivingY(4), Client.DRIVING_AWS_SECONDS_MIN, Client.DRIVING_AWS_SECONDS_MAX, 0.5,
+			addDrawableChild(new RangeSlider(left, drivingY(2), Client.DRIVING_AWS_SECONDS_MIN, Client.DRIVING_AWS_SECONDS_MAX, 0.5,
 					config::getDrivingAwsSeconds, config::setDrivingAwsSeconds,
 					seconds -> Text.translatable("gui.aurelia.driving.aws_time", String.format("%.1f", seconds))))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.aws_time.tooltip")));
 		}
-		if (drivingRow(5)) {
-			addDrawableChild(new RangeSlider(left, drivingY(5), Client.DRIVING_HUD_SCALE_MIN * 100, Client.DRIVING_HUD_SCALE_MAX * 100, 5,
+		if (drivingRow(3)) {
+			addDrawableChild(new RangeSlider(left, drivingY(3), Client.DRIVING_HUD_SCALE_MIN * 100, Client.DRIVING_HUD_SCALE_MAX * 100, 5,
 					() -> config.getDrivingHudScale() * 100, percent -> config.setDrivingHudScale(percent / 100),
 					percent -> Text.translatable("gui.aurelia.driving.hud_size", percent.intValue())))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.hud_size.tooltip")));
 		}
-		if (drivingRow(6)) {
-			// the crew role lives on the server; the button asks for the next one and shows it at once
-			addDrawableChild(ButtonWidget.builder(crewRoleLabel(org.mtr.aurelia.crew.CrewClient.role()), b -> {
-				final org.mtr.aurelia.crew.CrewRole next = org.mtr.aurelia.crew.CrewClient.role().next();
-				if (client != null && client.player != null) {
-					client.player.networkHandler.sendChatCommand("atr_crew role " + next.id());
-				}
-				b.setMessage(crewRoleLabel(next));
-			}).dimensions(left, drivingY(6), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.crew.role.tooltip")));
-		}
 	}
 
-	private static Text crewRoleLabel(org.mtr.aurelia.crew.CrewRole role) {
-		return Text.translatable("gui.aurelia.crew.role.button", Text.translatable("gui.aurelia.crew.role." + role.id()));
-	}
-
-	/** The minimap and big map (key N): what shows, the minimap's size, zoom and corner, the rail colour, the scan rate. */
+	/** The big map (key N): what shows, the rail colour, the scan rate. */
 	private void initMap() {
 		mapFirst = Math.max(0, Math.min(mapFirst, MAP_ROWS - visibleRows()));
 		final int left = columnLeft();
-		mapToggle(left, 0, "gui.aurelia.map.minimap", MapSettings::minimap, MapSettings::toggleMinimap);
-		if (mapRow(1)) {
-			addDrawableChild(new RangeSlider(left, mapY(1), MapSettings.SIZE_MIN, MapSettings.SIZE_MAX, 4, MapSettings::size,
-					value -> MapSettings.setSize((int) value), value -> Text.translatable("gui.aurelia.map.size", value.intValue())));
-		}
-		if (mapRow(2)) {
-			addDrawableChild(new RangeSlider(left, mapY(2), MapSettings.ZOOM_MIN, MapSettings.ZOOM_MAX, 25, MapSettings::zoom,
-					value -> MapSettings.setZoom((int) value), value -> Text.translatable("gui.aurelia.map.zoom", String.format("%.2f", value / 100))));
-		}
-		if (mapRow(3)) {
-			addDrawableChild(ButtonWidget.builder(mapCorner(), b -> {
-				MapSettings.nextCorner();
-				b.setMessage(mapCorner());
-			}).dimensions(left, mapY(3), BUTTON_WIDTH, 20).build());
-		}
-		mapToggle(left, 4, "gui.aurelia.map.rails", MapSettings::rails, MapSettings::toggleRails);
-		mapToggle(left, 5, "gui.aurelia.map.stations", MapSettings::stations, MapSettings::toggleStations);
-		mapToggle(left, 6, "gui.aurelia.map.trains", MapSettings::trains, MapSettings::toggleTrains);
-		mapToggle(left, 7, "gui.aurelia.map.busy", MapSettings::busy, MapSettings::toggleBusy);
-		if (mapRow(8)) {
-			addDrawableChild(new RangeSlider(left, mapY(8), 0, MapSettings.HUE_MAX, 10, MapSettings::railHue,
+		mapToggle(left, 0, "gui.aurelia.map.rails", MapSettings::rails, MapSettings::toggleRails);
+		mapToggle(left, 1, "gui.aurelia.map.stations", MapSettings::stations, MapSettings::toggleStations);
+		mapToggle(left, 2, "gui.aurelia.map.trains", MapSettings::trains, MapSettings::toggleTrains);
+		mapToggle(left, 3, "gui.aurelia.map.busy", MapSettings::busy, MapSettings::toggleBusy);
+		if (mapRow(4)) {
+			addDrawableChild(new RangeSlider(left, mapY(4), 0, MapSettings.HUE_MAX, 10, MapSettings::railHue,
 					value -> MapSettings.setRailHue((int) value), value -> Text.translatable("gui.aurelia.map.rail_hue", value.intValue())));
 		}
-		if (mapRow(9)) {
-			addDrawableChild(new RangeSlider(left, mapY(9), MapSettings.SCAN_MIN, MapSettings.SCAN_MAX, 1, MapSettings::scanPerTick,
+		if (mapRow(5)) {
+			addDrawableChild(new RangeSlider(left, mapY(5), MapSettings.SCAN_MIN, MapSettings.SCAN_MAX, 1, MapSettings::scanPerTick,
 					value -> MapSettings.setScanPerTick((int) value), value -> Text.translatable("gui.aurelia.map.scan", value.intValue())))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.map.scan.tooltip")));
 		}
-		if (mapRow(10)) {
+		if (mapRow(6)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.map.open"), b -> {
 				close();
 				MapClient.open(client);
-			}).dimensions(left, mapY(10), BUTTON_WIDTH, 20).build()).active = MapClient.map() != null;
+			}).dimensions(left, mapY(6), BUTTON_WIDTH, 20).build()).active = MapClient.map() != null;
 		}
 	}
 
@@ -1563,10 +1510,6 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		}
 	}
 
-	private static Text mapCorner() {
-		return Text.translatable("gui.aurelia.map.corner", Text.translatable("gui.aurelia.map.corner." + MapSettings.corner().name().toLowerCase()));
-	}
-
 	private boolean mapRow(int row) {
 		return row >= mapFirst && row < mapFirst + visibleRows();
 	}
@@ -1575,10 +1518,10 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		return top + (row - mapFirst) * ROW;
 	}
 
-	/** One switch per engine feature. Only operators can change them; the server ignores anyone else. */
+	/** One switch per engine feature, then the signaller. Only operators can change them; the server ignores anyone else. */
 	private void initEngine() {
 		final org.mtr.mod.engine.EngineFeature[] features = org.mtr.mod.engine.EngineFeature.values();
-		engineFirst = Math.max(0, Math.min(engineFirst, features.length - engineVisible()));
+		engineFirst = Math.max(0, Math.min(engineFirst, engineRows() - engineVisible()));
 		final int left = columnLeft();
 		final boolean operator = client != null && client.player != null && client.player.hasPermissionLevel(2);
 		for (int row = engineFirst; row < Math.min(features.length, engineFirst + engineVisible()); row++) {
@@ -1591,6 +1534,18 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			button.setTooltip(Tooltip.of(Text.translatable(feature.langKey() + ".tooltip")));
 			button.active = operator;
 		}
+		final int signallerRow = features.length;
+		if (signallerRow >= engineFirst && signallerRow < engineFirst + engineVisible()) {
+			final ButtonWidget signaller = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.signaller.open"), b -> client.setScreen(new SignallerScreen(this)))
+					.dimensions(left, top + (signallerRow - engineFirst) * ROW, BUTTON_WIDTH, 20).build());
+			signaller.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.signaller.open.tooltip")));
+			signaller.active = operator;
+		}
+	}
+
+	/** The feature switches and the signaller button. */
+	private static int engineRows() {
+		return org.mtr.mod.engine.EngineFeature.values().length + 1;
 	}
 
 	/** Switch rows, leaving two lines under them for the lag readout. */
@@ -1600,7 +1555,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 
 	/** Under the switches: how long the engine takes per tick in this dimension, and how much of its time that is. */
 	private void renderEngineLag(DrawContext context) {
-		final int y = top + Math.min(org.mtr.mod.engine.EngineFeature.values().length, engineVisible()) * ROW + 4;
+		final int y = top + Math.min(engineRows(), engineVisible()) * ROW + 4;
 		if (client == null || client.player == null || !client.player.hasPermissionLevel(2)) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.engine.operators"), centerX(), y + 2, 0xAAAAAA);
 			return;

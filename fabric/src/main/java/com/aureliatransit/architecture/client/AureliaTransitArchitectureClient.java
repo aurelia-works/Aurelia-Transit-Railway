@@ -53,6 +53,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		WrenchSettings.load(FabricLoader.getInstance().getConfigDir());
 		initMenuEntries();
 		StationHologramRenderer.init();
+		org.mtr.aurelia.road.fabric.client.StratosClient.register();
 		for (final ModBlocks.Entry entry : ModBlocks.entries()) {
 			switch (entry.renderKind()) {
 				case CUTOUT -> BlockRenderLayerMap.INSTANCE.putBlock(entry.block(), RenderLayer.getCutout());

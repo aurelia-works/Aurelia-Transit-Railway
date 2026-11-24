@@ -1,0 +1,500 @@
+{
+  "variants": {
+    "layers=1": [
+      {
+        "model": "stratos:block/asphalt_0_h2"
+      },
+      {
+        "model": "stratos:block/asphalt_0_h2",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_0_h2",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_0_h2",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_1_h2"
+      },
+      {
+        "model": "stratos:block/asphalt_1_h2",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_1_h2",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_1_h2",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_2_h2"
+      },
+      {
+        "model": "stratos:block/asphalt_2_h2",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_2_h2",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_2_h2",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_3_h2"
+      },
+      {
+        "model": "stratos:block/asphalt_3_h2",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_3_h2",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_3_h2",
+        "y": 270
+      }
+    ],
+    "layers=2": [
+      {
+        "model": "stratos:block/asphalt_0_h4"
+      },
+      {
+        "model": "stratos:block/asphalt_0_h4",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_0_h4",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_0_h4",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_1_h4"
+      },
+      {
+        "model": "stratos:block/asphalt_1_h4",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_1_h4",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_1_h4",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_2_h4"
+      },
+      {
+        "model": "stratos:block/asphalt_2_h4",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_2_h4",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_2_h4",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_3_h4"
+      },
+      {
+        "model": "stratos:block/asphalt_3_h4",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_3_h4",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_3_h4",
+        "y": 270
+      }
+    ],
+    "layers=3": [
+      {
+        "model": "stratos:block/asphalt_0_h6"
+      },
+      {
+        "model": "stratos:block/asphalt_0_h6",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_0_h6",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_0_h6",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_1_h6"
+      },
+      {
+        "model": "stratos:block/asphalt_1_h6",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_1_h6",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_1_h6",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_2_h6"
+      },
+      {
+        "model": "stratos:block/asphalt_2_h6",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_2_h6",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_2_h6",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_3_h6"
+      },
+      {
+        "model": "stratos:block/asphalt_3_h6",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_3_h6",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_3_h6",
+        "y": 270
+      }
+    ],
+    "layers=4": [
+      {
+        "model": "stratos:block/asphalt_0_h8"
+      },
+      {
+        "model": "stratos:block/asphalt_0_h8",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_0_h8",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_0_h8",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_1_h8"
+      },
+      {
+        "model": "stratos:block/asphalt_1_h8",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_1_h8",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_1_h8",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_2_h8"
+      },
+      {
+        "model": "stratos:block/asphalt_2_h8",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_2_h8",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_2_h8",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_3_h8"
+      },
+      {
+        "model": "stratos:block/asphalt_3_h8",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_3_h8",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_3_h8",
+        "y": 270
+      }
+    ],
+    "layers=5": [
+      {
+        "model": "stratos:block/asphalt_0_h10"
+      },
+      {
+        "model": "stratos:block/asphalt_0_h10",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_0_h10",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_0_h10",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_1_h10"
+      },
+      {
+        "model": "stratos:block/asphalt_1_h10",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_1_h10",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_1_h10",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_2_h10"
+      },
+      {
+        "model": "stratos:block/asphalt_2_h10",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_2_h10",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_2_h10",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_3_h10"
+      },
+      {
+        "model": "stratos:block/asphalt_3_h10",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_3_h10",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_3_h10",
+        "y": 270
+      }
+    ],
+    "layers=6": [
+      {
+        "model": "stratos:block/asphalt_0_h12"
+      },
+      {
+        "model": "stratos:block/asphalt_0_h12",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_0_h12",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_0_h12",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_1_h12"
+      },
+      {
+        "model": "stratos:block/asphalt_1_h12",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_1_h12",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_1_h12",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_2_h12"
+      },
+      {
+        "model": "stratos:block/asphalt_2_h12",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_2_h12",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_2_h12",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_3_h12"
+      },
+      {
+        "model": "stratos:block/asphalt_3_h12",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_3_h12",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_3_h12",
+        "y": 270
+      }
+    ],
+    "layers=7": [
+      {
+        "model": "stratos:block/asphalt_0_h14"
+      },
+      {
+        "model": "stratos:block/asphalt_0_h14",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_0_h14",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_0_h14",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_1_h14"
+      },
+      {
+        "model": "stratos:block/asphalt_1_h14",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_1_h14",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_1_h14",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_2_h14"
+      },
+      {
+        "model": "stratos:block/asphalt_2_h14",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_2_h14",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_2_h14",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_3_h14"
+      },
+      {
+        "model": "stratos:block/asphalt_3_h14",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_3_h14",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_3_h14",
+        "y": 270
+      }
+    ],
+    "layers=8": [
+      {
+        "model": "stratos:block/asphalt_0_h16"
+      },
+      {
+        "model": "stratos:block/asphalt_0_h16",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_0_h16",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_0_h16",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_1_h16"
+      },
+      {
+        "model": "stratos:block/asphalt_1_h16",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_1_h16",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_1_h16",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_2_h16"
+      },
+      {
+        "model": "stratos:block/asphalt_2_h16",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_2_h16",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_2_h16",
+        "y": 270
+      },
+      {
+        "model": "stratos:block/asphalt_3_h16"
+      },
+      {
+        "model": "stratos:block/asphalt_3_h16",
+        "y": 90
+      },
+      {
+        "model": "stratos:block/asphalt_3_h16",
+        "y": 180
+      },
+      {
+        "model": "stratos:block/asphalt_3_h16",
+        "y": 270
+      }
+    ]
+  }
+}
