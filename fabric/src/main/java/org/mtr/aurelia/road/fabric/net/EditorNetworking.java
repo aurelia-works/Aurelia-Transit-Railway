@@ -33,6 +33,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import net.minecraft.world.border.WorldBorder;
+import org.mtr.aurelia.road.road.RoadPlanParams;
 import org.mtr.aurelia.road.CoreInfo;
 import org.mtr.aurelia.road.json.JsonFormatException;
 import org.mtr.aurelia.road.ops.WorldLimits;
@@ -61,6 +62,8 @@ import org.mtr.aurelia.road.fabric.palette.GamePalettes;
  *   <li><b>The rate and volume limits</b> (F-6) come from {@code config/aurelia/roads/server.json}, read when the server starts
  *       and written with the defaults if it isn't there. A file that doesn't read is logged and the defaults used.</li>
  *   <li>{@code Hello} lists the {@code track} capability when the server can build track ({@link SideEffects}, T-2).</li>
+ *   <li><b>The driving side</b> (P9) is the {@link DrivingSideRule} game rule, given to the server when it starts and
+ *       whenever an operator changes it.</li>
  * </ul>
  */
 public final class EditorNetworking {
@@ -76,6 +79,7 @@ public final class EditorNetworking {
 
     /** Hooks the channel and the server's lifecycle. Called once, from the mod initialiser. */
     public static void register() {
+        DrivingSideRule.register();
         ServerPlayNetworking.registerGlobalReceiver(StratosPacket.TYPE, (packet, player, sender) -> {
             if (server != null) {
                 try {
@@ -163,6 +167,15 @@ public final class EditorNetworking {
         }, finder);
         // UI-1c: the world's mark for Stratos blocks, kept in its aurelia_roads_meta record.
         server.stratosBlocks(ApplyService.stratosBlocks(minecraft), present -> ApplyService.stratosBlocks(minecraft, present));
+        // P9: the world's driving side, from its game rule.
+        trafficSide(DrivingSideRule.get(minecraft));
+    }
+
+    /** The world's driving side changed, or the server started (P9): players who can edit hear it. Server thread. */
+    static void trafficSide(RoadPlanParams.DrivingSide side) {
+        if (server != null) {
+            server.trafficSide(side == RoadPlanParams.DrivingSide.RHT);
+        }
     }
 
     /**

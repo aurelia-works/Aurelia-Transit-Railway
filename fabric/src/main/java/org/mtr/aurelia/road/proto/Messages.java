@@ -20,6 +20,7 @@ import org.mtr.aurelia.road.proto.Message.PlanRejected;
 import org.mtr.aurelia.road.proto.Message.PlanRequest;
 import org.mtr.aurelia.road.proto.Message.Redo;
 import org.mtr.aurelia.road.proto.Message.StratosBlocks;
+import org.mtr.aurelia.road.proto.Message.TrafficSide;
 import org.mtr.aurelia.road.proto.Message.TaskProgress;
 import org.mtr.aurelia.road.proto.Message.TaskRequest;
 import org.mtr.aurelia.road.proto.Message.TaskResult;
@@ -92,6 +93,8 @@ public final class Messages {
                     .stringMap(result.args(), Message.MAX_ARGS, Message.MAX_NAME_BYTES, Message.MAX_ARG_BYTES);
         } else if (message instanceof StratosBlocks blocks) {
             out.bool(blocks.present());
+        } else if (message instanceof TrafficSide side) {
+            out.bool(side.rightHand());
         } else {
             throw new IllegalArgumentException("Unknown message " + message);
         }
@@ -140,6 +143,7 @@ public final class Messages {
                 case 22 -> new TaskResult(in.nonNegative("requestId"), in.bool(), in.optionalString(Message.MAX_NAME_BYTES, "reasonCode"),
                         in.stringMap(Message.MAX_ARGS, Message.MAX_NAME_BYTES, Message.MAX_ARG_BYTES, "args"));
                 case 23 -> new StratosBlocks(in.bool());
+                case 24 -> new TrafficSide(in.bool());
                 default -> throw new MalformedMessage("unknown message id " + id);
             };
         } catch (IllegalArgumentException e) {
