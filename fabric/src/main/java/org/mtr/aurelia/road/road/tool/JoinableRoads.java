@@ -48,6 +48,10 @@ public final class JoinableRoads {
     private final Supplier<List<PlacedRoads.Road>> roads;
     /** R-10+: the road being edited, which is among the roads but can't be joined (empty when drawing a new road). */
     private final Optional<UUID> editing;
+    /** The roads {@link #graph} was last built from (the node aids keep each road's object while it stands). */
+    private List<PlacedRoads.Road> graphOf = List.of();
+    /** The road graph of {@link #graphOf}, built when the roads listed change, not on every aim (council r4). */
+    private RoadGraph graph = RoadGraph.EMPTY;
 
     /** The roads {@code roads} lists, newest first, asked each time. */
     public JoinableRoads(Supplier<List<PlacedRoads.Road>> roads) {
@@ -125,13 +129,12 @@ public final class JoinableRoads {
      * within {@link #HEIGHT} of its height.
      */
     public Optional<Join> near(int x, int y, int z) {
+        List<PlacedRoads.Road> listed = this.roads.get();
         Map<UUID, PlacedRoads.Road> roads = new LinkedHashMap<>();
-        for (PlacedRoads.Road road : this.roads.get()) {
+        for (PlacedRoads.Road road : listed) {
             roads.putIfAbsent(road.operationId(), road);
         }
-        Map<UUID, RoadPlanParams> standing = new LinkedHashMap<>();
-        roads.forEach((id, road) -> standing.put(id, road.params()));
-        RoadGraph graph = RoadGraph.of(standing); // G-10: its chunk index finds the ends nearby
+        RoadGraph graph = graph(listed, roads); // G-10: its chunk index finds the ends nearby
         Join best = null;
         double bestDistance = RADIUS;
         for (RoadGraph.Port near : graph.portsNear(x, z, RADIUS)) { // newest road first, so the newest wins a tie
@@ -152,6 +155,19 @@ public final class JoinableRoads {
             }
         }
         return Optional.ofNullable(best);
+    }
+
+    /** The road graph of the roads {@code listed} ({@code roads} by id), the last one built while they are the same roads. */
+    private RoadGraph graph(List<PlacedRoads.Road> listed, Map<UUID, PlacedRoads.Road> roads) {
+        if (!listed.equals(this.graphOf)) { // a road's object is its identity: placed, undone or rebuilt, it is another
+            Map<UUID, RoadPlanParams> standing = new LinkedHashMap<>();
+            for (Map.Entry<UUID, PlacedRoads.Road> road : roads.entrySet()) {
+                standing.put(road.getKey(), road.getValue().params());
+            }
+            this.graph = RoadGraph.of(standing);
+            this.graphOf = List.copyOf(listed);
+        }
+        return this.graph;
     }
 
     /** The layout (profile id) of the road with operation {@code road}, if it can be joined. */

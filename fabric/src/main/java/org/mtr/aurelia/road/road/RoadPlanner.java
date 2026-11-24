@@ -270,6 +270,7 @@ public final class RoadPlanner {
             if (joins.isPresent()) {
                 return joins.get();
             }
+            params = params.withDashes(RoadJoins.settledDashes(params, placed, incoming)); // the server's, not the client's
         }
         boolean mtrNodes = params.nodeAids() == RoadPlanParams.NodeAids.PREORIENTED || params.nodeAids() == RoadPlanParams.NodeAids.TRACK;
         if (!clearing && mtrNodes && !limits.hasBlock(MtrNodes.BLOCK)) {
@@ -334,15 +335,16 @@ public final class RoadPlanner {
             if (!rebuild) {
                 return refused(ROAD_CHANGED, Map.of());
             }
-            RoadPlanParams edited = params.road();
             List<RoadJoins.Incoming> incoming = RoadJoins.incoming(id, placed);
+            Map<UUID, RoadPlanParams> others = new LinkedHashMap<>(placed);
+            others.remove(id); // the road can't join itself
+            // Council r4: the server's dashes, not the client's, before the joins are checked against them.
+            RoadPlanParams edited = params.road().withDashes(RoadJoins.settledDashes(params.road(), others, incoming));
             for (RoadJoins.Incoming in : incoming) { // R-10+: the roads joined to it keep their joins
                 if (!RoadJoins.stillJoins(in, id, edited, placed)) {
                     return refused(ROAD_JOINED, Map.of());
                 }
             }
-            Map<UUID, RoadPlanParams> others = new LinkedHashMap<>(placed);
-            others.remove(id); // the road can't join itself
             return compute(edited, limits, wantShape, others, true, incoming);
         }
         Outcome asPlaced = compute(params.road(), limits, wantShape, Map.of(), false);
@@ -555,6 +557,30 @@ public final class RoadPlanner {
         RoadProfile profile = RoadProfiles.byId(params.profileId()).orElseThrow();
         RoadSolution solution = RoadSolver.solve(profile, params.preset(), params.vertical(), params.ends().get(0), params.ends().get(1));
         return solution instanceof RoadSolution.Solved solved ? Optional.of(LaneNodes.of(solved.pieces())) : Optional.empty();
+    }
+
+    /**
+     * The request {@code params} as the server records it, with the roads standing among {@code placed} (council r4): a
+     * new road, or a rebuild that changes the road, takes the dashes its joins call for ({@link RoadJoins#settledDashes}),
+     * the same ones {@link #plan} plans it with. Anything else, a rebuild that leaves the road as placed among them, is
+     * returned as it is.
+     */
+    public static RoadPlanParams settled(RoadPlanParams params, Map<UUID, RoadPlanParams> placed) {
+        RoadPlanParams.Tool tool = params.tool();
+        if ((tool == RoadPlanParams.Tool.STRAIGHT || tool == RoadPlanParams.Tool.CURVE) && params.ends().size() == 2) {
+            return params.withDashes(RoadJoins.settledDashes(params, placed, List.of()));
+        }
+        if (tool != RoadPlanParams.Tool.REBUILD || params.targetRoadId().isEmpty()) {
+            return params;
+        }
+        UUID id = params.targetRoadId().get();
+        RoadPlanParams road = placed.get(id);
+        if (road == null || road.road().equals(params.withPalette(road.paletteId()).road()) || params.ends().size() != 2) {
+            return params; // gone (refused), or as placed: it keeps its recorded dashes
+        }
+        Map<UUID, RoadPlanParams> others = new LinkedHashMap<>(placed);
+        others.remove(id);
+        return params.withDashes(RoadJoins.settledDashes(params.road(), others, RoadJoins.incoming(id, placed)));
     }
 
     /** Why {@code params} are refused before any geometry is looked at, or null. */
