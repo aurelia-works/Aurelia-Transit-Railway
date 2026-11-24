@@ -88,8 +88,8 @@ public abstract class JunctionPriorityMixin {
 		for (int i = currentIndex; i < path.size() && atr$overlaps(path.get(i).getSignalColors(), signalColors); i++) {
 			blockRails.add(path.get(i).getRail());
 		}
-		final int front = Utilities.getIndexFromConditionalList(path, railProgress);
-		final Rail ownRail = front >= 0 && front < path.size() ? path.get(front).getRail() : null;
+		final int occupied = Utilities.getIndexFromConditionalList(path, GiveWay.occupiedProgress(railProgress));
+		final Rail ownRail = occupied >= 0 && occupied < path.size() ? path.get(occupied).getRail() : null;
 		final long now = System.currentTimeMillis();
 		final boolean claimed = JunctionPriority.claimedByOther(vehicle.getId(), blockRails, ownRail, now);
 		if (atr$giveWay.hold(currentIndex, path.get(currentIndex).getStartDistance() - railProgress, stoppingDistance, claimed, now)) {

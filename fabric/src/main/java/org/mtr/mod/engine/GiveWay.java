@@ -11,10 +11,25 @@ public final class GiveWay {
 
 	/** A gap longer than this between two give-ways starts a new wait, so the cap counts one junction at a time. */
 	public static final long NEW_WAIT_GAP_MILLIS = 5_000;
+	/**
+	 * A moving train starts giving way only while at least this share of its normal stopping distance remains before the
+	 * signal. With the engine's 8 m look-ahead past {@code stoppingMeters}, the latch window
+	 * {@code (0.5 * stoppingMeters, stoppingMeters + 8)} is wider than a 1000 ms step at every speed.
+	 */
+	public static final double STOP_COMMIT_FRACTION = 0.5;
 
 	private int signalIndex = -1;
 	private long since;
 	private long last;
+
+	/**
+	 * The progress of the rail the train's front actually occupies. When a train stops at a signal at the start of
+	 * segment {@code i}, its {@code railProgress} equals segment {@code i}'s {@code startDistance}, while the train
+	 * itself stands on segment {@code i - 1} behind the signal (matching {@code Vehicle.writeVehiclePositions}).
+	 */
+	public static double occupiedProgress(double railProgress) {
+		return Math.max(0.0, railProgress - 0.01);
+	}
 
 	/**
 	 * @param signalIndex    the path index of the signal the engine asks about
@@ -27,8 +42,9 @@ public final class GiveWay {
 		// the engine asks about every signal from the train's front onwards, so only an answer about the signal the
 		// train is waiting at ends the wait
 		final boolean waiting = signalIndex == this.signalIndex && now - last <= NEW_WAIT_GAP_MILLIS;
-		if (!claimed || !waiting && metersToSignal <= stoppingMeters + 1) {
-			// too close to stop: as on a real railway, a signal is never put back in front of a train
+		// too close to stop: as on a real railway, a signal is never put back in front of a train
+		final boolean tooCloseToStop = metersToSignal < 0 || !waiting && stoppingMeters > 0 && metersToSignal <= STOP_COMMIT_FRACTION * stoppingMeters;
+		if (!claimed || tooCloseToStop) {
 			if (waiting) {
 				this.signalIndex = -1;
 			}
