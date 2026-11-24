@@ -10,6 +10,7 @@ import org.mtr.core.data.TransportMode;
 import org.mtr.core.tool.Angle;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.mod.passenger.PassengerNetwork;
+import org.mtr.mod.passenger.PassengerRouteCache;
 import org.mtr.mod.passenger.PassengerRoutes;
 import org.mtr.mod.passenger.PassengerService;
 
@@ -156,5 +157,37 @@ public final class PassengerNetworkTest {
 		}
 		Assertions.assertEquals(0, network.waitingAt(platformB2));
 		Assertions.assertEquals(0, network.total());
+	}
+
+	/**
+	 * The route table is worked out again only when the routes change, and the slow search for changes runs off the
+	 * simulation thread: until it is ready, passengers use the direct trains.
+	 */
+	@Test
+	public void routeTableIsOnlyRebuiltWhenRoutesChange() {
+		final Map<Long, Long> stationOfPlatform = Map.of(PLATFORM_A, A, PLATFORM_B, B, 22L, B, PLATFORM_C, C);
+		final Map<Long, long[]> direct = Map.of(PLATFORM_A, new long[]{B}, 22L, new long[]{C});
+		final java.util.List<Runnable> background = new java.util.ArrayList<>();
+		final PassengerRouteCache cache = new PassengerRouteCache(background::add);
+
+		final PassengerRoutes first = cache.get(stationOfPlatform, direct, PassengerRoutes.MAX_CHANGES);
+		Assertions.assertFalse(Arrays.stream(first.destinations(PLATFORM_A)).anyMatch(station -> station == C), "direct trains only until the search is done");
+		Assertions.assertEquals(1, background.size(), "the search for changes runs in the background");
+		Assertions.assertSame(first, cache.get(Map.copyOf(stationOfPlatform), Map.of(PLATFORM_A, new long[]{B}, 22L, new long[]{C}), PassengerRoutes.MAX_CHANGES), "same routes: no new search and no new table");
+		Assertions.assertEquals(1, background.size());
+
+		background.remove(0).run();
+		final PassengerRoutes full = cache.get(stationOfPlatform, direct, PassengerRoutes.MAX_CHANGES);
+		Assertions.assertTrue(Arrays.stream(full.destinations(PLATFORM_A)).anyMatch(station -> station == C), "changing at B reaches C once the search is done");
+		Assertions.assertSame(full, cache.get(stationOfPlatform, direct, PassengerRoutes.MAX_CHANGES));
+		Assertions.assertTrue(background.isEmpty());
+
+		final PassengerRoutes changed = cache.get(stationOfPlatform, Map.of(PLATFORM_A, new long[]{B}), PassengerRoutes.MAX_CHANGES);
+		Assertions.assertNotSame(full, changed, "a changed route builds a new table");
+		Assertions.assertEquals(1, background.size());
+		final PassengerRoutes off = cache.get(stationOfPlatform, direct, 0);
+		Assertions.assertFalse(Arrays.stream(off.destinations(PLATFORM_A)).anyMatch(station -> station == C), "changing switched off");
+		background.remove(0).run();
+		Assertions.assertSame(off, cache.get(stationOfPlatform, direct, 0), "an older search finishing late is thrown away");
 	}
 }
