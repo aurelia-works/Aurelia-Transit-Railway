@@ -5,14 +5,12 @@ import com.aureliatransit.architecture.wayfinding.ServiceMessageState;
 import com.aureliatransit.architecture.wayfinding.ServiceMessageSync;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
-import org.mtr.core.Main;
 import org.mtr.core.data.Depot;
 import org.mtr.core.data.Route;
 import org.mtr.core.simulation.Simulator;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectImmutableList;
-import org.mtr.mod.Init;
+import org.mtr.mod.engine.MtrSimulators;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +25,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class DepotSuspension {
 
 	private static final Map<Long, Snapshot> PAUSED = new ConcurrentHashMap<>();
-	/** Route name keys the map layer should draw as suspended. Updated on the server tick. */
-	private static volatile List<String> suspendedNames = List.of();
+	/** The holds the map layer draws as suspended. Updated on the server tick when the saved holds change. */
+	private static volatile List<RouteHold> suspended = List.of();
+	/** The saved holds last seen. ServiceMessageState replaces its list on every change, so a new list is a change. */
+	private static List<RouteHold> lastHolds = List.of();
 
 	private DepotSuspension() {
 	}
@@ -42,12 +42,8 @@ public final class DepotSuspension {
 		return PAUSED.containsKey(depotId);
 	}
 
-	public static List<String> suspendedNames() {
-		return suspendedNames;
-	}
-
 	public static boolean suspended(String routeName) {
-		return RouteHold.affects(suspendedNames.stream().map(name -> new RouteHold(1, name, Long.MAX_VALUE)).toList(), routeName, 0);
+		return RouteHold.affects(suspended, routeName, 0);
 	}
 
 	private static void tick(MinecraftServer server) {
@@ -56,10 +52,17 @@ public final class DepotSuspension {
 			ServiceMessageSync.broadcast(server, state.messages());
 		}
 		final List<RouteHold> holds = state.holds();
-		final List<String> names = new ArrayList<>();
-		holds.forEach(hold -> names.add(hold.route()));
-		suspendedNames = List.copyOf(names);
-		final ObjectImmutableList<Simulator> simulators = simulators();
+		if (holds != lastHolds) {
+			lastHolds = holds;
+			final List<RouteHold> forMap = new ArrayList<>(holds.size());
+			holds.forEach(hold -> forMap.add(new RouteHold(1, hold.route(), Long.MAX_VALUE)));
+			suspended = List.copyOf(forMap);
+		}
+		// nothing held and nothing to restore: no work for the simulation threads, which this used to queue every tick
+		if (holds.isEmpty() && PAUSED.isEmpty()) {
+			return;
+		}
+		final ObjectImmutableList<Simulator> simulators = MtrSimulators.get();
 		if (simulators == null) {
 			return;
 		}
@@ -91,23 +94,6 @@ public final class DepotSuspension {
 				}
 			}
 		});
-	}
-
-	@SuppressWarnings("unchecked")
-	private static ObjectImmutableList<Simulator> simulators() {
-		try {
-			final Field mainField = Init.class.getDeclaredField("main");
-			mainField.setAccessible(true);
-			final Main main = (Main) mainField.get(null);
-			if (main == null) {
-				return null;
-			}
-			final Field field = Main.class.getDeclaredField("simulators");
-			field.setAccessible(true);
-			return (ObjectImmutableList<Simulator>) field.get(main);
-		} catch (ReflectiveOperationException e) {
-			return null;
-		}
 	}
 
 	private record Snapshot(boolean realtime, List<Long> departures, int[] frequencies) {

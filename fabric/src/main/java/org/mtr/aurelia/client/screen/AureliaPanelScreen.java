@@ -203,8 +203,8 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private int drivingFirst;
 	private int engineFirst;
 	private int mapFirst;
-	private static final int MAP_ROWS = 11;
-	private static final int DRIVING_ROWS = 7;
+	private static final int MAP_ROWS = 7;
+	private static final int DRIVING_ROWS = 4;
 	/** Server caps, then this client's drawing switches. The tab scrolls when the window is short. */
 	private static final int PASSENGER_ROWS = 17;
 
@@ -1455,8 +1455,8 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	}
 
 	/**
-	 * Driver aids: AWS, TPWS, the score line, the stop board, how long AWS waits for an acknowledgement, and the cab
-	 * HUD size. Rows read the same client config as the other tabs, so old configs keep their defaults.
+	 * Driver aids: AWS, TPWS, how long AWS waits for an acknowledgement, and the cab HUD size. Rows read the same client
+	 * config as the other tabs, so old configs keep their defaults.
 	 */
 	private void initDriving() {
 		drivingFirst = Math.max(0, Math.min(drivingFirst, DRIVING_ROWS - visibleRows()));
@@ -1474,82 +1474,41 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			}).dimensions(left, drivingY(1), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.tpws.tooltip")));
 		}
 		if (drivingRow(2)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.driving.score", ScreenTexts.onOrOff(config.getDrivingScoreHud())), b -> {
-				config.toggleDrivingScoreHud();
-				b.setMessage(Text.translatable("gui.aurelia.driving.score", ScreenTexts.onOrOff(config.getDrivingScoreHud())));
-			}).dimensions(left, drivingY(2), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.score.tooltip")));
-		}
-		if (drivingRow(3)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.driving.stop_marker", ScreenTexts.onOrOff(config.getDrivingStopMarker())), b -> {
-				config.toggleDrivingStopMarker();
-				b.setMessage(Text.translatable("gui.aurelia.driving.stop_marker", ScreenTexts.onOrOff(config.getDrivingStopMarker())));
-			}).dimensions(left, drivingY(3), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.stop_marker.tooltip")));
-		}
-		if (drivingRow(4)) {
-			addDrawableChild(new RangeSlider(left, drivingY(4), Client.DRIVING_AWS_SECONDS_MIN, Client.DRIVING_AWS_SECONDS_MAX, 0.5,
+			addDrawableChild(new RangeSlider(left, drivingY(2), Client.DRIVING_AWS_SECONDS_MIN, Client.DRIVING_AWS_SECONDS_MAX, 0.5,
 					config::getDrivingAwsSeconds, config::setDrivingAwsSeconds,
 					seconds -> Text.translatable("gui.aurelia.driving.aws_time", String.format("%.1f", seconds))))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.aws_time.tooltip")));
 		}
-		if (drivingRow(5)) {
-			addDrawableChild(new RangeSlider(left, drivingY(5), Client.DRIVING_HUD_SCALE_MIN * 100, Client.DRIVING_HUD_SCALE_MAX * 100, 5,
+		if (drivingRow(3)) {
+			addDrawableChild(new RangeSlider(left, drivingY(3), Client.DRIVING_HUD_SCALE_MIN * 100, Client.DRIVING_HUD_SCALE_MAX * 100, 5,
 					() -> config.getDrivingHudScale() * 100, percent -> config.setDrivingHudScale(percent / 100),
 					percent -> Text.translatable("gui.aurelia.driving.hud_size", percent.intValue())))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.driving.hud_size.tooltip")));
 		}
-		if (drivingRow(6)) {
-			// the crew role lives on the server; the button asks for the next one and shows it at once
-			addDrawableChild(ButtonWidget.builder(crewRoleLabel(org.mtr.aurelia.crew.CrewClient.role()), b -> {
-				final org.mtr.aurelia.crew.CrewRole next = org.mtr.aurelia.crew.CrewClient.role().next();
-				if (client != null && client.player != null) {
-					client.player.networkHandler.sendChatCommand("atr_crew role " + next.id());
-				}
-				b.setMessage(crewRoleLabel(next));
-			}).dimensions(left, drivingY(6), BUTTON_WIDTH, 20).build()).setTooltip(Tooltip.of(Text.translatable("gui.aurelia.crew.role.tooltip")));
-		}
 	}
 
-	private static Text crewRoleLabel(org.mtr.aurelia.crew.CrewRole role) {
-		return Text.translatable("gui.aurelia.crew.role.button", Text.translatable("gui.aurelia.crew.role." + role.id()));
-	}
-
-	/** The minimap and big map (key N): what shows, the minimap's size, zoom and corner, the rail colour, the scan rate. */
+	/** The big map (key N): what shows, the rail colour, the scan rate. */
 	private void initMap() {
 		mapFirst = Math.max(0, Math.min(mapFirst, MAP_ROWS - visibleRows()));
 		final int left = columnLeft();
-		mapToggle(left, 0, "gui.aurelia.map.minimap", MapSettings::minimap, MapSettings::toggleMinimap);
-		if (mapRow(1)) {
-			addDrawableChild(new RangeSlider(left, mapY(1), MapSettings.SIZE_MIN, MapSettings.SIZE_MAX, 4, MapSettings::size,
-					value -> MapSettings.setSize((int) value), value -> Text.translatable("gui.aurelia.map.size", value.intValue())));
-		}
-		if (mapRow(2)) {
-			addDrawableChild(new RangeSlider(left, mapY(2), MapSettings.ZOOM_MIN, MapSettings.ZOOM_MAX, 25, MapSettings::zoom,
-					value -> MapSettings.setZoom((int) value), value -> Text.translatable("gui.aurelia.map.zoom", String.format("%.2f", value / 100))));
-		}
-		if (mapRow(3)) {
-			addDrawableChild(ButtonWidget.builder(mapCorner(), b -> {
-				MapSettings.nextCorner();
-				b.setMessage(mapCorner());
-			}).dimensions(left, mapY(3), BUTTON_WIDTH, 20).build());
-		}
-		mapToggle(left, 4, "gui.aurelia.map.rails", MapSettings::rails, MapSettings::toggleRails);
-		mapToggle(left, 5, "gui.aurelia.map.stations", MapSettings::stations, MapSettings::toggleStations);
-		mapToggle(left, 6, "gui.aurelia.map.trains", MapSettings::trains, MapSettings::toggleTrains);
-		mapToggle(left, 7, "gui.aurelia.map.busy", MapSettings::busy, MapSettings::toggleBusy);
-		if (mapRow(8)) {
-			addDrawableChild(new RangeSlider(left, mapY(8), 0, MapSettings.HUE_MAX, 10, MapSettings::railHue,
+		mapToggle(left, 0, "gui.aurelia.map.rails", MapSettings::rails, MapSettings::toggleRails);
+		mapToggle(left, 1, "gui.aurelia.map.stations", MapSettings::stations, MapSettings::toggleStations);
+		mapToggle(left, 2, "gui.aurelia.map.trains", MapSettings::trains, MapSettings::toggleTrains);
+		mapToggle(left, 3, "gui.aurelia.map.busy", MapSettings::busy, MapSettings::toggleBusy);
+		if (mapRow(4)) {
+			addDrawableChild(new RangeSlider(left, mapY(4), 0, MapSettings.HUE_MAX, 10, MapSettings::railHue,
 					value -> MapSettings.setRailHue((int) value), value -> Text.translatable("gui.aurelia.map.rail_hue", value.intValue())));
 		}
-		if (mapRow(9)) {
-			addDrawableChild(new RangeSlider(left, mapY(9), MapSettings.SCAN_MIN, MapSettings.SCAN_MAX, 1, MapSettings::scanPerTick,
+		if (mapRow(5)) {
+			addDrawableChild(new RangeSlider(left, mapY(5), MapSettings.SCAN_MIN, MapSettings.SCAN_MAX, 1, MapSettings::scanPerTick,
 					value -> MapSettings.setScanPerTick((int) value), value -> Text.translatable("gui.aurelia.map.scan", value.intValue())))
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.map.scan.tooltip")));
 		}
-		if (mapRow(10)) {
+		if (mapRow(6)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.map.open"), b -> {
 				close();
 				MapClient.open(client);
-			}).dimensions(left, mapY(10), BUTTON_WIDTH, 20).build()).active = MapClient.map() != null;
+			}).dimensions(left, mapY(6), BUTTON_WIDTH, 20).build()).active = MapClient.map() != null;
 		}
 	}
 
@@ -1560,10 +1519,6 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 				b.setMessage(Text.translatable(key, ScreenTexts.onOrOff(get.getAsBoolean())));
 			}).dimensions(left, mapY(row), BUTTON_WIDTH, 20).build());
 		}
-	}
-
-	private static Text mapCorner() {
-		return Text.translatable("gui.aurelia.map.corner", Text.translatable("gui.aurelia.map.corner." + MapSettings.corner().name().toLowerCase()));
 	}
 
 	private boolean mapRow(int row) {
