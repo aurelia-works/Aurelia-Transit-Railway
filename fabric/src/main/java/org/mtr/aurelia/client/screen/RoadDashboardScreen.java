@@ -639,7 +639,7 @@ public final class RoadDashboardScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		final int mapW = Math.max(1, width - PANEL_WIDTH);
-		MapView.draw(context, PANEL_WIDTH, 0, mapW, height, camera, true);
+		MapView.draw(context, PANEL_WIDTH, 0, mapW, height, camera);
 		drawMapOverlays(context, PANEL_WIDTH, 0, mapW, height);
 
 		// Left panel background matching DashboardScreen + AureliaDashboardMixin
