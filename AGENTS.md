@@ -2,6 +2,8 @@
 
 Read by Claude Code (through `CLAUDE.md`), Codex, Gemini and other agents.
 
+Roles, handoffs and the paths that need Jahmeer's permission: [TEAM.md](TEAM.md).
+
 A fork of Minecraft Transit Railway 4.0.5 for Fabric 1.20.1. The mod id stays `mtr`, so MTR add-ons and worlds must keep working. The plan and what is open: `PLAN.md`.
 
 ## Commands
