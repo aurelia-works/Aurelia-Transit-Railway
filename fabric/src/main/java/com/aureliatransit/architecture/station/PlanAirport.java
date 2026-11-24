@@ -1497,8 +1497,12 @@ abstract class PlanAirport extends PlanFitOut {
 	/**
 	 * The terminal hall ({@link TerminalBuilding}), then the name over the entrance, departures boards on the columns,
 	 * check-in counters with bag drops and queue posts, kiosks and trolleys by the door, a security line, a baggage hall,
-	 * and at every gate a desk, its number over the door and rows of linked seats. The gate doors are openings the boarding
-	 * bridges floor afterwards. The security and gate blocks are Null's (10-26).
+	 * and at every gate a desk, its number over the door and rows of linked seats, with airside shops between the gates. The
+	 * gate doors are openings the boarding bridges floor afterwards. The security and gate blocks are Null's (10-26).
+	 * <p>
+	 * In walking order (AF): departures go from the door through the check-in hall on the landside, the security line across
+	 * the hall, past the airside shops to the gate lounges; arrivals come back along the airside, through the security line's
+	 * exit by the far end wall into the baggage hall, and out on the landside.
 	 */
 	void terminal() {
 		TerminalBuilding.planned(this);
@@ -1563,6 +1567,58 @@ abstract class PlanAirport extends PlanFitOut {
 			}
 			put(Role.BIN, u1 - 2, StationGeometry.WALK_Y, c + off + 4, LocalDir.PLUS_U);
 		}
+		airsideShops(security);
+	}
+
+	/** A shop's length along the airside wall: its two end walls and a glazed front with a door in the middle. */
+	static final int AIRSIDE_SHOP_MIN = 6;
+	static final int AIRSIDE_SHOP_MAX = 10;
+
+	/**
+	 * Airside shops (AF): between each two gate lounges, a shop unit against the airside wall, its front to the security line,
+	 * so the walk from security to a gate passes them. A row clear of the lounge's seats and bin on each side, a corridor at
+	 * least two wide left between the shop fronts and the security line, and only where every cell is free, so a column or
+	 * anything planned before stays as it is and the arrivals' walk back to the security exit stays open.
+	 */
+	void airsideShops(int security) {
+		final int u1 = air.terminalU1();
+		final int uMin = Math.max(u1 - 4, security + 5);
+		if (u1 - 1 - uMin + 1 < 3) {
+			return;
+		}
+		final int off = air.dims().standPitch() / 4;
+		final List<Integer> stands = air.standV();
+		int shop = 0;
+		for (int i = 0; i + 1 < stands.size(); i++) {
+			final int from = air.bridgeV(stands.get(i)) + off + 6;
+			final int to = air.bridgeV(stands.get(i + 1)) - off - 5;
+			final int length = Math.min(AIRSIDE_SHOP_MAX, to - from + 1);
+			if (length < AIRSIDE_SHOP_MIN) {
+				continue;
+			}
+			final int vMin = (from + to - length + 1) / 2;
+			final int vMax = vMin + length - 1;
+			if (!airsideShopFree(uMin, u1 - 1, vMin, vMax)) {
+				continue;
+			}
+			shopUnit(new ConcourseFit.Unit(ConcourseFit.Kind.SHOP, uMin, vMin, u1 - 1, vMax, LocalDir.MINUS_U), StationGeometry.WALK_Y,
+					SHOPS.get(shop % SHOPS.size()), false, palette.building());
+			shop++;
+		}
+	}
+
+	/** True when a shop unit's cells, and the row in front of it where its name hangs, are all free. */
+	private boolean airsideShopFree(int u0, int u1, int v0, int v1) {
+		for (int v = v0; v <= v1; v++) {
+			for (int u = u0 - 1; u <= u1; u++) {
+				for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 3; y++) {
+					if (taken(u, y, v)) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
 	}
 
 	/**
