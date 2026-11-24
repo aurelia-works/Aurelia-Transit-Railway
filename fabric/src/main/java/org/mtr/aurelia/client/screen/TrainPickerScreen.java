@@ -198,10 +198,10 @@ public final class TrainPickerScreen extends Screen {
 	/** A family's row: its name, how many cars it holds, and an arrow that shows whether it is open. */
 	private void renderFamilyRow(DrawContext context, Row row, int x, int rowY, int w, boolean hovered) {
 		final boolean open = OPEN_FAMILIES.contains(row.family);
-		AureliaChrome.rounded(context, x, rowY, w, ROW_HEIGHT - 2, 5, hovered ? AureliaPalette.RAISED_HOVER : AureliaPalette.SURFACE);
-		AureliaChrome.roundedFrame(context, x, rowY, w, ROW_HEIGHT - 2, 5, AureliaPalette.LINE);
+		AureliaChrome.rounded(context, x, rowY, w, ROW_HEIGHT - 2, 5, hovered ? AureliaPalette.RAISED_HOVER : AureliaPalette.RAISED);
+		AureliaChrome.roundedFrame(context, x, rowY, w, ROW_HEIGHT - 2, 5, AureliaPalette.BORDER);
 		chevron(context, x + 6, rowY + 7, open);
-		final String count = String.valueOf(row.count);
+		final String count = row.count;
 		final int countWidth = textRenderer.getWidth(count);
 		context.drawText(textRenderer, ellipsis(row.label, w - 28 - countWidth), x + 16, rowY + 7, AureliaPalette.FG, false);
 		context.drawText(textRenderer, count, x + w - 8 - countWidth, rowY + 7, AureliaPalette.TEXT_DIM, false);
@@ -416,7 +416,7 @@ public final class TrainPickerScreen extends Screen {
 		if (!query.isEmpty()) {
 			for (final VehicleResource train : allTrains) {
 				if (train.getName().getString().toLowerCase(Locale.ROOT).contains(query) || train.getId().toLowerCase(Locale.ROOT).contains(query) || tagTextOfTrain.getOrDefault(train.getId(), "").contains(query)) {
-					rows.add(new Row(null, train, null, 0));
+					rows.add(new Row(null, train, null, null));
 				}
 			}
 			return;
@@ -430,14 +430,14 @@ public final class TrainPickerScreen extends Screen {
 		for (final Map.Entry<String, List<VehicleResource>> entry : families.entrySet()) {
 			final List<VehicleResource> trains = entry.getValue();
 			if (trains.size() == 1) {
-				rows.add(new Row(null, trains.get(0), null, 0));
+				rows.add(new Row(null, trains.get(0), null, null));
 				continue;
 			}
 			final String family = entry.getKey();
-			rows.add(new Row(family, null, familyLabel(trains, family), trains.size()));
+			rows.add(new Row(family, null, familyLabel(trains, family), String.valueOf(trains.size())));
 			if (OPEN_FAMILIES.contains(family)) {
 				for (final VehicleResource train : trains) {
-					rows.add(new Row(family, train, null, 0));
+					rows.add(new Row(family, train, null, null));
 				}
 			}
 		}
@@ -595,7 +595,7 @@ public final class TrainPickerScreen extends Screen {
 		return width - MARGIN - 60;
 	}
 
-	/** A family row when {@code train} is null; otherwise a train, under {@code family} when it is folded into one. */
-	private record Row(@Nullable String family, @Nullable VehicleResource train, @Nullable String label, int count) {
+	/** A family row when {@code train} is null, with its car count as drawn; otherwise a train, under {@code family} when it is folded into one. */
+	private record Row(@Nullable String family, @Nullable VehicleResource train, @Nullable String label, @Nullable String count) {
 	}
 }
