@@ -8,7 +8,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicLong;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.chunk.WorldChunk;
@@ -36,21 +35,7 @@ public final class DhCompat {
     /** DH's API, found on the first edit; null before then, or when it isn't there or doesn't match. */
     private static Api api;
     private static boolean looked;
-    /** Chunks DH took, and edits it didn't take in full, since the game started (for the log). */
-    private static final AtomicLong CHUNKS_TOLD = new AtomicLong();
-    private static final AtomicLong EDITS_REFUSED = new AtomicLong();
-
     private DhCompat() {
-    }
-
-    /** How many chunks DH has taken {@code overwriteChunkDataAsync} calls for since the game started. */
-    public static long chunksTold() {
-        return CHUNKS_TOLD.get();
-    }
-
-    /** How many edits DH didn't take in full since the game started. */
-    public static long editsRefused() {
-        return EDITS_REFUSED.get();
     }
 
     /** Tells DH that blocks changed in {@code chunks} of {@code world}; nothing without DH. Never throws. */
@@ -69,7 +54,6 @@ public final class DhCompat {
             problem = e instanceof InvocationTargetException target && target.getCause() != null ? target.getCause().toString() : e.toString();
         }
         if (problem != null) {
-            EDITS_REFUSED.incrementAndGet();
             if (!warned) {
                 warned = true; // once per game: DH catches up by itself, so this is only for the log
                 StratosMod.LOGGER.warn("[stratos] couldn't tell Distant Horizons about an edit in {} ({}); its far view will catch up by itself",
@@ -125,8 +109,9 @@ public final class DhCompat {
                 }
                 Object taken = this.overwrite.invoke(repo, wrapper, new Object[] {loaded, world});
                 if (taken != null && (Boolean) this.success.get(taken)) {
-                    CHUNKS_TOLD.incrementAndGet();
-                } else if (problem == null) {
+                    continue;
+                }
+                if (problem == null) {
                     problem = taken == null ? "DH answered nothing" : String.valueOf(this.message.get(taken));
                 }
             }

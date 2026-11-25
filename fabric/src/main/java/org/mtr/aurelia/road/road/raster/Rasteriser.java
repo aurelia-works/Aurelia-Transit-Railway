@@ -227,7 +227,7 @@ public final class Rasteriser {
         for (int i = 0; i < pieces.size(); i++) {
             RoadPiece piece = pieces.get(i);
             Layout layout = new Layout(piece.profile().sections());
-            double mean = meanLength(piece);
+            double mean = piece.meanLength();
             if (mean <= 0) {
                 continue;
             }
@@ -318,18 +318,9 @@ public final class Rasteriser {
         double start = 0;
         for (int i = 0; i < pieces.size(); i++) {
             starts[i] = start;
-            start += meanLength(pieces.get(i));
+            start += pieces.get(i).meanLength();
         }
         return starts;
-    }
-
-    /** The lanes' average length (as {@link RoadPiece#phaseAfter()} measures a piece). */
-    private static double meanLength(RoadPiece piece) {
-        double total = 0;
-        for (LaneCurve lane : piece.lanes()) {
-            total += lane.length();
-        }
-        return total / piece.lanes().size();
     }
 
     /** Where {@code block} is along the road: along its piece's nearer outer lane, scaled to the lanes' average, plus {@code start}. */
@@ -342,7 +333,7 @@ public final class Rasteriser {
         boolean nearFirst = StrictMath.abs(onFirst.d()) <= StrictMath.abs(onLast.d());
         LaneCurve lane = nearFirst ? first : last;
         double s = nearFirst ? onFirst.s() : onLast.s();
-        return lane.length() > 0 ? snap(start + s * meanLength(piece) / lane.length()) : start;
+        return lane.length() > 0 ? snap(start + s * piece.meanLength() / lane.length()) : start;
     }
 
     /** The first piece whose own columns have {@code block}, or −1. */

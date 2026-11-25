@@ -48,7 +48,8 @@ public interface BlockPalette {
 
     /**
      * Whether it places gullies (B-4): it has a gully that turns to face the kerb ({@link Column.Detail#GULLY}). Old
-     * palette snapshots have none, so roads placed with them plan as they were.
+     * palette snapshots have none, so roads placed with them plan as they were. Only with {@link #kerbEdges()} too: a
+     * gully is placed beside a kerb that faces the road.
      */
     default boolean gullies() {
         return false;
@@ -56,7 +57,8 @@ public interface BlockPalette {
 
     /**
      * Whether it places dropped kerbs at crossings (ATR P11): it has a dropped kerb that turns to face the road
-     * ({@link Column.Detail#DROPPED_KERB}).
+     * ({@link Column.Detail#DROPPED_KERB}). Only with {@link #kerbEdges()} too: a dropped kerb replaces a kerb column
+     * that knows which way the road is.
      */
     default boolean droppedKerbs() {
         return false;
