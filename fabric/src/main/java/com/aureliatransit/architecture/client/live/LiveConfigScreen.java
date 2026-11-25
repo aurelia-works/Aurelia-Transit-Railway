@@ -15,6 +15,7 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -201,17 +202,17 @@ abstract class LiveConfigScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		renderBackground(context);
-		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, Math.max(6, topY() - 16), 0xFFFFFF);
+		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, Math.max(6, topY() - 16), AureliaPalette.TEXT);
 		super.render(context, mouseX, mouseY, delta);
 		if (mode == StationAssociationMode.AUTO) {
 			final StationSnapshot snapshot = StationData.provider().resolve(pos, StationAssociation.AUTO, false);
 			final Text found = snapshot.station() == null ? tr("live_auto_none") : tr("live_auto_found", snapshot.station().displayName());
-			context.drawTextWithShadow(textRenderer, found, rightX, topY() + 28, 0xB0B0B0);
+			context.drawTextWithShadow(textRenderer, found, rightX, topY() + 28, AureliaPalette.TEXT_DIM);
 		} else {
 			final int pagerY = listY + STATION_ROWS * 20 + 2;
-			context.drawCenteredTextWithShadow(textRenderer, Text.literal((stationPage + 1) + "/" + pageCount), rightX + COLUMN_WIDTH / 2, pagerY + 5, 0xFFFFFF);
+			context.drawCenteredTextWithShadow(textRenderer, Text.literal((stationPage + 1) + "/" + pageCount), rightX + COLUMN_WIDTH / 2, pagerY + 5, AureliaPalette.TEXT);
 			if (platformsHint) {
-				context.drawTextWithShadow(textRenderer, tr("live_platforms_hint"), rightX, pagerY + 22, 0xB0B0B0);
+				context.drawTextWithShadow(textRenderer, tr("live_platforms_hint"), rightX, pagerY + 22, AureliaPalette.TEXT_DIM);
 			}
 		}
 	}

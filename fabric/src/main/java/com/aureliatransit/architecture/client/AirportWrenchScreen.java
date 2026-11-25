@@ -13,8 +13,8 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -117,8 +117,8 @@ public class AirportWrenchScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		renderBackground(context);
-		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 8, 0xFFFFFF);
-		context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "hint").formatted(Formatting.GRAY), width / 2, 20, 0xAAAAAA);
+		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 8, AureliaPalette.TEXT);
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable(KEY + "hint"), width / 2, 20, AureliaPalette.TEXT_DIM);
 		super.render(context, mouseX, mouseY, delta);
 	}
 
