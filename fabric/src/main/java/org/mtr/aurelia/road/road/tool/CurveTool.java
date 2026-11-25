@@ -5,10 +5,12 @@
 package org.mtr.aurelia.road.road.tool;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.mtr.aurelia.road.geom.Heading;
 import org.mtr.aurelia.road.geom.mtr.MtrRails;
 import org.mtr.aurelia.road.geom.mtr.Position;
@@ -118,6 +120,8 @@ public final class CurveTool implements Tool {
     private Notice notSent;
     /** R-10: the tool shows a placed road being edited ({@link #load}): its ends stay set whatever the planner says. */
     private boolean editing;
+    /** R-10+: the handles of the edited road's joined ends, which can't be picked up. */
+    private final Set<Handle.Kind> pinned = EnumSet.noneOf(Handle.Kind.class);
     /** P9: the driving side of the placed road being edited, which it keeps; null for a new road (the world's side). */
     private RoadPlanParams.DrivingSide loadedSide;
 
@@ -231,15 +235,24 @@ public final class CurveTool implements Tool {
     /**
      * Starts at step 3 with the placed road {@code road}'s ends (R-10: the Edit roads tool's edit): its handles can be
      * picked up and moved, and the layout, palette, node aid and shape are the shared settings'; it keeps its own driving
-     * side (P9), whatever the world's is now. Each end faces the way
-     * its heading points, so an unchanged road comes out as placed. Its ends join nothing (a joined road isn't edited).
+     * side (P9), whatever the world's is now. Each end faces the way its heading points, so an unchanged road comes out
+     * as placed.
+     *
+     * <p><b>R-10+</b>: an end drawn onto another road ({@link JoinableRoads#pinned}) keeps its join and stays where it is:
+     * its handle can't be picked up. An end another road was drawn onto can be moved, and that road follows it.
      */
     public void load(RoadPlanParams road) {
         reset();
         RoadPlanParams.End from = road.ends().get(0);
         RoadPlanParams.End to = road.ends().get(road.ends().size() - 1);
-        this.start = new Point(from.x(), from.y(), from.z(), from.heading());
-        this.end = new Point(to.x(), to.y(), to.z(), to.heading());
+        this.start = this.joins.joinOf(road, 0).map(Point::at).orElse(new Point(from.x(), from.y(), from.z(), from.heading()));
+        this.end = this.joins.joinOf(road, 1).map(Point::at).orElse(new Point(to.x(), to.y(), to.z(), to.heading()));
+        if (this.joins.pinned(road, 0)) {
+            this.pinned.add(Handle.Kind.START);
+        }
+        if (this.joins.pinned(road, 1)) {
+            this.pinned.add(Handle.Kind.END);
+        }
         this.endFixed = true;
         this.editing = true;
         this.loadedSide = road.drivingSide();
@@ -258,7 +271,7 @@ public final class CurveTool implements Tool {
             this.aim = aimInput.target();
             follow();
             if (state() == ToolState.PREVIEWING) {
-                this.picker.aim(this.aim, handles(null));
+                this.picker.aim(this.aim, movable());
             }
             return;
         }
@@ -396,7 +409,12 @@ public final class CurveTool implements Tool {
 
     /** The handle the player could pick up now, in step 3. */
     private Optional<Handle> aimedHandle() {
-        return state() == ToolState.PREVIEWING ? this.picker.pickable(this.aim, handles(null)) : Optional.empty();
+        return state() == ToolState.PREVIEWING ? this.picker.pickable(this.aim, movable()) : Optional.empty();
+    }
+
+    /** The handles that can be picked up: both, but for a joined end of a road being edited (R-10+). */
+    private List<Handle> movable() {
+        return handles(null).stream().filter(handle -> !this.pinned.contains(handle.kind())).toList();
     }
 
     /** The two handles, with {@code active} lit (or none); the end handle is at the road's height. */
@@ -476,6 +494,7 @@ public final class CurveTool implements Tool {
         this.committing = false;
         this.notSent = null;
         this.editing = false;
+        this.pinned.clear();
     }
 
     /**

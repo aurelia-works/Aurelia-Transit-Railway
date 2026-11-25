@@ -11,11 +11,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import org.mtr.aurelia.road.geom.Heading;
 import org.mtr.aurelia.road.proto.PlanResult;
 import org.mtr.aurelia.road.proto.Protocol;
+import org.mtr.aurelia.road.road.graph.RoadGraph;
 import org.mtr.aurelia.road.road.raster.RoadPiece;
 import org.mtr.aurelia.road.road.solve.PieceSolver;
 import org.mtr.aurelia.road.road.solve.RoadSolution;
@@ -29,7 +31,7 @@ import org.mtr.aurelia.road.road.solve.RoadSolver;
  *
  * <p><b>Which roads:</b> the planner is given the placed roads it may join, as parameters by operation id. The client
  * gives the node aids' roads (yours you can still undo or redo, and those placed this visit); the server the records
- * of applied roads in the player's dimension. They stand in for the road graph until G-10.
+ * of applied roads in the player's dimension: the roads standing, whose joins make the road graph ({@link RoadGraph}; G-10).
  *
  * <p><b>Layouts</b> (owner, 2026-10-09): a road may join one with another layout when both have the same lanes (offsets
  * and directions): City street, Residential 15 and Residential 17 in any combination. Their lanes and kerbs line up, so
@@ -114,28 +116,27 @@ public final class RoadJoins {
     }
 
     /**
-     * Whether end {@code port} of the placed road {@code road} is joined already, so a new road there would make a
-     * junction (Slice D): that end of the road itself joins a road still placed, or another placed road joins it.
+     * An end of another road drawn onto end {@code index} of the road being edited (R-10+): that road's id
+     * ({@code road}), which of its ends ({@code roadEnd}), and its port there ({@code port}, with its dash phase).
      */
-    public static boolean taken(UUID road, int port, Map<UUID, RoadPlanParams> placed) {
-        RoadPlanParams params = placed.get(road);
-        if (params != null && params.ends().size() == 2) {
-            Optional<UUID> own = params.ends().get(port).snapRoadId();
-            if (own.isPresent() && placed.containsKey(own.get())) {
-                return true;
-            }
+    public record Incoming(int index, UUID road, int roadEnd, Port port) {
+        public Incoming {
+            Objects.requireNonNull(road, "road");
+            Objects.requireNonNull(port, "port");
         }
-        for (Map.Entry<UUID, RoadPlanParams> entry : placed.entrySet()) {
-            if (entry.getKey().equals(road)) {
-                continue;
-            }
-            for (RoadPlanParams.End end : entry.getValue().ends()) {
-                if (end.snapRoadId().filter(road::equals).isPresent() && end.snapPortIndex().equals(OptionalInt.of(port))) {
-                    return true;
-                }
-            }
+    }
+
+    /**
+     * The ends of the standing roads {@code placed} drawn onto an end of road {@code road} (R-10+; {@link RoadGraph#incoming}),
+     * each with its port; one whose road doesn't plan any more is left out.
+     */
+    public static List<Incoming> incoming(UUID road, Map<UUID, RoadPlanParams> placed) {
+        List<Incoming> incoming = new ArrayList<>();
+        for (RoadGraph.Join join : RoadGraph.of(placed).incoming(road)) {
+            ports(placed.get(join.road())).ifPresent(ports -> incoming.add(new Incoming(join.joinsIndex(), join.road(), join.index(),
+                    ports.get(join.index()))));
         }
-        return false;
+        return incoming;
     }
 
     /**
@@ -163,6 +164,120 @@ public final class RoadJoins {
         return RoadPlanParams.Dashes.FROM_START;
     }
 
+    /**
+     * The dash pattern of an edited road (R-10+) with {@code params}' ends, given its own joins' ports ({@code ports}) and
+     * the other roads' ends drawn onto it ({@code incoming}): {@link #dashes} when that keeps every such road's dashes in
+     * step, so an edit that doesn't change the road's length leaves its dashes as they were. Otherwise the dashes are tied
+     * to the joined end:
+     * <ol>
+     *   <li>a road of the same layout <b>ends</b> on its start: that road's end phase, at its start;</li>
+     *   <li>else a road of the same layout <b>starts</b> on its end: that road's start phase, at its end (the road then
+     *       leaves it the joint row, as a road running into another's start does).</li>
+     * </ol>
+     */
+    public static RoadPlanParams.Dashes editDashes(RoadPlanParams params, Function<UUID, Optional<List<Port>>> ports, List<Incoming> incoming) {
+        RoadPlanParams.Dashes own = dashes(params, ports);
+        List<Incoming> inStep = incoming.stream().filter(in -> in.port().index() != in.index() && in.port().profileId().equals(params.profileId()))
+                .toList();
+        if (inStep.isEmpty()) {
+            return own;
+        }
+        Optional<List<Port>> mine = ports(params.withDashes(own));
+        if (mine.isPresent() && inStep.stream().allMatch(in -> mine.get().get(in.index()).phase() == in.port().phase())) {
+            return own;
+        }
+        for (Incoming in : inStep) {
+            if (in.index() == 0) {
+                return new RoadPlanParams.Dashes(in.port().phase(), RoadPlanParams.Dashes.Anchor.START);
+            }
+        }
+        return new RoadPlanParams.Dashes(inStep.get(0).port().phase(), RoadPlanParams.Dashes.Anchor.END);
+    }
+
+    /**
+     * Whether the road whose end {@code in} names still joins the edited road {@code edited} there (R-10+), given the
+     * standing roads {@code placed} (the edited road as it was among them): the edited road's end is still at that end's
+     * block, facing on from it, with the same lanes, and what that road's joins call for its dashes is unchanged.
+     */
+    public static boolean stillJoins(Incoming in, UUID editedId, RoadPlanParams edited, Map<UUID, RoadPlanParams> placed) {
+        RoadPlanParams road = placed.get(in.road());
+        Optional<List<Port>> now = ports(edited);
+        Optional<RoadProfile> profile = RoadProfiles.byId(edited.profileId());
+        if (road == null || now.isEmpty() || profile.isEmpty()) {
+            return false;
+        }
+        Port port = now.get().get(in.index());
+        RoadPlanParams.End end = road.ends().get(in.roadEnd());
+        Heading wanted = in.roadEnd() == 0 ? port.outgoing() : port.outgoing().opposite();
+        if (!port.at(end) || end.heading() != wanted || !sameLanes(profile.get(), RoadProfiles.byId(road.profileId()).orElseThrow())) {
+            return false;
+        }
+        Map<UUID, Optional<List<Port>>> before = new LinkedHashMap<>();
+        Function<UUID, Optional<List<Port>>> portsBefore = id -> before.computeIfAbsent(id, key -> Optional.ofNullable(placed.get(key))
+                .flatMap(RoadJoins::ports));
+        Function<UUID, Optional<List<Port>>> portsAfter = id -> id.equals(editedId) ? now : portsBefore.apply(id);
+        return dashes(road, portsBefore).equals(dashes(road, portsAfter));
+    }
+
+    /**
+     * The roads that follow an edit of road {@code id} from {@code before} to {@code edited} (owner, 2026-11-24: moving a
+     * joined end re-plans the roads joined there, in the same operation): each road among {@code placed} with an end
+     * drawn onto an end of it that the edit moves (its block, height or heading), where that road's end sat on the end as
+     * it was. Each is given as a road ({@link RoadPlanParams#road}) with that end moved onto the end's new place, facing on
+     * from it, and the dashes its joins then call for ({@link #settledDashes}). By road id, in id order (the client lists
+     * the roads newest first, the server oldest first, and both must plan the same); none when no joined end moves.
+     *
+     * <p>Only the ends decide, so the planner, the server's records ({@link RoadHistory}) and the node aids work out the
+     * same roads from the same operations, and nothing about them is stored.
+     */
+    public static Map<UUID, RoadPlanParams> followers(UUID id, RoadPlanParams before, RoadPlanParams edited, Map<UUID, RoadPlanParams> placed) {
+        Map<UUID, RoadPlanParams> followers = new TreeMap<>();
+        if (before.ends().size() != 2 || edited.ends().size() != 2) {
+            return followers;
+        }
+        for (Map.Entry<UUID, RoadPlanParams> entry : placed.entrySet()) {
+            RoadPlanParams road = entry.getValue();
+            if (entry.getKey().equals(id) || road.ends().size() != 2) {
+                continue;
+            }
+            List<RoadPlanParams.End> ends = new ArrayList<>(road.ends());
+            boolean moved = false;
+            for (int j = 0; j < 2; j++) {
+                RoadPlanParams.End end = ends.get(j);
+                if (!end.snapRoadId().equals(Optional.of(id)) || end.snapPortIndex().isEmpty() || end.snapPortIndex().getAsInt() > 1) {
+                    continue;
+                }
+                int index = end.snapPortIndex().getAsInt();
+                RoadPlanParams.End was = before.ends().get(index);
+                RoadPlanParams.End now = edited.ends().get(index);
+                boolean sat = end.x() == was.x() && end.y() == was.y() && end.z() == was.z();
+                if (!sat || now.x() == was.x() && now.y() == was.y() && now.z() == was.z() && now.heading() == was.heading()) {
+                    continue; // drawn elsewhere (a stale join), or the end stays
+                }
+                // A start leaves the port the way a road leaving it runs; an end arrives the opposite way.
+                Heading outgoing = index == 0 ? now.heading().opposite() : now.heading();
+                ends.set(j, new RoadPlanParams.End(now.x(), now.y(), now.z(), j == 0 ? outgoing : outgoing.opposite(), end.snapRoadId(),
+                        end.snapPortIndex()));
+                moved = true;
+            }
+            if (moved) {
+                followers.put(entry.getKey(), road.road().withEnds(ends));
+            }
+        }
+        if (followers.isEmpty()) {
+            return followers;
+        }
+        Map<UUID, RoadPlanParams> after = new LinkedHashMap<>(placed);
+        after.put(id, edited);
+        after.putAll(followers);
+        followers.replaceAll((road, params) -> {
+            Map<UUID, RoadPlanParams> others = new LinkedHashMap<>(after);
+            others.remove(road);
+            return params.withDashes(settledDashes(params, others, incoming(road, placed)));
+        });
+        return followers;
+    }
+
     private static Optional<Port> joined(RoadPlanParams.End end, Function<UUID, Optional<List<Port>>> ports) {
         if (end.snapRoadId().isEmpty() || end.snapPortIndex().isEmpty() || end.snapPortIndex().getAsInt() > 1) {
             return Optional.empty();
@@ -172,11 +287,21 @@ public final class RoadJoins {
 
     /** Why a joined end of {@code params} is refused, if one is (the planner's step before solving). */
     static Optional<RoadPlanner.Outcome> refusal(RoadPlanParams params, RoadProfile profile, Map<UUID, RoadPlanParams> placed) {
+        return refusal(params, profile, placed, List.of());
+    }
+
+    /**
+     * As {@link #refusal(RoadPlanParams, RoadProfile, Map)}, for an edited road that the ends {@code incoming} join
+     * (R-10+). Its dashes aren't checked: the planner gives it {@link #settledDashes}.
+     */
+    static Optional<RoadPlanner.Outcome> refusal(RoadPlanParams params, RoadProfile profile, Map<UUID, RoadPlanParams> placed,
+            List<Incoming> incoming) {
         Map<UUID, Optional<List<Port>>> ports = new LinkedHashMap<>();
         Function<UUID, Optional<List<Port>>> portsOf = id -> ports.computeIfAbsent(id, key -> {
             RoadPlanParams road = placed.get(key);
             return road == null ? Optional.empty() : ports(road);
         });
+        RoadGraph graph = RoadGraph.of(placed); // G-10: which ends are joined already
         List<RoadPlanParams.End> ends = params.ends();
         for (int i = 0; i < ends.size(); i++) {
             RoadPlanParams.End end = ends.get(i);
@@ -207,7 +332,7 @@ public final class RoadJoins {
             if (end.heading() != wanted) {
                 return refused(PORT_MISMATCH, Map.of());
             }
-            if (taken(road, index, placed)) {
+            if (graph.taken(road, index)) { // a second road there would make a junction (Slice D)
                 return refused(Protocol.NOT_AVAILABLE_YET, Map.of("feature", "junction"));
             }
             RoadProfile other = RoadProfiles.byId(port.profileId()).orElseThrow(); // its ports exist, so its profile does
@@ -221,10 +346,19 @@ public final class RoadJoins {
                 return refused(SIDE_MISMATCH, Map.of());
             }
         }
-        if (!params.dashes().equals(dashes(params, portsOf))) {
-            return refused(PORT_MISMATCH, Map.of());
-        }
         return Optional.empty();
+    }
+
+    /**
+     * The dashes the planner gives {@code params} (council r4): {@link #editDashes}' from the roads standing
+     * ({@code placed}) and the ends {@code incoming} drawn onto it, whatever the request says. A client that doesn't know
+     * every joined road works out other dashes; the server's are the ones planned and recorded.
+     */
+    public static RoadPlanParams.Dashes settledDashes(RoadPlanParams params, Map<UUID, RoadPlanParams> placed, List<Incoming> incoming) {
+        return editDashes(params, id -> {
+            RoadPlanParams road = placed.get(id);
+            return road == null ? Optional.empty() : ports(road);
+        }, incoming);
     }
 
     /** Whether every lane of {@code profile} is shared by both directions (the alley's), so its driving side changes nothing. */

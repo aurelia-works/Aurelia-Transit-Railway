@@ -108,10 +108,11 @@ public final class StraightTool implements Tool {
      * The road to work out and preview: the planner's outcome, off the client thread. From R-5 with the placed roads its
      * ends may join, copied on the client thread ({@link #of}).
      */
-    public record RoadJob(RoadPlanParams params, Map<UUID, RoadPlanParams> placed) implements PlanJob {
+    public record RoadJob(RoadPlanParams params, Map<UUID, RoadPlanParams> placed, Optional<UUID> edits) implements PlanJob {
         public RoadJob {
             Objects.requireNonNull(params, "params");
             placed = Map.copyOf(placed);
+            Objects.requireNonNull(edits, "edits");
         }
 
         /** A road that joins nothing. */
@@ -119,15 +120,28 @@ public final class StraightTool implements Tool {
             this(params, Map.of());
         }
 
-        /** The job for {@code params}, with {@code joins}' roads when an end of it joins one (R-5). */
+        /** A new road, which may join {@code placed}'s roads. */
+        public RoadJob(RoadPlanParams params, Map<UUID, RoadPlanParams> placed) {
+            this(params, placed, Optional.empty());
+        }
+
+        /**
+         * The job for {@code params}, with {@code joins}' roads when an end of it joins one (R-5); or (R-10, R-10+) the road
+         * {@code joins} edits, planned as the server plans that edit, against every standing road.
+         */
         public static RoadJob of(RoadPlanParams params, JoinableRoads joins) {
+            if (joins.editing().isPresent()) {
+                return new RoadJob(params, joins.standing(), joins.editing());
+            }
             boolean joining = params.ends().stream().anyMatch(end -> end.snapRoadId().isPresent());
             return new RoadJob(params, joining ? joins.placed() : Map.of());
         }
 
         @Override
         public Planned run(WorldLimits limits) {
-            RoadPlanner.Outcome outcome = RoadPlanner.outcome(this.params, limits, this.placed);
+            RoadPlanParams planned = this.edits.map(id -> RoadPlanParams.edit(RoadPlanParams.Tool.REBUILD, id, this.params, Optional.empty()))
+                    .orElse(this.params);
+            RoadPlanner.Outcome outcome = RoadPlanner.outcome(planned, limits, this.placed);
             return new Planned(outcome.result(), outcome.refusedShape());
         }
     }

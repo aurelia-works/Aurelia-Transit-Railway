@@ -18,7 +18,7 @@ import org.mtr.aurelia.road.bake.BakeMap;
 import org.mtr.aurelia.road.ops.WorldLimits;
 import org.mtr.aurelia.road.proto.PlanResult;
 import org.mtr.aurelia.road.proto.Protocol;
-import org.mtr.aurelia.road.road.RoadJoins;
+import org.mtr.aurelia.road.road.graph.RoadGraph;
 import org.mtr.aurelia.road.road.RoadPlanParams;
 import org.mtr.aurelia.road.road.RoadPlanner;
 import org.mtr.aurelia.road.road.RoadsModule;
@@ -68,8 +68,10 @@ import org.mtr.aurelia.road.tool.WorldTask;
  *       step 3 ({@link CurveTool#load}): an end is picked up, moved (it may join another road's free end, as when
  *       drawing) and put down as there; the hub's layout, palette, node aid and shape become the road's and change it while
  *       it is edited (they stay for the next road). <b>Use</b> sends a {@code REBUILD} with the new parameters, asking
- *       about hand edits as a rebuild does; <b>attack</b> leaves the road as it was. A road joined to another, or that
- *       another joins, isn't edited ({@code ROAD_JOINED}: R-10+).</li>
+ *       about hand edits as a rebuild does; <b>attack</b> leaves the road as it was. <b>R-10+:</b> a joined road is
+ *       edited too: an end it drew onto another road stays where it is (its handle can't be picked up); an end another
+ *       road was drawn onto can be moved, and that road's end moves with it in the same operation (owner, 2026-11-24).
+ *       An edit that would still pull a joined road away is refused ({@code ROAD_JOINED}).</li>
  *   <li><b>B-3: Bake to vanilla</b>, offered for a road whose palette places Stratos blocks, asks the server to turn the
  *       road's Stratos blocks into vanilla ones where they stand ({@code BAKE_ROAD}, a world task): one operation, undone
  *       like any edit.</li>
@@ -280,16 +282,11 @@ public final class EditRoadsTool implements Tool {
         }
     }
 
-    /** R-10: starts editing the picked road, unless it is joined; the hub's settings become the road's. */
+    /** R-10: starts editing the picked road (R-10+: its joined ends stay put); the hub's settings become the road's. */
     private void startEditing() {
-        if (joinedNow(this.picked)) {
-            letGo(Notice.reason(Level.ERROR, RoadPlanner.ROAD_JOINED, Map.of()));
-            return;
-        }
         UUID id = this.picked.operationId();
         this.settings.follow(this.picked.params());
-        this.editor = new CurveTool(this.settings, new JoinableRoads(() -> this.roads.roads().stream()
-                .filter(road -> !road.operationId().equals(id)).toList()));
+        this.editor = new CurveTool(this.settings, JoinableRoads.editing(id, this.roads::roads));
         this.editor.load(this.picked.params());
         this.stage = Stage.EDITING;
         this.notice = null;
@@ -606,17 +603,11 @@ public final class EditRoadsTool implements Tool {
         };
     }
 
-    /** Whether another standing road joins either end of {@code road}, or it joins one (R-10: such a road isn't edited). */
-    private boolean joinedNow(PlacedRoads.Road road) {
-        Map<UUID, RoadPlanParams> placed = placed();
-        return RoadJoins.taken(road.operationId(), 0, placed) || RoadJoins.taken(road.operationId(), 1, placed);
-    }
-
     /** Which of the road's ends another standing road joins, or it joins (R-5): the HUD's words for it. */
     private String joined(PlacedRoads.Road road) {
-        Map<UUID, RoadPlanParams> placed = placed();
-        boolean start = RoadJoins.taken(road.operationId(), 0, placed);
-        boolean end = RoadJoins.taken(road.operationId(), 1, placed);
+        RoadGraph graph = RoadGraph.of(placed());
+        boolean start = graph.taken(road.operationId(), 0);
+        boolean end = graph.taken(road.operationId(), 1);
         return start && end ? "stratos.edit.value.joined_both" : start ? "stratos.edit.value.joined_start"
                 : end ? "stratos.edit.value.joined_end" : "stratos.edit.value.joined_none";
     }

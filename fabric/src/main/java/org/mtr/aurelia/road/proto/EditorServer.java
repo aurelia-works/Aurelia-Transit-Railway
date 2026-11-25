@@ -539,18 +539,20 @@ public final class EditorServer {
             reject(session, request.requestId(), Protocol.BUSY, Map.of());
             return;
         }
-        // What the operation's record will say it was (G-9); the plan hash is filled in once the plan is accepted.
-        OperationRecord.Draft draft = new OperationRecord.Draft(module.id(), module.tool(params), module.paramsToJson(params), "", List.of(),
-                module.palettes(params, world.limits())); // R-9: the palette snapshots its record names
-        AtomicLong started = new AtomicLong(NOT_STARTED);
-        Digest clientHash = request.clientPlanHash();
-        String coreVersion = this.info.coreVersion();
         // R-5: a road joining another is checked against the records of what is applied here now, copied on this thread.
         boolean joins = module.usesPlaced(params);
         List<OperationRecord> placed = joins ? applied(world.operations(), module.id()) : List.of();
+        // Council r4: what the server works out for itself (a road's dashes) replaces the client's, in the plan and the record.
+        P settled = module.settle(params, placed);
+        // What the operation's record will say it was (G-9); the plan hash is filled in once the plan is accepted.
+        OperationRecord.Draft draft = new OperationRecord.Draft(module.id(), module.tool(settled), module.paramsToJson(settled), "", List.of(),
+                module.palettes(settled, world.limits())); // R-9: the palette snapshots its record names
+        AtomicLong started = new AtomicLong(NOT_STARTED);
+        Digest clientHash = request.clientPlanHash();
+        String coreVersion = this.info.coreVersion();
         FutureTask<PlanCheck.Decision> task = new FutureTask<>(() -> {
             started.set(this.clock.getAsLong());
-            PlanResult result = joins ? module.plan(params, world.limits(), placed) : module.plan(params, world.limits());
+            PlanResult result = joins ? module.plan(settled, world.limits(), placed) : module.plan(settled, world.limits());
             return PlanCheck.check(result, clientHash, coreVersion);
         });
         session.computing = new Computing(request.requestId(), task, started, world, draft);
