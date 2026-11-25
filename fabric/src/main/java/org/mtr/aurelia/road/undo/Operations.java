@@ -574,7 +574,7 @@ public final class Operations {
      * </ul>
      * From 2026-11-24 the roads the edit takes with it ({@link Replacement#joined}) are replaced the same way in the same
      * job: {@code ops} are all the roads' operations. The guard is the replacement's; the job refuses to start when it
-     * would change nothing. Any thread.
+     * would change nothing, unless the replacement is a switch of driving side ({@link Replacement#sideSwitch}). Any thread.
      */
     static ApplyJob replacementJob(BlockPlan plan, List<UUID> ops, Map<UUID, List<BlockChange>> images, Replacement replacement) {
         Map<Long, BlockChange> ground = new HashMap<>();
@@ -638,7 +638,9 @@ public final class Operations {
             expects.set(was.x(), was.y(), was.z(), was.after(), was.afterData());
         }
         ApplyJob.Guard guard = replacement.guard();
-        return ApplyJob.refusingNothing(writes.build(), guard == ApplyJob.Guard.NONE ? null : expects.build(), guard);
+        BlockPlan expected = guard == ApplyJob.Guard.NONE ? null : expects.build();
+        // P9: a switch of driving side files its record and lays its track the other way round even where no block changes.
+        return replacement.sideSwitch() ? new ApplyJob(writes.build(), expected, guard) : ApplyJob.refusingNothing(writes.build(), expected, guard);
     }
 
     /** Undoes {@code owner}'s latest operation. */

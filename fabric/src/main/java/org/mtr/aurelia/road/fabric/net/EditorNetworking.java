@@ -167,7 +167,8 @@ public final class EditorNetworking {
         }, finder);
         // UI-1c: the world's mark for Stratos blocks, kept in its aurelia_roads_meta record.
         server.stratosBlocks(ApplyService.stratosBlocks(minecraft), present -> ApplyService.stratosBlocks(minecraft, present));
-        // P9: the world's driving side, from its game rule.
+        // P9: the world's driving side, from its game rule, which the hub's switch of side sets.
+        server.trafficSideSetter(rightHand -> DrivingSideRule.set(minecraft, rightHand ? RoadPlanParams.DrivingSide.RHT : RoadPlanParams.DrivingSide.LHT));
         trafficSide(DrivingSideRule.get(minecraft));
     }
 

@@ -47,6 +47,14 @@ public interface PlanModule<P> {
     }
 
     /**
+     * P9: whether a request with {@code params} keeps to the world's driving side ({@code rightHand}); one that doesn't is refused
+     * {@code DRIVING_SIDE_MISMATCH}, nothing changed. By default every request does: only a module with sides overrides it.
+     */
+    default boolean keepsSide(P params, boolean rightHand) {
+        return true;
+    }
+
+    /**
      * Whether planning {@code params} needs the world's applied operations (R-5: a road whose end joins another road's).
      * The server then hands them to {@link #plan(Object, WorldLimits, List)}.
      */

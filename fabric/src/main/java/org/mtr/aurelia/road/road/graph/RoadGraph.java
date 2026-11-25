@@ -201,6 +201,14 @@ public final class RoadGraph {
                 || this.onArms.stream().anyMatch(join -> join.joins().equals(junction) && join.joinsIndex() == arm);
     }
 
+    /** The roads joined to an arm of junction {@code junction}, either way round, in the order given (P9: what a junction's rebuild keeps). */
+    public Set<UUID> roadsAt(UUID junction) {
+        Set<UUID> roads = new LinkedHashSet<>();
+        this.armJoins.stream().filter(join -> join.road().equals(junction)).forEach(join -> roads.add(join.joins()));
+        this.onArms.stream().filter(join -> join.joins().equals(junction)).forEach(join -> roads.add(join.road()));
+        return roads;
+    }
+
     /** The junctions joined to an end of road {@code road}, either way round, in the order given. */
     public Set<UUID> junctionsOf(UUID road) {
         Set<UUID> junctions = new LinkedHashSet<>();

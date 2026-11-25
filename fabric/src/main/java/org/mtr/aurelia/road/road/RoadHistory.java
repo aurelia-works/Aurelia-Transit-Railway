@@ -148,6 +148,10 @@ public final class RoadHistory {
             switch (op.params().tool()) {
                 case STRAIGHT, CURVE, JUNCTION -> road.placed(op.id(), op.params());
                 case REBUILD -> {
+                    if (road.params != null && road.params.tool() == RoadPlanParams.Tool.JUNCTION) {
+                        road.rebuilt(op.id(), op.params().asJunction(), false); // P9: a junction's switch of side; it stays a junction
+                        break;
+                    }
                     Map<UUID, RoadPlanParams> followers = Map.of();
                     if (road.params != null) {
                         Map<UUID, RoadPlanParams> standing = new LinkedHashMap<>();

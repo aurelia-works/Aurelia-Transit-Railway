@@ -109,12 +109,48 @@ public final class Protocol {
      * record with today's rules, keeping blocks changed by hand; each road its own operation. Needs {@code stratos.admin}.
      */
     public static final String TASK_REDRAW_MARKINGS = "REDRAW_MARKINGS";
+    /**
+     * P9's world task: the world's traffic keeps left from now on, and each of the player's roads and junctions that keeps right
+     * is rebuilt for it, junctions first, each its own operation. Needs {@code stratos.admin}.
+     */
+    public static final String TASK_DRIVE_LEFT = "DRIVE_LEFT";
+    /** P9's world task: as {@link #TASK_DRIVE_LEFT}, for right-hand traffic. */
+    public static final String TASK_DRIVE_RIGHT = "DRIVE_RIGHT";
+    /**
+     * P9's world task, the operator's override of {@link #TASK_DRIVE_LEFT}: every player's roads and junctions are rebuilt, not
+     * only the sender's, each as an operation of the player who drew it (so they can undo it). Needs {@code stratos.admin}, as
+     * the switch does.
+     */
+    public static final String TASK_DRIVE_LEFT_ALL = "DRIVE_LEFT_ALL";
+    /** P9's world task: as {@link #TASK_DRIVE_LEFT_ALL}, for right-hand traffic. */
+    public static final String TASK_DRIVE_RIGHT_ALL = "DRIVE_RIGHT_ALL";
+    /** Whether {@code task} switches the world's driving side (for the sender's roads, or everyone's). */
+    public static boolean isDriveTask(String task) {
+        return task.equals(TASK_DRIVE_LEFT) || task.equals(TASK_DRIVE_RIGHT) || isDriveAllTask(task);
+    }
+
+    /** Whether {@code task} is the operator's override that switches every player's roads. */
+    public static boolean isDriveAllTask(String task) {
+        return task.equals(TASK_DRIVE_LEFT_ALL) || task.equals(TASK_DRIVE_RIGHT_ALL);
+    }
+
+    /** Whether the drive task {@code task} makes the world keep right. */
+    public static boolean drivesRight(String task) {
+        return task.equals(TASK_DRIVE_RIGHT) || task.equals(TASK_DRIVE_RIGHT_ALL);
+    }
     /** A world task's stage: reading chunks for Stratos blocks. */
     public static final String STAGE_FINDING = "FINDING";
     /** A world task's stage: placing a bake's vanilla blocks. */
     public static final String STAGE_BAKING = "BAKING";
     /** A world task's stage: redrawing roads' markings. */
     public static final String STAGE_REDRAWING = "REDRAWING";
+    /** A world task's stage: switching roads and junctions to the world's new driving side. */
+    public static final String STAGE_SWITCHING = "SWITCHING";
+    /**
+     * P9: a road or junction for the other side than the world's was drawn or rebuilt; arg {@code side}, {@code left} or
+     * {@code right}, the side the world keeps. Nothing was changed. After a switch, roads not yet converted still keep the old side.
+     */
+    public static final String DRIVING_SIDE_MISMATCH = "DRIVING_SIDE_MISMATCH";
     /** B-3: the world couldn't be read for Stratos blocks (the log says why); nothing was changed since. */
     public static final String FIND_FAILED = "FIND_FAILED";
 

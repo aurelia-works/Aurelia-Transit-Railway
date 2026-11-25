@@ -59,7 +59,8 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
     /**
      * Which side of the road traffic keeps to (spec roads-v1 §11.4). Profiles are authored for left-hand traffic (UK);
      * right-hand traffic swaps the way each carriageway runs. New roads take the world's setting (P9: the
-     * {@code stratosDrivingSide} game rule, left-hand by default); a placed road keeps the side it was placed with.
+     * {@code stratosDrivingSide} game rule, left-hand by default); a placed road keeps the side it was placed with, until
+     * the world switches sides and its roads are converted ({@link SideSwitch}), each as one rebuild.
      */
     public enum DrivingSide {
         LHT,
@@ -262,6 +263,27 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
     public RoadPlanParams withDrivingSide(DrivingSide drivingSide) {
         return new RoadPlanParams(this.tool, this.profileId, this.preset, this.paletteId, drivingSide, this.ends, this.vertical, this.nodeAids,
                 this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes, this.crossings);
+    }
+
+    /**
+     * The same junction with {@code armProfiles}, one layout per arm in its template's arm order (P9: a converted junction's
+     * arms come in the other side's order). The request's own layout stays the first arm's when it was.
+     */
+    public RoadPlanParams withArmProfiles(List<String> armProfiles) {
+        Junction piece = this.junction.orElseThrow();
+        String profile = this.profileId.equals(piece.armProfiles().get(0)) ? armProfiles.get(0) : this.profileId;
+        return new RoadPlanParams(this.tool, profile, this.preset, this.paletteId, this.drivingSide, this.ends, this.vertical, this.nodeAids,
+                this.overlay, Optional.of(new Junction(piece.templateId(), piece.size(), armProfiles)), this.targetRoadId, this.manualEdits, this.dashes,
+                this.crossings);
+    }
+
+    /**
+     * A junction as it stands (P9): a rebuild of a placed junction, which only a switch of driving side makes, is still the
+     * junction, not a road, with no target and no answer.
+     */
+    public RoadPlanParams asJunction() {
+        return new RoadPlanParams(Tool.JUNCTION, this.profileId, this.preset, this.paletteId, this.drivingSide, this.ends, this.vertical, this.nodeAids,
+                this.overlay, this.junction, Optional.empty(), Optional.empty(), this.dashes, this.crossings);
     }
 
     /** The same parameters with the dash pattern {@code dashes} (R-5). */

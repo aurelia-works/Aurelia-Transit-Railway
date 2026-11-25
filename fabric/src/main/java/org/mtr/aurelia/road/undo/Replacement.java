@@ -40,13 +40,15 @@ import org.mtr.aurelia.road.ops.BlockPlan;
  *                 record's side effects, only these are the road's; empty when they all are
  * @param joined   the roads this edit takes with it (a moved joined end), each replaced as this one is, in the same job:
  *                 their delete and guard are this one's
+ * @param sideSwitch P9: a road's or junction's switch of driving side, which changes its record and its track even when it
+ *                 changes no block, so the job doesn't refuse to start for having nothing to write
  */
 public record Replacement(UUID road, List<UUID> chain, Optional<BlockPlan> asPlaced, Optional<BlockPlan> firstPlaced, Set<Long> keep, boolean delete,
-        ApplyJob.Guard guard, Map<UUID, Set<Long>> only, Optional<List<SideEffect>> rails, List<Replacement> joined) {
+        ApplyJob.Guard guard, Map<UUID, Set<Long>> only, Optional<List<SideEffect>> rails, List<Replacement> joined, boolean sideSwitch) {
     /** A road whose operations built it alone, replaced on its own. */
     public Replacement(UUID road, List<UUID> chain, Optional<BlockPlan> asPlaced, Optional<BlockPlan> firstPlaced, Set<Long> keep, boolean delete,
             ApplyJob.Guard guard) {
-        this(road, chain, asPlaced, firstPlaced, keep, delete, guard, Map.of(), Optional.empty(), List.of());
+        this(road, chain, asPlaced, firstPlaced, keep, delete, guard, Map.of(), Optional.empty(), List.of(), false);
     }
 
     public Replacement {
@@ -68,6 +70,9 @@ public record Replacement(UUID road, List<UUID> chain, Optional<BlockPlan> asPla
         joined = List.copyOf(joined);
         if (delete && !joined.isEmpty()) {
             throw new IllegalArgumentException("A delete takes no other road with it");
+        }
+        if (delete && sideSwitch) {
+            throw new IllegalArgumentException("A delete doesn't switch a road's side");
         }
     }
 

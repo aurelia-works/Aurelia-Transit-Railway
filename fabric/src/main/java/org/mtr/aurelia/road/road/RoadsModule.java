@@ -61,6 +61,12 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
         return placesNodes ? List.of(node, NODE_PREORIENTED) : List.of(node);
     }
 
+    /** P9: a road is for the world's driving side ({@link SideSwitch#keeps}). */
+    @Override
+    public boolean keepsSide(RoadPlanParams params, boolean rightHand) {
+        return SideSwitch.keeps(params, rightHand ? RoadPlanParams.DrivingSide.RHT : RoadPlanParams.DrivingSide.LHT);
+    }
+
     @Override
     public String id() {
         return ID;
@@ -156,10 +162,11 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
         List<Replacement> joined = new ArrayList<>();
         for (UUID follower : group) {
             if (!follower.equals(road.id())) {
-                joined.add(part(roads.get(follower), byId, limits, keep(graph, follower, group, roads, limits), false, guard, List.of()));
+                joined.add(part(roads.get(follower), byId, limits, keep(graph, follower, group, roads, limits), false, guard, List.of(), false));
             }
         }
-        return result.withReplacement(part(road, byId, limits, keep(graph, road.id(), group, roads, limits), delete, guard, joined));
+        boolean sideSwitch = SideSwitch.isSwitch(road.id(), params, standing);
+        return result.withReplacement(part(road, byId, limits, keep(graph, road.id(), group, roads, limits), delete, guard, joined, sideSwitch));
     }
 
     /**
@@ -167,7 +174,7 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
      * other roads, only its blocks before and after are its own, and of its latest operation's track, only its own.
      */
     private static Replacement part(RoadHistory.Road road, Map<UUID, OperationRecord> byId, WorldLimits limits, Set<Long> keep, boolean delete,
-            ApplyJob.Guard guard, List<Replacement> joined) {
+            ApplyJob.Guard guard, List<Replacement> joined, boolean sideSwitch) {
         Optional<BlockPlan> exact = road.shared().contains(road.latest()) ? Optional.empty() : asPlaced(byId.get(road.latest()), limits);
         Optional<BlockPlan> first = road.complete() ? asPlaced(byId.get(road.chain().get(0)), limits) : Optional.empty();
         Map<UUID, Set<Long>> only = new HashMap<>();
@@ -192,7 +199,7 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
         Optional<List<SideEffect>> rails = road.shared().contains(road.latest())
                 ? Optional.of(RoadPlanner.asPlaced(road.params(), limits).sideEffects())
                 : Optional.empty();
-        return new Replacement(road.id(), road.chain(), exact, first, keep, delete, guard, only, rails, joined);
+        return new Replacement(road.id(), road.chain(), exact, first, keep, delete, guard, only, rails, joined, sideSwitch);
     }
 
     private static Set<Long> union(Set<Long> a, Set<Long> b) {
@@ -209,6 +216,7 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
         Set<Long> keep = new HashSet<>();
         Set<UUID> joined = new LinkedHashSet<>(graph.neighbours(road));
         joined.addAll(graph.junctionsOf(road));
+        joined.addAll(graph.roadsAt(road)); // P9: a junction's rebuild keeps the roads drawn onto its arms
         for (UUID neighbour : joined) {
             if (!group.contains(neighbour)) {
                 keep.addAll(blocks(roads.get(neighbour).params(), limits));
