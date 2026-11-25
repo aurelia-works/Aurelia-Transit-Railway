@@ -4,6 +4,7 @@
  */
 package org.mtr.aurelia.road.road.tool;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.OptionalDouble;
@@ -15,6 +16,8 @@ import org.mtr.aurelia.road.road.RoadProfiles;
 import org.mtr.aurelia.road.road.palette.BuiltInPalettes;
 import org.mtr.aurelia.road.road.palette.Palette;
 import org.mtr.aurelia.road.road.palette.Palettes;
+import org.mtr.aurelia.road.road.raster.Crossing;
+import org.mtr.aurelia.road.road.solve.PieceSolver;
 import org.mtr.aurelia.road.tool.HudModel.Text;
 
 /**
@@ -34,6 +37,8 @@ import org.mtr.aurelia.road.tool.HudModel.Text;
  *       can't be built and MTR nodes where the game has no node block.</li>
  *   <li><b>The palette</b> (R-9; owner, 2026-10-10): Stratos UK to start (B-1, ADR-0044); the hub's palette button steps
  *       through the server's palettes. A palette chosen on another server and missing here stands for Stratos UK.</li>
+ *   <li><b>The Crossing option</b> (#193; owner, 2026-11-24): off to start; {@code ;} switches it. While it is on, new
+ *       roads get a pedestrian crossing across their middle ({@link #crossed}).</li>
  *   <li><b>The driving side</b> (P9) isn't the player's to choose: it is the world's, as the server says, left-hand until it
  *       does.</li>
  * </ul>
@@ -54,6 +59,8 @@ public final class RoadSettings {
     private double radius = DEFAULT_RADIUS;
     /** The aid chosen; Track stands for blue wool while track can't be built. */
     private RoadPlanParams.NodeAids nodeAids = RoadPlanParams.NodeAids.TRACK;
+    /** Whether new roads get a pedestrian crossing across their middle (#193); off to start. */
+    private boolean crossings;
 
     /** Settings for a game without MTR (tests). */
     public RoadSettings() {
@@ -207,6 +214,34 @@ public final class RoadSettings {
         };
     }
 
+    /** Whether new roads get a pedestrian crossing across their middle (#193). */
+    public boolean crossings() {
+        return this.crossings;
+    }
+
+    /** The Crossing option on or off. */
+    public void toggleCrossings() {
+        this.crossings = !this.crossings;
+    }
+
+    /** The width of the crossing the Crossing option puts in: three blocks, a wide UK flush kerb (2.4–3.2 m). */
+    public static final int CROSSING_WIDTH = 3;
+
+    /**
+     * {@code road} with the Crossing option's crossing (#193): while it is on, one {@link #CROSSING_WIDTH} blocks wide
+     * across the middle of a road of one piece from its first end to its last (its centre line's length, which the
+     * planner's measure, the lanes' average, matches on a layout symmetric about it). Unchanged while it is off, or for a
+     * road whose centre line can't be found (the planner refuses it anyway).
+     */
+    public RoadPlanParams crossed(RoadPlanParams road) {
+        if (!this.crossings || road.ends().size() < 2) {
+            return road;
+        }
+        return PieceSolver.centreLine(road.ends().get(0), road.ends().get(road.ends().size() - 1))
+                .map(centre -> road.withCrossings(List.of(new Crossing(StrictMath.rint(centre.getLength()) / 2, CROSSING_WIDTH))))
+                .orElse(road);
+    }
+
     public RoadPlanParams.Vertical.Shape shape() {
         return this.shape;
     }
@@ -250,13 +285,14 @@ public final class RoadSettings {
     }
 
     /**
-     * Takes {@code road}'s layout, palette, node aid, shape and radius (R-10; owner, 2026-10-13: the hub follows the road
+     * Takes {@code road}'s layout, palette, node aid, crossing (#193), shape and radius (R-10; owner, 2026-10-13: the hub follows the road
      * being edited, and keeps them for the next road). A palette or layout this game hasn't got stays as it was.
      */
     public void follow(RoadPlanParams road) {
         RoadProfiles.byId(road.profileId()).ifPresent(this::setProfile);
         setPalette(road.paletteId());
         this.nodeAids = road.nodeAids();
+        this.crossings = !road.crossings().isEmpty(); // #193: an edited road keeps its crossing, put back mid-road
         this.shape = road.vertical().shape();
         road.vertical().radius().ifPresent(r -> this.radius = r);
     }

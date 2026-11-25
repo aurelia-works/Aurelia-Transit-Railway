@@ -128,8 +128,17 @@ public final class Rasteriser {
      * ({@link #withLines}).
      */
     public static BlockPlan plan(List<RoadPiece> pieces, BlockPalette palette, int minY, int maxY) {
+        return plan(pieces, palette, minY, maxY, List.of());
+    }
+
+    /**
+     * As {@link #plan(List, BlockPalette, int, int)}, with pedestrian {@code crossings} over the road (ATR P11): with a
+     * palette that has dropped kerbs ({@link BlockPalette#droppedKerbs()}), the kerbs in each crossing's stretch drop
+     * flush ({@link #withCrossings}).
+     */
+    public static BlockPlan plan(List<RoadPiece> pieces, BlockPalette palette, int minY, int maxY, List<Crossing> crossings) {
         BlockPlan.Builder plan = BlockPlan.builder(palette.dataVersion());
-        for (Map.Entry<BlockXZ, Cell> entry : planCells(pieces, palette)) {
+        for (Map.Entry<BlockXZ, Cell> entry : planCells(pieces, palette, crossings)) {
             SurfaceFit.stack(plan, entry.getKey().x(), entry.getKey().z(), entry.getValue().column(), entry.getValue().top(), palette, minY, maxY);
         }
         return plan.build();
@@ -138,12 +147,22 @@ public final class Rasteriser {
     /**
      * The block plan of a junction piece (G-11): its columns (by world block; {@code road.junction.JunctionFootprint}), all
      * level at {@code top}, with real kerbs where {@code palette}'s kerb turns to face the road (B-1), stacked as a road's
-     * columns are. Its give-way lines come painted with their chords already.
+     * columns are. Its give-way lines come painted with their chords already. Each kerb in {@code crossings} (#193: its
+     * side roads' crossings, {@code road.junction.JunctionFootprint#crossings}) becomes a dropped kerb where the palette
+     * has them, keeping its facing.
      */
-    public static BlockPlan junction(Map<BlockXZ, Column> columns, double top, BlockPalette palette, int minY, int maxY) {
+    public static BlockPlan junction(Map<BlockXZ, Column> columns, Set<BlockXZ> crossings, double top, BlockPalette palette, int minY, int maxY) {
         List<Map.Entry<BlockXZ, Cell>> cells = new ArrayList<>();
         columns.forEach((xz, column) -> cells.add(Map.entry(xz, new Cell(column, snap(top)))));
         List<Map.Entry<BlockXZ, Cell>> kerbed = palette.kerbEdges() ? withKerbs(cells) : cells;
+        if (palette.droppedKerbs() && !crossings.isEmpty()) {
+            kerbed.replaceAll(entry -> {
+                Column column = entry.getValue().column();
+                boolean drop = crossings.contains(entry.getKey()) && column.band() == Band.KERB && column.kerb().isPresent() && column.detail().isEmpty();
+                return drop ? Map.entry(entry.getKey(), new Cell(column.with(Column.Detail.DROPPED_KERB, column.kerb().get()), entry.getValue().top()))
+                        : entry;
+            });
+        }
         BlockPlan.Builder plan = BlockPlan.builder(palette.dataVersion());
         for (Map.Entry<BlockXZ, Cell> entry : kerbed) {
             SurfaceFit.stack(plan, entry.getKey().x(), entry.getKey().z(), entry.getValue().column(), entry.getValue().top(), palette, minY, maxY);
@@ -153,6 +172,14 @@ public final class Rasteriser {
 
     /** The columns {@link #plan(List, BlockPalette, int, int)} stacks, in order: every piece's, with kerbs and lines as {@code palette} has them. */
     static List<Map.Entry<BlockXZ, Cell>> planCells(List<RoadPiece> pieces, BlockPalette palette) {
+        return planCells(pieces, palette, List.of());
+    }
+
+    /**
+     * As {@link #planCells(List, BlockPalette)}, then (ATR P11) dropped kerbs at {@code crossings} and gullies along the
+     * kerbs, where {@code palette} has them. Both come last, so neither moves a kerb or a line.
+     */
+    static List<Map.Entry<BlockXZ, Cell>> planCells(List<RoadPiece> pieces, BlockPalette palette, List<Crossing> crossings) {
         List<Map.Entry<BlockXZ, Cell>> cells = new ArrayList<>();
         List<Set<BlockXZ>> owned = new ArrayList<>();
         for (RoadPiece piece : pieces) {
@@ -166,7 +193,183 @@ public final class Rasteriser {
         if (palette.lines(LineMarking.Colour.WHITE) || palette.lines(LineMarking.Colour.YELLOW)) {
             cells = withLines(cells, pieces, owned, palette);
         }
+        if (palette.droppedKerbs() && !crossings.isEmpty()) {
+            cells = withCrossings(cells, pieces, owned, crossings);
+        }
+        if (palette.gullies()) {
+            cells = withGullies(cells, pieces, owned);
+        }
         return cells;
+    }
+
+    /** Blocks between gullies along each kerb (B-4; research 13: one about every 40–50 m). */
+    static final double GULLY_SPACING = 45;
+    /** How far along the road the first gully is: half the spacing, so a road's gullies sit centred along it. */
+    static final double GULLY_FIRST = GULLY_SPACING / 2;
+
+    /**
+     * {@code cells} with a dropped kerb on every kerb column in a crossing's stretch (ATR P11, built from research 13 and
+     * roadmap Slice D's notes): the kerb keeps its facing and drops flush (the dropped kerb role has no raise), its tactile
+     * paving behind the flush stone. A kerb column's place along the road is its place along the nearer outer lane, scaled
+     * to the lanes' average as crossings are measured ({@link Crossing#at}).
+     */
+    static List<Map.Entry<BlockXZ, Cell>> withCrossings(List<Map.Entry<BlockXZ, Cell>> cells, List<RoadPiece> pieces, List<Set<BlockXZ>> owned,
+            List<Crossing> crossings) {
+        double[] starts = starts(pieces);
+        List<Map.Entry<BlockXZ, Cell>> crossed = new ArrayList<>(cells.size());
+        for (Map.Entry<BlockXZ, Cell> entry : cells) {
+            Cell cell = entry.getValue();
+            Column column = cell.column();
+            int piece = ownerOf(entry.getKey(), owned);
+            if (column.band() != Band.KERB || column.kerb().isEmpty() || column.detail().isPresent() || piece < 0) {
+                crossed.add(entry);
+                continue;
+            }
+            double along = along(pieces.get(piece), starts[piece], entry.getKey());
+            boolean dropped = false;
+            for (Crossing crossing : crossings) {
+                dropped |= crossing.covers(along);
+            }
+            crossed.add(dropped ? Map.entry(entry.getKey(), new Cell(column.with(Column.Detail.DROPPED_KERB, column.kerb().get()), cell.top())) : entry);
+        }
+        return crossed;
+    }
+
+    /**
+     * {@code cells} with gullies (B-4; ADR-0044, research 13): along each side of the road, one every
+     * {@link #GULLY_SPACING} blocks from {@link #GULLY_FIRST}, measured from the road's own start along the lanes'
+     * average (not the dash phase, which a joined road may move). Each goes in the channel: the road's last flat column
+     * before the kerb (the gutter on an alley). Of the columns round that spot, the nearest that is flat, unpainted, off
+     * every lane's centre, the road's own and has the kerb (or the road's edge) beside it takes it, its grate on that side.
+     * Junction corners get none yet: junctions aren't placed in the world.
+     */
+    static List<Map.Entry<BlockXZ, Cell>> withGullies(List<Map.Entry<BlockXZ, Cell>> cells, List<RoadPiece> pieces, List<Set<BlockXZ>> owned) {
+        List<Map.Entry<BlockXZ, Cell>> placed = new ArrayList<>(cells);
+        Map<BlockXZ, Integer> at = new HashMap<>();
+        for (int i = 0; i < placed.size(); i++) {
+            at.putIfAbsent(placed.get(i).getKey(), i);
+        }
+        double[] starts = starts(pieces);
+        for (int i = 0; i < pieces.size(); i++) {
+            RoadPiece piece = pieces.get(i);
+            Layout layout = new Layout(piece.profile().sections());
+            double mean = piece.meanLength();
+            if (mean <= 0) {
+                continue;
+            }
+            for (boolean right : new boolean[] {false, true}) {
+                int lane = right ? piece.lanes().size() - 1 : 0;
+                LaneCurve curve = piece.lanes().get(lane);
+                double length = curve.length();
+                double channel = layout.laneHalfWidth(lane) + Layout.width(layout.flatOuter(right)) - 0.5;
+                for (long k = (long) StrictMath.ceil((starts[i] - GULLY_FIRST) / GULLY_SPACING); ; k++) {
+                    double along = GULLY_FIRST + k * GULLY_SPACING;
+                    if (along >= starts[i] + mean) {
+                        break;
+                    }
+                    double s = StrictMath.min(length, StrictMath.max(0, (along - starts[i]) * length / mean));
+                    Vec2 tangent = tangent(curve, s);
+                    Vec2 out = right ? new Vec2(-tangent.z(), tangent.x()) : new Vec2(tangent.z(), -tangent.x());
+                    Vec2 spot = curve.point(s).plus(out.times(channel));
+                    placeGully(placed, at, owned.get(i), piece.anchor(), spot, out);
+                }
+            }
+        }
+        return placed;
+    }
+
+    /** Puts a gully in the best column round {@code spot} (relative to {@code anchor}), its grate towards {@code out}. */
+    private static void placeGully(List<Map.Entry<BlockXZ, Cell>> placed, Map<BlockXZ, Integer> at, Set<BlockXZ> own, BlockXZ anchor, Vec2 spot,
+            Vec2 out) {
+        int cx = (int) StrictMath.floor(spot.x() + 0.5);
+        int cz = (int) StrictMath.floor(spot.z() + 0.5);
+        List<BlockStep> around = new ArrayList<>();
+        for (int dz = -1; dz <= 1; dz++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                around.add(new BlockStep(cx + dx, cz + dz));
+            }
+        }
+        // Nearest the spot first; ties by z, then x, so the choice never depends on float order.
+        around.sort((a, b) -> {
+            int byDistance = Double.compare(snap(distanceSquared(a, spot)), snap(distanceSquared(b, spot)));
+            return byDistance != 0 ? byDistance : compareZThenX(new BlockXZ(a.dx(), a.dz()), new BlockXZ(b.dx(), b.dz()));
+        });
+        for (BlockStep step : around) {
+            BlockXZ block = anchor.plus(step);
+            Integer index = at.get(block);
+            if (index == null || !own.contains(block)) {
+                continue;
+            }
+            Column column = placed.get(index).getValue().column();
+            if (raised(column.band()) || column.painted() || column.laneCentre() || column.detail().isPresent()) {
+                continue;
+            }
+            for (KerbEdge.Facing facing : facings(out)) {
+                Integer beside = at.get(block.plus(facing.step()));
+                if (beside == null || (raised(placed.get(beside).getValue().column().band()) && placed.get(beside).getValue().column().detail().isEmpty())) {
+                    Cell cell = placed.get(index).getValue();
+                    placed.set(index, Map.entry(block, new Cell(column.with(Column.Detail.GULLY, new KerbEdge(facing, KerbEdge.Shape.STRAIGHT)), cell.top())));
+                    return;
+                }
+            }
+        }
+    }
+
+    private static double distanceSquared(BlockStep step, Vec2 spot) {
+        double dx = step.dx() - spot.x();
+        double dz = step.dz() - spot.z();
+        return dx * dx + dz * dz;
+    }
+
+    /** The two sides nearest {@code out}'s direction, nearest first (on an exact diagonal, x's side first). */
+    private static List<KerbEdge.Facing> facings(Vec2 out) {
+        KerbEdge.Facing alongX = out.x() >= 0 ? KerbEdge.Facing.EAST : KerbEdge.Facing.WEST;
+        KerbEdge.Facing alongZ = out.z() >= 0 ? KerbEdge.Facing.SOUTH : KerbEdge.Facing.NORTH;
+        return StrictMath.abs(out.x()) >= StrictMath.abs(out.z()) ? List.of(alongX, alongZ) : List.of(alongZ, alongX);
+    }
+
+    /** The unit direction of {@code curve} at {@code s}, from a short chord round it. */
+    private static Vec2 tangent(LaneCurve curve, double s) {
+        double length = curve.length();
+        double h = StrictMath.min(0.05, length / 2);
+        Vec2 a = curve.point(StrictMath.max(0, s - h));
+        Vec2 b = curve.point(StrictMath.min(length, s + h));
+        Vec2 d = b.minus(a);
+        return d.times(1 / d.length());
+    }
+
+    /** How far along the road each piece starts, along the lanes' average (as dashes and crossings are measured). */
+    private static double[] starts(List<RoadPiece> pieces) {
+        double[] starts = new double[pieces.size()];
+        double start = 0;
+        for (int i = 0; i < pieces.size(); i++) {
+            starts[i] = start;
+            start += pieces.get(i).meanLength();
+        }
+        return starts;
+    }
+
+    /** Where {@code block} is along the road: along its piece's nearer outer lane, scaled to the lanes' average, plus {@code start}. */
+    private static double along(RoadPiece piece, double start, BlockXZ block) {
+        Vec2 p = new Vec2(block.x() - piece.anchor().x(), block.z() - piece.anchor().z());
+        LaneCurve first = piece.lanes().get(0);
+        LaneCurve last = piece.lanes().get(piece.lanes().size() - 1);
+        LaneCurve.Local onFirst = first.local(p);
+        LaneCurve.Local onLast = last.local(p);
+        boolean nearFirst = StrictMath.abs(onFirst.d()) <= StrictMath.abs(onLast.d());
+        LaneCurve lane = nearFirst ? first : last;
+        double s = nearFirst ? onFirst.s() : onLast.s();
+        return lane.length() > 0 ? snap(start + s * piece.meanLength() / lane.length()) : start;
+    }
+
+    /** The first piece whose own columns have {@code block}, or −1. */
+    private static int ownerOf(BlockXZ block, List<Set<BlockXZ>> owned) {
+        for (int i = 0; i < owned.size(); i++) {
+            if (owned.get(i).contains(block)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**
@@ -548,6 +751,16 @@ public final class Rasteriser {
 
         List<Section> rightOuter() {
             return this.rightOuter;
+        }
+
+        /** The outer sections on one side up to the first raised one (the kerb): the road's flat part beyond its outer lane. */
+        List<Section> flatOuter(boolean rightSide) {
+            List<Section> outer = rightSide ? this.rightOuter : this.leftOuter;
+            int flat = 0;
+            while (flat < outer.size() && !raised(outer.get(flat).band())) {
+                flat++;
+            }
+            return outer.subList(0, flat);
         }
 
         double laneHalfWidth(int lane) {

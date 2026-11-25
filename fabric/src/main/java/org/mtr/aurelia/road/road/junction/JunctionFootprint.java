@@ -42,6 +42,10 @@ import org.mtr.aurelia.road.road.raster.Column;
  * <p><b>Markings</b> (roads-v1 §7.2: a one-block approximation in v1): a give-way line across the entry lane of each
  * minor arm where it meets the major road (the T-junction's stem; a crossroads' north and south arms) and of every
  * roundabout arm where it meets the ring, one block on, one off, as white line blocks across the lane.
+ *
+ * <p><b>Crossings</b> (#193; owner, 2026-11-24: where a side road meets a main road): across each minor arm of a
+ * T-junction or crossroads, from its port in, where the kerb has come off the corner and runs straight
+ * ({@link #crossings}). The rasteriser drops those kerbs flush where the palette has dropped kerbs.
  */
 public final class JunctionFootprint {
     /** The corner radius where a roundabout's arms meet its ring, in blocks (CD 116: entry radius 10 to 100 m). */
@@ -49,6 +53,9 @@ public final class JunctionFootprint {
 
     /** The columns of each template worked out so far: the tool asks on every aim. */
     private static final Map<JunctionTemplate, Map<BlockStep, Column>> CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<JunctionTemplate, java.util.Set<BlockStep>> CROSSINGS = new java.util.concurrent.ConcurrentHashMap<>();
+    /** The most rows a side road's crossing takes: three blocks, a wide UK flush kerb (2.4–3.2 m). */
+    static final int CROSSING_ROWS = 3;
 
     private JunctionFootprint() {
     }
@@ -102,6 +109,64 @@ public final class JunctionFootprint {
         Map<BlockStep, Column> columns = java.util.Collections.unmodifiableMap(work(template));
         CACHE.putIfAbsent(template, columns);
         return columns;
+    }
+
+    /**
+     * The columns of {@code template} a crossing takes, by block in its frame: across each minor arm of a T-junction or
+     * crossroads (the side road), the kerbs on both sides in the rows from its port in, while the kerb runs straight there
+     * (the row before it is off the carriageway too, so the kerb faces only across the arm); at most {@link #CROSSING_ROWS}
+     * rows and at least two ({@link org.mtr.aurelia.road.road.raster.Crossing#MIN_WIDTH}), or none. The port's row is the
+     * junction's even with a road joined there (the planner leaves a joined road's columns over the footprint out). None on
+     * a roundabout yet.
+     */
+    public static java.util.Set<BlockStep> crossings(JunctionTemplate template) {
+        java.util.Set<BlockStep> known = CROSSINGS.get(template);
+        if (known != null) {
+            return known;
+        }
+        java.util.Set<BlockStep> crossings = java.util.Collections.unmodifiableSet(workCrossings(template));
+        CROSSINGS.putIfAbsent(template, crossings);
+        return crossings;
+    }
+
+    private static java.util.Set<BlockStep> workCrossings(JunctionTemplate template) {
+        java.util.Set<BlockStep> crossings = new java.util.LinkedHashSet<>();
+        if (template.templateId().equals(JunctionTemplates.ROUNDABOUT)) {
+            return crossings;
+        }
+        Map<BlockStep, Column> columns = columns(template);
+        for (Arm arm : arms(template, false)) {
+            if (!arm.minor()) {
+                continue;
+            }
+            int ix = (int) StrictMath.round(arm.ux());
+            int iz = (int) StrictMath.round(arm.uz());
+            int port = (int) StrictMath.round(arm.length());
+            int kerb = (int) StrictMath.floor(arm.half()) + 1; // the kerb line's offset across the arm
+            List<BlockStep> taken = new ArrayList<>();
+            for (int row = port; row > port - CROSSING_ROWS; row--) {
+                List<BlockStep> both = new ArrayList<>();
+                for (int sign : new int[] {-1, 1}) {
+                    BlockStep at = new BlockStep(ix * row - iz * sign * kerb, iz * row + ix * sign * kerb);
+                    BlockStep before = new BlockStep(at.dx() - ix, at.dz() - iz);
+                    if (offCarriageway(columns.get(at)) && offCarriageway(columns.get(before))) {
+                        both.add(at);
+                    }
+                }
+                if (both.size() < 2) {
+                    break;
+                }
+                taken.addAll(both);
+            }
+            if (taken.size() >= 2 * org.mtr.aurelia.road.road.raster.Crossing.MIN_WIDTH) {
+                crossings.addAll(taken);
+            }
+        }
+        return crossings;
+    }
+
+    private static boolean offCarriageway(Column column) {
+        return column != null && column.band() != Band.LANE;
     }
 
     private static Map<BlockStep, Column> work(JunctionTemplate template) {

@@ -23,6 +23,14 @@
       { "full": "stratos:asphalt[layers=8]", "layers": "stratos:asphalt[layers={layers}]" },
       { "full": "minecraft:polished_andesite", "half": "minecraft:polished_andesite_slab[type=bottom,waterlogged=false]" }
     ],
+    "gully": [
+      { "full": "stratos:gully[facing=north,layers=8]", "layers": "stratos:gully[facing=north,layers={layers}]", "edge": true },
+      { "full": "minecraft:polished_deepslate", "half": "minecraft:polished_deepslate_slab[type=bottom,waterlogged=false]" }
+    ],
+    "dropped_kerb": [
+      { "full": "stratos:dropped_kerb[colour=buff,facing=north,layers=8]", "layers": "stratos:dropped_kerb[colour=buff,facing=north,layers={layers}]", "edge": true },
+      { "full": "minecraft:smooth_sandstone", "half": "minecraft:smooth_sandstone_slab[type=bottom,waterlogged=false]" }
+    ],
     "foundation": [
       { "full": "minecraft:stone" }
     ],

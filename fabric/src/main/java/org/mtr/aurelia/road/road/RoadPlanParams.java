@@ -16,6 +16,7 @@ import org.mtr.aurelia.road.geom.Heading;
 import org.mtr.aurelia.road.proto.MalformedMessage;
 import org.mtr.aurelia.road.proto.ProtoReader;
 import org.mtr.aurelia.road.proto.ProtoWriter;
+import org.mtr.aurelia.road.road.raster.Crossing;
 
 /**
  * The roads module's request parameters (editor-protocol §4, {@code module = roads}): everything the server needs to
@@ -25,15 +26,17 @@ import org.mtr.aurelia.road.proto.ProtoWriter;
  * <p>Encoding, in {@link ProtoWriter}'s field encoding and this order: tool, profileId, preset, paletteId,
  * drivingSide, ends (each x, y, z, heading index, snapRoadId?, snapPortIndex?), vertical (shape, radius?), nodeAids,
  * overlay, junction? (templateId, size, armProfiles), targetRoadId?, manualEdits?, dashes? (phase, anchor; R-5, present
- * only when it isn't {@link Dashes#FROM_START}).
+ * only when it isn't {@link Dashes#FROM_START}), crossings (each at, width; #193).
  */
 public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset, String paletteId, DrivingSide drivingSide, List<End> ends,
         Vertical vertical, NodeAids nodeAids, boolean overlay, Optional<Junction> junction, Optional<UUID> targetRoadId,
-        Optional<ManualEdits> manualEdits, Dashes dashes) {
+        Optional<ManualEdits> manualEdits, Dashes dashes, List<Crossing> crossings) {
     /** Profile, palette and template ids: at most 64 bytes of UTF-8. */
     public static final int MAX_ID_BYTES = 64;
     /** At most 16 ends. */
     public static final int MAX_ENDS = 16;
+    /** At most 16 crossings on one road (#193). */
+    public static final int MAX_CROSSINGS = 16;
     /** At most 8 junction arms. */
     public static final int MAX_ARMS = 8;
     /** The furthest x or z any Minecraft world allows (its largest world border is 29,999,984). */
@@ -186,13 +189,17 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
         Objects.requireNonNull(targetRoadId, "targetRoadId");
         Objects.requireNonNull(manualEdits, "manualEdits");
         Objects.requireNonNull(dashes, "dashes");
+        if (crossings.size() > MAX_CROSSINGS) {
+            throw new IllegalArgumentException("A road has at most " + MAX_CROSSINGS + " crossings");
+        }
+        crossings = List.copyOf(crossings);
     }
 
-    /** As the canonical constructor, with the dash pattern starting at the road's start ({@link Dashes#FROM_START}). */
+    /** As the canonical constructor, with the dash pattern starting at the road's start ({@link Dashes#FROM_START}) and no crossings. */
     public RoadPlanParams(Tool tool, String profileId, Presets.Preset preset, String paletteId, DrivingSide drivingSide, List<End> ends,
             Vertical vertical, NodeAids nodeAids, boolean overlay, Optional<Junction> junction, Optional<UUID> targetRoadId,
             Optional<ManualEdits> manualEdits) {
-        this(tool, profileId, preset, paletteId, drivingSide, ends, vertical, nodeAids, overlay, junction, targetRoadId, manualEdits, Dashes.FROM_START);
+        this(tool, profileId, preset, paletteId, drivingSide, ends, vertical, nodeAids, overlay, junction, targetRoadId, manualEdits, Dashes.FROM_START, List.of());
     }
 
     /**
@@ -236,31 +243,37 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
     /** The same parameters with the node aid {@code nodeAids} (R-6). */
     public RoadPlanParams withNodeAids(NodeAids nodeAids) {
         return new RoadPlanParams(this.tool, this.profileId, this.preset, this.paletteId, this.drivingSide, this.ends, this.vertical, nodeAids,
-                this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes);
+                this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes, this.crossings);
     }
 
     /** The same parameters with the ends {@code ends} (R-5: a tool joining a road). */
     public RoadPlanParams withEnds(List<End> ends) {
         return new RoadPlanParams(this.tool, this.profileId, this.preset, this.paletteId, this.drivingSide, ends, this.vertical, this.nodeAids,
-                this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes);
+                this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes, this.crossings);
     }
 
     /** The same parameters with the palette {@code paletteId} (R-9: the tools' palette; a rebuild in another palette). */
     public RoadPlanParams withPalette(String paletteId) {
         return new RoadPlanParams(this.tool, this.profileId, this.preset, paletteId, this.drivingSide, this.ends, this.vertical, this.nodeAids,
-                this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes);
+                this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes, this.crossings);
     }
 
     /** The same parameters with the driving side {@code drivingSide} (P9: the world's, for a new road). */
     public RoadPlanParams withDrivingSide(DrivingSide drivingSide) {
         return new RoadPlanParams(this.tool, this.profileId, this.preset, this.paletteId, drivingSide, this.ends, this.vertical, this.nodeAids,
-                this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes);
+                this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes, this.crossings);
     }
 
     /** The same parameters with the dash pattern {@code dashes} (R-5). */
     public RoadPlanParams withDashes(Dashes dashes) {
         return new RoadPlanParams(this.tool, this.profileId, this.preset, this.paletteId, this.drivingSide, this.ends, this.vertical, this.nodeAids,
-                this.overlay, this.junction, this.targetRoadId, this.manualEdits, dashes);
+                this.overlay, this.junction, this.targetRoadId, this.manualEdits, dashes, this.crossings);
+    }
+
+    /** The same parameters with the pedestrian crossings {@code crossings} (#193: the road tools' Crossing option). */
+    public RoadPlanParams withCrossings(List<Crossing> crossings) {
+        return new RoadPlanParams(this.tool, this.profileId, this.preset, this.paletteId, this.drivingSide, this.ends, this.vertical, this.nodeAids,
+                this.overlay, this.junction, this.targetRoadId, this.manualEdits, this.dashes, crossings);
     }
 
     /**
@@ -269,7 +282,7 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
      */
     public static RoadPlanParams clearMarkers(RoadPlanParams road) {
         return new RoadPlanParams(Tool.CLEAR_MARKERS, road.profileId(), road.preset(), road.paletteId(), road.drivingSide(), road.ends(),
-                road.vertical(), road.nodeAids(), false, Optional.empty(), Optional.empty(), Optional.empty(), road.dashes());
+                road.vertical(), road.nodeAids(), false, Optional.empty(), Optional.empty(), Optional.empty(), road.dashes(), road.crossings());
     }
 
     /**
@@ -280,7 +293,7 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
      */
     public RoadPlanParams road() {
         return new RoadPlanParams(Tool.CURVE, this.profileId, this.preset, this.paletteId, this.drivingSide, this.ends, this.vertical, this.nodeAids,
-                this.overlay, this.junction, Optional.empty(), Optional.empty(), this.dashes);
+                this.overlay, this.junction, Optional.empty(), Optional.empty(), this.dashes, this.crossings);
     }
 
     /**
@@ -294,7 +307,7 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
         }
         Objects.requireNonNull(roadId, "roadId");
         return new RoadPlanParams(tool, road.profileId(), road.preset(), road.paletteId(), road.drivingSide(), road.ends(), road.vertical(),
-                road.nodeAids(), road.overlay(), road.junction(), Optional.of(roadId), answer, road.dashes());
+                road.nodeAids(), road.overlay(), road.junction(), Optional.of(roadId), answer, road.dashes(), road.crossings());
     }
 
     /** Whether these are a placed road's parameters: a straight or curved road's, or (R-7) a rebuild's. */
@@ -331,6 +344,10 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
         out.bool(dashed);
         if (dashed) {
             out.doubleValue(this.dashes.phase()).enumValue(this.dashes.at());
+        }
+        out.count(this.crossings, MAX_CROSSINGS);
+        for (Crossing crossing : this.crossings) {
+            out.doubleValue(crossing.at()).nonNegative(crossing.width());
         }
         return out.toByteArray();
     }
@@ -376,9 +393,14 @@ public record RoadPlanParams(Tool tool, String profileId, Presets.Preset preset,
             if (in.present()) {
                 dashes = new Dashes(in.finiteDouble("dash phase"), in.enumValue(Dashes.Anchor.values(), "dash anchor"));
             }
+            int crossingCount = in.count(MAX_CROSSINGS, "crossings");
+            List<Crossing> crossings = new ArrayList<>(crossingCount);
+            for (int i = 0; i < crossingCount; i++) {
+                crossings.add(new Crossing(in.finiteDouble("crossing at"), in.nonNegative("crossing width")));
+            }
             in.end();
             return new RoadPlanParams(tool, profileId, preset, paletteId, drivingSide, ends, new Vertical(shape, radius), nodeAids, overlay,
-                    junction, targetRoadId, manualEdits, dashes);
+                    junction, targetRoadId, manualEdits, dashes, crossings);
         } catch (IllegalArgumentException e) {
             // A rule across fields, such as a straight road without exactly 2 ends, or a non-positive radius.
             throw new MalformedMessage("road parameters: " + e.getMessage());

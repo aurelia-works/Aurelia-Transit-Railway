@@ -15,6 +15,7 @@ import java.util.UUID;
 import org.mtr.aurelia.road.geom.Heading;
 import org.mtr.aurelia.road.json.JsonFormatException;
 import org.mtr.aurelia.road.json.StrictJson;
+import org.mtr.aurelia.road.road.raster.Crossing;
 
 /**
  * {@link RoadPlanParams} as JSON, for operation records (task G-9): every field by name, so a record can be read by a
@@ -77,6 +78,16 @@ public final class RoadParamsJson {
             dashes.addProperty("phase", params.dashes().phase());
             dashes.addProperty("at", params.dashes().at().name());
             json.add("dashes", dashes);
+        }
+        if (!params.crossings().isEmpty()) { // #193: left out when there are none, so older records read back the same
+            JsonArray crossings = new JsonArray();
+            for (Crossing crossing : params.crossings()) {
+                JsonObject c = new JsonObject();
+                c.addProperty("at", crossing.at());
+                c.addProperty("width", crossing.width());
+                crossings.add(c);
+            }
+            json.add("crossings", crossings);
         }
         return json;
     }
@@ -150,11 +161,27 @@ public final class RoadParamsJson {
                 throw new JsonFormatException("params.dashes: " + ex.getMessage());
             }
         }
+        List<Crossing> crossings = new ArrayList<>();
+        if (params.has("crossings")) {
+            int k = 0;
+            for (JsonObject c : params.objects("crossings")) {
+                String where = "params.crossings[" + k++ + "]";
+                StrictJson.Reader reader = StrictJson.read(c, where);
+                double at = reader.number("at");
+                int width = reader.integer("width");
+                reader.done();
+                try {
+                    crossings.add(new Crossing(at, width));
+                } catch (IllegalArgumentException ex) {
+                    throw new JsonFormatException(where + ": " + ex.getMessage());
+                }
+            }
+        }
         params.done();
         try {
             return new RoadPlanParams(tool, profileId, preset, paletteId, drivingSide, ends,
                     new RoadPlanParams.Vertical(shape, radius.map(OptionalDouble::of).orElse(OptionalDouble.empty())), nodeAids, overlay, junction,
-                    targetRoadId, manualEdits, dashes);
+                    targetRoadId, manualEdits, dashes, crossings);
         } catch (IllegalArgumentException ex) {
             throw new JsonFormatException("params: " + ex.getMessage());
         }

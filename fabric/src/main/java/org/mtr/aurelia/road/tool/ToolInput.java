@@ -52,7 +52,9 @@ public sealed interface ToolInput {
         SHAPE,
         RADIUS_UP,
         RADIUS_DOWN,
-        NODES
+        NODES,
+        /** The road tools' Crossing option (#193). */
+        CROSSINGS
     }
 
     /** One of the elevation and shape keys (R-4), with the aim and facing at the time. */

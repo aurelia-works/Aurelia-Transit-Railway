@@ -27,6 +27,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import org.mtr.aurelia.road.fabric.block.LayeredBlock;
 import org.mtr.aurelia.road.fabric.block.StratosBlocks;
+import org.mtr.aurelia.road.fabric.compat.dh.DhCompat;
 import org.mtr.aurelia.road.fabric.paint.PaintLines;
 import org.mtr.aurelia.road.fabric.paint.PaintStore;
 import org.mtr.aurelia.road.spi.ChunkXZ;
@@ -244,9 +245,10 @@ public final class FabricWorldWriter implements WorldWriter {
         }
     }
 
-    /** Stratos told Distant Horizons here; ATR ships no far-view support, so there is nothing to tell. */
+    /** F-7: tells Distant Horizons, when it is installed, so its far view shows the edit ({@link DhCompat}). */
     @Override
     public void blocksChanged(Collection<ChunkXZ> chunks) {
+        DhCompat.chunksChanged(this.level, chunks);
     }
 
     /**

@@ -450,7 +450,7 @@ public final class RoadPlanner {
      * arm's port facing the way a road leaving it runs: {@link PlacedJunction#from}; otherwise {@link RoadJoins#PORT_MISMATCH}),
      * each end that names a road end joining it ({@link JunctionSnap#joinRefusal}).
      * <ul>
-     *   <li><b>Blocks:</b> its surface, kerbs and give-way lines ({@link JunctionFootprint}), level at the ports' height,
+     *   <li><b>Blocks:</b> its surface, kerbs, give-way lines and side-road crossings ({@link JunctionFootprint}), level at the ports' height,
      *       with the node aid at every lane node: the arms' (the roads' own end nodes) and a roundabout's ring nodes.</li>
      *   <li><b>Track</b> (with {@code TRACK}): one rail per link of the template, one way from its first node to its
      *       second, at the arm layout's speed (G-4+): the turns, entries, ring pieces and exits MTR lays as given (G-11).</li>
@@ -489,7 +489,12 @@ public final class RoadPlanner {
             BlockStep world = at.get().world(local.dx(), local.dz());
             columns.put(new BlockXZ(world.dx(), world.dz()), column);
         });
-        BlockPlan plan = Rasteriser.junction(columns, y + 1, palette.get(), limits.minY(), limits.maxY());
+        Set<BlockXZ> crossings = new HashSet<>();
+        JunctionFootprint.crossings(template.get()).forEach(local -> {
+            BlockStep world = at.get().world(local.dx(), local.dz());
+            crossings.add(new BlockXZ(world.dx(), world.dz()));
+        });
+        BlockPlan plan = Rasteriser.junction(columns, crossings, y + 1, palette.get(), limits.minY(), limits.maxY());
         List<LaneNode> nodes = new ArrayList<>();
         for (int i = 0; i < template.get().nodes().size(); i++) {
             RoadPlanParams.End node = at.get().node(i);
@@ -582,7 +587,7 @@ public final class RoadPlanner {
         // The foundation and the clearance stop at the build height; the surface itself is checked below.
         BlockPlan plan;
         try {
-            plan = Rasteriser.plan(rasterPieces(profile, pieces, params.dashes()), palette, limits.minY(), limits.maxY());
+            plan = Rasteriser.plan(rasterPieces(profile, pieces, params.dashes()), palette, limits.minY(), limits.maxY(), params.crossings());
         } catch (Rasteriser.StaggeredLaneEnds staggered) {
             return refused(LANE_ENDS_STAGGERED, Map.of()); // upstream BUG-2
         }

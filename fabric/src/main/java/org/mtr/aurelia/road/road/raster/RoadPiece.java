@@ -149,11 +149,19 @@ public record RoadPiece(RoadProfile profile, BlockXZ anchor, List<LaneCurve> lan
      * along it (the lanes' average length, as dashes are measured; spec roads-v1 §7.2).
      */
     public double phaseAfter() {
+        return this.dashPhase + meanLength();
+    }
+
+    /**
+     * How far the road runs along this piece: the lanes' average length, as dashes, gullies and crossings are measured
+     * (spec roads-v1 §7.2).
+     */
+    public double meanLength() {
         double total = 0;
         for (LaneCurve lane : this.lanes) {
             total += lane.length();
         }
-        return this.dashPhase + total / this.lanes.size();
+        return total / this.lanes.size();
     }
 
     static int firstLaneIndex(List<Section> sections) {

@@ -119,6 +119,12 @@ final class ElevationHud {
         return new Line("stratos.tool.line.nodes", Text.of(key), false);
     }
 
+    /** The Crossing option (#193): a crossing across the middle of new roads, or none. */
+    static Line crossings(RoadSettings settings) {
+        return new Line("stratos.tool.line.crossing", Text.of(settings.crossings() ? "stratos.tool.value.crossing_middle" : "stratos.tool.value.crossing_none"),
+                false);
+    }
+
     /**
      * The elevation keys' hints: the height keys while {@code following}; unless the road is being placed, the shape key
      * and the radius box, the radius steps with Two radii, and the node aid (R-6).
@@ -136,6 +142,7 @@ final class ElevationHud {
             }
             hints.add(new Hint(Action.RADIUS_TYPE, "stratos.tool.hint.type_radius"));
             hints.add(new Hint(Action.NODES, "stratos.tool.hint.nodes"));
+            hints.add(new Hint(Action.CROSSINGS, "stratos.tool.hint.crossing"));
         }
     }
 
@@ -147,6 +154,7 @@ final class ElevationHud {
         switch (adjustment) {
             case SHAPE -> settings.toggleShape();
             case NODES -> settings.cycleNodeAids();
+            case CROSSINGS -> settings.toggleCrossings();
             case RADIUS_UP, RADIUS_DOWN -> {
                 if (settings.shape() == RoadPlanParams.Vertical.Shape.TWO_RADII) {
                     settings.stepRadius(adjustment == ToolInput.Adjustment.RADIUS_UP);

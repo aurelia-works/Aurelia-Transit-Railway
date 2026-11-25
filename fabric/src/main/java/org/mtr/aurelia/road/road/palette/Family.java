@@ -32,7 +32,8 @@ import org.mtr.aurelia.road.road.raster.KerbEdge;
  *   <li>{@code raise}: eighths of a block it stands above the road's surface, so the Stratos UK footway and kerb stand one
  *       layer (125 mm) up. A palette whose steps can't show it leaves it level ({@link Palette#raise}).</li>
  *   <li>{@code edge}: its states have {@code facing} and {@code shape}, which Stratos sets for each column to face the road
- *       ({@link KerbEdge}; the kerb role only). The file's values stand where a column has no edge.</li>
+ *       ({@link KerbEdge}). The file's values stand where a column has no edge. From B-4 and the crossings (ATR P11) the
+ *       gully and dropped kerb roles may have it too, with {@code facing} only: their blocks have no {@code shape}.</li>
  * </ul>
  * From B-2 (ADR-0046's line blocks), a marking role's family may have {@code line}: its states have {@code chord}, which
  * Stratos sets for each block the line's paint touches ({@code road.line.LineTracer}). The file's value stands where a
@@ -76,10 +77,9 @@ public record Family(String full, Optional<String> half, Optional<String> layers
             half.ifPresent(states::add);
             layers.ifPresent(template -> states.add(template.replace(LAYERS, "1")));
             for (String state : states) {
-                for (String property : EDGE_PROPERTIES) {
-                    if (!property(property).matcher(state).find()) {
-                        throw new IllegalArgumentException("an edge family's states have " + String.join(" and ", EDGE_PROPERTIES) + ": " + state);
-                    }
+                // facing always; shape is checked for the kerb role by PaletteFile, as a gully or dropped kerb has none.
+                if (!property(EDGE_PROPERTIES.get(0)).matcher(state).find()) {
+                    throw new IllegalArgumentException("an edge family's states have " + EDGE_PROPERTIES.get(0) + ": " + state);
                 }
             }
         }
@@ -140,7 +140,7 @@ public record Family(String full, Optional<String> half, Optional<String> layers
             return state;
         }
         String facing = property("facing").matcher(state).replaceFirst("facing=" + kerb.get().facing().id());
-        return property("shape").matcher(facing).replaceFirst("shape=" + kerb.get().shape().id());
+        return property("shape").matcher(facing).replaceFirst("shape=" + kerb.get().shape().id()); // no shape: as it is
     }
 
     /** A family of one full block, with no partial blocks. */
@@ -193,6 +193,11 @@ public record Family(String full, Optional<String> half, Optional<String> layers
             }
         }
         return states;
+    }
+
+    /** Whether every one of its states has the property {@code name}, such as {@code shape}. */
+    public boolean hasProperty(String name) {
+        return states().stream().allMatch(state -> property(name).matcher(state).find());
     }
 
     /** The blocks its states belong to, such as {@code minecraft:smooth_stone_slab}. */
