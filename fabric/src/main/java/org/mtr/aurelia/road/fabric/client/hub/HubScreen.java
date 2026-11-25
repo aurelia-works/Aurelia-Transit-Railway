@@ -22,6 +22,7 @@ import org.mtr.aurelia.road.fabric.client.ui.HubIcon;
 import org.mtr.aurelia.road.fabric.client.ui.RoadColours;
 import org.mtr.aurelia.road.fabric.client.ui.RoadPicture;
 import org.mtr.aurelia.road.fabric.client.ui.UiText;
+import org.mtr.aurelia.road.fabric.net.StratosPermissions;
 import org.mtr.aurelia.road.proto.Protocol;
 import org.mtr.aurelia.road.road.RoadPlanParams;
 import org.mtr.aurelia.road.road.RoadProfile;
@@ -486,7 +487,7 @@ public final class HubScreen extends Screen {
         };
         List<OrderedText> question = wrap(Text.translatable("stratos.hub.world." + base + "_confirm"), inner);
         // P9: the operator's override of a driving-side switch (every player's roads) is a second row of its own
-        boolean drive = Protocol.isDriveTask(this.confirming);
+        boolean drive = Protocol.isDriveTask(this.confirming) && mayOverride();
         int h = HEADER + WORLD_BOX_PADDING + question.size() * this.textRenderer.fontHeight + 8 + BUTTON_HEIGHT + (drive ? 4 + BUTTON_HEIGHT : 0)
                 + WORLD_BOX_PADDING;
         Box box = popUpPanel(graphics, right, bottom, WORLD_BOX_WIDTH, h, HubIcon.GLOBE, Text.translatable("stratos.hub.world"));
@@ -732,6 +733,14 @@ public final class HubScreen extends Screen {
             StratosEditorClient.task(task);
             close();
         }
+    }
+
+    /**
+     * Whether to offer the driving-side override: an operator (or the singleplayer world's owner, who holds every node) can use it.
+     * Only what the hub shows: the server checks {@code stratos.admin} itself, so a client that sends it anyway is refused.
+     */
+    private boolean mayOverride() {
+        return this.client != null && (this.client.isInSingleplayer() || this.client.player != null && this.client.player.hasPermissionLevel(StratosPermissions.ADMIN_LEVEL));
     }
 
     /**

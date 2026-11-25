@@ -67,6 +67,8 @@ import org.mtr.aurelia.road.undo.Operations;
  * task did stays, and can be undone. Server thread only.
  */
 final class WorldTasks {
+    /** How many ticks (10 s) a rebuild waits for its road's author to finish an operation of their own before it counts as failed. */
+    private static final int BUSY_WAIT_TICKS = 200;
     private final Supplier<List<EditWorld>> worlds;
     private final BlockFinder finder;
     private final Executor planners;
@@ -81,8 +83,6 @@ final class WorldTasks {
     private final Runnable noneLeft;
     /** P9: where a switch of driving side sets the world's side ({@code true} for right-hand). */
     private final Consumer<Boolean> setSide;
-    /** How many ticks (10 s) a rebuild waits for its road's author to finish an operation of their own before it counts as failed. */
-    private static final int BUSY_WAIT_TICKS = 200;
     private final Map<UUID, Task> tasks = new LinkedHashMap<>();
 
     WorldTasks(Supplier<List<EditWorld>> worlds, BlockFinder finder, Executor planners, LongSupplier clock, Supplier<UUID> operationIds,

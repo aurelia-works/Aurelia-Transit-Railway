@@ -91,6 +91,30 @@ class WorldTasksSwitchTest {
         assertEquals(List.of(true, true), this.sides, "the world's side was set each time");
     }
 
+    /** A player without {@code stratos.admin} is refused both switches, the override included, and nothing changes. */
+    @Test
+    void aPlayerWithoutTheAdminNodeCannotSwitchOrOverride() {
+        EditorServer server = new EditorServer(new EditorServer.ServerInfo("0.1.0", "stratos 0.1.0", 3465, 1, EditorLimits.NONE),
+                List.of(RoadsModule.INSTANCE), (player, node) -> !node.equals(EditorServer.NODE_ADMIN), player -> new EditorServer.EditWorld(this.operations, LIMITS),
+                Runnable::run, () -> this.clock.incrementAndGet() * 2_000_000_000L, () -> new UUID(0x7a, this.clock.incrementAndGet()), line -> {
+                });
+        server.worldTasks(() -> List.of(new EditorServer.EditWorld(this.operations, LIMITS)), (dimension, cells) -> {
+            throw new UnsupportedOperationException();
+        });
+        server.trafficSideSetter(this.sides::add);
+        server.join(OPERATOR, this.sent::add);
+        server.receive(OPERATOR, Messages.encode(new Message.HelloAck(Protocol.VERSION, "0.1.0", List.of())));
+        for (String task : List.of(Protocol.TASK_DRIVE_RIGHT, Protocol.TASK_DRIVE_RIGHT_ALL)) {
+            this.sent.clear();
+            server.receive(OPERATOR, Messages.encode(new Message.TaskRequest(2, task, Optional.empty())));
+            Message.TaskResult refused = this.sent.stream().filter(Message.TaskResult.class::isInstance).map(Message.TaskResult.class::cast).findFirst().orElseThrow();
+            assertEquals(Optional.of(Protocol.PERMISSION_DENIED), refused.reasonCode(), task);
+            assertEquals(Map.of("node", EditorServer.NODE_ADMIN), refused.args(), task);
+        }
+        assertEquals(List.of(), this.sides, "the world's side was not touched");
+        assertEquals(DrivingSide.LHT, RoadsModule.roads(this.operations.records()).get(this.road).drivingSide());
+    }
+
     /** One task to its result, in the server's order: the task ticks, the operations tick, finished ones are told to the task. */
     private Message.TaskResult run(String task) {
         this.sent.clear();
