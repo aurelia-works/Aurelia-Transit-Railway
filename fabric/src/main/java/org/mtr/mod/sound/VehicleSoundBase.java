@@ -115,7 +115,8 @@ public abstract class VehicleSoundBase {
 			if (style == null) {
 				return 0;
 			} else {
-				final RailResource railResource = CustomResourceLoader.getRailById(style);
+				// a selected style is saved as the rail resource id plus a direction suffix (_1 or _2), as RenderRails reads it
+				final RailResource railResource = CustomResourceLoader.getRailById(RailResource.getIdWithoutDirection(style));
 				return railResource == null ? 0 : railResource.getSoundIndex();
 			}
 		}
