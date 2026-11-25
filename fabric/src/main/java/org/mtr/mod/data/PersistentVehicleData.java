@@ -4,7 +4,9 @@ import org.mtr.aurelia.sound.ProfileSounds;
 import org.mtr.aurelia.sound.SoundProfile;
 import org.mtr.aurelia.sound.SoundProfileRegistry;
 import org.mtr.aurelia.sound.SoundProfileStore;
+import org.mtr.core.data.Data;
 import org.mtr.core.data.PathData;
+import org.mtr.core.data.Rail;
 import org.mtr.core.data.TransportMode;
 import org.mtr.core.data.Vehicle;
 import org.mtr.core.data.VehicleCar;
@@ -14,6 +16,7 @@ import org.mtr.libraries.it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import org.mtr.mapping.holder.BlockPos;
+import org.mtr.mod.client.MinecraftClientData;
 import org.mtr.mod.client.Oscillation;
 import org.mtr.mod.client.ScrollingText;
 import org.mtr.mod.resource.DoorAnimationType;
@@ -146,10 +149,20 @@ public final class PersistentVehicleData {
 				final PathData thisPathData = Utilities.getElement(vehicleExtraData.immutablePath, thisPathIndex);
 				final PathData lastPathData = thisPathIndex == lastPathIndex ? thisPathData : Utilities.getElement(vehicleExtraData.immutablePath, lastPathIndex);
 				final float pathDelta = thisPathIndex == lastPathIndex ? 1 : (float) Math.min(1, (headRailProgress - lastPathData.getEndDistance()) / carLength);
-				runSoundStates.add(VehicleSoundBase.RunSoundInfo.create(lastPathData.getRail(), thisPathData.getRail(), pathDelta));
+				runSoundStates.add(VehicleSoundBase.RunSoundInfo.create(styledRail(lastPathData), styledRail(thisPathData), pathDelta));
 				headRailProgress -= carLength;
 			}
 		}
+	}
+
+	/**
+	 * The rail a path step runs on, with its styles. On the client a vehicle's path is cached against empty data (see
+	 * {@code PacketUpdateVehiclesLifts}), so the path's own rail is a bare stand-in with no styles; the client's rail
+	 * between the same two nodes has them.
+	 */
+	private static Rail styledRail(PathData pathData) {
+		final Rail rail = Data.tryGet(MinecraftClientData.getInstance().positionsToRail, pathData.getOrderedPosition1(), pathData.getOrderedPosition2());
+		return rail == null ? pathData.getRail() : rail;
 	}
 
 	public double getDoorValue() {
