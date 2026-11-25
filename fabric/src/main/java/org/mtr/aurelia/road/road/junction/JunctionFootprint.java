@@ -61,9 +61,16 @@ public final class JunctionFootprint {
         }
     }
 
-    /** A rounded corner: the arc's centre and radius, and the two tangent points that bound it. */
-    private record Corner(double cx, double cz, double r, double ax, double az, double bx, double bz) {
-        /** Whether the direction from the centre to {@code (x, z)} lies between those to the tangent points. */
+    /**
+     * A rounded corner: the arc's centre and radius, and the two tangent points that bound it: {@code a} on an arm's kerb
+     * line, {@code b} on the other arm's ({@code straightB}) or on a roundabout ring's outer edge.
+     */
+    private record Corner(double cx, double cz, double r, double ax, double az, double bx, double bz, boolean straightB) {
+        /**
+         * Whether {@code (x, z)} is in the patch the corner rounds off: the direction from the centre lies between those to
+         * the tangent points, and the point is no further from the centre than each straight kerb line it touches (on a
+         * roundabout, the ring bounds the other side). Unbounded, each corner would fill its whole quadrant.
+         */
         boolean within(double x, double z) {
             double px = x - this.cx;
             double pz = z - this.cz;
@@ -72,7 +79,10 @@ public final class JunctionFootprint {
             double bx = this.bx - this.cx;
             double bz = this.bz - this.cz;
             double ab = ax * bz - az * bx;
-            return ab >= 0 ? ax * pz - az * px >= 0 && px * bz - pz * bx >= 0 : ax * pz - az * px <= 0 && px * bz - pz * bx <= 0;
+            boolean wedge = ab >= 0 ? ax * pz - az * px >= 0 && px * bz - pz * bx >= 0 : ax * pz - az * px <= 0 && px * bz - pz * bx <= 0;
+            double reachA = (px * ax + pz * az) / StrictMath.hypot(ax, az); // towards a's kerb line, which is r away
+            double reachB = (px * bx + pz * bz) / StrictMath.hypot(bx, bz);
+            return wedge && reachA <= this.r + 1e-9 && (!this.straightB || reachB <= this.r + 1e-9);
         }
     }
 
@@ -202,7 +212,7 @@ public final class JunctionFootprint {
                     double tx = a.ux() * along - a.uz() * a.half() * sign; // on the kerb line
                     double tz = a.uz() * along + a.ux() * a.half() * sign;
                     double scale = outerRing / (outerRing + radius); // on the ring's edge, towards the centre
-                    corners.add(new Corner(cx, cz, radius, tx, tz, cx * scale, cz * scale));
+                    corners.add(new Corner(cx, cz, radius, tx, tz, cx * scale, cz * scale, false));
                 }
                 continue;
             }
@@ -220,7 +230,7 @@ public final class JunctionFootprint {
                 double az = a.uz() * sa + b.uz() * a.half();
                 double bx = a.ux() * b.half() + b.ux() * sb; // on b's kerb line
                 double bz = a.uz() * b.half() + b.uz() * sb;
-                corners.add(new Corner(cx, cz, radius, ax, az, bx, bz));
+                corners.add(new Corner(cx, cz, radius, ax, az, bx, bz, true));
             }
         }
         return corners;

@@ -99,6 +99,37 @@ class JunctionPlanTest {
     }
 
     /**
+     * Each template's carriageway ends at its kerbs: across the main road from a T's stem there is kerb, then footway;
+     * a crossroads keeps its kerbs between the arms; a roundabout has a kerb round the outside of its ring between the
+     * arms. (Each corner once filled its whole quadrant with carriageway.)
+     */
+    @Test
+    void everyTemplateEndsAtItsKerbs() {
+        List<String> city = List.of("city-17", "city-17", "city-17", "city-17");
+        for (int size : JunctionTemplates.CORNER_RADII) {
+            Map<BlockStep, Column> t = JunctionFootprint.columns(JunctionTemplates.of(JunctionTemplates.T_JUNCTION, size, city.subList(0, 3),
+                    RoadPlanParams.DrivingSide.LHT).orElseThrow());
+            assertEquals(Band.LANE, t.get(new BlockStep(0, -5)).band(), "T " + size + ": the main road");
+            assertEquals(Band.KERB, t.get(new BlockStep(0, -6)).band(), "T " + size + ": its far kerb");
+            assertEquals(Band.FOOTWAY, t.get(new BlockStep(0, -7)).band(), "T " + size + ": its far footway");
+            Map<BlockStep, Column> x = JunctionFootprint.columns(JunctionTemplates.of(JunctionTemplates.CROSSROADS, size, city,
+                    RoadPlanParams.DrivingSide.LHT).orElseThrow());
+            int out = x.keySet().stream().mapToInt(BlockStep::dx).max().orElseThrow();
+            for (int sx : new int[] {-1, 1}) {
+                for (int sz : new int[] {-1, 1}) {
+                    Column corner = x.get(new BlockStep(sx * (out - 1), sz * (out - 1)));
+                    assertTrue(corner == null || corner.band() != Band.LANE, "crossroads " + size + ": no carriageway in the corner past its kerb");
+                }
+            }
+        }
+        Map<BlockStep, Column> ring = JunctionFootprint.columns(JunctionTemplates.of(JunctionTemplates.ROUNDABOUT, 13, city,
+                RoadPlanParams.DrivingSide.LHT).orElseThrow());
+        int out = ring.keySet().stream().mapToInt(BlockStep::dx).max().orElseThrow();
+        Column between = ring.get(new BlockStep(out - 1, out - 1));
+        assertTrue(between == null || between.band() != Band.LANE, "roundabout: no carriageway between the arms past the kerb");
+    }
+
+    /**
      * A T-junction placed on a road's end through the operations engine: its blocks and track go in as one operation, its
      * undo takes them away and leaves the road; a road drawn from a free arm and deleted leaves the junction as it was;
      * the road end the junction took can't be dragged away.
