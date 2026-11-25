@@ -28,6 +28,7 @@ public final class MapClient {
 
 	private static final ChunkScanner SCANNER = new ChunkScanner();
 	private static final MapTextures TEXTURES = new MapTextures();
+	private static final MapOverview OVERVIEW = new MapOverview();
 	private static KeyBinding openKey;
 	@Nullable
 	private static ExploredMap map;
@@ -43,6 +44,7 @@ public final class MapClient {
 
 	public static void register() {
 		MapSettings.load(FabricLoader.getInstance().getConfigDir());
+		ServerTiles.register();
 		openKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.aurelia.map.open", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_N, "key.categories.mtr"));
 		ClientTickEvents.END_CLIENT_TICK.register(MapClient::tick);
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(MapClient::close));
@@ -67,6 +69,10 @@ public final class MapClient {
 		return TEXTURES;
 	}
 
+	public static MapOverview overview() {
+		return OVERVIEW;
+	}
+
 	public static KeyBinding openKey() {
 		return openKey;
 	}
@@ -83,7 +89,7 @@ public final class MapClient {
 			if (world == null) {
 				close();
 			} else {
-				use(folder(client, world));
+				use(folder(client, world), world.getRegistryKey().getValue().toString());
 			}
 		}
 		while (openKey.wasPressed()) {
@@ -106,12 +112,14 @@ public final class MapClient {
 	}
 
 	/** Keeps the open map when the folder is the same (a respawn makes a new world object), else swaps maps. */
-	private static void use(Path folder) {
+	private static void use(Path folder, String dimension) {
 		if (map != null && map.folder().equals(folder)) {
 			return;
 		}
 		close();
-		map = new ExploredMap(folder, TEXTURES::drop);
+		map = new ExploredMap(folder, MapClient::dropped, OVERVIEW::saved);
+		ServerTiles.start(dimension);
+		MapPins.use(folder);
 		network = new SeenNetwork(folder);
 		SCANNER.reset();
 		nextSave = System.currentTimeMillis() + SAVE_MILLIS;
@@ -126,8 +134,17 @@ public final class MapClient {
 			network.saveIfChanged();
 			network = null;
 		}
+		MapPins.use(null);
 		TEXTURES.clear();
+		OVERVIEW.clear();
+		ServerTiles.reset();
 		SCANNER.reset();
+	}
+
+	/** A region left memory: its full texture goes, its overview tile stays. */
+	private static void dropped(long key) {
+		TEXTURES.drop(key);
+		OVERVIEW.forget(key);
 	}
 
 	private static Path folder(MinecraftClient client, ClientWorld world) {

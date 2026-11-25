@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station.world;
 
+import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.bridge.world.RailBridges;
 import com.aureliatransit.architecture.station.StationDescriptionParser;
@@ -254,10 +255,10 @@ public class StationWrenchItem extends Item {
 		final WrenchMode mode = mode(stack);
 		if (!player.isSneaking()) {
 			if (world.isClient) {
-				if (player.hasPermissionLevel(StationActions.PERMISSION_LEVEL)) {
+				if (Operators.isOperatorOrCreative(player)) {
 					openScreen.accept(hand);
 				} else {
-					player.sendMessage(Text.literal("Only operators can use the ATR wrench.").formatted(Formatting.RED), true);
+					player.sendMessage(Text.literal("Only operators and creative-mode players can use the ATR wrench.").formatted(Formatting.RED), true);
 				}
 			}
 		} else if (player instanceof ServerPlayerEntity server && StationActions.allowed(server)

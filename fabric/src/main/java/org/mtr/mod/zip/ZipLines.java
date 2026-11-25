@@ -1,5 +1,6 @@
 package org.mtr.mod.zip;
 
+import org.mtr.aurelia.Operators;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -60,8 +61,9 @@ public final class ZipLines {
 		});
 	}
 
+	/** Creative mode, operators and the single-player host ({@link Operators#isOperatorOrCreative}). */
 	public static boolean mayBuild(PlayerEntity player) {
-		return player.isCreative() || player.hasPermissionLevel(2);
+		return Operators.isOperatorOrCreative(player);
 	}
 
 	public static void tell(PlayerEntity player, String key) {
@@ -267,7 +269,7 @@ public final class ZipLines {
 	}
 
 	private static void applySettings(MinecraftServer server, ServerPlayerEntity player, ZipSettings requested) {
-		if (!player.hasPermissionLevel(2)) {
+		if (!mayBuild(player)) {
 			return;
 		}
 		final State state = state(server);

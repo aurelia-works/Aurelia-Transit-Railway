@@ -1,5 +1,6 @@
 package org.mtr.mod.passenger;
 
+import org.mtr.aurelia.Operators;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -21,7 +22,7 @@ final class PassengerCommand {
 	}
 
 	static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
-		dispatcher.register(CommandManager.literal("atr_passengers").requires(source -> source.hasPermissionLevel(2))
+		dispatcher.register(CommandManager.literal("atr_passengers").requires(source -> Operators.isOperatorOrCreativeSource(source))
 				.then(CommandManager.literal("demo")
 						.executes(context -> demo(context, 20))
 						.then(CommandManager.argument("count", IntegerArgumentType.integer(1, 60))

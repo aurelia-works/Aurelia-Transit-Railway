@@ -1,5 +1,6 @@
 package org.mtr.aurelia.client.screen;
 
+import org.mtr.aurelia.client.ClientOperators;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -7,6 +8,7 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 import org.mtr.aurelia.client.EngineClient;
 import org.mtr.aurelia.client.MtrBridge;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.core.data.Route;
 import org.mtr.mod.InitClient;
 import org.mtr.mod.engine.JunctionPriority;
@@ -25,9 +27,9 @@ public final class SignallerScreen extends Screen {
 
 	private static final int MARGIN = 8;
 	private static final int TOP = 32;
-	private static final int COLOR_EXPRESS = 0x7FD8FF;
-	private static final int COLOR_FIRST = 0x55FF88;
-	private static final int COLOR_NORMAL = 0xFFFFFF;
+	private static final int COLOR_EXPRESS = AureliaPalette.ACCENT_LIGHT;
+	private static final int COLOR_FIRST = AureliaPalette.SUCCESS;
+	private static final int COLOR_NORMAL = AureliaPalette.TEXT;
 
 	private final Screen parent;
 	private TextFieldWidget search;
@@ -84,7 +86,7 @@ public final class SignallerScreen extends Screen {
 	}
 
 	private void toggle(Route route) {
-		if (route == null || JunctionPriority.isExpress(route) || client == null || client.player == null || !client.player.hasPermissionLevel(2)) {
+		if (route == null || JunctionPriority.isExpress(route) || !ClientOperators.isOperatorOrCreative(client)) {
 			return;
 		}
 		// the list redraws when the server sends the new set back
@@ -105,11 +107,11 @@ public final class SignallerScreen extends Screen {
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		renderBackground(context);
 		super.render(context, mouseX, mouseY, delta);
-		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
-		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.signaller.hint"), width / 2, height - 46, 0xA0A0A0);
+		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, AureliaPalette.TEXT);
+		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.signaller.hint"), width / 2, height - 46, AureliaPalette.TEXT_DIM);
 		final String empty = shownRoutes == 0 ? (loadingTicks > 0 ? "gui.aurelia.signaller.loading" : "gui.aurelia.signaller.none") : noMatch ? "gui.aurelia.signaller.no_match" : null;
 		if (empty != null) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable(empty), width / 2, TOP + 40, 0xA0A0A0);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable(empty), width / 2, TOP + 40, AureliaPalette.TEXT_DIM);
 		}
 	}
 

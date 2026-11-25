@@ -40,6 +40,7 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.world.EmptyBlockView;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -334,8 +335,8 @@ public final class StationPreview {
 	/** Draws the preview into the box and its status line under it. */
 	public void render(DrawContext context, int x0, int y0, int x1, int y1) {
 		final MinecraftClient client = MinecraftClient.getInstance();
-		context.fill(x0, y0, x1, y1, 0xFF101317);
-		context.drawBorder(x0, y0, x1 - x0, y1 - y0, 0xFF2A2F36);
+		context.fill(x0, y0, x1, y1, AureliaPalette.FIELD);
+		context.drawBorder(x0, y0, x1 - x0, y1 - y0, AureliaPalette.LINE);
 		if (opaque != null) {
 			context.draw();
 			context.enableScissor(x0 + 1, y0 + 1, x1 - 1, y1 - 1);
@@ -381,11 +382,11 @@ public final class StationPreview {
 		// the status breaks between its " · " parts under a narrow box instead of losing its end
 		int lineY = y1 + 4;
 		for (final String part : statusLines(client, line, room)) {
-			context.drawTextWithShadow(client.textRenderer, fit(client, part, room), x0 + 4, lineY, busy ? 0x9AA0A6 : good ? 0x5FC77A : 0xF0A83A);
+			context.drawTextWithShadow(client.textRenderer, fit(client, part, room), x0 + 4, lineY, busy ? AureliaPalette.TEXT_DIM : good ? AureliaPalette.SUCCESS : AureliaPalette.CAUTION);
 			lineY += 10;
 		}
 		final String hint = client.textRenderer.getWidth(HINT) <= room ? HINT : HINT_SHORT;
-		context.drawTextWithShadow(client.textRenderer, fit(client, hint, room), x0 + 4, y0 + 4, 0x6B737C);
+		context.drawTextWithShadow(client.textRenderer, fit(client, hint, room), x0 + 4, y0 + 4, AureliaPalette.TEXT_DIM);
 	}
 
 	/** The status as few lines as fit {@code room}, each break between two " · " parts. */

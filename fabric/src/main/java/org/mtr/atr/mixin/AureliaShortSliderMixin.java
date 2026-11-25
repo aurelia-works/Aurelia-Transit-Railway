@@ -49,7 +49,7 @@ public abstract class AureliaShortSliderMixin {
 			return;
 		}
 		final Text message = ((AureliaWidgetText) (Object) this).atr$message();
-		AureliaChrome.shortSlider(context, MinecraftClient.getInstance().textRenderer, widget.getX(), widget.getY(), w, h, this.getIntValue(), this.maxValue, this.markerFrequency, this.markerDisplayedRatio, widget.isHovered(), message);
+		AureliaChrome.shortSlider(context, MinecraftClient.getInstance().textRenderer, widget.getX(), widget.getY(), w, h, this.getIntValue(), this.maxValue, this.markerFrequency, this.markerDisplayedRatio, widget.isHovered() && widget.active, widget.active, widget.isFocused() && AureliaUi.keyboardNavigation(), message);
 		ci.cancel();
 	}
 }

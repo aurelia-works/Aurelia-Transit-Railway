@@ -102,12 +102,31 @@ abstract class PlanFurniture extends PlanRoofs {
 				for (final int v : d == 0 ? new int[]{middle} : new int[]{middle + d, middle - d}) {
 					placed = shelterAt(band, v);
 					if (placed) {
+						if (spec.stationClass() == StationClass.HALT) {
+							haltTicketMachine(band, v);
+						}
 						break;
 					}
 				}
 				if (placed) {
 					break;
 				}
+			}
+		}
+	}
+
+	/**
+	 * A halt's ticket machine (Jah, 11-11: SC, a halt gets a shelter and a ticket machine): against the end of the shelter that
+	 * starts at {@code v0}, in the shelter wall's column, facing the platform; the far end if the near one is not free. Only for a
+	 * station that asks for the halt class, so a description that names no class plans as before.
+	 */
+	void haltTicketMachine(TrackLayout.PlatformBand band, int v0) {
+		final int u = band.island() ? (band.uMin() + band.uMax()) / 2 : backColumn(band);
+		final LocalDir front = band.island() ? LocalDir.PLUS_U : towardTrack(band);
+		for (final int v : new int[]{v0 + SHELTER_LENGTH, v0 - 1}) {
+			if (v >= band.vFrom() + 2 && v <= band.vTo() - 2 && !nearStairs(band, v) && !nearTravelator(band, u, v)
+					&& ticketMachine(u, StationGeometry.WALK_Y, v, front)) {
+				return;
 			}
 		}
 	}

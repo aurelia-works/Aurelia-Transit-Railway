@@ -244,6 +244,12 @@ tasks.register("ataTest", Test) {
 			project.property("ata.tests.exclude").toString().split(",").each { excludeTestsMatching it.trim() }
 		}
 	}
+	// CI splits StationAuditTest's plan sweep over jobs by track count: -Pata.sweep.shard=2/3 sweeps every third count from the second
+	if (project.hasProperty("ata.sweep.shard")) {
+		final String sweepShard = project.property("ata.sweep.shard").toString()
+		inputs.property("ata.sweep.shard", sweepShard)
+		systemProperty "ata.sweep.shard", sweepShard
+	}
 	// CI splits the rest over parallel jobs: -Pata.tests.shard=2/3 runs shard 2 of 3. The classes timed in
 	// ata-test-times.properties (tools/ci/ata_test_times.py writes it from CI's results) are dealt out longest first, each to
 	// the shard with the least time so far, so the shards take about as long as each other; classes not timed yet go by name
