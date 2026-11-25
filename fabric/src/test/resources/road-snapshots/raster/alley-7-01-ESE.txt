@@ -1,0 +1,13 @@
+alley-7, 12 blocks from block (0, 0), heading ESE (22.5 degrees)
+hash ef50bb169903d1e2d4006200d6237d073da99807f2b5f6e58121e7ac50862063
+x -1..12, z -2..7
+..LGGG........
+..LLLLGG......
+.**LLLLLGGG...
+.LL**LLLLLGGG.
+.LLLL***LLLLLG
+GGLLLLL***LLL.
+..GGGLLLLL**L.
+....GGGLLLLL..
+.......GGLLL..
+.........GGG..

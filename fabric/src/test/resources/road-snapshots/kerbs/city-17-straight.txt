@@ -1,0 +1,21 @@
+city-17: (0, 0) heading E to (12, 0) heading E, Stratos UK
+kerbs facing the road: ^ > v < straight (stone on that side); n e s w outer corner (stone on that side and the next clockwise); 1 2 3 4 inner corner (stone in the corner clockwise from north, east, south, west); F footway; L lane, * lane centre, | : centre line, G gutter
+hash 2d0327f674aa596d0bfa123ccfa6f7fe49f0a83ed48d843185111e1c71d64e4e
+x 0..12, z -8..8
+FFFFFFFFFFFFF
+FFFFFFFFFFFFF
+vvvvvvvvvvvvv
+LLLLLLLLLLLLL
+LLLLLLLLLLLLL
+*************
+LLLLLLLLLLLLL
+LLLLLLLLLLLLL
+||::::||::::|
+LLLLLLLLLLLLL
+LLLLLLLLLLLLL
+*************
+LLLLLLLLLLLLL
+LLLLLLLLLLLLL
+^^^^^^^^^^^^^
+FFFFFFFFFFFFF
+FFFFFFFFFFFFF

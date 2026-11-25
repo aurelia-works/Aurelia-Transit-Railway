@@ -1,0 +1,13 @@
+alley-7, 12 blocks from block (0, 0), heading WNW (202.5 degrees)
+hash 66c27425b2621e6be5d6e47f367c6d5ea3428a2ebf476bb120b5e76bda8bb9c1
+x -12..1, z -7..2
+..GGG.........
+..LLLGG.......
+..LLLLLGGG....
+.L**LLLLLGGG..
+.LLL***LLLLLGG
+GLLLLL***LLLL.
+.GGGLLLLL**LL.
+...GGGLLLLL**.
+......GGLLLL..
+........GGGL..

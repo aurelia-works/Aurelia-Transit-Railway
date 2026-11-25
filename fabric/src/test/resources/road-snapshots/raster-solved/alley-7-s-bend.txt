@@ -1,0 +1,14 @@
+alley-7, an S-bend shifting 4 over 24: (0, 0) heading E to (24, 4) heading E, solved lane by lane (G-5), closed end
+hash 38e821cc8c3d5c178c02d30f5367b1f95aeb4af58d470096daf7d15c75094fc9
+x 0..24, z -3..7
+GGGGGGG..................
+LLLLLLLGGGG..............
+LLLLLLLLLLLGGGG..........
+*******LLLLLLLGGGGG......
+LLLLLLL****LLLLLLLLGGGGGG
+LLLLLLLLLLL***LLLLLLLLLLL
+GGGGGGLLLLLLLL****LLLLLLL
+......GGGGGLLLLLLL*******
+..........GGGGLLLLLLLLLLL
+..............GGGGLLLLLLL
+..................GGGGGGG

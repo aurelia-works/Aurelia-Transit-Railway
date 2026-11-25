@@ -1,0 +1,10 @@
+alley-7, 12 blocks from block (0, 0), heading E (0.0 degrees)
+hash c54216a14be23d7f070f2c738bdcfc0ca6571ad3d55f25db39fc85d9a44c212d
+x 0..12, z -3..3
+GGGGGGGGGGGGG
+LLLLLLLLLLLLL
+LLLLLLLLLLLLL
+*************
+LLLLLLLLLLLLL
+LLLLLLLLLLLLL
+GGGGGGGGGGGGG
