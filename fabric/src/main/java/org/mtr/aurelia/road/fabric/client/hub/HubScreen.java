@@ -485,7 +485,10 @@ public final class HubScreen extends Screen {
             default -> "drive_right";
         };
         List<OrderedText> question = wrap(Text.translatable("stratos.hub.world." + base + "_confirm"), inner);
-        int h = HEADER + WORLD_BOX_PADDING + question.size() * this.textRenderer.fontHeight + 8 + BUTTON_HEIGHT + WORLD_BOX_PADDING;
+        // P9: the operator's override of a driving-side switch (every player's roads) is a second row of its own
+        boolean drive = Protocol.isDriveTask(this.confirming);
+        int h = HEADER + WORLD_BOX_PADDING + question.size() * this.textRenderer.fontHeight + 8 + BUTTON_HEIGHT + (drive ? 4 + BUTTON_HEIGHT : 0)
+                + WORLD_BOX_PADDING;
         Box box = popUpPanel(graphics, right, bottom, WORLD_BOX_WIDTH, h, HubIcon.GLOBE, Text.translatable("stratos.hub.world"));
         int x = box.x() + WORLD_BOX_PADDING;
         int y = box.y() + HEADER + WORLD_BOX_PADDING;
@@ -493,6 +496,11 @@ public final class HubScreen extends Screen {
         int buttonY = y + question.size() * this.textRenderer.fontHeight + 8;
         int goWidth = button(graphics, x, buttonY, Text.translatable("stratos.hub.world." + base + "_go"), true, this::confirm);
         button(graphics, x + goWidth + 4, buttonY, Text.translatable("stratos.hub.world.cancel"), false, () -> this.confirming = null);
+        if (drive) {
+            Text all = Text.translatable("stratos.hub.world.drive_all");
+            int allY = buttonY + BUTTON_HEIGHT + 4;
+            button(graphics, x, allY, all, false, this::confirmAll, List.of(all, muted(Text.translatable("stratos.hub.world.drive_all_tip"))));
+        }
     }
 
     /** One of This world's tiles, {@code width} wide: its icon over its name; greyed out while the world has no road blocks. */
@@ -726,6 +734,19 @@ public final class HubScreen extends Screen {
         }
     }
 
+    /**
+     * The driving-side question's second button: the same switch for every player's roads (the operator's override). The server
+     * checks the permission, as for the switch itself.
+     */
+    private void confirmAll() {
+        String task = this.confirming;
+        this.confirming = null;
+        if (task != null && Protocol.isDriveTask(task)) {
+            StratosEditorClient.task(Protocol.drivesRight(task) ? Protocol.TASK_DRIVE_RIGHT_ALL : Protocol.TASK_DRIVE_LEFT_ALL);
+            close();
+        }
+    }
+
     /** Takes the tool in hand and closes the hub. */
     private void chooseTool(String toolId) {
         StratosTools.select(toolId);
@@ -756,13 +777,18 @@ public final class HubScreen extends Screen {
 
     /** A primary or plain button with {@code text}; returns its width. */
     private int button(DrawContext graphics, int x, int y, Text text, boolean primary, Runnable press) {
+        return button(graphics, x, y, text, primary, press, List.of());
+    }
+
+    /** As {@link #button(DrawContext, int, int, Text, boolean, Runnable)}, with a tooltip. */
+    private int button(DrawContext graphics, int x, int y, Text text, boolean primary, Runnable press, List<Text> tip) {
         int w = this.textRenderer.getWidth(text) + 12;
         boolean lit = hovering(x, y, w, BUTTON_HEIGHT);
         int fill = primary ? (lit ? RoadColours.ACCENT_STRONG : AureliaPalette.ACCENT) : (lit ? RoadColours.BG_HOVER_STRONG : RoadColours.BG_HOVER);
         AureliaChrome.rounded(graphics, x, y, w, BUTTON_HEIGHT, TILE_RADIUS, fill);
         AureliaChrome.roundedFrame(graphics, x, y, w, BUTTON_HEIGHT, TILE_RADIUS, lit ? RoadColours.ACCENT : AureliaPalette.LINE);
         graphics.drawText(this.textRenderer, text, x + 6, y + 3, primary ? RoadColours.ON_ACCENT : RoadColours.TEXT_MAIN, false);
-        hot(new Box(x, y, w, BUTTON_HEIGHT), press, List.of());
+        hot(new Box(x, y, w, BUTTON_HEIGHT), press, tip);
         return w;
     }
 

@@ -116,6 +116,28 @@ public final class Protocol {
     public static final String TASK_DRIVE_LEFT = "DRIVE_LEFT";
     /** P9's world task: as {@link #TASK_DRIVE_LEFT}, for right-hand traffic. */
     public static final String TASK_DRIVE_RIGHT = "DRIVE_RIGHT";
+    /**
+     * P9's world task, the operator's override of {@link #TASK_DRIVE_LEFT}: every player's roads and junctions are rebuilt, not
+     * only the sender's, each as an operation of the player who drew it (so they can undo it). Needs {@code stratos.admin}, as
+     * the switch does.
+     */
+    public static final String TASK_DRIVE_LEFT_ALL = "DRIVE_LEFT_ALL";
+    /** P9's world task: as {@link #TASK_DRIVE_LEFT_ALL}, for right-hand traffic. */
+    public static final String TASK_DRIVE_RIGHT_ALL = "DRIVE_RIGHT_ALL";
+    /** Whether {@code task} switches the world's driving side (for the sender's roads, or everyone's). */
+    public static boolean isDriveTask(String task) {
+        return task.equals(TASK_DRIVE_LEFT) || task.equals(TASK_DRIVE_RIGHT) || isDriveAllTask(task);
+    }
+
+    /** Whether {@code task} is the operator's override that switches every player's roads. */
+    public static boolean isDriveAllTask(String task) {
+        return task.equals(TASK_DRIVE_LEFT_ALL) || task.equals(TASK_DRIVE_RIGHT_ALL);
+    }
+
+    /** Whether the drive task {@code task} makes the world keep right. */
+    public static boolean drivesRight(String task) {
+        return task.equals(TASK_DRIVE_RIGHT) || task.equals(TASK_DRIVE_RIGHT_ALL);
+    }
     /** A world task's stage: reading chunks for Stratos blocks. */
     public static final String STAGE_FINDING = "FINDING";
     /** A world task's stage: placing a bake's vanilla blocks. */

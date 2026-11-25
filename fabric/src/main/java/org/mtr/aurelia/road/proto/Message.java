@@ -429,8 +429,8 @@ public sealed interface Message {
 
     /**
      * Id 20, client → server (B-3): start a world task, {@code task} being one of {@link Protocol#TASK_BAKE_WORLD},
-     * {@link Protocol#TASK_BAKE_ROAD} (with the road's id), {@link Protocol#TASK_REDRAW_MARKINGS}, {@link Protocol#TASK_DRIVE_LEFT} and
-     * {@link Protocol#TASK_DRIVE_RIGHT}. Answered with
+     * {@link Protocol#TASK_BAKE_ROAD} (with the road's id), {@link Protocol#TASK_REDRAW_MARKINGS}, {@link Protocol#TASK_DRIVE_LEFT},
+     * {@link Protocol#TASK_DRIVE_RIGHT} and their operator override {@code _ALL} forms. Answered with
      * {@code TaskProgress} while it runs and one {@code TaskResult}.
      */
     record TaskRequest(int requestId, String task, Optional<UUID> roadId) implements Message {

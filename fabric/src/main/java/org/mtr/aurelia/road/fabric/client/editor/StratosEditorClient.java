@@ -382,8 +382,8 @@ public final class StratosEditorClient {
                         : Text.translatable("stratos.task.bake_world.done_kept", blocks, kept), false, false);
                 return;
             }
-            boolean drive = task.equals(Protocol.TASK_DRIVE_LEFT) || task.equals(Protocol.TASK_DRIVE_RIGHT);
-            show(drive ? Text.translatable(task.equals(Protocol.TASK_DRIVE_RIGHT) ? "stratos.task.drive.done_right" : "stratos.task.drive.done_left",
+            boolean drive = Protocol.isDriveTask(task);
+            show(drive ? Text.translatable(Protocol.drivesRight(task) ? "stratos.task.drive.done_right" : "stratos.task.drive.done_left",
                     args.getOrDefault("roads", "0"))
                     : Text.translatable("stratos.task.redraw.done", args.getOrDefault("roads", "0"), args.getOrDefault("unchanged", "0")), false, false);
             if (!args.getOrDefault("others", "0").equals("0")) {

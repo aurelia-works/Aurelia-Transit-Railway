@@ -108,7 +108,8 @@ import org.mtr.aurelia.road.undo.SideEffect;
  * players who can edit hear it after the handshake when it is right-hand ({@code TrafficSide}) and whenever it changes. A plan
  * request to draw or rebuild a road for the other side is refused {@code DRIVING_SIDE_MISMATCH} ({@link PlanModule#keepsSide}),
  * and the world task {@link Protocol#TASK_DRIVE_RIGHT} (or {@code DRIVE_LEFT}; {@link #NODE_ADMIN}) switches the world and
- * converts its roads ({@link WorldTasks}).
+ * converts the sender's roads ({@link WorldTasks}); {@link Protocol#TASK_DRIVE_RIGHT_ALL} (or {@code DRIVE_LEFT_ALL}), which
+ * needs {@link #NODE_ADMIN} too, converts every player's.
  *
  * <p>Server thread only: the platform calls {@link #receive}, {@link #tick} and {@link #finished} there.
  */
@@ -630,7 +631,7 @@ public final class EditorServer {
         String task = request.task();
         boolean road = task.equals(Protocol.TASK_BAKE_ROAD);
         boolean known = road || task.equals(Protocol.TASK_BAKE_WORLD) || task.equals(Protocol.TASK_REDRAW_MARKINGS)
-                || task.equals(Protocol.TASK_DRIVE_LEFT) || task.equals(Protocol.TASK_DRIVE_RIGHT);
+                || Protocol.isDriveTask(task);
         if (road && request.roadId().isEmpty()) {
             malformed(player, session, "a " + task + " task names no road");
             return;
@@ -902,8 +903,10 @@ public final class EditorServer {
         } catch (IllegalArgumentException e) {
             return; // not a player's operation (the GameTests use other owners)
         }
-        if (this.tasks != null && this.tasks.finished(result)) {
-            Session tasked = this.sessions.get(player);
+        Optional<UUID> tasking = this.tasks == null ? Optional.empty() : this.tasks.finished(result);
+        if (tasking.isPresent()) {
+            // the player who ran the task hears of it, even when the operation was another player's road (the override)
+            Session tasked = this.sessions.get(tasking.get());
             if (tasked != null) {
                 notices(result).forEach(tasked.channel::send); // B-3: a redrawn road's track, as for any rebuild
             }
