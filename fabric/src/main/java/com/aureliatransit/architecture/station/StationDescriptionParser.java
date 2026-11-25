@@ -83,7 +83,7 @@ public final class StationDescriptionParser {
 	}
 	private static final Pattern SEED = Pattern.compile("(?i)\\bseed\\b(?:\\s*[:=]?\\s*([^\\s,;!?:()\"]+))?");
 	/** "city class": the station's class (see {@link StationClass}); the bare size words "city", "halt" ... keep their older meaning. */
-	private static final Pattern CLASS = Pattern.compile("(?i)\\b(halt|regional|town|city|grand)\\s+class\\b");
+	private static final Pattern CLASS = Pattern.compile("(?i)\\b(halt|local|regional|town|city|hub|grand|terminal)\\s+class\\b");
 	/** "postwar era": the station's era (see {@link StationEra}); "modern" on its own stays the modern platform style. */
 	private static final Pattern ERA = Pattern.compile("(?i)\\b(historic|interwar|postwar|modern)\\s+era\\b");
 	/** "facing north": the way the entrance faces. */
