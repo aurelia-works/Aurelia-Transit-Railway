@@ -73,11 +73,12 @@ public final class HubScreen extends Screen {
     private static final int POP_UP_ROW = 24;
     private static final int PALETTE_POP_UP_WIDTH = 180;
     private static final int NODES_POP_UP_WIDTH = 150;
-    /** This world's pop-up: its width, padding and its two tiles. */
+    /** This world's pop-up: its width, padding and its tiles (Bake and Redraw side by side, Driving side under them). */
     private static final int WORLD_BOX_WIDTH = 174;
     private static final int WORLD_BOX_PADDING = 7;
     private static final int WORLD_TILE_WIDTH = 77;
     private static final int WORLD_TILE_HEIGHT = 30;
+    private static final int WORLD_TILE_GAP = 4;
     private static final int BUTTON_HEIGHT = 14;
     /** The Settings pop-up: its size at most, padding, page list and rows. */
     private static final int SETTINGS_WIDTH = 468;
@@ -453,14 +454,14 @@ public final class HubScreen extends Screen {
         drawLines(graphics, hint, x + 2, y + 3, RoadColours.TEXT_MUTED);
     }
 
-    /** This world: the warning, or that there are no road blocks, and its two tiles; or the question about one of them. */
+    /** This world: the warning, or that there are no road blocks, and its tiles; or the question about one of them. */
     private void worldBox(DrawContext graphics, int right, int bottom) {
         int inner = WORLD_BOX_WIDTH - 2 * WORLD_BOX_PADDING;
         boolean blocks = StratosEditorClient.stratosBlocks();
         if (this.confirming == null) {
             List<OrderedText> message = wrap(Text.translatable(blocks ? "stratos.hub.world.warning" : "stratos.hub.world.none"), inner - HubIcon.SMALL - 5);
             int textHeight = StrictMath.max(HubIcon.SMALL, message.size() * this.textRenderer.fontHeight);
-            int h = HEADER + WORLD_BOX_PADDING + textHeight + 6 + WORLD_TILE_HEIGHT + WORLD_BOX_PADDING;
+            int h = HEADER + WORLD_BOX_PADDING + textHeight + 6 + WORLD_TILE_HEIGHT + WORLD_TILE_GAP + WORLD_TILE_HEIGHT + WORLD_BOX_PADDING;
             Box box = popUpPanel(graphics, right, bottom, WORLD_BOX_WIDTH, h, HubIcon.GLOBE, Text.translatable("stratos.hub.world"));
             int x = box.x() + WORLD_BOX_PADDING;
             int y = box.y() + HEADER + WORLD_BOX_PADDING;
@@ -468,33 +469,43 @@ public final class HubScreen extends Screen {
             icon.draw(graphics, x, y, HubIcon.SMALL, icon.picture() ? 0xFFFFFFFF : RoadColours.TEXT_MAIN);
             drawLines(graphics, message, x + HubIcon.SMALL + 5, y + 2, blocks ? RoadColours.TEXT_MAIN : RoadColours.TEXT_MUTED);
             int tilesY = y + textHeight + 6;
-            worldTile(graphics, x, tilesY, HubIcon.BAKE, "stratos.hub.world.bake", Protocol.TASK_BAKE_WORLD, blocks);
-            worldTile(graphics, x + inner - WORLD_TILE_WIDTH, tilesY, HubIcon.REDRAW, "stratos.hub.world.redraw", Protocol.TASK_REDRAW_MARKINGS, blocks);
+            worldTile(graphics, x, tilesY, WORLD_TILE_WIDTH, HubIcon.BAKE, "stratos.hub.world.bake", Protocol.TASK_BAKE_WORLD, blocks);
+            worldTile(graphics, x + inner - WORLD_TILE_WIDTH, tilesY, WORLD_TILE_WIDTH, HubIcon.REDRAW, "stratos.hub.world.redraw", Protocol.TASK_REDRAW_MARKINGS,
+                    blocks);
+            // P9: the world's driving side; the tile offers the other one. It needs no Stratos blocks, so it is never greyed out.
+            boolean keepsRight = StratosEditorClient.drivingSide() == RoadPlanParams.DrivingSide.RHT;
+            worldTile(graphics, x, tilesY + WORLD_TILE_HEIGHT + WORLD_TILE_GAP, inner, HubIcon.REBUILD,
+                    keepsRight ? "stratos.hub.world.drive_left" : "stratos.hub.world.drive_right", keepsRight ? Protocol.TASK_DRIVE_LEFT : Protocol.TASK_DRIVE_RIGHT, true);
             return;
         }
-        boolean bake = this.confirming.equals(Protocol.TASK_BAKE_WORLD);
-        List<OrderedText> question = wrap(Text.translatable(bake ? "stratos.hub.world.bake_confirm" : "stratos.hub.world.redraw_confirm"), inner);
+        String base = switch (this.confirming) {
+            case Protocol.TASK_BAKE_WORLD -> "bake";
+            case Protocol.TASK_REDRAW_MARKINGS -> "redraw";
+            case Protocol.TASK_DRIVE_LEFT -> "drive_left";
+            default -> "drive_right";
+        };
+        List<OrderedText> question = wrap(Text.translatable("stratos.hub.world." + base + "_confirm"), inner);
         int h = HEADER + WORLD_BOX_PADDING + question.size() * this.textRenderer.fontHeight + 8 + BUTTON_HEIGHT + WORLD_BOX_PADDING;
         Box box = popUpPanel(graphics, right, bottom, WORLD_BOX_WIDTH, h, HubIcon.GLOBE, Text.translatable("stratos.hub.world"));
         int x = box.x() + WORLD_BOX_PADDING;
         int y = box.y() + HEADER + WORLD_BOX_PADDING;
         drawLines(graphics, question, x, y, RoadColours.TEXT_MAIN);
         int buttonY = y + question.size() * this.textRenderer.fontHeight + 8;
-        int goWidth = button(graphics, x, buttonY, Text.translatable(bake ? "stratos.hub.world.bake_go" : "stratos.hub.world.redraw_go"), true, this::confirm);
+        int goWidth = button(graphics, x, buttonY, Text.translatable("stratos.hub.world." + base + "_go"), true, this::confirm);
         button(graphics, x + goWidth + 4, buttonY, Text.translatable("stratos.hub.world.cancel"), false, () -> this.confirming = null);
     }
 
-    /** One of This world's two tiles: its icon over its name; greyed out while the world has no road blocks. */
-    private void worldTile(DrawContext graphics, int x, int y, HubIcon icon, String key, String task, boolean enabled) {
+    /** One of This world's tiles, {@code width} wide: its icon over its name; greyed out while the world has no road blocks. */
+    private void worldTile(DrawContext graphics, int x, int y, int width, HubIcon icon, String key, String task, boolean enabled) {
         Text name = Text.translatable(key);
-        tileBack(graphics, x, y, WORLD_TILE_WIDTH, WORLD_TILE_HEIGHT, false, enabled, false);
-        icon.draw(graphics, x + (WORLD_TILE_WIDTH - HubIcon.MEDIUM) / 2, y + 3, HubIcon.MEDIUM, icon.picture() ? 0xFFFFFFFF : RoadColours.TEXT_MAIN);
-        Text shown = UiText.fit(this.textRenderer, name, WORLD_TILE_WIDTH - 4);
-        graphics.drawText(this.textRenderer, shown, x + (WORLD_TILE_WIDTH - this.textRenderer.getWidth(shown)) / 2, y + 20, RoadColours.TEXT_MAIN, false);
+        tileBack(graphics, x, y, width, WORLD_TILE_HEIGHT, false, enabled, false);
+        icon.draw(graphics, x + (width - HubIcon.MEDIUM) / 2, y + 3, HubIcon.MEDIUM, icon.picture() ? 0xFFFFFFFF : RoadColours.TEXT_MAIN);
+        Text shown = UiText.fit(this.textRenderer, name, width - 4);
+        graphics.drawText(this.textRenderer, shown, x + (width - this.textRenderer.getWidth(shown)) / 2, y + 20, RoadColours.TEXT_MAIN, false);
         if (!enabled) {
-            graphics.fill(x, y, x + WORLD_TILE_WIDTH, y + WORLD_TILE_HEIGHT, FADE);
+            graphics.fill(x, y, x + width, y + WORLD_TILE_HEIGHT, FADE);
         }
-        hot(new Box(x, y, WORLD_TILE_WIDTH, WORLD_TILE_HEIGHT), enabled ? () -> this.confirming = task : null,
+        hot(new Box(x, y, width, WORLD_TILE_HEIGHT), enabled ? () -> this.confirming = task : null,
                 List.of(name, muted(Text.translatable(enabled ? key + "_tip" : "stratos.hub.world.none"))));
     }
 
@@ -705,7 +716,7 @@ public final class HubScreen extends Screen {
         this.confirming = null;
     }
 
-    /** This world's Bake or Redraw button: sends the world task it asked about and closes the hub. */
+    /** This world's Bake, Redraw or Driving side button: sends the world task it asked about and closes the hub. */
     private void confirm() {
         String task = this.confirming;
         this.confirming = null;

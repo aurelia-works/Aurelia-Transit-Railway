@@ -95,8 +95,8 @@ import org.mtr.aurelia.road.undo.SideEffect;
  * {@code VOLUME_PER_MINUTE}, nothing written. Undo and redo are neither limited nor counted (owner, 2026-10-12).
  *
  * <p><b>From B-3</b> a player may start a world task ({@code TaskRequest}): bake the world or one of their roads to
- * vanilla, or redraw every road's markings ({@link WorldTasks}), once the platform has given the server every world and
- * a {@link BlockFinder} ({@link #worldTasks}). Baking the world and redrawing need {@link #NODE_ADMIN}, baking a road
+ * vanilla, redraw every road's markings, or switch the world's driving side ({@link WorldTasks}), once the platform has given
+ * the server every world and a {@link BlockFinder} ({@link #worldTasks}). Baking the world, redrawing and switching need {@link #NODE_ADMIN}, baking a road
  * {@code stratos.roads.edit}; none is limited. While one runs, the player's other requests are refused {@code BUSY}.
  *
  * <p><b>From UI-1c</b> the server keeps the world's mark for Stratos blocks, which the platform saves
@@ -105,7 +105,10 @@ import org.mtr.aurelia.road.undo.SideEffect;
  * ({@code StratosBlocks}, after {@code YourRoads}) and whenever it changes.
  *
  * <p><b>From P9</b> the server also keeps the world's driving side, which the platform gives it ({@link #trafficSide}):
- * players who can edit hear it after the handshake when it is right-hand ({@code TrafficSide}) and whenever it changes.
+ * players who can edit hear it after the handshake when it is right-hand ({@code TrafficSide}) and whenever it changes. A plan
+ * request to draw or rebuild a road for the other side is refused {@code DRIVING_SIDE_MISMATCH} ({@link PlanModule#keepsSide}),
+ * and the world task {@link Protocol#TASK_DRIVE_RIGHT} (or {@code DRIVE_LEFT}; {@link #NODE_ADMIN}) switches the world and
+ * converts its roads ({@link WorldTasks}).
  *
  * <p>Server thread only: the platform calls {@link #receive}, {@link #tick} and {@link #finished} there.
  */
@@ -215,6 +218,8 @@ public final class EditorServer {
     };
     /** P9: whether the world keeps to the right, which new roads take; the platform says (its game rule). */
     private boolean rightHand;
+    private Consumer<Boolean> sideSetter = rightHand -> {
+    };
 
     /**
      * @param modules      the modules that take plan requests (Slice A: roads)
@@ -248,7 +253,15 @@ public final class EditorServer {
                     if (this.stratosBlocks) {
                         setStratosBlocks(false);
                     }
-                });
+                }, rightHand -> this.sideSetter.accept(rightHand));
+    }
+
+    /**
+     * Where a switch of the world's driving side (P9, {@link Protocol#TASK_DRIVE_RIGHT}) sets it: the platform saves it with the
+     * world (its game rule) and then tells the server, which tells the players ({@link #trafficSide}).
+     */
+    public void trafficSideSetter(Consumer<Boolean> setter) {
+        this.sideSetter = Objects.requireNonNull(setter, "setter");
     }
 
     /**
@@ -530,6 +543,10 @@ public final class EditorServer {
                 return;
             }
         }
+        if (!module.keepsSide(params, this.rightHand)) {
+            reject(session, request.requestId(), Protocol.DRIVING_SIDE_MISMATCH, Map.of("side", this.rightHand ? "right" : "left")); // P9
+            return;
+        }
         if (limited(player) && !usage(player).takeRequest(this.limits, this.clock.getAsLong())) {
             reject(session, request.requestId(), Protocol.RATE_LIMITED, Map.of());
             return;
@@ -612,7 +629,8 @@ public final class EditorServer {
     private void taskRequest(UUID player, Session session, TaskRequest request) {
         String task = request.task();
         boolean road = task.equals(Protocol.TASK_BAKE_ROAD);
-        boolean known = road || task.equals(Protocol.TASK_BAKE_WORLD) || task.equals(Protocol.TASK_REDRAW_MARKINGS);
+        boolean known = road || task.equals(Protocol.TASK_BAKE_WORLD) || task.equals(Protocol.TASK_REDRAW_MARKINGS)
+                || task.equals(Protocol.TASK_DRIVE_LEFT) || task.equals(Protocol.TASK_DRIVE_RIGHT);
         if (road && request.roadId().isEmpty()) {
             malformed(player, session, "a " + task + " task names no road");
             return;

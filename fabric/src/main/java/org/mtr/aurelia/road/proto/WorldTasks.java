@@ -34,6 +34,7 @@ import org.mtr.aurelia.road.road.RoadHistory;
 import org.mtr.aurelia.road.road.RoadPlanParams;
 import org.mtr.aurelia.road.road.RoadPlanner;
 import org.mtr.aurelia.road.road.RoadsModule;
+import org.mtr.aurelia.road.road.SideSwitch;
 import org.mtr.aurelia.road.road.palette.Palette;
 import org.mtr.aurelia.road.spi.BlockFinder;
 import org.mtr.aurelia.road.spi.MessageChannel;
@@ -52,6 +53,11 @@ import org.mtr.aurelia.road.undo.Operations;
  *       each dimension, whose palette paints line blocks is rebuilt from its record with today's rules (R-7's rebuild),
  *       keeping blocks changed by hand, each road its own operation (owner, 2026-10-15). A road that would change nothing
  *       is left; another player's is skipped and counted.</li>
+ *   <li><b>Switch driving side</b> ({@link Protocol#TASK_DRIVE_LEFT}, {@link Protocol#TASK_DRIVE_RIGHT}; P9): the world's side is
+ *       set (its game rule), then each of the player's roads and junctions that keeps to the other side is rebuilt for it
+ *       ({@link SideSwitch}), junctions first, each its own operation. It selects by the side each road keeps, so running it
+ *       again carries on where a stopped one left off. A road that changes no block has nothing for undo to take back (its
+ *       record and track change; the server's log counts those).</li>
  * </ul>
  * Progress goes to the player about once a second ({@code TaskProgress}), then one {@code TaskResult}. A world bake that
  * leaves no Stratos blocks anywhere, none kept and none placed while it ran, turns the world's mark off (UI-1c). A bake stops at
@@ -71,10 +77,12 @@ final class WorldTasks {
     private final LongSupplier placements;
     /** UI-1c: a world bake left no Stratos blocks. */
     private final Runnable noneLeft;
+    /** P9: where a switch of driving side sets the world's side ({@code true} for right-hand). */
+    private final Consumer<Boolean> setSide;
     private final Map<UUID, Task> tasks = new LinkedHashMap<>();
 
     WorldTasks(Supplier<List<EditWorld>> worlds, BlockFinder finder, Executor planners, LongSupplier clock, Supplier<UUID> operationIds,
-            String coreVersion, int dataVersion, Consumer<String> log, LongSupplier placements, Runnable noneLeft) {
+            String coreVersion, int dataVersion, Consumer<String> log, LongSupplier placements, Runnable noneLeft, Consumer<Boolean> setSide) {
         this.worlds = Objects.requireNonNull(worlds, "worlds");
         this.finder = Objects.requireNonNull(finder, "finder");
         this.planners = Objects.requireNonNull(planners, "planners");
@@ -85,6 +93,7 @@ final class WorldTasks {
         this.log = Objects.requireNonNull(log, "log");
         this.placements = Objects.requireNonNull(placements, "placements");
         this.noneLeft = Objects.requireNonNull(noneLeft, "noneLeft");
+        this.setSide = Objects.requireNonNull(setSide, "setSide");
     }
 
     /** Whether {@code player} has a task running. */
@@ -101,6 +110,8 @@ final class WorldTasks {
             case Protocol.TASK_BAKE_WORLD -> new BakeTask(player, channel, requestId, this.worlds.get(), null);
             case Protocol.TASK_BAKE_ROAD -> bakeRoad(player, channel, requestId, roadId.orElseThrow(), here);
             case Protocol.TASK_REDRAW_MARKINGS -> new RedrawTask(player, channel, requestId, this.worlds.get());
+            case Protocol.TASK_DRIVE_LEFT, Protocol.TASK_DRIVE_RIGHT ->
+                    new SwitchSideTask(player, channel, requestId, this.worlds.get(), task.equals(Protocol.TASK_DRIVE_RIGHT));
             default -> throw new IllegalArgumentException("No world task " + task);
         };
         if (started != null) {
@@ -432,18 +443,136 @@ final class WorldTasks {
     private record Rebuild(RoadPlanParams params, PlanResult result) {
     }
 
-    /** Redraw markings: each of the player's roads with line blocks, rebuilt in turn. */
-    private final class RedrawTask extends Task {
-        private final List<Target> roads = new ArrayList<>();
-        private int others;
-        private int index;
-        private int changed;
-        private int unchanged;
-        private int failed;
+    /**
+     * A rebuild of each of the player's roads in turn, from its record, each its own operation: Redraw markings (B-3) and the
+     * switch of driving side (P9). A subclass says which roads and what each is rebuilt as.
+     */
+    private abstract class RebuildTask extends Task {
+        final List<Target> roads = new ArrayList<>();
+        int others;
+        int index;
+        int changed;
+        int unchanged;
+        int failed;
+        private final String stage;
         private FutureTask<Rebuild> planning;
 
-        RedrawTask(UUID player, MessageChannel channel, int requestId, List<EditWorld> worlds) {
+        RebuildTask(UUID player, MessageChannel channel, int requestId, String stage) {
             super(player, channel, requestId);
+            this.stage = stage;
+        }
+
+        /** Road {@code road} as it stands among the roads {@code standing} (their parameters by id), as a rebuild; null if it can't be. */
+        abstract RoadPlanParams rebuild(RoadHistory.Road road, Map<UUID, RoadPlanParams> standing);
+
+        /** What the player is told when every road is done. */
+        Map<String, String> summary() {
+            Map<String, String> args = new LinkedHashMap<>();
+            args.put("roads", Integer.toString(this.changed));
+            args.put("unchanged", Integer.toString(this.unchanged));
+            args.put("others", Integer.toString(this.others));
+            args.put("failed", Integer.toString(this.failed));
+            return args;
+        }
+
+        @Override
+        void tick(long now) {
+            if (this.running != null) {
+                progress(now, this.stage, this.index, this.roads.size());
+                return;
+            }
+            if (this.planning != null) {
+                replace();
+                return;
+            }
+            if (this.index >= this.roads.size()) {
+                end(true, Optional.empty(), summary());
+                return;
+            }
+            progress(now, this.stage, this.index, this.roads.size());
+            Target target = this.roads.get(this.index);
+            // The roads as they stand now (an earlier road's rebuild is among them), copied on this thread.
+            List<OperationRecord> placed = EditorServer.applied(target.world().operations(), RoadsModule.ID);
+            Map<UUID, RoadHistory.Road> standing = RoadsModule.standing(placed);
+            RoadHistory.Road road = standing.get(target.road());
+            RoadPlanParams params = road == null ? null : rebuild(road, RoadHistory.params(standing));
+            if (params == null) {
+                this.failed++;
+                this.index++;
+                return;
+            }
+            this.planning = new FutureTask<>(() -> new Rebuild(params, RoadsModule.INSTANCE.plan(params, target.world().limits(), placed)));
+            if (!submit(this.planning)) {
+                end(false, Optional.of(Protocol.INTERNAL_ERROR), Map.of());
+            }
+        }
+
+        /** Sends the rebuild worked out for the road at {@link #index} to replace it, once it is ready. */
+        private void replace() {
+            Rebuild rebuild;
+            try {
+                rebuild = doneOrNull(this.planning);
+            } catch (ExecutionException e) {
+                WorldTasks.this.log.accept("[stratos] working out a road's rebuild failed: " + e.getCause());
+                this.planning = null;
+                this.failed++;
+                this.index++;
+                return;
+            }
+            if (rebuild == null) {
+                return;
+            }
+            this.planning = null;
+            Target target = this.roads.get(this.index);
+            PlanResult result = rebuild.result();
+            if (!result.isPlanned() || result.replacement().isEmpty()) {
+                WorldTasks.this.log.accept("[stratos] rebuilding road " + target.road() + " was refused: " + result.code().orElse("?"));
+                this.failed++;
+                this.index++;
+                return;
+            }
+            BlockPlan plan = result.plan().orElseThrow();
+            EditWorld world = target.world();
+            OperationRecord.Draft draft = new OperationRecord.Draft(RoadsModule.ID, RoadsModule.INSTANCE.tool(rebuild.params()),
+                    RoadsModule.INSTANCE.paramsToJson(rebuild.params()), Digest.of(PlanHash.of(plan, result.sideEffects(), WorldTasks.this.coreVersion)).hex(),
+                    result.sideEffects(), RoadsModule.INSTANCE.palettes(rebuild.params(), world.limits()));
+            Operations.Request request = world.operations().replace(this.owner, plan, result.replacement().get(), WorldTasks.this.operationIds.get(), draft);
+            if (!request.isAccepted()) {
+                WorldTasks.this.log.accept("[stratos] rebuilding road " + target.road() + " was refused: " + request.refusal().orElse(null));
+                this.failed++;
+                this.index++;
+                return;
+            }
+            this.running = request.handle().orElseThrow();
+        }
+
+        @Override
+        void finished(Operations.Result result) {
+            this.index++;
+            Optional<String> code = result.code();
+            if (code.isEmpty()) {
+                this.changed++;
+            } else if (code.get().equals(Protocol.NOTHING_TO_CHANGE)) {
+                this.unchanged++;
+            } else {
+                this.failed++;
+                WorldTasks.this.log.accept("[stratos] rebuilding a road ended " + code.get());
+            }
+        }
+
+        @Override
+        void stop() {
+            super.stop();
+            if (this.planning != null) {
+                this.planning.cancel(true);
+            }
+        }
+    }
+
+    /** Redraw markings: each of the player's roads with line blocks, rebuilt in turn. */
+    private final class RedrawTask extends RebuildTask {
+        RedrawTask(UUID player, MessageChannel channel, int requestId, List<EditWorld> worlds) {
+            super(player, channel, requestId, Protocol.STAGE_REDRAWING);
             for (EditWorld world : worlds) {
                 List<OperationRecord> records = EditorServer.applied(world.operations(), RoadsModule.ID);
                 for (RoadHistory.Road road : RoadsModule.standing(records).values()) {
@@ -464,100 +593,58 @@ final class WorldTasks {
         }
 
         @Override
-        void tick(long now) {
-            if (this.running != null) {
-                progress(now, Protocol.STAGE_REDRAWING, this.index, this.roads.size());
-                return;
-            }
-            if (this.planning != null) {
-                replace();
-                return;
-            }
-            if (this.index >= this.roads.size()) {
-                Map<String, String> args = new LinkedHashMap<>();
-                args.put("roads", Integer.toString(this.changed));
-                args.put("unchanged", Integer.toString(this.unchanged));
-                args.put("others", Integer.toString(this.others));
-                args.put("failed", Integer.toString(this.failed));
-                end(true, Optional.empty(), args);
-                return;
-            }
-            progress(now, Protocol.STAGE_REDRAWING, this.index, this.roads.size());
-            Target target = this.roads.get(this.index);
-            // The roads as they stand now (an earlier road's rebuild is among them), copied on this thread.
-            List<OperationRecord> placed = EditorServer.applied(target.world().operations(), RoadsModule.ID);
-            RoadHistory.Road road = RoadsModule.standing(placed).get(target.road());
-            if (road == null) {
-                this.failed++;
-                this.index++;
-                return;
-            }
-            RoadPlanParams params = RoadPlanParams.edit(RoadPlanParams.Tool.REBUILD, road.id(), road.params(), Optional.of(RoadPlanParams.ManualEdits.KEEP));
-            this.planning = new FutureTask<>(() -> new Rebuild(params, RoadsModule.INSTANCE.plan(params, target.world().limits(), placed)));
-            if (!submit(this.planning)) {
-                end(false, Optional.of(Protocol.INTERNAL_ERROR), Map.of());
+        RoadPlanParams rebuild(RoadHistory.Road road, Map<UUID, RoadPlanParams> standing) {
+            return RoadPlanParams.edit(RoadPlanParams.Tool.REBUILD, road.id(), road.params(), Optional.of(RoadPlanParams.ManualEdits.KEEP));
+        }
+    }
+
+    /**
+     * Switch driving side (P9): the world's side is set first, so a plan for the old side is refused from then on, then every
+     * road and junction of the player's that keeps to the other side is rebuilt for the new one ({@link SideSwitch#pending}:
+     * junctions first). Another player's are skipped and counted, as Redraw skips them.
+     */
+    private final class SwitchSideTask extends RebuildTask {
+        private final RoadPlanParams.DrivingSide side;
+        /** Roads whose switch changed no block, so undo has nothing of theirs to take back. */
+        private int noUndo;
+
+        SwitchSideTask(UUID player, MessageChannel channel, int requestId, List<EditWorld> worlds, boolean rightHand) {
+            super(player, channel, requestId, Protocol.STAGE_SWITCHING);
+            this.side = rightHand ? RoadPlanParams.DrivingSide.RHT : RoadPlanParams.DrivingSide.LHT;
+            WorldTasks.this.setSide.accept(rightHand);
+            for (EditWorld world : worlds) {
+                Map<UUID, RoadHistory.Road> standing = RoadsModule.standing(EditorServer.applied(world.operations(), RoadsModule.ID));
+                for (UUID id : SideSwitch.pending(RoadHistory.params(standing), this.side)) {
+                    if (yours(standing.get(id), world.operations(), this.owner)) {
+                        this.roads.add(new Target(world, id));
+                    } else {
+                        this.others++;
+                    }
+                }
             }
         }
 
-        /** Sends the rebuild worked out for the road at {@link #index} to replace it, once it is ready. */
-        private void replace() {
-            Rebuild rebuild;
-            try {
-                rebuild = doneOrNull(this.planning);
-            } catch (ExecutionException e) {
-                WorldTasks.this.log.accept("[stratos] working out a road's redraw failed: " + e.getCause());
-                this.planning = null;
-                this.failed++;
-                this.index++;
-                return;
-            }
-            if (rebuild == null) {
-                return;
-            }
-            this.planning = null;
-            Target target = this.roads.get(this.index);
-            PlanResult result = rebuild.result();
-            if (!result.isPlanned() || result.replacement().isEmpty()) {
-                WorldTasks.this.log.accept("[stratos] redrawing road " + target.road() + "'s markings was refused: " + result.code().orElse("?"));
-                this.failed++;
-                this.index++;
-                return;
-            }
-            BlockPlan plan = result.plan().orElseThrow();
-            EditWorld world = target.world();
-            OperationRecord.Draft draft = new OperationRecord.Draft(RoadsModule.ID, RoadsModule.INSTANCE.tool(rebuild.params()),
-                    RoadsModule.INSTANCE.paramsToJson(rebuild.params()), Digest.of(PlanHash.of(plan, result.sideEffects(), WorldTasks.this.coreVersion)).hex(),
-                    result.sideEffects(), RoadsModule.INSTANCE.palettes(rebuild.params(), world.limits()));
-            Operations.Request request = world.operations().replace(this.owner, plan, result.replacement().get(), WorldTasks.this.operationIds.get(), draft);
-            if (!request.isAccepted()) {
-                WorldTasks.this.log.accept("[stratos] redrawing road " + target.road() + "'s markings was refused: " + request.refusal().orElse(null));
-                this.failed++;
-                this.index++;
-                return;
-            }
-            this.running = request.handle().orElseThrow();
+        @Override
+        RoadPlanParams rebuild(RoadHistory.Road road, Map<UUID, RoadPlanParams> standing) {
+            return SideSwitch.converted(road.id(), standing, this.side)
+                    .map(switched -> RoadPlanParams.edit(RoadPlanParams.Tool.REBUILD, road.id(), switched, Optional.of(RoadPlanParams.ManualEdits.KEEP)))
+                    .orElse(null);
         }
 
         @Override
         void finished(Operations.Result result) {
-            this.index++;
-            Optional<String> code = result.code();
-            if (code.isEmpty()) {
-                this.changed++;
-            } else if (code.get().equals(Protocol.NOTHING_TO_CHANGE)) {
-                this.unchanged++;
-            } else {
-                this.failed++;
-                WorldTasks.this.log.accept("[stratos] redrawing a road's markings ended " + code.get());
+            if (result.code().isEmpty() && result.job().map(ApplyJob::changedBlocks).orElse(0) == 0) {
+                this.noUndo++;
             }
+            super.finished(result);
         }
 
         @Override
-        void stop() {
-            super.stop();
-            if (this.planning != null) {
-                this.planning.cancel(true);
-            }
+        Map<String, String> summary() {
+            WorldTasks.this.log.accept("[stratos] " + this.owner + " switched the world to " + this.side + ": " + this.changed + " roads and junctions rebuilt ("
+                    + this.noUndo + " changed no block, so undo has nothing of theirs to take back), " + this.others + " of other players' left on the old side, "
+                    + this.failed + " failed");
+            return super.summary();
         }
     }
 }

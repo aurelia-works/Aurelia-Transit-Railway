@@ -383,8 +383,11 @@ public final class RoadPlanner {
         if (road == null) {
             return refused(ROAD_GONE, Map.of());
         }
+        if (SideSwitch.isSwitch(id, params, placed)) {
+            return switchSide(SideSwitch.converted(id, placed, params.drivingSide()).orElseThrow(), limits, wantShape);
+        }
         if (road.tool() == RoadPlanParams.Tool.JUNCTION) {
-            return notYet("junction_edit"); // G-11: a junction is placed and undone, not rebuilt or deleted yet
+            return notYet("junction_edit"); // G-11: a junction is placed and undone, not rebuilt or deleted yet; only its side switches (P9)
         }
         boolean rebuild = params.tool() == RoadPlanParams.Tool.REBUILD;
         // R-9: a rebuild may put the road in another palette (owner, 2026-10-10) without editing it.
@@ -421,6 +424,21 @@ public final class RoadPlanner {
         }
         List<SideEffect> track = params.tool() == RoadPlanParams.Tool.REBUILD ? result.sideEffects() : List.of();
         return new Outcome(PlanResult.planned(result.plan().orElseThrow(), List.of(), track), Optional.empty());
+    }
+
+    /**
+     * The rebuild of a road, or a junction, for the other driving side (P9; {@link SideSwitch}): planned as it was placed, for
+     * the new side, with no joins checked: nothing moves, and the roads it joins may not have been switched yet. A road's blocks
+     * are as they were and only its track is laid the other way round; a junction's footprint is its mirrored twin's.
+     */
+    private static Outcome switchSide(RoadPlanParams switched, WorldLimits limits, boolean wantShape) {
+        boolean junction = switched.tool() == RoadPlanParams.Tool.JUNCTION;
+        Outcome built = compute(junction ? switched : switched.road(), limits, wantShape, Map.of(), false);
+        PlanResult result = built.result();
+        if (!result.isPlanned()) {
+            return built;
+        }
+        return new Outcome(PlanResult.planned(result.plan().orElseThrow(), List.of(), result.sideEffects()), Optional.empty());
     }
 
     /**
@@ -568,8 +586,8 @@ public final class RoadPlanner {
         UUID id = params.targetRoadId().get();
         RoadPlanParams road = placed.get(id);
         RoadPlanParams settled = settled(params, placed);
-        if (road == null || road.road().equals(settled.withPalette(road.paletteId()).road())) {
-            return Map.of();
+        if (road == null || road.road().equals(settled.withPalette(road.paletteId()).road()) || SideSwitch.isSwitch(id, params, placed)) {
+            return Map.of(); // as placed, or (P9) a switch of side, which moves no end
         }
         return RoadJoins.followers(id, road.road(), settled.road(), placed);
     }
@@ -798,8 +816,9 @@ public final class RoadPlanner {
         }
         UUID id = params.targetRoadId().get();
         RoadPlanParams road = placed.get(id);
-        if (road == null || road.road().equals(params.withPalette(road.paletteId()).road()) || params.ends().size() != 2) {
-            return params; // gone (refused), or as placed: it keeps its recorded dashes
+        if (road == null || road.road().equals(params.withPalette(road.paletteId()).road()) || params.ends().size() != 2
+                || SideSwitch.isSwitch(id, params, placed)) {
+            return params; // gone (refused), as placed, or (P9) a switch of side: it keeps its recorded dashes
         }
         Map<UUID, RoadPlanParams> others = new LinkedHashMap<>(placed);
         others.remove(id);

@@ -109,12 +109,26 @@ public final class Protocol {
      * record with today's rules, keeping blocks changed by hand; each road its own operation. Needs {@code stratos.admin}.
      */
     public static final String TASK_REDRAW_MARKINGS = "REDRAW_MARKINGS";
+    /**
+     * P9's world task: the world's traffic keeps left from now on, and each of the player's roads and junctions that keeps right
+     * is rebuilt for it, junctions first, each its own operation. Needs {@code stratos.admin}.
+     */
+    public static final String TASK_DRIVE_LEFT = "DRIVE_LEFT";
+    /** P9's world task: as {@link #TASK_DRIVE_LEFT}, for right-hand traffic. */
+    public static final String TASK_DRIVE_RIGHT = "DRIVE_RIGHT";
     /** A world task's stage: reading chunks for Stratos blocks. */
     public static final String STAGE_FINDING = "FINDING";
     /** A world task's stage: placing a bake's vanilla blocks. */
     public static final String STAGE_BAKING = "BAKING";
     /** A world task's stage: redrawing roads' markings. */
     public static final String STAGE_REDRAWING = "REDRAWING";
+    /** A world task's stage: switching roads and junctions to the world's new driving side. */
+    public static final String STAGE_SWITCHING = "SWITCHING";
+    /**
+     * P9: a road or junction for the other side than the world's was drawn or rebuilt; arg {@code side}, {@code left} or
+     * {@code right}, the side the world keeps. Nothing was changed. After a switch, roads not yet converted still keep the old side.
+     */
+    public static final String DRIVING_SIDE_MISMATCH = "DRIVING_SIDE_MISMATCH";
     /** B-3: the world couldn't be read for Stratos blocks (the log says why); nothing was changed since. */
     public static final String FIND_FAILED = "FIND_FAILED";
 

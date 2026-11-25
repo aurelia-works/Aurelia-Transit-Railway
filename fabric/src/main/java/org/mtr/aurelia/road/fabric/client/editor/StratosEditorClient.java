@@ -356,6 +356,7 @@ public final class StratosEditorClient {
                 case Protocol.STAGE_FINDING -> progress.total() == 0 ? Text.translatable("stratos.task.progress.listing")
                         : Text.translatable("stratos.task.progress.finding", progress.done(), progress.total());
                 case Protocol.STAGE_BAKING -> Text.translatable("stratos.task.progress.baking", progress.done(), progress.total());
+                case Protocol.STAGE_SWITCHING -> Text.translatable("stratos.task.progress.switching", progress.done(), progress.total());
                 default -> Text.translatable("stratos.task.progress.redrawing", progress.done(), progress.total());
             };
             show(text, true, false);
@@ -381,12 +382,15 @@ public final class StratosEditorClient {
                         : Text.translatable("stratos.task.bake_world.done_kept", blocks, kept), false, false);
                 return;
             }
-            show(Text.translatable("stratos.task.redraw.done", args.getOrDefault("roads", "0"), args.getOrDefault("unchanged", "0")), false, false);
+            boolean drive = task.equals(Protocol.TASK_DRIVE_LEFT) || task.equals(Protocol.TASK_DRIVE_RIGHT);
+            show(drive ? Text.translatable(task.equals(Protocol.TASK_DRIVE_RIGHT) ? "stratos.task.drive.done_right" : "stratos.task.drive.done_left",
+                    args.getOrDefault("roads", "0"))
+                    : Text.translatable("stratos.task.redraw.done", args.getOrDefault("roads", "0"), args.getOrDefault("unchanged", "0")), false, false);
             if (!args.getOrDefault("others", "0").equals("0")) {
-                show(Text.translatable("stratos.task.redraw.others", args.get("others")), false, false);
+                show(Text.translatable(drive ? "stratos.task.drive.others" : "stratos.task.redraw.others", args.get("others")), false, drive);
             }
             if (!args.getOrDefault("failed", "0").equals("0")) {
-                show(Text.translatable("stratos.task.redraw.failed", args.get("failed")), false, true);
+                show(Text.translatable(drive ? "stratos.task.drive.failed" : "stratos.task.redraw.failed", args.get("failed")), false, true);
             }
         }
 

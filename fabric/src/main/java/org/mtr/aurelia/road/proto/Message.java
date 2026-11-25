@@ -429,7 +429,8 @@ public sealed interface Message {
 
     /**
      * Id 20, client → server (B-3): start a world task, {@code task} being one of {@link Protocol#TASK_BAKE_WORLD},
-     * {@link Protocol#TASK_BAKE_ROAD} (with the road's id) and {@link Protocol#TASK_REDRAW_MARKINGS}. Answered with
+     * {@link Protocol#TASK_BAKE_ROAD} (with the road's id), {@link Protocol#TASK_REDRAW_MARKINGS}, {@link Protocol#TASK_DRIVE_LEFT} and
+     * {@link Protocol#TASK_DRIVE_RIGHT}. Answered with
      * {@code TaskProgress} while it runs and one {@code TaskResult}.
      */
     record TaskRequest(int requestId, String task, Optional<UUID> roadId) implements Message {
@@ -453,7 +454,7 @@ public sealed interface Message {
     /**
      * Id 21, server → client (B-3): how far a world task has got, about once a second: {@code stage} is
      * {@link Protocol#STAGE_FINDING} (chunks read of the chunks to read), {@link Protocol#STAGE_BAKING} (sections done of
-     * the operation's sections) or {@link Protocol#STAGE_REDRAWING} (roads done of the roads to redraw).
+     * the operation's sections) or {@link Protocol#STAGE_REDRAWING} (roads done of the roads to redraw) or {@link Protocol#STAGE_SWITCHING} (roads done of the roads to switch).
      */
     record TaskProgress(int requestId, String stage, int done, int total) implements Message {
         public TaskProgress {
