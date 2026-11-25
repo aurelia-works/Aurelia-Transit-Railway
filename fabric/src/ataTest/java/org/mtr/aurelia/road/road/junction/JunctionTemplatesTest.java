@@ -12,7 +12,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mtr.aurelia.road.geom.Heading;
 import org.mtr.aurelia.road.ops.WorldLimits;
-import org.mtr.aurelia.road.proto.Protocol;
 import org.mtr.aurelia.road.road.Lane;
 import org.mtr.aurelia.road.road.RoadPlanParams;
 import org.mtr.aurelia.road.road.RoadPlanner;
@@ -191,7 +190,9 @@ class JunctionTemplatesTest {
         assertTrue(!graph.taken(a, 0) && !graph.taken(a, 1));
 
         JunctionSnap.Placed placed = assertInstanceOf(JunctionSnap.Placed.class, JunctionSnap.snap(t, graph, 20, 64, 0, 0));
-        assertEquals(Optional.of(Protocol.NOT_AVAILABLE_YET), RoadPlanner.plan(placed.params(), WorldLimits.OVERWORLD).code());
+        // Brief 3 (2026-11-25): junctions are built now. Planned against the road it sits on; without that road it's gone.
+        assertTrue(RoadPlanner.plan(placed.params(), WorldLimits.OVERWORLD, roads).isPlanned());
+        assertEquals(Optional.of(org.mtr.aurelia.road.road.RoadJoins.ROAD_END_GONE), RoadPlanner.plan(placed.params(), WorldLimits.OVERWORLD).code());
     }
 
     private static RoadPlanParams.End end(int x, Heading heading) {

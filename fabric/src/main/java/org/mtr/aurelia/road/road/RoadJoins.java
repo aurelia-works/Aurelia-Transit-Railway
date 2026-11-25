@@ -71,8 +71,8 @@ public final class RoadJoins {
      */
     public record Port(int index, int x, int y, int z, Heading outgoing, String profileId, double phase) {
         public Port {
-            if (index != 0 && index != 1) {
-                throw new IllegalArgumentException("A road's ends are 0 (its start) and 1 (its end), not " + index);
+            if (index < 0) {
+                throw new IllegalArgumentException("A road's ends are 0 (its start) and 1 (its end), a junction's arms from 2, not " + index);
             }
             Objects.requireNonNull(outgoing, "outgoing");
             Objects.requireNonNull(profileId, "profileId");
@@ -84,7 +84,32 @@ public final class RoadJoins {
         }
     }
 
+    /**
+     * G-11: the port index of a junction's first arm: a road end drawn onto arm {@code i} names port {@code ARM_PORTS + i}
+     * ({@code snapPortIndex}), so it never reads as a road's start or end (0 and 1), and the wire and the records carry it
+     * as they carry any port.
+     */
+    public static final int ARM_PORTS = 2;
+
     private RoadJoins() {
+    }
+
+    /**
+     * A junction's arms as ports (G-11): arm {@code i} is port {@link #ARM_PORTS} + {@code i}, at its end's block, facing
+     * the way a road leaving it runs, with the arm's layout; no dash phase (a road drawn from an arm starts its own). None
+     * for anything but a junction.
+     */
+    public static List<Port> armPorts(RoadPlanParams params) {
+        if (params.tool() != RoadPlanParams.Tool.JUNCTION || params.junction().isEmpty()) {
+            return List.of();
+        }
+        List<String> profiles = params.junction().get().armProfiles();
+        List<Port> arms = new ArrayList<>();
+        for (int i = 0; i < params.ends().size(); i++) {
+            RoadPlanParams.End end = params.ends().get(i);
+            arms.add(new Port(ARM_PORTS + i, end.x(), end.y(), end.z(), end.heading(), i < profiles.size() ? profiles.get(i) : params.profileId(), 0));
+        }
+        return arms;
     }
 
     /** The two ends of the straight, curved or (R-7) rebuilt road {@code params} describe, or empty if it doesn't plan. */
@@ -312,10 +337,17 @@ public final class RoadJoins {
                 continue;
             }
             UUID road = end.snapRoadId().get();
-            if (end.snapPortIndex().isEmpty() || end.snapPortIndex().getAsInt() > 1) {
+            if (end.snapPortIndex().isEmpty()) {
                 return refused(PORT_MISMATCH, Map.of());
             }
             int index = end.snapPortIndex().getAsInt();
+            if (index >= ARM_PORTS) { // G-11: a junction's arm
+                Optional<RoadPlanner.Outcome> arm = armRefusal(params, profile, placed, graph, i, road, index - ARM_PORTS);
+                if (arm.isPresent()) {
+                    return arm;
+                }
+                continue;
+            }
             Optional<List<Port>> found = portsOf.apply(road);
             if (found.isEmpty()) {
                 return refused(ROAD_END_GONE, Map.of());
@@ -345,6 +377,46 @@ public final class RoadJoins {
             if (placed.get(road).drivingSide() != params.drivingSide() && !shared(profile)) {
                 return refused(SIDE_MISMATCH, Map.of());
             }
+        }
+        return Optional.empty();
+    }
+
+    /** Why end {@code i} of {@code params} can't take arm {@code arm} of the junction {@code junction}, if it can't. */
+    private static Optional<RoadPlanner.Outcome> armRefusal(RoadPlanParams params, RoadProfile profile, Map<UUID, RoadPlanParams> placed, RoadGraph graph,
+            int i, UUID junction, int arm) {
+        RoadPlanParams.End end = params.ends().get(i);
+        RoadPlanParams placedJunction = placed.get(junction);
+        List<Port> arms = placedJunction == null ? List.of() : armPorts(placedJunction);
+        if (arms.isEmpty()) {
+            return refused(ROAD_END_GONE, Map.of());
+        }
+        if (arm >= arms.size()) {
+            return refused(PORT_MISMATCH, Map.of());
+        }
+        Port port = arms.get(arm);
+        // A start leaves the arm the way a road leaving it runs; an end arrives the opposite way.
+        Heading wanted = i == 0 ? port.outgoing() : port.outgoing().opposite();
+        if (!port.at(end)) {
+            return refused(PORT_MISMATCH, Map.of());
+        }
+        if (end.heading() == wanted.opposite()) {
+            return refused(PieceSolver.REVERSE_HEADING, Map.of());
+        }
+        if (end.heading() != wanted) {
+            return refused(PORT_MISMATCH, Map.of());
+        }
+        if (graph.armTaken(junction, arm)) {
+            return refused(Protocol.NOT_AVAILABLE_YET, Map.of("feature", "junction")); // two roads on one arm
+        }
+        RoadProfile other = RoadProfiles.byId(port.profileId()).orElseThrow();
+        if (!sameLanes(profile, other)) {
+            Map<String, String> args = new LinkedHashMap<>();
+            args.put("layout", profile.id());
+            args.put("joins", other.id());
+            return refused(PROFILE_MISMATCH, args);
+        }
+        if (placedJunction.drivingSide() != params.drivingSide() && !shared(profile)) {
+            return refused(SIDE_MISMATCH, Map.of());
         }
         return Optional.empty();
     }

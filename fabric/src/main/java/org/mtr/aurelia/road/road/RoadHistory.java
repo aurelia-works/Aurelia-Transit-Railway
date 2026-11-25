@@ -126,7 +126,7 @@ public final class RoadHistory {
     /** The road {@code params}' operation {@code id} is about: its own id when it places a road, its target for a rebuild or delete. */
     public static Optional<UUID> roadOf(UUID id, RoadPlanParams params) {
         return switch (params.tool()) {
-            case STRAIGHT, CURVE -> Optional.of(id);
+            case STRAIGHT, CURVE, JUNCTION -> Optional.of(id); // G-11: a junction stands as a road does, its own id
             case REBUILD, DELETE -> params.targetRoadId();
             default -> Optional.empty();
         };
@@ -146,7 +146,7 @@ public final class RoadHistory {
             }
             Building road = byRoad.computeIfAbsent(target.get(), r -> new Building());
             switch (op.params().tool()) {
-                case STRAIGHT, CURVE -> road.placed(op.id(), op.params());
+                case STRAIGHT, CURVE, JUNCTION -> road.placed(op.id(), op.params());
                 case REBUILD -> {
                     Map<UUID, RoadPlanParams> followers = Map.of();
                     if (road.params != null) {

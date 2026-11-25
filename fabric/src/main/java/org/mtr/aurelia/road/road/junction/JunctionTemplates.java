@@ -2,7 +2,9 @@ package org.mtr.aurelia.road.road.junction;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.mtr.aurelia.road.geom.BlockStep;
 import org.mtr.aurelia.road.geom.Heading;
 import org.mtr.aurelia.road.road.Band;
@@ -60,6 +62,13 @@ public final class JunctionTemplates {
      * one lane each way on block centres. Left-hand traffic gets the template as authored.
      */
     public static Optional<JunctionTemplate> of(String templateId, int size, List<String> armProfiles, RoadPlanParams.DrivingSide side) {
+        return CACHE.computeIfAbsent(List.of(templateId, size, List.copyOf(armProfiles), side), key -> work(templateId, size, armProfiles, side));
+    }
+
+    /** The templates worked out so far, by id, size, layouts and side: the planner and the tool ask on every request and aim. */
+    private static final Map<List<Object>, Optional<JunctionTemplate>> CACHE = new ConcurrentHashMap<>();
+
+    private static Optional<JunctionTemplate> work(String templateId, int size, List<String> armProfiles, RoadPlanParams.DrivingSide side) {
         int arms = armCount(templateId);
         if (arms == 0 || armProfiles.size() != arms) {
             return Optional.empty();
