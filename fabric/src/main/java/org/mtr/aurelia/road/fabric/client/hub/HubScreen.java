@@ -198,7 +198,18 @@ public final class HubScreen extends Screen {
             }
             this.drawingPopUp = false;
         }
-        hovered().map(Hot::tip).filter(tip -> !tip.isEmpty()).ifPresent(tip -> graphics.drawTooltip(this.textRenderer, tip, mouseX, mouseY));
+        hovered().map(Hot::tip).filter(tip -> !tip.isEmpty()).ifPresent(tip -> graphics.drawOrderedTooltip(this.textRenderer, wrappedTip(tip), mouseX, mouseY));
+    }
+
+    /** The widest a tooltip line runs before it wraps; at most half the screen, so a long tooltip stays on it. */
+    private static final int TIP_WIDTH = 200;
+
+    /** A tooltip's lines, each wrapped to {@link #TIP_WIDTH} (or half the screen, when that's narrower). */
+    private List<OrderedText> wrappedTip(List<Text> tip) {
+        int width = StrictMath.min(TIP_WIDTH, this.width / 2);
+        List<OrderedText> lines = new ArrayList<>();
+        tip.forEach(line -> lines.addAll(wrap(line, width)));
+        return lines;
     }
 
     /** The tab row; returns the globe's right edge, where This world lines up. */
