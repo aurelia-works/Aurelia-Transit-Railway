@@ -151,7 +151,8 @@ public final class RoadPlanner {
     /**
      * R-10: an edit (a rebuild with other ends, layout, node aid or shape) that would break a join: from R-10+, a road
      * joined to the edited road would no longer join it as drawn (its end moved, or its lanes or dashes no longer carry
-     * on). Moving a joined end, which would re-plan the roads joined there too, isn't built yet.
+     * on). From 2026-11-24 a moved joined end takes the roads joined there with it; this is the refusal when one of them
+     * can't follow (it doesn't plan there, or a road joined to its other end would be pulled away).
      */
     public static final String ROAD_JOINED = "ROAD_JOINED";
     /**
@@ -340,12 +341,18 @@ public final class RoadPlanner {
             others.remove(id); // the road can't join itself
             // Council r4: the server's dashes, not the client's, before the joins are checked against them.
             RoadPlanParams edited = params.road().withDashes(RoadJoins.settledDashes(params.road(), others, incoming));
-            for (RoadJoins.Incoming in : incoming) { // R-10+: the roads joined to it keep their joins
-                if (!RoadJoins.stillJoins(in, id, edited, placed)) {
+            // Owner, 2026-11-24: a joined end it moves takes the roads joined there with it, in this one operation.
+            Map<UUID, RoadPlanParams> followers = RoadJoins.followers(id, road.road(), edited, placed);
+            for (RoadJoins.Incoming in : incoming) { // R-10+: the other roads joined to it keep their joins
+                if (!followers.containsKey(in.road()) && !RoadJoins.stillJoins(in, id, edited, placed)) {
                     return refused(ROAD_JOINED, Map.of());
                 }
             }
-            return compute(edited, limits, wantShape, others, true, incoming);
+            Outcome outcome = compute(edited, limits, wantShape, others, true, incoming);
+            if (followers.isEmpty() || !outcome.result().isPlanned()) {
+                return outcome;
+            }
+            return withFollowers(outcome.result(), id, edited, followers, placed, limits);
         }
         Outcome asPlaced = compute(params.road(), limits, wantShape, Map.of(), false);
         PlanResult result = asPlaced.result();
@@ -354,6 +361,61 @@ public final class RoadPlanner {
         }
         List<SideEffect> track = params.tool() == RoadPlanParams.Tool.REBUILD ? result.sideEffects() : List.of();
         return new Outcome(PlanResult.planned(result.plan().orElseThrow(), List.of(), track), Optional.empty());
+    }
+
+    /**
+     * The edit {@code edited} of road {@code id} planned with the roads that follow it ({@link RoadJoins#followers}): each
+     * is planned as a road joined to the edited one, and the roads joined to its other end must still join it as drawn
+     * ({@link RoadJoins#stillJoins}). One that doesn't plan, or would pull a road away, refuses the edit
+     * {@link #ROAD_JOINED}. The plan is the edited road's blocks, then each follower's over them where they meet (it was
+     * drawn onto the edited road, so its blocks are the ones there), and every road's track, in that order.
+     */
+    private static Outcome withFollowers(PlanResult edited, UUID id, RoadPlanParams editedParams, Map<UUID, RoadPlanParams> followers,
+            Map<UUID, RoadPlanParams> placed, WorldLimits limits) {
+        Map<UUID, RoadPlanParams> after = new LinkedHashMap<>(placed);
+        after.put(id, editedParams);
+        after.putAll(followers);
+        BlockPlan first = edited.plan().orElseThrow();
+        Map<Long, BlockPlan.Block> blocks = new LinkedHashMap<>();
+        first.blocks().forEach(block -> blocks.put(BlockChange.positionKey(block.x(), block.y(), block.z()), block));
+        List<SideEffect> track = new ArrayList<>(edited.sideEffects());
+        for (Map.Entry<UUID, RoadPlanParams> follower : followers.entrySet()) {
+            UUID road = follower.getKey();
+            List<RoadJoins.Incoming> incoming = RoadJoins.incoming(road, placed);
+            for (RoadJoins.Incoming in : incoming) {
+                if (!in.road().equals(id) && !followers.containsKey(in.road()) && !RoadJoins.stillJoins(in, road, follower.getValue(), placed)) {
+                    return refused(ROAD_JOINED, Map.of());
+                }
+            }
+            Map<UUID, RoadPlanParams> others = new LinkedHashMap<>(after);
+            others.remove(road);
+            PlanResult planned = compute(follower.getValue(), limits, false, others, true, incoming).result();
+            if (!planned.isPlanned()) {
+                return refused(ROAD_JOINED, Map.of());
+            }
+            planned.plan().orElseThrow().blocks().forEach(block -> blocks.put(BlockChange.positionKey(block.x(), block.y(), block.z()), block));
+            planned.sideEffects().stream().filter(effect -> !track.contains(effect)).forEach(track::add);
+        }
+        BlockPlan.Builder plan = BlockPlan.builder(first.dataVersion());
+        blocks.values().forEach(block -> plan.set(block.x(), block.y(), block.z(), block.state(), block.data()));
+        return new Outcome(PlanResult.planned(plan.build(), edited.warnings(), track), Optional.empty());
+    }
+
+    /**
+     * The roads a rebuild {@code params} takes with it (owner, 2026-11-24; {@link RoadJoins#followers}), as {@link #plan}
+     * plans them among the standing roads {@code placed}: none unless it changes the road and moves an end others joined.
+     */
+    public static Map<UUID, RoadPlanParams> followers(RoadPlanParams params, Map<UUID, RoadPlanParams> placed) {
+        if (params.tool() != RoadPlanParams.Tool.REBUILD || params.targetRoadId().isEmpty()) {
+            return Map.of();
+        }
+        UUID id = params.targetRoadId().get();
+        RoadPlanParams road = placed.get(id);
+        RoadPlanParams settled = settled(params, placed);
+        if (road == null || road.road().equals(settled.withPalette(road.paletteId()).road())) {
+            return Map.of();
+        }
+        return RoadJoins.followers(id, road.road(), settled.road(), placed);
     }
 
     /**

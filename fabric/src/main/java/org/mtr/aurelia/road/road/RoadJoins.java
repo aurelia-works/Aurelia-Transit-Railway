@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import org.mtr.aurelia.road.geom.Heading;
@@ -216,6 +217,65 @@ public final class RoadJoins {
                 .flatMap(RoadJoins::ports));
         Function<UUID, Optional<List<Port>>> portsAfter = id -> id.equals(editedId) ? now : portsBefore.apply(id);
         return dashes(road, portsBefore).equals(dashes(road, portsAfter));
+    }
+
+    /**
+     * The roads that follow an edit of road {@code id} from {@code before} to {@code edited} (owner, 2026-11-24: moving a
+     * joined end re-plans the roads joined there, in the same operation): each road among {@code placed} with an end
+     * drawn onto an end of it that the edit moves (its block, height or heading), where that road's end sat on the end as
+     * it was. Each is given as a road ({@link RoadPlanParams#road}) with that end moved onto the end's new place, facing on
+     * from it, and the dashes its joins then call for ({@link #settledDashes}). By road id, in id order (the client lists
+     * the roads newest first, the server oldest first, and both must plan the same); none when no joined end moves.
+     *
+     * <p>Only the ends decide, so the planner, the server's records ({@link RoadHistory}) and the node aids work out the
+     * same roads from the same operations, and nothing about them is stored.
+     */
+    public static Map<UUID, RoadPlanParams> followers(UUID id, RoadPlanParams before, RoadPlanParams edited, Map<UUID, RoadPlanParams> placed) {
+        Map<UUID, RoadPlanParams> followers = new TreeMap<>();
+        if (before.ends().size() != 2 || edited.ends().size() != 2) {
+            return followers;
+        }
+        for (Map.Entry<UUID, RoadPlanParams> entry : placed.entrySet()) {
+            RoadPlanParams road = entry.getValue();
+            if (entry.getKey().equals(id) || road.ends().size() != 2) {
+                continue;
+            }
+            List<RoadPlanParams.End> ends = new ArrayList<>(road.ends());
+            boolean moved = false;
+            for (int j = 0; j < 2; j++) {
+                RoadPlanParams.End end = ends.get(j);
+                if (!end.snapRoadId().equals(Optional.of(id)) || end.snapPortIndex().isEmpty() || end.snapPortIndex().getAsInt() > 1) {
+                    continue;
+                }
+                int index = end.snapPortIndex().getAsInt();
+                RoadPlanParams.End was = before.ends().get(index);
+                RoadPlanParams.End now = edited.ends().get(index);
+                boolean sat = end.x() == was.x() && end.y() == was.y() && end.z() == was.z();
+                if (!sat || now.x() == was.x() && now.y() == was.y() && now.z() == was.z() && now.heading() == was.heading()) {
+                    continue; // drawn elsewhere (a stale join), or the end stays
+                }
+                // A start leaves the port the way a road leaving it runs; an end arrives the opposite way.
+                Heading outgoing = index == 0 ? now.heading().opposite() : now.heading();
+                ends.set(j, new RoadPlanParams.End(now.x(), now.y(), now.z(), j == 0 ? outgoing : outgoing.opposite(), end.snapRoadId(),
+                        end.snapPortIndex()));
+                moved = true;
+            }
+            if (moved) {
+                followers.put(entry.getKey(), road.road().withEnds(ends));
+            }
+        }
+        if (followers.isEmpty()) {
+            return followers;
+        }
+        Map<UUID, RoadPlanParams> after = new LinkedHashMap<>(placed);
+        after.put(id, edited);
+        after.putAll(followers);
+        followers.replaceAll((road, params) -> {
+            Map<UUID, RoadPlanParams> others = new LinkedHashMap<>(after);
+            others.remove(road);
+            return params.withDashes(settledDashes(params, others, incoming(road, placed)));
+        });
+        return followers;
     }
 
     private static Optional<Port> joined(RoadPlanParams.End end, Function<UUID, Optional<List<Port>>> ports) {

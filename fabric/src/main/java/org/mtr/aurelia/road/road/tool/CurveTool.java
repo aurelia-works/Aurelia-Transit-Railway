@@ -238,8 +238,8 @@ public final class CurveTool implements Tool {
      * side (P9), whatever the world's is now. Each end faces the way its heading points, so an unchanged road comes out
      * as placed.
      *
-     * <p><b>R-10+</b>: a joined end ({@link JoinableRoads#pinned}: drawn onto another road, or another road drawn onto it)
-     * keeps its join and stays where it is: its handle can't be picked up.
+     * <p><b>R-10+</b>: an end drawn onto another road ({@link JoinableRoads#pinned}) keeps its join and stays where it is:
+     * its handle can't be picked up. An end another road was drawn onto can be moved, and that road follows it.
      */
     public void load(RoadPlanParams road) {
         reset();

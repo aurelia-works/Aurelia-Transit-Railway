@@ -117,11 +117,12 @@ public final class JoinableRoads {
     }
 
     /**
-     * R-10+: whether end {@code index} of the edited road {@code road} is joined, so it stays where it is while the road is
-     * edited: it was drawn onto a standing road, or another road was drawn onto it.
+     * R-10+: whether end {@code index} of the edited road {@code road} stays where it is while the road is edited: it was
+     * drawn onto a standing road. An end another road was drawn onto can be moved (owner, 2026-11-24): that road's end
+     * follows it, in the same operation ({@code RoadJoins.followers}).
      */
     public boolean pinned(RoadPlanParams road, int index) {
-        return this.editing.isPresent() && (joinOf(road, index).isPresent() || incoming().stream().anyMatch(in -> in.index() == index));
+        return this.editing.isPresent() && joinOf(road, index).isPresent();
     }
 
     /**
