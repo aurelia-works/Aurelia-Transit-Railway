@@ -83,6 +83,7 @@ public final class AureliaTransitArchitecture implements ModInitializer {
 		org.mtr.mod.zip.ZipLines.registerServer();
 		org.mtr.aurelia.OperatorCommands.register();
 		org.mtr.aurelia.vehicle.RoadVehicles.register();
+		org.mtr.aurelia.road.fabric.StratosMod.register();
 		org.mtr.mod.building.BuildContent.register();
 		org.mtr.mod.building.BuildTools.registerServer();
 		FareSystems.init();

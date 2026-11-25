@@ -83,7 +83,7 @@ public final class StationDescriptionParser {
 	}
 	private static final Pattern SEED = Pattern.compile("(?i)\\bseed\\b(?:\\s*[:=]?\\s*([^\\s,;!?:()\"]+))?");
 	/** "city class": the station's class (see {@link StationClass}); the bare size words "city", "halt" ... keep their older meaning. */
-	private static final Pattern CLASS = Pattern.compile("(?i)\\b(halt|regional|town|city|grand)\\s+class\\b");
+	private static final Pattern CLASS = Pattern.compile("(?i)\\b(halt|local|regional|town|city|hub|grand|terminal)\\s+class\\b");
 	/** "postwar era": the station's era (see {@link StationEra}); "modern" on its own stays the modern platform style. */
 	private static final Pattern ERA = Pattern.compile("(?i)\\b(historic|interwar|postwar|modern)\\s+era\\b");
 	/** "facing north": the way the entrance faces. */
@@ -342,12 +342,16 @@ public final class StationDescriptionParser {
 		private StationScale scale;
 		/** The size came from a landmark (Grand Central is grand), so a size word said after it still wins. */
 		private boolean scaleFromLandmark;
+		/** No length word was said, so the platforms are {@link StationSpec#DEFAULT_LENGTH} until a bigger building asks for more. */
+		private boolean defaultLength;
 		private int scaleAt = -1;
 		/**
 		 * The real station the first city word names, said "real frankfurt" (St Pancras, Frankfurt Hbf, Paris Nord, Milano Centrale, Grand Central), or null: with nothing else in the words naming
 		 * the station, its sheet and shed in {@link Landmarks} are built.
 		 */
 		private String cityStationName;
+		/** The real station whose building's shape the first look word lends a station of the player's own ("paris style"), or null. */
+		private String lookStationName;
 		private long seed;
 		private String seedText = "";
 		/** "single stairs": one way down to each platform even at a station that would get two. */
@@ -1862,31 +1866,42 @@ public final class StationDescriptionParser {
 			return false;
 		}
 
+		/** The real station a city word names ("paris": Gare du Nord), whose sheet is in {@link Landmarks}; null for none. */
+		private static String cityStation(String word) {
+			return switch (word) {
+				case "pancras" -> "St Pancras";
+				case "frankfurt" -> "Frankfurt Hbf";
+				case "paris" -> "Paris Nord";
+				case "milan", "milano" -> "Milano Centrale";
+				case "munich", "munchen" -> "Munich Hbf";
+				case "berlin" -> "Berlin Hbf";
+				case "coventry" -> "Coventry";
+				case "tokyo" -> "Tokyo";
+				case "beijing" -> "Beijing";
+				case "kuala lumpur" -> "Kuala Lumpur";
+				case "surbiton" -> "Surbiton";
+				case "antwerp", "antwerpen" -> "Antwerpen Centraal";
+				case "zurich" -> "Zurich HB";
+				case "mumbai" -> "Mumbai CSMT";
+				case "bangkok" -> "Hua Lamphong";
+				case "amsterdam" -> "Amsterdam Centraal";
+				default -> null;
+			};
+		}
+
 		/** A city or look word at {@code i}: the building look, a landmark's building, and the look list for mixing. */
 		private void cityLook(int i, String word, BuildingStyle city) {
 			// only "real frankfurt" is the station (the wrench's city buttons say it); a bare "frankfurt terminus" is the city's look
 			final int before = word.equals("pancras") && at(i - 1).equals("st") ? i - 2 : i - 1;
 			if (looks.isEmpty() && at(before).equals("real") && !at(i + 1).startsWith("style")) {
 				// a real station's city word ("frankfurt terminus"; "frankfurt style" is only its look) is that station
-				cityStationName = switch (word) {
-					case "pancras" -> "St Pancras";
-					case "frankfurt" -> "Frankfurt Hbf";
-					case "paris" -> "Paris Nord";
-					case "milan", "milano" -> "Milano Centrale";
-					case "munich", "munchen" -> "Munich Hbf";
-					case "berlin" -> "Berlin Hbf";
-					case "coventry" -> "Coventry";
-					case "tokyo" -> "Tokyo";
-					case "beijing" -> "Beijing";
-					case "kuala lumpur" -> "Kuala Lumpur";
-					case "surbiton" -> "Surbiton";
-					case "antwerp", "antwerpen" -> "Antwerpen Centraal";
-					case "zurich" -> "Zurich HB";
-					case "mumbai" -> "Mumbai CSMT";
-					case "bangkok" -> "Hua Lamphong";
-					case "amsterdam" -> "Amsterdam Centraal";
-					default -> null;
-				};
+				cityStationName = cityStation(word);
+			}
+			if (looks.isEmpty() && cityStationName == null && lookStationName == null) {
+				// the first city's own station lends a station of the player's own its building's shape (Jah, 11-24: more than four
+				// shapes); London's is St Pancras. Beijing's look is Beijing South's, not the 1959 station's, and Hua Lamphong's great
+				// window drops below headroom on a building beside the tracks (a sweep, 11-24), so both keep their own
+				lookStationName = word.equals("london") ? "St Pancras" : word.equals("beijing") || word.equals("bangkok") ? null : cityStation(word);
 			}
 			if (looks.isEmpty() && word.equals("amsterdam") && scale == null) {
 				// Amsterdam Centraal's long brick front, with a tower each side of its entrance, is a grand building
@@ -2630,6 +2645,7 @@ public final class StationDescriptionParser {
 				builder.platformLength(terminusLength);
 				defaulted.add("length " + terminusLength + " (default for a " + (scale == StationScale.CITY ? "city " : "") + "terminus)");
 			} else {
+				defaultLength = true;
 				defaulted.add("length " + StationSpec.DEFAULT_LENGTH + " (default)");
 			}
 			if (deepType == UndergroundType.CUT_AND_COVER) {
@@ -2893,6 +2909,18 @@ public final class StationDescriptionParser {
 									+ (dutch && auto == StationScale.GRAND && platformed < StationScale.GRAND_BUILDING_TRACKS ? " on a Dutch station" : "")) + ")");
 				}
 			}
+			// a city or grand building is a main station's, so its platforms are as long as that class's: "6 track amsterdam style
+			// station" put a grand hall over 48-block platforms, two cars long. Only the plain default gives way; a length said, a
+			// terminus, an underground station or a longer listed platform keeps its own
+			if (defaultLength && wantsBuilding && !terminus && deepType == null && builder.build().platformLength() == StationSpec.DEFAULT_LENGTH) {
+				final StationScale built = builder.build().buildingScale();
+				if (built != StationScale.COMPACT) {
+					final int classLength = built == StationScale.GRAND ? GRAND_LENGTH : CITY_LENGTH;
+					builder.platformLength(classLength);
+					defaulted.remove("length " + StationSpec.DEFAULT_LENGTH + " (default)");
+					defaulted.add("length " + classLength + " (default for a " + built.label() + " station building)");
+				}
+			}
 			// a bigger through station (a city or grand building) gives every platform wide enough two ways down from its footbridge, so
 			// the people from one train spread over two stairs; "single stairs" keeps it to one
 			if (wantsBuilding && !terminus && !bothWays && !singleStairs) {
@@ -2997,6 +3025,8 @@ public final class StationDescriptionParser {
 				// the station is itself only through its sheet: its name stays as typed (or empty), as the controls gave it
 				builder.options(options.withSheet(cityStationName));
 				note(looks.get(0).at(), "the real " + cityStationName + "'s front and train shed (say \"" + looks.get(0).word() + " style\" for its look on a station of your own)");
+			} else if (lookStationName != null && (real == null || real == RealStation.NONE) && looks.size() == 1 && !mixing) {
+				builder.options(options.withLookSheet(lookStationName));
 			}
 			builder.stationClass(stationClass).era(era).facing(facing);
 			if (seed == 0 && !seedText.isEmpty()) {

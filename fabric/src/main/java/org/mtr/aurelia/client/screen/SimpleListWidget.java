@@ -4,6 +4,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.text.Text;
+import org.mtr.aurelia.client.ui.AureliaChrome;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -68,7 +70,8 @@ public final class SimpleListWidget<T> extends AlwaysSelectedEntryListWidget<Sim
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		context.fill(left, top, left + width, bottom, 0x80000000);
+		context.fill(left, top, left + width, bottom, AureliaPalette.FIELD);
+		AureliaChrome.frame(context, left, top, width, bottom - top, AureliaPalette.OUTLINE);
 		super.render(context, mouseX, mouseY, delta);
 	}
 

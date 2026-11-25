@@ -272,16 +272,19 @@ public final class Landmarks {
 			.shed(new Shed(ShedProfile.GABLE, 1, 0.3, 0, "aurelia_transit_architecture:glass_wall", "minecraft:spruce_planks", 0.45, 1.0,
 					"green", "aurelia_transit_architecture:roma_travertine"))
 			.skin(PARIS_LIMESTONE)
-			.facade(new Facade(Window.RECT, 4, 2, 6, 2, 3, 3, 0, true))
-			// the middle pavilion: the giant thermal window, the clock, Ionic pilasters, pediment and city statues
+			// the middle pavilion: the giant thermal window, the clock, Ionic pilasters, pediment and city statues. The window
+			// is clear from the entrance to its head: the pilasters only frame it, and the pavilion's wall round it is plain and
+			// flush (no windows, sills, string courses or pilasters across the glass: in-game tour 11-24, it read as a square grid)
+			.facade(new Facade(Window.NONE, 4, 2, 6, 2, 3, 3, 0, false))
 			.clock(0, 24, -1, 2)
 			.skin(glazing(PARIS_LIMESTONE))
 			.arch(0, 0, 9, 5, 18, false)
 			.skin(PARIS_LIMESTONE)
-			.colonnade(-12, 12, -1, 28, 6, "minecraft:smooth_quartz")
+			.colonnade(-12, 12, -1, 28, 24, "minecraft:smooth_quartz")
 			.gable(0, 0, 13, 31, 7, false)
 			.pinnacles(-12, 12, 0, 31, 6, "minecraft:smooth_quartz", "minecraft:chiseled_quartz_block")
 			.volume(-13, 13, 0, 14, 30, Roof.FLAT, 1, true, false)
+			.facade(new Facade(Window.RECT, 4, 2, 6, 2, 3, 3, 0, true))
 			// the corner pavilions and the wings under mansards across the full head, the hall behind
 			.volume(-END, -END + 10, 0, 14, 30, Roof.MANSARD, 3, true, true)
 			.volume(END - 10, END, 0, 14, 30, Roof.MANSARD, 3, true, true)
@@ -623,11 +626,31 @@ public final class Landmarks {
 		// a station without a name of its own that a city word names ("frankfurt terminus") is that city's station
 		// a head sheet only on a plain main-station terminus, a side sheet on a through station with its building: the sheets are as
 		// wide as the real buildings and are checked at preset size
-		if (name.isEmpty() && !spec.options().sheet().isEmpty() && spec.buildingScale() != StationScale.COMPACT) {
+		if (name.isEmpty() && !spec.options().lookSheet() && !spec.options().sheet().isEmpty() && spec.buildingScale() != StationScale.COMPACT) {
 			for (final Landmark landmark : ALL) {
 				if (landmark.named(spec.options().sheet()) && carries(landmark, spec)) {
 					return landmark;
 				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The sheet whose building {@code spec} is built with: the real station's ({@link #of}), or else the one a look word's city
+	 * lends a through station of the player's own ("paris style", Jah 11-24: more than four building shapes), as the building
+	 * beside its tracks: Gare du Nord's front as the middle of it, Amsterdam Centraal's long front along it. A terminus keeps
+	 * the head its look already has (the photo study's terminal fronts), and where the sheet doesn't fit the generic building
+	 * stays. Null for none.
+	 */
+	public static Landmark shapeOf(StationSpec spec) {
+		final Landmark real = of(spec);
+		if (real != null || !spec.options().lookSheet() || spec.terminus() || spec.buildingScale() == StationScale.COMPACT) {
+			return real;
+		}
+		for (final Landmark landmark : ALL) {
+			if (landmark.named(spec.options().sheet())) {
+				return carries(landmark, spec) ? landmark : carries(landmark.twin(), spec) ? landmark.twin() : null;
 			}
 		}
 		return null;

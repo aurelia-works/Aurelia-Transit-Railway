@@ -94,4 +94,68 @@ class CityLandmarksTest {
 		assertEquals(java.util.List.of(), LayoutValidator.validate(munich));
 		assertEquals(java.util.List.of(), StationAudit.audit(munich).problems());
 	}
+
+	/**
+	 * "paris style" builds Gare du Nord's arched centre (in-game tour, 11-24: the arch was planned but the middle pavilion's
+	 * pilasters, string courses and columns stood in front of it, and the glass touching them turned to posts, so it read as
+	 * a square grid). Below the clock, the opening is arch glass and its bars only, with nothing in front of it.
+	 */
+	@Test
+	void parisStyleFrontShowsItsArchedCentre() {
+		final StationSpec spec = spec("6 track paris style station");
+		assertEquals("paris", Landmarks.shapeOf(spec).key());
+		final Landmark.Arch arch = Landmarks.PARIS.masses().stream().filter(m -> m instanceof Landmark.Arch).map(m -> (Landmark.Arch) m)
+				.filter(a -> a.half() >= 9).findFirst().orElseThrow();
+		final String glass = arch.skin().glass();
+		final String bar = arch.skin().trim();
+		final StationPlan plan = StationPlanner.plan(spec);
+		final java.util.Map<String, String> at = new java.util.HashMap<>();
+		final java.util.Map<String, Role> roles = new java.util.HashMap<>();
+		plan.blocks().forEach(b -> at.put(b.u() + "," + b.y() + "," + b.v(), b.blockId()));
+		plan.blocks().forEach(b -> roles.put(b.u() + "," + b.y() + "," + b.v(), b.role()));
+		final var panes = plan.blocks().stream().filter(b -> b.blockId().equals(glass)).toList();
+		assertTrue(panes.size() > 50, "arch glass " + panes.size());
+		final int u = panes.get(0).u();
+		assertTrue(panes.stream().allMatch(b -> b.u() == u), "the arch stands in one wall plane");
+		final var span = panes.stream().mapToInt(PlannedBlock::v).summaryStatistics();
+		final int mid = (span.getMin() + span.getMax()) / 2;
+		final java.util.List<String> wrong = new java.util.ArrayList<>();
+		// from above the entrance canopy up to the springing line, below the clock
+		for (int y = StationGeometry.CANOPY_Y + 2; y <= arch.spring(); y++) {
+			for (int v = mid - arch.half() + 1; v <= mid + arch.half() - 1; v++) {
+				final String wall = at.get(u + "," + y + "," + v);
+				// a post where a wall inside meets the glass stays (a wall's end against a window, as everywhere)
+				final boolean partition = roles.get((u + 1) + "," + y + "," + v) == Role.WALL;
+				if (!glass.equals(wall) && !bar.equals(wall) && !partition) {
+					wrong.add("y" + y + " v" + v + " " + wall + " behind: " + at.get((u + 1) + "," + y + "," + v));
+				}
+				final String front = at.get((u - 1) + "," + y + "," + v);
+				if (front != null) {
+					wrong.add("y" + y + " v" + v + " in front: " + front);
+				}
+			}
+		}
+		assertEquals(java.util.List.of(), wrong.subList(0, Math.min(12, wrong.size())), wrong.size() + " cells");
+	}
+
+	/**
+	 * Rebuilding an "X style" station saved before city shapes (Jah, 11-24): the rebuild builds a fresh plan of the saved words, so it
+	 * takes the city's front and the class's platforms (210 grand, 200 city), not the old generic building over 48-block platforms.
+	 * The saved form still carries the old length field, untouched, which must not come back.
+	 */
+	@Test
+	void rebuiltStyleStationTakesTheCityFrontAndClassLength() {
+		final String[][] cases = {{"6 track paris style station", "paris", "210"}, {"4 track tokyo style station", "tokyo", "200"}};
+		for (final String[] c : cases) {
+			final String words = com.aureliatransit.architecture.station.studio.StudioApi.description(java.util.Map.of("text", c[0], "length", "48"));
+			final StationSpec spec = spec(words);
+			final Landmark shape = Landmarks.shapeOf(spec);
+			assertNotNull(shape, words);
+			assertEquals(c[1], shape.key(), words);
+			assertEquals(Integer.parseInt(c[2]), spec.platformLength(), words);
+			// the plan rounds the length up to whole bays (210 lays 211)
+			final int laid = StationPlanner.plan(spec).layout().platformLength();
+			assertTrue(laid >= spec.platformLength() && laid < spec.platformLength() + 8, words + " laid " + laid);
+		}
+	}
 }
