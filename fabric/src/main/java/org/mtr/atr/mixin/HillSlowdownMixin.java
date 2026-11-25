@@ -1,5 +1,7 @@
 package org.mtr.atr.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import org.mtr.core.data.PathData;
 import org.mtr.core.data.TransportMode;
 import org.mtr.core.data.Vehicle;
@@ -12,7 +14,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
@@ -43,13 +44,17 @@ public abstract class HillSlowdownMixin {
 		}
 	}
 
-	@Redirect(method = "simulateMoving", at = @At(value = "INVOKE", target = "Lorg/mtr/core/data/PathData;getSpeedLimitMetersPerMillisecond()D"))
-	private double atr$slowerUphill(PathData pathData) {
-		return pathData.getSpeedLimitMetersPerMillisecond() * HillGrade.speedFactor(atr$grade);
+	/**
+	 * A wrap, not a redirect: add-ons such as MAGIC redirect this same call, and two redirects on one call crash the
+	 * game. MixinExtras applies a wrap after the redirects, so it multiplies whatever value they return.
+	 */
+	@WrapOperation(method = "simulateMoving", at = @At(value = "INVOKE", target = "Lorg/mtr/core/data/PathData;getSpeedLimitMetersPerMillisecond()D"))
+	private double atr$slowerUphill(PathData pathData, Operation<Double> original) {
+		return original.call(pathData) * HillGrade.speedFactor(atr$grade);
 	}
 
-	@Redirect(method = "simulateMoving", at = @At(value = "INVOKE", target = "Lorg/mtr/core/data/VehicleExtraData;getAcceleration()D"))
-	private double atr$gentlerUphill(VehicleExtraData vehicleExtraData) {
-		return vehicleExtraData.getAcceleration() * HillGrade.accelerationFactor(atr$grade);
+	@WrapOperation(method = "simulateMoving", at = @At(value = "INVOKE", target = "Lorg/mtr/core/data/VehicleExtraData;getAcceleration()D"))
+	private double atr$gentlerUphill(VehicleExtraData vehicleExtraData, Operation<Double> original) {
+		return original.call(vehicleExtraData) * HillGrade.accelerationFactor(atr$grade);
 	}
 }
