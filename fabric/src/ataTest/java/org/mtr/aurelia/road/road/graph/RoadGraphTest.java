@@ -100,9 +100,14 @@ class RoadGraphTest {
         assertTrue(result.isPlanned(), () -> "refused " + result.code());
         assertEquals(RoadPlanParams.Dashes.Anchor.END, dashes.at()); // B's dashes carry on from A's end as before
 
-        // Moving the end B joins would pull A away from B.
+        // Owner, 2026-11-24: moving the end B joins takes B's start with it (MovedJoinTest runs it through undo and redo).
         RoadPlanParams pulled = a.withEnds(List.of(a.ends().get(0), End.at(34, 64, 0, Heading.E)));
-        PlanResult refused = RoadPlanner.plan(RoadPlanParams.edit(RoadPlanParams.Tool.REBUILD, A, pulled, Optional.empty()), WorldLimits.OVERWORLD,
+        RoadPlanParams pull = RoadPlanParams.edit(RoadPlanParams.Tool.REBUILD, A, pulled, Optional.empty());
+        assertTrue(RoadPlanner.plan(pull, WorldLimits.OVERWORLD, placed).isPlanned());
+        assertEquals(Set.of(B), RoadPlanner.followers(pull, placed).keySet());
+        // But B can't follow onto the alley's lanes: that would still pull A away from B.
+        RoadPlanParams alley = RoadPlanParams.curve("alley-7", a.ends().get(0), End.at(34, 64, 0, Heading.E));
+        PlanResult refused = RoadPlanner.plan(RoadPlanParams.edit(RoadPlanParams.Tool.REBUILD, A, alley, Optional.empty()), WorldLimits.OVERWORLD,
                 placed);
         assertEquals(Optional.of(RoadPlanner.ROAD_JOINED), refused.code());
 

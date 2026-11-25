@@ -6,8 +6,10 @@ package org.mtr.aurelia.road.road;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +31,7 @@ import org.mtr.aurelia.road.road.palette.BuiltInPalettes;
 import org.mtr.aurelia.road.road.palette.Palette;
 import org.mtr.aurelia.road.undo.OperationRecord;
 import org.mtr.aurelia.road.undo.Replacement;
+import org.mtr.aurelia.road.undo.SideEffect;
 
 /** The roads module on the {@code aurelia:roads} channel: {@code module = roads}, parameters {@link RoadPlanParams}. */
 public final class RoadsModule implements PlanModule<RoadPlanParams> {
@@ -141,16 +144,79 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
         if (delete && !road.complete()) {
             return PlanResult.refused(RoadPlanner.ROAD_TOO_OLD);
         }
-        Optional<BlockPlan> exact = asPlaced(byId.get(road.latest()), limits);
-        Optional<BlockPlan> first = road.complete() ? asPlaced(byId.get(road.chain().get(0)), limits) : Optional.empty();
-        Set<Long> keep = new HashSet<>();
-        for (UUID neighbour : RoadGraph.of(RoadHistory.params(roads)).neighbours(road.id())) {
-            RoadPlanner.asPlaced(roads.get(neighbour).params(), limits).plan().ifPresent(plan -> plan.blocks()
-                    .forEach(block -> keep.add(BlockChange.positionKey(block.x(), block.y(), block.z()))));
-        }
         ApplyJob.Guard guard = params.manualEdits().map(answer -> answer == RoadPlanParams.ManualEdits.KEEP ? ApplyJob.Guard.SKIP_CHANGED
                 : ApplyJob.Guard.NONE).orElse(ApplyJob.Guard.ASK);
-        return result.withReplacement(new Replacement(road.id(), road.chain(), exact, first, keep, delete, guard));
+        // Owner, 2026-11-24: the roads a moved joined end takes with it are replaced in the same job.
+        Map<UUID, RoadPlanParams> standing = RoadHistory.params(roads);
+        Set<UUID> group = new LinkedHashSet<>();
+        group.add(road.id());
+        group.addAll(delete ? Set.of() : RoadPlanner.followers(params, standing).keySet());
+        RoadGraph graph = RoadGraph.of(standing);
+        List<Replacement> joined = new ArrayList<>();
+        for (UUID follower : group) {
+            if (!follower.equals(road.id())) {
+                joined.add(part(roads.get(follower), byId, limits, keep(graph, follower, group, roads, limits), false, guard, List.of()));
+            }
+        }
+        return result.withReplacement(part(road, byId, limits, keep(graph, road.id(), group, roads, limits), delete, guard, joined));
+    }
+
+    /**
+     * What a delete or rebuild replaces of {@code road} ({@link Replacement}). Of an operation of its chain that also built
+     * other roads, only its blocks before and after are its own, and of its latest operation's track, only its own.
+     */
+    private static Replacement part(RoadHistory.Road road, Map<UUID, OperationRecord> byId, WorldLimits limits, Set<Long> keep, boolean delete,
+            ApplyJob.Guard guard, List<Replacement> joined) {
+        Optional<BlockPlan> exact = road.shared().contains(road.latest()) ? Optional.empty() : asPlaced(byId.get(road.latest()), limits);
+        Optional<BlockPlan> first = road.complete() ? asPlaced(byId.get(road.chain().get(0)), limits) : Optional.empty();
+        Map<UUID, Set<Long>> only = new HashMap<>();
+        for (int i = 0; i < road.chain().size(); i++) {
+            UUID op = road.chain().get(i);
+            if (road.shared().contains(op)) {
+                Set<Long> positions = blocks(road.builds().get(i), limits);
+                if (i > 0) {
+                    positions.addAll(blocks(road.builds().get(i - 1), limits));
+                }
+                only.merge(op, positions, RoadsModule::union);
+                // Where it took over another road's blocks, the ground is what was there before that road: its operations' images.
+                for (RoadHistory.Prior prior : road.priors().getOrDefault(op, List.of())) {
+                    Set<Long> took = new HashSet<>(blocks(prior.params(), limits));
+                    took.retainAll(positions);
+                    for (UUID earlier : prior.chain()) {
+                        only.merge(earlier, new HashSet<>(took), RoadsModule::union);
+                    }
+                }
+            }
+        }
+        Optional<List<SideEffect>> rails = road.shared().contains(road.latest())
+                ? Optional.of(RoadPlanner.asPlaced(road.params(), limits).sideEffects())
+                : Optional.empty();
+        return new Replacement(road.id(), road.chain(), exact, first, keep, delete, guard, only, rails, joined);
+    }
+
+    private static Set<Long> union(Set<Long> a, Set<Long> b) {
+        Set<Long> union = new HashSet<>(a);
+        union.addAll(b);
+        return union;
+    }
+
+    /** The blocks of the roads joined to {@code road} that aren't in {@code group}, which its replacement keeps. */
+    private static Set<Long> keep(RoadGraph graph, UUID road, Set<UUID> group, Map<UUID, RoadHistory.Road> roads, WorldLimits limits) {
+        Set<Long> keep = new HashSet<>();
+        for (UUID neighbour : graph.neighbours(road)) {
+            if (!group.contains(neighbour)) {
+                keep.addAll(blocks(roads.get(neighbour).params(), limits));
+            }
+        }
+        return keep;
+    }
+
+    /** The positions of the blocks of the road {@code params} describe, planned as placed. */
+    private static Set<Long> blocks(RoadPlanParams params, WorldLimits limits) {
+        Set<Long> blocks = new HashSet<>();
+        RoadPlanner.asPlaced(params, limits).plan().ifPresent(plan -> plan.blocks()
+                .forEach(block -> blocks.add(BlockChange.positionKey(block.x(), block.y(), block.z()))));
+        return blocks;
     }
 
     /**

@@ -5,6 +5,7 @@
 package org.mtr.aurelia.road.undo;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -30,9 +31,24 @@ import org.mtr.aurelia.road.ops.BlockPlan;
  * @param guard    what the job does with blocks not as the road left them: {@link ApplyJob.Guard#ASK} (no answer yet:
  *                 count them and write nothing), {@link ApplyJob.Guard#SKIP_CHANGED} (keep them) or
  *                 {@link ApplyJob.Guard#NONE} (overwrite them)
+ * @param only     owner, 2026-11-24: the operations of {@code chain} that also built other roads (an edit that moved a
+ *                 joined end, and the roads joined there with it), each with the positions of this road's blocks before
+ *                 and after it: only those of its undo images are this road's. An operation not named is all the road's.
+ *                 Another road's operation named here, not of {@code chain}, holds the ground of blocks this road took over
+ *                 from that road: only its images there count, for the ground, and it may have gone.
+ * @param rails    the road's own track, when its latest operation also made other roads' (as {@code only}): of that
+ *                 record's side effects, only these are the road's; empty when they all are
+ * @param joined   the roads this edit takes with it (a moved joined end), each replaced as this one is, in the same job:
+ *                 their delete and guard are this one's
  */
 public record Replacement(UUID road, List<UUID> chain, Optional<BlockPlan> asPlaced, Optional<BlockPlan> firstPlaced, Set<Long> keep, boolean delete,
-        ApplyJob.Guard guard) {
+        ApplyJob.Guard guard, Map<UUID, Set<Long>> only, Optional<List<SideEffect>> rails, List<Replacement> joined) {
+    /** A road whose operations built it alone, replaced on its own. */
+    public Replacement(UUID road, List<UUID> chain, Optional<BlockPlan> asPlaced, Optional<BlockPlan> firstPlaced, Set<Long> keep, boolean delete,
+            ApplyJob.Guard guard) {
+        this(road, chain, asPlaced, firstPlaced, keep, delete, guard, Map.of(), Optional.empty(), List.of());
+    }
+
     public Replacement {
         Objects.requireNonNull(road, "road");
         chain = List.copyOf(chain);
@@ -46,6 +62,21 @@ public record Replacement(UUID road, List<UUID> chain, Optional<BlockPlan> asPla
         if (guard == ApplyJob.Guard.REFUSE_CHANGED) {
             throw new IllegalArgumentException("A delete or rebuild asks, keeps or overwrites");
         }
+        only = Map.copyOf(only);
+        Objects.requireNonNull(rails, "rails");
+        rails = rails.map(List::copyOf);
+        joined = List.copyOf(joined);
+        if (delete && !joined.isEmpty()) {
+            throw new IllegalArgumentException("A delete takes no other road with it");
+        }
+    }
+
+    /** This road, then the roads it takes with it ({@link #joined}). */
+    public List<Replacement> parts() {
+        List<Replacement> parts = new java.util.ArrayList<>();
+        parts.add(this);
+        parts.addAll(this.joined);
+        return parts;
     }
 
     /** The operation that built the road last: its record holds the side effects the road has now. */
