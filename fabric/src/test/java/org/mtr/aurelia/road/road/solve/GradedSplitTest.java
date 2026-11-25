@@ -13,8 +13,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.Test;
 import org.mtr.aurelia.road.geom.Heading;
 import org.mtr.aurelia.road.geom.Vec2;
@@ -33,8 +31,6 @@ import org.mtr.aurelia.road.road.RoadProfiles;
  * again here) and no steeper than the layout allows; or refused {@code GRADE_ON_MIXED_PIECE} with the one piece's step.
  * And every road one piece solves stays exactly that piece.
  */
-@Tag("slow")
-@EnabledIfEnvironmentVariable(named = "ATR_SLOW_ROAD_TESTS", matches = ".+")
 class GradedSplitTest {
     @Test
     void bendsWhoseLanesClimbApartAreSplitOrRefused() {
