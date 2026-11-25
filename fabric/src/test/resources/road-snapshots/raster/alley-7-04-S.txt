@@ -1,0 +1,16 @@
+alley-7, 12 blocks from block (0, 0), heading S (90.0 degrees)
+hash 6e34516a51589ba2e9cd9fba7968382c0ca88ac180d0b06ef79c9403e8e4e770
+x -3..3, z 0..12
+GLL*LLG
+GLL*LLG
+GLL*LLG
+GLL*LLG
+GLL*LLG
+GLL*LLG
+GLL*LLG
+GLL*LLG
+GLL*LLG
+GLL*LLG
+GLL*LLG
+GLL*LLG
+GLL*LLG

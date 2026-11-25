@@ -1,0 +1,10 @@
+alley-7, 12 blocks from block (0, 0), heading W (180.0 degrees)
+hash b8fc915f78afe8f0a5d58dc1255176feb7043e451d4258cb7a6089c29af122f5
+x -12..0, z -3..3
+GGGGGGGGGGGGG
+LLLLLLLLLLLLL
+LLLLLLLLLLLLL
+*************
+LLLLLLLLLLLLL
+LLLLLLLLLLLLL
+GGGGGGGGGGGGG

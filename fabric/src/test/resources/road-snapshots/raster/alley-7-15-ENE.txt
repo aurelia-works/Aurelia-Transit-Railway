@@ -1,0 +1,13 @@
+alley-7, 12 blocks from block (0, 0), heading ENE (337.5 degrees)
+hash 336fa8fb68c2781234fb2462477477306c0c7c6d858cd97adda02a87d488f34e
+x -1..12, z -7..2
+.........GGG..
+.......GGLLL..
+....GGGLLLLL..
+..GGGLLLLL**L.
+GGLLLLL***LLL.
+.LLLL***LLLLLG
+.LL**LLLLLGGG.
+.**LLLLLGGG...
+..LLLLGG......
+..LGGG........

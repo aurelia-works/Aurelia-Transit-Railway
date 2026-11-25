@@ -1,0 +1,643 @@
+The curve tool's City street from block (0, 64, 0) facing E, to ends every 15 blocks out to 60 with each facing
+end block, its facing -> headings, then length, radius, blocks, plan hash (core version "snapshot"), or the refusal
+(-60, -60) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=302}
+(-60, -60) ESE -> W   WNW refused NO_MTR_PATH {}
+(-60, -60) SE  -> W   NW  refused LANE_SOLVE_FAILED {n=2}
+(-60, -60) SSE -> W   NNW   91.77    52.60 13242 adc86bf7eb610d6d4027023ff1ada7dcfe58e594687616202408d9588c677691
+(-60, -60) S   -> W   N     94.25    60.00 13514 4a2abdc0ce513ddf411b5544f625a51c3a720307bd19b04fd3119ec1973e5505
+(-60, -60) SSW -> W   NNE  105.11    43.39 15263 cd30e6c3ad73c689aa0e0acb80d8b6adc8fbc597cb5d8929e5aebfb447a871d2
+(-60, -60) SW  -> W   NE  refused NO_MTR_PATH {}
+(-60, -60) WSW -> W   WSW refused NO_MTR_PATH {}
+(-45, -60) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=106.3, minLength=302}
+(-45, -60) ESE -> W   WNW refused NO_MTR_PATH {}
+(-45, -60) SE  -> W   NW  refused NO_MTR_PATH {}
+(-45, -60) SSE -> W   NNW refused RADIUS_TOO_SMALL {r=26.9, group=city_street, preset=game_scale, min=30}
+(-45, -60) S   -> W   N     85.69    45.00 12302 552add1ea6eca1bbb3861ee4c49ee262fed5fb5a444906682224e151a6c31689
+(-45, -60) SSW -> W   NNE   90.11    43.39 13133 4fa724b6d37932893663848ac73467900f6ee509de3059c33be7d74c1402e307
+(-45, -60) SW  -> W   NE   102.96    35.15 14603 2abc2599139df99ce69996f7cc308d7beb6cd32efeb4abbbbb11f3deed94c70e
+(-45, -60) WSW -> W   WSW refused NO_MTR_PATH {}
+(-30, -60) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=126.9, minLength=302}
+(-30, -60) ESE -> W   WNW refused NO_MTR_PATH {}
+(-30, -60) SE  -> W   NW  refused NO_MTR_PATH {}
+(-30, -60) SSE -> W   NNW refused INNER_EDGE_DEGENERATE {}
+(-30, -60) S   -> W   N   refused RADIUS_TOO_SMALL {r=26.9, group=city_street, preset=game_scale, min=30}
+(-30, -60) SSW -> W   NNE   82.06    36.65 11834 69cc0924de8064f492d7c27985d93c8783d2327a5306a1f2d222a5d2d7945a4f
+(-30, -60) SW  -> W   NE    87.96    35.15 12473 50c8bf44a84007e6e6bcd1b9bc57f0870de61d01b0b0f01c9c313cf5b875c969
+(-30, -60) WSW -> W   WSW refused NO_MTR_PATH {}
+(-15, -60) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=151.9, minLength=302}
+(-15, -60) ESE -> W   WNW refused NO_MTR_PATH {}
+(-15, -60) SE  -> W   NW  refused NO_MTR_PATH {}
+(-15, -60) SSE -> W   NNW refused NO_MTR_PATH {}
+(-15, -60) S   -> W   N   refused RADIUS_TOO_SMALL {r=11.9, group=city_street, preset=game_scale, min=30}
+(-15, -60) SSW -> W   NNE refused RADIUS_TOO_SMALL {r=23.5, group=city_street, preset=game_scale, min=30}
+(-15, -60) SW  -> W   NE  refused RADIUS_TOO_SMALL {r=28.1, group=city_street, preset=game_scale, min=30}
+(-15, -60) WSW -> W   ENE refused RADIUS_TOO_SMALL {r=28.0, group=city_street, preset=game_scale, min=30}
+(  0, -60) E   -> W   W   refused PARALLEL_BESIDE {}
+(  0, -60) ESE -> W   WNW refused NO_MTR_PATH {}
+(  0, -60) SE  -> W   NW  refused NO_MTR_PATH {}
+(  0, -60) SSE -> W   NNW refused NO_MTR_PATH {}
+(  0, -60) S   -> W   N   refused NO_MTR_PATH {}
+(  0, -60) SSW -> W   NNE refused LANE_SOLVE_FAILED {n=2}
+(  0, -60) SW  -> W   NE  refused LANE_SOLVE_FAILED {n=2}
+(  0, -60) WSW -> W   ENE refused LANE_SOLVE_FAILED {n=2}
+( 15, -60) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=151.9, minLength=302}
+( 15, -60) ESE -> E   WNW refused RADIUS_TOO_SMALL {r=28.0, group=city_street, preset=game_scale, min=30}
+( 15, -60) SE  -> E   NW  refused RADIUS_TOO_SMALL {r=28.1, group=city_street, preset=game_scale, min=30}
+( 15, -60) SSE -> E   NNW refused RADIUS_TOO_SMALL {r=23.5, group=city_street, preset=game_scale, min=30}
+( 15, -60) S   -> E   N   refused RADIUS_TOO_SMALL {r=11.9, group=city_street, preset=game_scale, min=30}
+( 15, -60) SSW -> E   NNE refused NO_MTR_PATH {}
+( 15, -60) SW  -> E   NE  refused NO_MTR_PATH {}
+( 15, -60) WSW -> E   ENE refused NO_MTR_PATH {}
+( 30, -60) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=126.9, minLength=302}
+( 30, -60) ESE -> E   ESE refused NO_MTR_PATH {}
+( 30, -60) SE  -> E   NW    87.96    35.15 12473 a2d2f1cc13742f96f37c37280cb75d5a07bf4ae28c737730badfa0ebdb7e00cf
+( 30, -60) SSE -> E   NNW   82.06    36.65 11834 9ca2c8b50afbf43d1e941e833de9c6947ddcfcb133e36e50847a37a96efc2dde
+( 30, -60) S   -> E   N   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+( 30, -60) SSW -> E   NNE refused INNER_EDGE_DEGENERATE {}
+( 30, -60) SW  -> E   NE  refused NO_MTR_PATH {}
+( 30, -60) WSW -> E   ENE refused NO_MTR_PATH {}
+( 45, -60) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=106.3, minLength=302}
+( 45, -60) ESE -> E   ESE refused NO_MTR_PATH {}
+( 45, -60) SE  -> E   NW   102.96    35.15 14603 f02240d8f5f8e045cd5807e23c18346a78729d43e9b0d5347e243625de84df68
+( 45, -60) SSE -> E   NNW   90.11    43.39 13133 077d5972b68c0448bb754536929ba2ce99fd02bf04b06640e7646fb55ef650a6
+( 45, -60) S   -> E   N     85.69    45.00 12302 342d73b831f0a598b7eb56ad02f9bb6fbb3acfcf0b7110392e52abf9353d1022
+( 45, -60) SSW -> E   NNE refused RADIUS_TOO_SMALL {r=26.9, group=city_street, preset=game_scale, min=30}
+( 45, -60) SW  -> E   NE  refused NO_MTR_PATH {}
+( 45, -60) WSW -> E   ENE refused NO_MTR_PATH {}
+( 60, -60) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=302}
+( 60, -60) ESE -> E   ESE refused NO_MTR_PATH {}
+( 60, -60) SE  -> E   NW  refused NO_MTR_PATH {}
+( 60, -60) SSE -> E   NNW  105.11    43.39 15263 26b324ebfb3ff1d734bdfd4f8285e5c2110859ec37298052794bb4c0ccc51204
+( 60, -60) S   -> E   N     94.25    60.00 13514 74aa61a43d3e0a121a59e4688e551a084757aae2a4ee4e45003275ebaa4eb334
+( 60, -60) SSW -> E   NNE   91.77    52.60 13242 78726a8f2c0703ff250ced134b47ca84032e4300f5ebad03479c077862df612d
+( 60, -60) SW  -> E   NE  refused LANE_SOLVE_FAILED {n=1}
+( 60, -60) WSW -> E   ENE refused NO_MTR_PATH {}
+(-60, -45) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=73.7, minLength=227}
+(-60, -45) ESE -> W   WNW refused NO_MTR_PATH {}
+(-60, -45) SE  -> W   NW    77.08    36.21 10730 1d5fe5f1fd140c0dd67f597d431652781f303db941126b46de46a7ba7f48c2ec
+(-60, -45) SSE -> W   NNW   80.27    61.90 11537 a5b73beb1af8b460e558d56483df5f1eaa38c646a93d0ce80f19ce1923372d8f
+(-60, -45) S   -> W   N     85.69    45.00 12302 4e7f63c45bb019effb5639a2d8828578b8050f7b0e402e91cdf64b757d3a56cc
+(-60, -45) SSW -> W   NNE refused RADIUS_TOO_SMALL {r=29.6, group=city_street, preset=game_scale, min=30}
+(-60, -45) SW  -> W   SW  refused NO_MTR_PATH {}
+(-60, -45) WSW -> W   WSW refused NO_MTR_PATH {}
+(-45, -45) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=227}
+(-45, -45) ESE -> W   WNW refused NO_MTR_PATH {}
+(-45, -45) SE  -> W   NW  refused LANE_SOLVE_FAILED {n=2}
+(-45, -45) SSE -> W   NNW   68.82    39.45  9932 2996b1bde5871fbfd588c89d3a1c9cf4b1720f7fba181e7ef13bab8b97d59bed
+(-45, -45) S   -> W   N     70.69    45.00 10172 80d37040cdb25707d4d21c8a7bc515e3a1f7ed8a746c66b6f59366664c4b41c5
+(-45, -45) SSW -> W   NNE refused RADIUS_TOO_SMALL {r=29.6, group=city_street, preset=game_scale, min=30}
+(-45, -45) SW  -> W   NE  refused NO_MTR_PATH {}
+(-45, -45) WSW -> W   WSW refused NO_MTR_PATH {}
+(-30, -45) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=112.6, minLength=227}
+(-30, -45) ESE -> W   WNW refused NO_MTR_PATH {}
+(-30, -45) SE  -> W   NW  refused NO_MTR_PATH {}
+(-30, -45) SSE -> W   NNW refused RADIUS_TOO_SMALL {r=13.7, group=city_street, preset=game_scale, min=30}
+(-30, -45) S   -> W   N   refused RADIUS_TOO_SMALL {r=26.9, group=city_street, preset=game_scale, min=30}
+(-30, -45) SSW -> W   NNE refused RADIUS_TOO_SMALL {r=29.3, group=city_street, preset=game_scale, min=30}
+(-30, -45) SW  -> W   NE  refused RADIUS_TOO_SMALL {r=23.4, group=city_street, preset=game_scale, min=30}
+(-30, -45) WSW -> W   WSW refused NO_MTR_PATH {}
+(-15, -45) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=143.1, minLength=227}
+(-15, -45) ESE -> W   WNW refused NO_MTR_PATH {}
+(-15, -45) SE  -> W   NW  refused NO_MTR_PATH {}
+(-15, -45) SSE -> W   NNW refused NO_MTR_PATH {}
+(-15, -45) S   -> W   N   refused RADIUS_TOO_SMALL {r=11.9, group=city_street, preset=game_scale, min=30}
+(-15, -45) SSW -> W   NNE refused RADIUS_TOO_SMALL {r=19.3, group=city_street, preset=game_scale, min=30}
+(-15, -45) SW  -> W   NE  refused RADIUS_TOO_SMALL {r=21.9, group=city_street, preset=game_scale, min=30}
+(-15, -45) WSW -> W   ENE refused RADIUS_TOO_SMALL {r=20.2, group=city_street, preset=game_scale, min=30}
+(  0, -45) E   -> W   W   refused PARALLEL_BESIDE {}
+(  0, -45) ESE -> W   WNW refused NO_MTR_PATH {}
+(  0, -45) SE  -> W   NW  refused NO_MTR_PATH {}
+(  0, -45) SSE -> W   NNW refused NO_MTR_PATH {}
+(  0, -45) S   -> W   N   refused NO_MTR_PATH {}
+(  0, -45) SSW -> W   NNE refused LANE_SOLVE_FAILED {n=2}
+(  0, -45) SW  -> W   NE  refused LANE_SOLVE_FAILED {n=2}
+(  0, -45) WSW -> W   ENE refused LANE_SOLVE_FAILED {n=2}
+( 15, -45) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=143.1, minLength=227}
+( 15, -45) ESE -> E   WNW refused RADIUS_TOO_SMALL {r=20.2, group=city_street, preset=game_scale, min=30}
+( 15, -45) SE  -> E   NW  refused RADIUS_TOO_SMALL {r=21.9, group=city_street, preset=game_scale, min=30}
+( 15, -45) SSE -> E   NNW refused RADIUS_TOO_SMALL {r=19.3, group=city_street, preset=game_scale, min=30}
+( 15, -45) S   -> E   N   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 15, -45) SSW -> E   NNE refused NO_MTR_PATH {}
+( 15, -45) SW  -> E   NE  refused NO_MTR_PATH {}
+( 15, -45) WSW -> E   ENE refused NO_MTR_PATH {}
+( 30, -45) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=112.6, minLength=227}
+( 30, -45) ESE -> E   ESE refused NO_MTR_PATH {}
+( 30, -45) SE  -> E   NW  refused RADIUS_TOO_SMALL {r=23.4, group=city_street, preset=game_scale, min=30}
+( 30, -45) SSE -> E   NNW refused RADIUS_TOO_SMALL {r=29.3, group=city_street, preset=game_scale, min=30}
+( 30, -45) S   -> E   N   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+( 30, -45) SSW -> E   NNE refused RADIUS_TOO_SMALL {r=13.7, group=city_street, preset=game_scale, min=30}
+( 30, -45) SW  -> E   NE  refused NO_MTR_PATH {}
+( 30, -45) WSW -> E   ENE refused NO_MTR_PATH {}
+( 45, -45) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=227}
+( 45, -45) ESE -> E   ESE refused NO_MTR_PATH {}
+( 45, -45) SE  -> E   NW  refused NO_MTR_PATH {}
+( 45, -45) SSE -> E   NNW refused RADIUS_TOO_SMALL {r=29.6, group=city_street, preset=game_scale, min=30}
+( 45, -45) S   -> E   N     70.69    45.00 10172 ae906ba9bad6607480c67f742e937a34c883cad51efdc806124de4377b8a4540
+( 45, -45) SSW -> E   NNE   68.82    39.45  9932 64109795836b93ed53907f7d4b7b30c07706266c2263cf9bb2c385c4c7b209b1
+( 45, -45) SW  -> E   NE  refused LANE_SOLVE_FAILED {n=1}
+( 45, -45) WSW -> E   ENE refused NO_MTR_PATH {}
+( 60, -45) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=73.7, minLength=227}
+( 60, -45) ESE -> E   ESE refused NO_MTR_PATH {}
+( 60, -45) SE  -> E   SE  refused NO_MTR_PATH {}
+( 60, -45) SSE -> E   NNW refused RADIUS_TOO_SMALL {r=29.6, group=city_street, preset=game_scale, min=30}
+( 60, -45) S   -> E   N     85.69    45.00 12302 4fc516308a5e288efe0788af328ca8321bace877c4ce19ca034a1fd17b6be7ae
+( 60, -45) SSW -> E   NNE   80.27    61.90 11537 29ebdec08965aca603c2003acb6b3e0f5db20ca7c5fe058fa4b09111a171b8e0
+( 60, -45) SW  -> E   NE    77.08    36.21 10730 5d79d3224279b08359db1f41e33265d712258f4bdf9d61c0b35ef5a7a25a4825
+( 60, -45) WSW -> E   ENE refused NO_MTR_PATH {}
+(-60, -30) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=53.1, minLength=151}
+(-60, -30) ESE -> W   WNW refused NO_MTR_PATH {}
+(-60, -30) SE  -> W   NW    69.31    72.43  9806 f6140b212c1b474f5625e22b3da80d0d2be26482baaaba53e0eab95097e67056
+(-60, -30) SSE -> W   NNW   72.35    48.60 10445 bcfdcbbe37a0585fa6a1d0385206e4f837cd3920d2d27c62fffa9da5720792cb
+(-60, -30) S   -> W   N   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+(-60, -30) SSW -> W   NNE refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+(-60, -30) SW  -> W   SW  refused NO_MTR_PATH {}
+(-60, -30) WSW -> W   WSW refused NO_MTR_PATH {}
+(-45, -30) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=67.4, minLength=151}
+(-45, -30) ESE -> W   WNW refused NO_MTR_PATH {}
+(-45, -30) SE  -> W   NW    55.87    36.21  7850 f77b28676d7890ed8482509c69719d069cbcd48c8e763c7f0039445c55cc9bab
+(-45, -30) SSE -> W   NNW   57.35    48.60  8315 27b6d84e779877a1262a150266db36c6ece63a2631ce79039201cf4bbf26bf07
+(-45, -30) S   -> W   N   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+(-45, -30) SSW -> W   NNE refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+(-45, -30) SW  -> W   SW  refused NO_MTR_PATH {}
+(-45, -30) WSW -> W   WSW refused NO_MTR_PATH {}
+(-30, -30) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=151}
+(-30, -30) ESE -> W   WNW refused NO_MTR_PATH {}
+(-30, -30) SE  -> W   NW  refused LANE_SOLVE_FAILED {n=2}
+(-30, -30) SSE -> W   NNW refused RADIUS_TOO_SMALL {r=23.0, group=city_street, preset=game_scale, min=30}
+(-30, -30) S   -> W   N   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+(-30, -30) SSW -> W   NNE refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+(-30, -30) SW  -> W   NE  refused NO_MTR_PATH {}
+(-30, -30) WSW -> W   WSW refused NO_MTR_PATH {}
+(-15, -30) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=126.9, minLength=151}
+(-15, -30) ESE -> W   WNW refused NO_MTR_PATH {}
+(-15, -30) SE  -> W   NW  refused NO_MTR_PATH {}
+(-15, -30) SSE -> W   NNW refused INNER_EDGE_DEGENERATE {}
+(-15, -30) S   -> W   N   refused RADIUS_TOO_SMALL {r=11.9, group=city_street, preset=game_scale, min=30}
+(-15, -30) SSW -> W   NNE refused RADIUS_TOO_SMALL {r=15.2, group=city_street, preset=game_scale, min=30}
+(-15, -30) SW  -> W   NE  refused RADIUS_TOO_SMALL {r=14.6, group=city_street, preset=game_scale, min=30}
+(-15, -30) WSW -> W   WSW refused NO_MTR_PATH {}
+(  0, -30) E   -> W   W   refused PARALLEL_BESIDE {}
+(  0, -30) ESE -> W   WNW refused NO_MTR_PATH {}
+(  0, -30) SE  -> W   NW  refused NO_MTR_PATH {}
+(  0, -30) SSE -> W   NNW refused NO_MTR_PATH {}
+(  0, -30) S   -> W   N   refused NO_MTR_PATH {}
+(  0, -30) SSW -> W   NNE refused LANE_SOLVE_FAILED {n=2}
+(  0, -30) SW  -> W   NE  refused LANE_SOLVE_FAILED {n=2}
+(  0, -30) WSW -> W   ENE refused LANE_SOLVE_FAILED {n=2}
+( 15, -30) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=126.9, minLength=151}
+( 15, -30) ESE -> E   ESE refused NO_MTR_PATH {}
+( 15, -30) SE  -> E   NW  refused RADIUS_TOO_SMALL {r=14.6, group=city_street, preset=game_scale, min=30}
+( 15, -30) SSE -> E   NNW refused RADIUS_TOO_SMALL {r=15.2, group=city_street, preset=game_scale, min=30}
+( 15, -30) S   -> E   N   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 15, -30) SSW -> E   NNE refused INNER_EDGE_DEGENERATE {}
+( 15, -30) SW  -> E   NE  refused NO_MTR_PATH {}
+( 15, -30) WSW -> E   ENE refused NO_MTR_PATH {}
+( 30, -30) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=151}
+( 30, -30) ESE -> E   ESE refused NO_MTR_PATH {}
+( 30, -30) SE  -> E   NW  refused NO_MTR_PATH {}
+( 30, -30) SSE -> E   NNW refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+( 30, -30) S   -> E   N   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+( 30, -30) SSW -> E   NNE refused RADIUS_TOO_SMALL {r=23.0, group=city_street, preset=game_scale, min=30}
+( 30, -30) SW  -> E   NE  refused LANE_SOLVE_FAILED {n=1}
+( 30, -30) WSW -> E   ENE refused NO_MTR_PATH {}
+( 45, -30) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=67.4, minLength=151}
+( 45, -30) ESE -> E   ESE refused NO_MTR_PATH {}
+( 45, -30) SE  -> E   SE  refused NO_MTR_PATH {}
+( 45, -30) SSE -> E   NNW refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+( 45, -30) S   -> E   N   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+( 45, -30) SSW -> E   NNE   57.35    48.60  8315 f2c69079a24e9e35408d8b5c33d98f2fe52b6ee07013f174d5c6e7369d3cc873
+( 45, -30) SW  -> E   NE    55.87    36.21  7850 f0ca611d1677cb4d748eefbe4b341f29fc15d26990118e48ae6f096781d4cb63
+( 45, -30) WSW -> E   ENE refused NO_MTR_PATH {}
+( 60, -30) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=53.1, minLength=151}
+( 60, -30) ESE -> E   ESE refused NO_MTR_PATH {}
+( 60, -30) SE  -> E   SE  refused NO_MTR_PATH {}
+( 60, -30) SSE -> E   NNW refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+( 60, -30) S   -> E   N   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+( 60, -30) SSW -> E   NNE   72.35    48.60 10445 41a9d42b9183d68ffac6244fe6d8b8ada1e10b8b032cb6c4956eaa30de6e5a19
+( 60, -30) SW  -> E   NE    69.31    72.43  9806 ee716fc7e9201596b67ad22fe3d956f1ba5d089583b3d3014935eea5f50c2805
+( 60, -30) WSW -> E   ENE refused NO_MTR_PATH {}
+(-60, -15) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=28.1, minLength=76}
+(-60, -15) ESE -> W   WNW   62.37   119.58  8989 8bc4d3fc5700ea564c8f89d61a894db958ea8539ee663457171e75f53580709a
+(-60, -15) SE  -> W   NW    64.01    51.21  9123 17ee3b171b11817d01ad340d5c369a10381501df8e58abaddee1f0cae32cd600
+(-60, -15) SSE -> W   NNW refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+(-60, -15) S   -> W   N   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+(-60, -15) SSW -> W   SSW refused NO_MTR_PATH {}
+(-60, -15) SW  -> W   SW  refused NO_MTR_PATH {}
+(-60, -15) WSW -> W   WSW refused NO_MTR_PATH {}
+(-45, -15) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=36.9, minLength=76}
+(-45, -15) ESE -> W   WNW   47.76    44.17  6963 fcadff93ad45c5bd06721412fec02a70a07c1861a0145c88b9cf2aa46ac3c1da
+(-45, -15) SE  -> W   NW    49.01    51.21  6993 adb993931c9f567cad9703a6265f9b6697d8396fc070cee99aa6b323053f0b1c
+(-45, -15) SSE -> W   NNW refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+(-45, -15) S   -> W   N   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+(-45, -15) SSW -> W   SSW refused NO_MTR_PATH {}
+(-45, -15) SW  -> W   SW  refused NO_MTR_PATH {}
+(-45, -15) WSW -> W   WSW refused NO_MTR_PATH {}
+(-30, -15) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=53.1, minLength=76}
+(-30, -15) ESE -> W   WNW refused NO_MTR_PATH {}
+(-30, -15) SE  -> W   NW    34.65    36.21  4970 c11778664f540657fccf1fd9248f3d2ffa27010f8caf0a480674e3eb17065c26
+(-30, -15) SSE -> W   NNW refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+(-30, -15) S   -> W   N   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+(-30, -15) SSW -> W   NNE refused LANE_SOLVE_FAILED {n=2}
+(-30, -15) SW  -> W   SW  refused NO_MTR_PATH {}
+(-30, -15) WSW -> W   WSW refused NO_MTR_PATH {}
+(-15, -15) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=76}
+(-15, -15) ESE -> W   WNW refused NO_MTR_PATH {}
+(-15, -15) SE  -> W   NW  refused LANE_SOLVE_FAILED {n=2}
+(-15, -15) SSE -> W   NNW refused RADIUS_TOO_SMALL {r=9.9, group=city_street, preset=game_scale, min=30}
+(-15, -15) S   -> W   N   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+(-15, -15) SSW -> W   NNE refused RADIUS_TOO_SMALL {r=7.9, group=city_street, preset=game_scale, min=30}
+(-15, -15) SW  -> W   NE  refused NO_MTR_PATH {}
+(-15, -15) WSW -> W   WSW refused NO_MTR_PATH {}
+(  0, -15) E   -> W   W   refused PARALLEL_BESIDE {}
+(  0, -15) ESE -> W   WNW refused NO_MTR_PATH {}
+(  0, -15) SE  -> W   NW  refused NO_MTR_PATH {}
+(  0, -15) SSE -> W   NNW refused NO_MTR_PATH {}
+(  0, -15) S   -> W   N   refused NO_MTR_PATH {}
+(  0, -15) SSW -> W   NNE refused LANE_SOLVE_FAILED {n=2}
+(  0, -15) SW  -> W   NE  refused LANE_SOLVE_FAILED {n=2}
+(  0, -15) WSW -> W   ENE refused LANE_SOLVE_FAILED {n=2}
+( 15, -15) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=76}
+( 15, -15) ESE -> E   ESE refused NO_MTR_PATH {}
+( 15, -15) SE  -> E   NW  refused NO_MTR_PATH {}
+( 15, -15) SSE -> E   NNW refused RADIUS_TOO_SMALL {r=7.9, group=city_street, preset=game_scale, min=30}
+( 15, -15) S   -> E   N   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 15, -15) SSW -> E   NNE refused RADIUS_TOO_SMALL {r=9.9, group=city_street, preset=game_scale, min=30}
+( 15, -15) SW  -> E   NE  refused LANE_SOLVE_FAILED {n=1}
+( 15, -15) WSW -> E   ENE refused NO_MTR_PATH {}
+( 30, -15) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=53.1, minLength=76}
+( 30, -15) ESE -> E   ESE refused NO_MTR_PATH {}
+( 30, -15) SE  -> E   SE  refused NO_MTR_PATH {}
+( 30, -15) SSE -> E   NNW refused LANE_SOLVE_FAILED {n=1}
+( 30, -15) S   -> E   N   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 30, -15) SSW -> E   NNE refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+( 30, -15) SW  -> E   NE    34.65    36.21  4970 aacf166d2357c3fd42abdf992f15c2bccbaa047073ff8d169a83b0692fb5f990
+( 30, -15) WSW -> E   ENE refused NO_MTR_PATH {}
+( 45, -15) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=36.9, minLength=76}
+( 45, -15) ESE -> E   ESE refused NO_MTR_PATH {}
+( 45, -15) SE  -> E   SE  refused NO_MTR_PATH {}
+( 45, -15) SSE -> E   SSE refused NO_MTR_PATH {}
+( 45, -15) S   -> E   N   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 45, -15) SSW -> E   NNE refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+( 45, -15) SW  -> E   NE    49.01    51.21  6993 3dd4bfd208c739f723170151f94aa92bb2522f57fd05e134b2e3f2483875ddad
+( 45, -15) WSW -> E   ENE   47.76    44.17  6963 cef4e971994fbb0b63c103627e6a8145bb673ff422578ecc899f8f6cab7750d3
+( 60, -15) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=28.1, minLength=76}
+( 60, -15) ESE -> E   ESE refused NO_MTR_PATH {}
+( 60, -15) SE  -> E   SE  refused NO_MTR_PATH {}
+( 60, -15) SSE -> E   SSE refused NO_MTR_PATH {}
+( 60, -15) S   -> E   N   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 60, -15) SSW -> E   NNE refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+( 60, -15) SW  -> E   NE    64.01    51.21  9123 2dc4c0e0f8b96c4a124bbbddca28226630be308a64b6205f804eee5ff9c00379
+( 60, -15) WSW -> E   ENE   62.37   119.58  8989 bf8f53d4ace3cd448c724b77cb55a119d4027d330a05beab3cfb41c176772f22
+(-60,   0) E   -> W   W     60.00 straight  8662 abcdae70e997eac94a4bd262866acd18ca312fe8946ba4144da50d6ade13c973
+(-60,   0) ESE -> W   WNW refused INNER_EDGE_DEGENERATE {}
+(-60,   0) SE  -> W   NW  refused LANE_SOLVE_FAILED {n=2}
+(-60,   0) SSE -> W   NNW refused LANE_SOLVE_FAILED {n=2}
+(-60,   0) S   -> W   N   refused NO_MTR_PATH {}
+(-60,   0) SSW -> W   SSW refused NO_MTR_PATH {}
+(-60,   0) SW  -> W   SW  refused NO_MTR_PATH {}
+(-60,   0) WSW -> W   WSW refused NO_MTR_PATH {}
+(-45,   0) E   -> W   W     45.00 straight  6532 9200cf7e6ab3663a2e790b554d2335069e1e4d76fd0ad721a45953e9b2d039de
+(-45,   0) ESE -> W   WNW refused INNER_EDGE_DEGENERATE {}
+(-45,   0) SE  -> W   NW  refused LANE_SOLVE_FAILED {n=2}
+(-45,   0) SSE -> W   NNW refused LANE_SOLVE_FAILED {n=2}
+(-45,   0) S   -> W   N   refused NO_MTR_PATH {}
+(-45,   0) SSW -> W   SSW refused NO_MTR_PATH {}
+(-45,   0) SW  -> W   SW  refused NO_MTR_PATH {}
+(-45,   0) WSW -> W   WSW refused NO_MTR_PATH {}
+(-30,   0) E   -> W   W     30.00 straight  4402 e310f12cc6b270fabb88a690ede382ceb5a280d73a57424b92ef800b3106d8da
+(-30,   0) ESE -> W   WNW refused INNER_EDGE_DEGENERATE {}
+(-30,   0) SE  -> W   NW  refused LANE_SOLVE_FAILED {n=2}
+(-30,   0) SSE -> W   NNW refused LANE_SOLVE_FAILED {n=2}
+(-30,   0) S   -> W   N   refused NO_MTR_PATH {}
+(-30,   0) SSW -> W   SSW refused NO_MTR_PATH {}
+(-30,   0) SW  -> W   SW  refused NO_MTR_PATH {}
+(-30,   0) WSW -> W   WSW refused NO_MTR_PATH {}
+(-15,   0) E   -> W   W     15.00 straight  2272 17e578ec048ba2ee07815e286421bc7b1abb7f4e200e88fa34c0b4fe184a1ad6
+(-15,   0) ESE -> W   WNW refused INNER_EDGE_DEGENERATE {}
+(-15,   0) SE  -> W   NW  refused LANE_SOLVE_FAILED {n=2}
+(-15,   0) SSE -> W   NNW refused LANE_SOLVE_FAILED {n=2}
+(-15,   0) S   -> W   N   refused NO_MTR_PATH {}
+(-15,   0) SSW -> W   SSW refused NO_MTR_PATH {}
+(-15,   0) SW  -> W   SW  refused NO_MTR_PATH {}
+(-15,   0) WSW -> W   WSW refused NO_MTR_PATH {}
+( 15,   0) E   -> E   E     15.00 straight  2272 ff2cce44002a198c651fbc46ca25afc26221adcf946e016d339d3dfc5f1e5ff2
+( 15,   0) ESE -> E   ESE refused NO_MTR_PATH {}
+( 15,   0) SE  -> E   SE  refused NO_MTR_PATH {}
+( 15,   0) SSE -> E   SSE refused NO_MTR_PATH {}
+( 15,   0) S   -> E   N   refused NO_MTR_PATH {}
+( 15,   0) SSW -> E   NNE refused NO_MTR_PATH {}
+( 15,   0) SW  -> E   NE  refused NO_MTR_PATH {}
+( 15,   0) WSW -> E   ENE refused NO_MTR_PATH {}
+( 30,   0) E   -> E   E     30.00 straight  4402 81c50cedaf90d976987dcc9f24243cae5210feaa1aef7fa2c7772f3406532d74
+( 30,   0) ESE -> E   ESE refused NO_MTR_PATH {}
+( 30,   0) SE  -> E   SE  refused NO_MTR_PATH {}
+( 30,   0) SSE -> E   SSE refused NO_MTR_PATH {}
+( 30,   0) S   -> E   N   refused NO_MTR_PATH {}
+( 30,   0) SSW -> E   NNE refused NO_MTR_PATH {}
+( 30,   0) SW  -> E   NE  refused NO_MTR_PATH {}
+( 30,   0) WSW -> E   ENE refused NO_MTR_PATH {}
+( 45,   0) E   -> E   E     45.00 straight  6532 1a67b97bad20588d19d2cb8d988f539606d98cdc500ace1d1e0bc89deba2b24e
+( 45,   0) ESE -> E   ESE refused NO_MTR_PATH {}
+( 45,   0) SE  -> E   SE  refused NO_MTR_PATH {}
+( 45,   0) SSE -> E   SSE refused NO_MTR_PATH {}
+( 45,   0) S   -> E   N   refused NO_MTR_PATH {}
+( 45,   0) SSW -> E   NNE refused NO_MTR_PATH {}
+( 45,   0) SW  -> E   NE  refused NO_MTR_PATH {}
+( 45,   0) WSW -> E   ENE refused NO_MTR_PATH {}
+( 60,   0) E   -> E   E     60.00 straight  8662 e75ddbe1e3bedba39392a26cd32475708ccdacf89227cafbc28ef0f263d86c4b
+( 60,   0) ESE -> E   ESE refused NO_MTR_PATH {}
+( 60,   0) SE  -> E   SE  refused NO_MTR_PATH {}
+( 60,   0) SSE -> E   SSE refused NO_MTR_PATH {}
+( 60,   0) S   -> E   N   refused NO_MTR_PATH {}
+( 60,   0) SSW -> E   NNE refused NO_MTR_PATH {}
+( 60,   0) SW  -> E   NE  refused NO_MTR_PATH {}
+( 60,   0) WSW -> E   ENE refused NO_MTR_PATH {}
+(-60,  15) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=28.1, minLength=76}
+(-60,  15) ESE -> W   WNW refused NO_MTR_PATH {}
+(-60,  15) SE  -> W   NW  refused NO_MTR_PATH {}
+(-60,  15) SSE -> W   NNW refused NO_MTR_PATH {}
+(-60,  15) S   -> W   S   refused RADIUS_TOO_SMALL {r=11.9, group=city_street, preset=game_scale, min=30}
+(-60,  15) SSW -> W   SSW refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+(-60,  15) SW  -> W   SW    64.01    51.21  9123 15bb0b2977a9d425f47a8c96babeea51287873351f1ca55e9ab5db9dd6196dc0
+(-60,  15) WSW -> W   WSW   62.37   119.58  8989 289b18199876b643702ee9dc7bf188eb604250cfe0a6e651e65232c8d5d48089
+(-45,  15) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=36.9, minLength=76}
+(-45,  15) ESE -> W   WNW refused NO_MTR_PATH {}
+(-45,  15) SE  -> W   NW  refused NO_MTR_PATH {}
+(-45,  15) SSE -> W   NNW refused NO_MTR_PATH {}
+(-45,  15) S   -> W   S   refused RADIUS_TOO_SMALL {r=11.9, group=city_street, preset=game_scale, min=30}
+(-45,  15) SSW -> W   SSW refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+(-45,  15) SW  -> W   SW    49.01    51.21  6993 b3e58af9d179aaaf381876b000bc64f8aa2f39ba2e1cbea177dc8cdace1b783e
+(-45,  15) WSW -> W   WSW   47.76    44.17  6963 1a6c84ab03d17c4467f0727618540a115d12bfeee2495e5f83d3afbad77c05fe
+(-30,  15) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=53.1, minLength=76}
+(-30,  15) ESE -> W   WNW refused NO_MTR_PATH {}
+(-30,  15) SE  -> W   NW  refused NO_MTR_PATH {}
+(-30,  15) SSE -> W   SSE refused LANE_SOLVE_FAILED {n=1}
+(-30,  15) S   -> W   S   refused RADIUS_TOO_SMALL {r=11.9, group=city_street, preset=game_scale, min=30}
+(-30,  15) SSW -> W   SSW refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+(-30,  15) SW  -> W   SW    34.65    36.21  4970 20cd6af8b7b5a000ccbd6ac520feb139fafe0ff50209c14ded8e80453b81c010
+(-30,  15) WSW -> W   WSW refused NO_MTR_PATH {}
+(-15,  15) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=76}
+(-15,  15) ESE -> W   WNW refused NO_MTR_PATH {}
+(-15,  15) SE  -> W   NW  refused NO_MTR_PATH {}
+(-15,  15) SSE -> W   SSE refused RADIUS_TOO_SMALL {r=7.9, group=city_street, preset=game_scale, min=30}
+(-15,  15) S   -> W   S   refused RADIUS_TOO_SMALL {r=11.9, group=city_street, preset=game_scale, min=30}
+(-15,  15) SSW -> W   SSW refused RADIUS_TOO_SMALL {r=9.9, group=city_street, preset=game_scale, min=30}
+(-15,  15) SW  -> W   SW  refused LANE_SOLVE_FAILED {n=1}
+(-15,  15) WSW -> W   WSW refused NO_MTR_PATH {}
+(  0,  15) E   -> W   W   refused PARALLEL_BESIDE {}
+(  0,  15) ESE -> W   ESE refused LANE_SOLVE_FAILED {n=1}
+(  0,  15) SE  -> W   SE  refused LANE_SOLVE_FAILED {n=1}
+(  0,  15) SSE -> W   SSE refused LANE_SOLVE_FAILED {n=1}
+(  0,  15) S   -> W   S   refused LANE_SOLVE_FAILED {n=1}
+(  0,  15) SSW -> W   SSW refused NO_MTR_PATH {}
+(  0,  15) SW  -> W   SW  refused NO_MTR_PATH {}
+(  0,  15) WSW -> W   WSW refused NO_MTR_PATH {}
+( 15,  15) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=76}
+( 15,  15) ESE -> E   ESE refused NO_MTR_PATH {}
+( 15,  15) SE  -> E   SE  refused LANE_SOLVE_FAILED {n=2}
+( 15,  15) SSE -> E   SSE refused RADIUS_TOO_SMALL {r=9.9, group=city_street, preset=game_scale, min=30}
+( 15,  15) S   -> E   S   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 15,  15) SSW -> E   SSW refused RADIUS_TOO_SMALL {r=7.9, group=city_street, preset=game_scale, min=30}
+( 15,  15) SW  -> E   NE  refused NO_MTR_PATH {}
+( 15,  15) WSW -> E   ENE refused NO_MTR_PATH {}
+( 30,  15) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=53.1, minLength=76}
+( 30,  15) ESE -> E   ESE refused NO_MTR_PATH {}
+( 30,  15) SE  -> E   SE    34.65    36.21  4970 a65a1401c2df2861437d674f3c847d940532a48d4d54ac13888e1349de3899b7
+( 30,  15) SSE -> E   SSE refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+( 30,  15) S   -> E   S   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 30,  15) SSW -> E   SSW refused LANE_SOLVE_FAILED {n=2}
+( 30,  15) SW  -> E   NE  refused NO_MTR_PATH {}
+( 30,  15) WSW -> E   ENE refused NO_MTR_PATH {}
+( 45,  15) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=36.9, minLength=76}
+( 45,  15) ESE -> E   ESE   47.76    44.17  6963 1b26a1b3d7d37015d0101f5ac7e36dd520b1069763fdd2929d9877a2abf0a03d
+( 45,  15) SE  -> E   SE    49.01    51.21  6993 dcfbe98a8a0980bb44fa88b2ce34385103dc783c487a7a3953118fcb58898357
+( 45,  15) SSE -> E   SSE refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+( 45,  15) S   -> E   S   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 45,  15) SSW -> E   NNE refused NO_MTR_PATH {}
+( 45,  15) SW  -> E   NE  refused NO_MTR_PATH {}
+( 45,  15) WSW -> E   ENE refused NO_MTR_PATH {}
+( 60,  15) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=28.1, minLength=76}
+( 60,  15) ESE -> E   ESE   62.37   119.58  8989 504b07622e3e2415980266bba947df3a342c1a42412342ec6feec5cbbcbafd8d
+( 60,  15) SE  -> E   SE    64.01    51.21  9123 b72ca5a05c9f9a3250cee12497d7f30d2690b63831d9a929a369627dfdf44ce2
+( 60,  15) SSE -> E   SSE refused RADIUS_TOO_SMALL {r=21.0, group=city_street, preset=game_scale, min=30}
+( 60,  15) S   -> E   S   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 60,  15) SSW -> E   NNE refused NO_MTR_PATH {}
+( 60,  15) SW  -> E   NE  refused NO_MTR_PATH {}
+( 60,  15) WSW -> E   ENE refused NO_MTR_PATH {}
+(-60,  30) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=53.1, minLength=151}
+(-60,  30) ESE -> W   WNW refused NO_MTR_PATH {}
+(-60,  30) SE  -> W   NW  refused NO_MTR_PATH {}
+(-60,  30) SSE -> W   SSE refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+(-60,  30) S   -> W   S   refused RADIUS_TOO_SMALL {r=26.9, group=city_street, preset=game_scale, min=30}
+(-60,  30) SSW -> W   SSW   72.35    48.60 10445 9cfa219484279e3b84623b8debaf35c34fa2c6db10da39a10914f9be5a84c675
+(-60,  30) SW  -> W   SW    69.31    72.43  9806 19e97efff0744933c62fffe71d3f216bc5010cdd3e7937ae6970ad470867d057
+(-60,  30) WSW -> W   WSW refused NO_MTR_PATH {}
+(-45,  30) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=67.4, minLength=151}
+(-45,  30) ESE -> W   WNW refused NO_MTR_PATH {}
+(-45,  30) SE  -> W   NW  refused NO_MTR_PATH {}
+(-45,  30) SSE -> W   SSE refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+(-45,  30) S   -> W   S   refused RADIUS_TOO_SMALL {r=26.9, group=city_street, preset=game_scale, min=30}
+(-45,  30) SSW -> W   SSW   57.35    48.60  8315 d32deb4836954f0c572092d4216a736b965337eb8cf85c55294d2161868610ad
+(-45,  30) SW  -> W   SW    55.87    36.21  7850 20d68b2b32cc1427f524847c13d00c5970cbf7bf9324469d7448254857110b84
+(-45,  30) WSW -> W   WSW refused NO_MTR_PATH {}
+(-30,  30) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=151}
+(-30,  30) ESE -> W   WNW refused NO_MTR_PATH {}
+(-30,  30) SE  -> W   NW  refused NO_MTR_PATH {}
+(-30,  30) SSE -> W   SSE refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+(-30,  30) S   -> W   S   refused RADIUS_TOO_SMALL {r=26.9, group=city_street, preset=game_scale, min=30}
+(-30,  30) SSW -> W   SSW refused RADIUS_TOO_SMALL {r=23.0, group=city_street, preset=game_scale, min=30}
+(-30,  30) SW  -> W   SW  refused LANE_SOLVE_FAILED {n=1}
+(-30,  30) WSW -> W   WSW refused NO_MTR_PATH {}
+(-15,  30) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=126.9, minLength=151}
+(-15,  30) ESE -> W   WNW refused NO_MTR_PATH {}
+(-15,  30) SE  -> W   SE  refused RADIUS_TOO_SMALL {r=14.6, group=city_street, preset=game_scale, min=30}
+(-15,  30) SSE -> W   SSE refused RADIUS_TOO_SMALL {r=15.2, group=city_street, preset=game_scale, min=30}
+(-15,  30) S   -> W   S   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+(-15,  30) SSW -> W   SSW refused INNER_EDGE_DEGENERATE {}
+(-15,  30) SW  -> W   SW  refused NO_MTR_PATH {}
+(-15,  30) WSW -> W   WSW refused NO_MTR_PATH {}
+(  0,  30) E   -> W   W   refused PARALLEL_BESIDE {}
+(  0,  30) ESE -> W   ESE refused LANE_SOLVE_FAILED {n=1}
+(  0,  30) SE  -> W   SE  refused LANE_SOLVE_FAILED {n=1}
+(  0,  30) SSE -> W   SSE refused LANE_SOLVE_FAILED {n=1}
+(  0,  30) S   -> W   S   refused LANE_SOLVE_FAILED {n=1}
+(  0,  30) SSW -> W   SSW refused NO_MTR_PATH {}
+(  0,  30) SW  -> W   SW  refused NO_MTR_PATH {}
+(  0,  30) WSW -> W   WSW refused NO_MTR_PATH {}
+( 15,  30) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=126.9, minLength=151}
+( 15,  30) ESE -> E   ESE refused NO_MTR_PATH {}
+( 15,  30) SE  -> E   SE  refused NO_MTR_PATH {}
+( 15,  30) SSE -> E   SSE refused INNER_EDGE_DEGENERATE {}
+( 15,  30) S   -> E   S   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 15,  30) SSW -> E   SSW refused RADIUS_TOO_SMALL {r=15.2, group=city_street, preset=game_scale, min=30}
+( 15,  30) SW  -> E   SW  refused RADIUS_TOO_SMALL {r=14.6, group=city_street, preset=game_scale, min=30}
+( 15,  30) WSW -> E   ENE refused NO_MTR_PATH {}
+( 30,  30) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=151}
+( 30,  30) ESE -> E   ESE refused NO_MTR_PATH {}
+( 30,  30) SE  -> E   SE  refused LANE_SOLVE_FAILED {n=2}
+( 30,  30) SSE -> E   SSE refused RADIUS_TOO_SMALL {r=23.0, group=city_street, preset=game_scale, min=30}
+( 30,  30) S   -> E   S   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+( 30,  30) SSW -> E   SSW refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+( 30,  30) SW  -> E   NE  refused NO_MTR_PATH {}
+( 30,  30) WSW -> E   ENE refused NO_MTR_PATH {}
+( 45,  30) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=67.4, minLength=151}
+( 45,  30) ESE -> E   ESE refused NO_MTR_PATH {}
+( 45,  30) SE  -> E   SE    55.87    36.21  7850 4b5797251894f3fd59d382c7790fc1f81efb73e7f7df633fe0d8e29c9a6259e3
+( 45,  30) SSE -> E   SSE   57.35    48.60  8315 6377c1961fc3f15a8756f61852d71351d41cdb861bd9eb7e5e0cae978a98cba7
+( 45,  30) S   -> E   S   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+( 45,  30) SSW -> E   SSW refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+( 45,  30) SW  -> E   NE  refused NO_MTR_PATH {}
+( 45,  30) WSW -> E   ENE refused NO_MTR_PATH {}
+( 60,  30) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=53.1, minLength=151}
+( 60,  30) ESE -> E   ESE refused NO_MTR_PATH {}
+( 60,  30) SE  -> E   SE    69.31    72.43  9806 b258246ce74e727e802207570b83f19575df40de3971645d6334dd77e1760187
+( 60,  30) SSE -> E   SSE   72.35    48.60 10445 0a7c4861a13f26158268b04b5618fa4fbf36d5b7add0908a0ec766b4a7653699
+( 60,  30) S   -> E   S   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+( 60,  30) SSW -> E   SSW refused RADIUS_TOO_SMALL {r=18.8, group=city_street, preset=game_scale, min=30}
+( 60,  30) SW  -> E   NE  refused NO_MTR_PATH {}
+( 60,  30) WSW -> E   ENE refused NO_MTR_PATH {}
+(-60,  45) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=73.7, minLength=227}
+(-60,  45) ESE -> W   WNW refused NO_MTR_PATH {}
+(-60,  45) SE  -> W   NW  refused NO_MTR_PATH {}
+(-60,  45) SSE -> W   SSE refused RADIUS_TOO_SMALL {r=29.6, group=city_street, preset=game_scale, min=30}
+(-60,  45) S   -> W   S     85.69    45.00 12302 db5dd1619c886eefd4e680c68f8061019271a7e7d49a53bfa219e980e462a4a6
+(-60,  45) SSW -> W   SSW   80.27    61.90 11537 2a436f98312c8e3991733f5a0ba951a67023101689d66999d0475bfa79cfeebb
+(-60,  45) SW  -> W   SW    77.08    36.21 10730 8c5fb8826c1d78743394def680f01fbd52ad46c1d79917b4476964467ff39b83
+(-60,  45) WSW -> W   WSW refused NO_MTR_PATH {}
+(-45,  45) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=227}
+(-45,  45) ESE -> W   WNW refused NO_MTR_PATH {}
+(-45,  45) SE  -> W   NW  refused NO_MTR_PATH {}
+(-45,  45) SSE -> W   SSE refused RADIUS_TOO_SMALL {r=29.6, group=city_street, preset=game_scale, min=30}
+(-45,  45) S   -> W   S     70.69    45.00 10172 5e95eb581febd20a0822a7271fabc3e26cf3c98f304b883423d4761b227bd4dd
+(-45,  45) SSW -> W   SSW   68.82    39.45  9932 a347e69472b47e439356b193303660e08065fda3e8a53b4ec5bed33618403321
+(-45,  45) SW  -> W   SW  refused LANE_SOLVE_FAILED {n=1}
+(-45,  45) WSW -> W   WSW refused NO_MTR_PATH {}
+(-30,  45) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=112.6, minLength=227}
+(-30,  45) ESE -> W   WNW refused NO_MTR_PATH {}
+(-30,  45) SE  -> W   SE  refused RADIUS_TOO_SMALL {r=23.4, group=city_street, preset=game_scale, min=30}
+(-30,  45) SSE -> W   SSE refused RADIUS_TOO_SMALL {r=29.3, group=city_street, preset=game_scale, min=30}
+(-30,  45) S   -> W   S   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+(-30,  45) SSW -> W   SSW refused RADIUS_TOO_SMALL {r=13.7, group=city_street, preset=game_scale, min=30}
+(-30,  45) SW  -> W   SW  refused NO_MTR_PATH {}
+(-30,  45) WSW -> W   WSW refused NO_MTR_PATH {}
+(-15,  45) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=143.1, minLength=227}
+(-15,  45) ESE -> W   ESE refused RADIUS_TOO_SMALL {r=20.2, group=city_street, preset=game_scale, min=30}
+(-15,  45) SE  -> W   SE  refused RADIUS_TOO_SMALL {r=21.9, group=city_street, preset=game_scale, min=30}
+(-15,  45) SSE -> W   SSE refused RADIUS_TOO_SMALL {r=19.3, group=city_street, preset=game_scale, min=30}
+(-15,  45) S   -> W   S   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+(-15,  45) SSW -> W   SSW refused NO_MTR_PATH {}
+(-15,  45) SW  -> W   SW  refused NO_MTR_PATH {}
+(-15,  45) WSW -> W   WSW refused NO_MTR_PATH {}
+(  0,  45) E   -> W   W   refused PARALLEL_BESIDE {}
+(  0,  45) ESE -> W   ESE refused LANE_SOLVE_FAILED {n=1}
+(  0,  45) SE  -> W   SE  refused LANE_SOLVE_FAILED {n=1}
+(  0,  45) SSE -> W   SSE refused LANE_SOLVE_FAILED {n=1}
+(  0,  45) S   -> W   S   refused LANE_SOLVE_FAILED {n=1}
+(  0,  45) SSW -> W   SSW refused NO_MTR_PATH {}
+(  0,  45) SW  -> W   SW  refused NO_MTR_PATH {}
+(  0,  45) WSW -> W   WSW refused NO_MTR_PATH {}
+( 15,  45) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=143.1, minLength=227}
+( 15,  45) ESE -> E   ESE refused NO_MTR_PATH {}
+( 15,  45) SE  -> E   SE  refused NO_MTR_PATH {}
+( 15,  45) SSE -> E   SSE refused NO_MTR_PATH {}
+( 15,  45) S   -> E   S   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+( 15,  45) SSW -> E   SSW refused RADIUS_TOO_SMALL {r=19.3, group=city_street, preset=game_scale, min=30}
+( 15,  45) SW  -> E   SW  refused RADIUS_TOO_SMALL {r=21.9, group=city_street, preset=game_scale, min=30}
+( 15,  45) WSW -> E   WSW refused RADIUS_TOO_SMALL {r=20.2, group=city_street, preset=game_scale, min=30}
+( 30,  45) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=112.6, minLength=227}
+( 30,  45) ESE -> E   ESE refused NO_MTR_PATH {}
+( 30,  45) SE  -> E   SE  refused NO_MTR_PATH {}
+( 30,  45) SSE -> E   SSE refused RADIUS_TOO_SMALL {r=13.7, group=city_street, preset=game_scale, min=30}
+( 30,  45) S   -> E   S   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+( 30,  45) SSW -> E   SSW refused RADIUS_TOO_SMALL {r=29.3, group=city_street, preset=game_scale, min=30}
+( 30,  45) SW  -> E   SW  refused RADIUS_TOO_SMALL {r=23.4, group=city_street, preset=game_scale, min=30}
+( 30,  45) WSW -> E   ENE refused NO_MTR_PATH {}
+( 45,  45) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=227}
+( 45,  45) ESE -> E   ESE refused NO_MTR_PATH {}
+( 45,  45) SE  -> E   SE  refused LANE_SOLVE_FAILED {n=2}
+( 45,  45) SSE -> E   SSE   68.82    39.45  9932 30ad75f072f6776abaa172c2c1460e22849638390a433a96960febb024d69114
+( 45,  45) S   -> E   S     70.69    45.00 10172 cae08ebbda71c18d3a6166158f54e53132dd20728d24d8414b55be0a2c64887a
+( 45,  45) SSW -> E   SSW refused RADIUS_TOO_SMALL {r=29.6, group=city_street, preset=game_scale, min=30}
+( 45,  45) SW  -> E   NE  refused NO_MTR_PATH {}
+( 45,  45) WSW -> E   ENE refused NO_MTR_PATH {}
+( 60,  45) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=73.7, minLength=227}
+( 60,  45) ESE -> E   ESE refused NO_MTR_PATH {}
+( 60,  45) SE  -> E   SE    77.08    36.21 10730 4253477a2750c289c7009f1a90aac859d030dad3ec840f3d873fd533b90486aa
+( 60,  45) SSE -> E   SSE   80.27    61.90 11537 5d14a4bef59ac131b566a66f7e66dc3159819a8f3f386f6f2f97ce04eb0ff118
+( 60,  45) S   -> E   S     85.69    45.00 12302 47facc7cf1c4b72a43f2a7b79e5ec5678d0203820e18f311ecc62864639e3d0f
+( 60,  45) SSW -> E   SSW refused RADIUS_TOO_SMALL {r=29.6, group=city_street, preset=game_scale, min=30}
+( 60,  45) SW  -> E   NE  refused NO_MTR_PATH {}
+( 60,  45) WSW -> E   ENE refused NO_MTR_PATH {}
+(-60,  60) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=302}
+(-60,  60) ESE -> W   WNW refused NO_MTR_PATH {}
+(-60,  60) SE  -> W   NW  refused NO_MTR_PATH {}
+(-60,  60) SSE -> W   SSE  105.11    43.39 15263 2173720faffe7c076c23e6ac5cf623c9c0dbfb98faca426567e482874149022f
+(-60,  60) S   -> W   S     94.25    60.00 13514 85394ebf85cb17cb56525b252c7ab92488151d2b212fde244e789d64a3188a74
+(-60,  60) SSW -> W   SSW   91.77    52.60 13242 82f1d5dd52644f8c722bc79e3240e498a5d8386606ba5ca2fd12c8008a15e881
+(-60,  60) SW  -> W   SW  refused LANE_SOLVE_FAILED {n=1}
+(-60,  60) WSW -> W   WSW refused NO_MTR_PATH {}
+(-45,  60) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=106.3, minLength=302}
+(-45,  60) ESE -> W   WNW refused NO_MTR_PATH {}
+(-45,  60) SE  -> W   SE   102.96    35.15 14603 3087fee705af7d6e9cace0a65480817c9d83d02d10c58d47cacd476e17a2c85f
+(-45,  60) SSE -> W   SSE   90.11    43.39 13133 df7c31a7e6ddc8c81eca05e94e91739361ba64d39d3556d985f10956af20118a
+(-45,  60) S   -> W   S     85.69    45.00 12302 38418a58690a13eb26ef37d288d85aa5de1ace5460fdb61633c08b11b8469ed4
+(-45,  60) SSW -> W   SSW refused RADIUS_TOO_SMALL {r=26.9, group=city_street, preset=game_scale, min=30}
+(-45,  60) SW  -> W   SW  refused NO_MTR_PATH {}
+(-45,  60) WSW -> W   WSW refused NO_MTR_PATH {}
+(-30,  60) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=126.9, minLength=302}
+(-30,  60) ESE -> W   WNW refused NO_MTR_PATH {}
+(-30,  60) SE  -> W   SE    87.96    35.15 12473 99112217b0d03c47cd56ac2db5eee1ec79c4a72c6cd34e8dc0421d4a4beaf03f
+(-30,  60) SSE -> W   SSE   82.06    36.65 11834 884e2b4ec70b6e8dd50b97efabb7ee38493c544f4e2418d592c7aead314c8089
+(-30,  60) S   -> W   S   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+(-30,  60) SSW -> W   SSW refused INNER_EDGE_DEGENERATE {}
+(-30,  60) SW  -> W   SW  refused NO_MTR_PATH {}
+(-30,  60) WSW -> W   WSW refused NO_MTR_PATH {}
+(-15,  60) E   -> W   W   refused S_CURVE_TOO_SHARP {phi=151.9, minLength=302}
+(-15,  60) ESE -> W   ESE refused RADIUS_TOO_SMALL {r=28.0, group=city_street, preset=game_scale, min=30}
+(-15,  60) SE  -> W   SE  refused RADIUS_TOO_SMALL {r=28.1, group=city_street, preset=game_scale, min=30}
+(-15,  60) SSE -> W   SSE refused RADIUS_TOO_SMALL {r=23.5, group=city_street, preset=game_scale, min=30}
+(-15,  60) S   -> W   S   refused RADIUS_TOO_SMALL {r=12.0, group=city_street, preset=game_scale, min=30}
+(-15,  60) SSW -> W   SSW refused NO_MTR_PATH {}
+(-15,  60) SW  -> W   SW  refused NO_MTR_PATH {}
+(-15,  60) WSW -> W   WSW refused NO_MTR_PATH {}
+(  0,  60) E   -> W   W   refused PARALLEL_BESIDE {}
+(  0,  60) ESE -> W   ESE refused LANE_SOLVE_FAILED {n=1}
+(  0,  60) SE  -> W   SE  refused LANE_SOLVE_FAILED {n=1}
+(  0,  60) SSE -> W   SSE refused LANE_SOLVE_FAILED {n=1}
+(  0,  60) S   -> W   S   refused LANE_SOLVE_FAILED {n=1}
+(  0,  60) SSW -> W   SSW refused NO_MTR_PATH {}
+(  0,  60) SW  -> W   SW  refused NO_MTR_PATH {}
+(  0,  60) WSW -> W   WSW refused NO_MTR_PATH {}
+( 15,  60) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=151.9, minLength=302}
+( 15,  60) ESE -> E   ESE refused NO_MTR_PATH {}
+( 15,  60) SE  -> E   SE  refused NO_MTR_PATH {}
+( 15,  60) SSE -> E   SSE refused NO_MTR_PATH {}
+( 15,  60) S   -> E   S   refused RADIUS_TOO_SMALL {r=11.9, group=city_street, preset=game_scale, min=30}
+( 15,  60) SSW -> E   SSW refused RADIUS_TOO_SMALL {r=23.5, group=city_street, preset=game_scale, min=30}
+( 15,  60) SW  -> E   SW  refused RADIUS_TOO_SMALL {r=28.1, group=city_street, preset=game_scale, min=30}
+( 15,  60) WSW -> E   WSW refused RADIUS_TOO_SMALL {r=28.0, group=city_street, preset=game_scale, min=30}
+( 30,  60) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=126.9, minLength=302}
+( 30,  60) ESE -> E   ESE refused NO_MTR_PATH {}
+( 30,  60) SE  -> E   SE  refused NO_MTR_PATH {}
+( 30,  60) SSE -> E   SSE refused INNER_EDGE_DEGENERATE {}
+( 30,  60) S   -> E   S   refused RADIUS_TOO_SMALL {r=27.0, group=city_street, preset=game_scale, min=30}
+( 30,  60) SSW -> E   SSW   82.06    36.65 11834 3263ffd95c4d19954d4cc79c8c571eab55390b4d934e027bcba478ef57939f09
+( 30,  60) SW  -> E   SW    87.96    35.15 12473 5324c3525a49e4ffc2f8c47a0a4fcbf52d14886c491be5030a12092c0f6b0fbd
+( 30,  60) WSW -> E   ENE refused NO_MTR_PATH {}
+( 45,  60) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=106.3, minLength=302}
+( 45,  60) ESE -> E   ESE refused NO_MTR_PATH {}
+( 45,  60) SE  -> E   SE  refused NO_MTR_PATH {}
+( 45,  60) SSE -> E   SSE refused RADIUS_TOO_SMALL {r=26.9, group=city_street, preset=game_scale, min=30}
+( 45,  60) S   -> E   S     85.69    45.00 12302 92ea523227ec70d8d8d5d2d794d275dc3350c551a30631b06c400f6c4d0f0d46
+( 45,  60) SSW -> E   SSW   90.11    43.39 13133 ec8bb39f1e47bccbd487fedb916fffc13fd3d18ce7b27eded82959859c3dbf31
+( 45,  60) SW  -> E   SW   102.96    35.15 14603 d18e0d3dfdd1f65d6ddfa7c6126a45798ab90a754f8392e30fc69442d3a03530
+( 45,  60) WSW -> E   ENE refused NO_MTR_PATH {}
+( 60,  60) E   -> E   E   refused S_CURVE_TOO_SHARP {phi=90.0, minLength=302}
+( 60,  60) ESE -> E   ESE refused NO_MTR_PATH {}
+( 60,  60) SE  -> E   SE  refused LANE_SOLVE_FAILED {n=2}
+( 60,  60) SSE -> E   SSE   91.77    52.60 13242 dde742ee63925894fdcdbb58f69e0efeaaeacfe559949174a084f45e98ef5e80
+( 60,  60) S   -> E   S     94.25    60.00 13514 a85429fd5b073999fec024dacd8a7ad98be9ea8741592b77b00e1a59da4d434f
+( 60,  60) SSW -> E   SSW  105.11    43.39 15263 fa2119a12f46d3b402853e0cffd970a33de792cc10ca144e3556b564d2b77591
+( 60,  60) SW  -> E   NE  refused NO_MTR_PATH {}
+( 60,  60) WSW -> E   ENE refused NO_MTR_PATH {}
+96 solved, 544 refused
