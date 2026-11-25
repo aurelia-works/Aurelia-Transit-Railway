@@ -91,11 +91,37 @@ class WorldTasksSwitchTest {
         assertEquals(List.of(true, true), this.sides, "the world's side was set each time");
     }
 
-    /** A player without {@code stratos.admin} is refused both switches, the override included, and nothing changes. */
+    /** A player without {@code stratos.admin} is refused every switch, the override included, and nothing changes; an admin is let in. */
     @Test
-    void aPlayerWithoutTheAdminNodeCannotSwitchOrOverride() {
+    void onlyAnAdminCanSwitchOrOverride() {
+        EditorServer denying = server(node -> !node.equals(EditorServer.NODE_ADMIN));
+        for (String task : List.of(Protocol.TASK_DRIVE_LEFT, Protocol.TASK_DRIVE_RIGHT, Protocol.TASK_DRIVE_LEFT_ALL, Protocol.TASK_DRIVE_RIGHT_ALL)) {
+            this.sent.clear();
+            denying.receive(OPERATOR, Messages.encode(new Message.TaskRequest(2, task, Optional.empty())));
+            Message.TaskResult refused = taskResult();
+            assertEquals(Optional.of(Protocol.PERMISSION_DENIED), refused.reasonCode(), task);
+            assertEquals(Map.of("node", EditorServer.NODE_ADMIN), refused.args(), task);
+        }
+        assertEquals(List.of(), this.sides, "the world's side was not touched");
+        assertEquals(DrivingSide.LHT, RoadsModule.roads(this.operations.records()).get(this.road).drivingSide());
+
+        EditorServer allowing = server(node -> true);
+        this.sent.clear();
+        allowing.receive(OPERATOR, Messages.encode(new Message.TaskRequest(3, Protocol.TASK_DRIVE_RIGHT_ALL, Optional.empty())));
+        for (int tick = 0; tick < 4000 && this.sent.stream().noneMatch(Message.TaskResult.class::isInstance); tick++) {
+            allowing.tick();
+            this.operations.scheduler().tick(this.world, 50_000_000, () -> this.world.now);
+            this.operations.afterTick().forEach(allowing::finished);
+        }
+        assertTrue(taskResult().ok(), () -> taskResult().toString());
+        assertEquals(List.of(true), this.sides);
+        assertEquals(DrivingSide.RHT, RoadsModule.roads(this.operations.records()).get(this.road).drivingSide());
+    }
+
+    /** A server that lets a player do what {@code allowed} says, with {@link #OPERATOR} joined and editing. */
+    private EditorServer server(java.util.function.Predicate<String> allowed) {
         EditorServer server = new EditorServer(new EditorServer.ServerInfo("0.1.0", "stratos 0.1.0", 3465, 1, EditorLimits.NONE),
-                List.of(RoadsModule.INSTANCE), (player, node) -> !node.equals(EditorServer.NODE_ADMIN), player -> new EditorServer.EditWorld(this.operations, LIMITS),
+                List.of(RoadsModule.INSTANCE), (player, node) -> allowed.test(node), player -> new EditorServer.EditWorld(this.operations, LIMITS),
                 Runnable::run, () -> this.clock.incrementAndGet() * 2_000_000_000L, () -> new UUID(0x7a, this.clock.incrementAndGet()), line -> {
                 });
         server.worldTasks(() -> List.of(new EditorServer.EditWorld(this.operations, LIMITS)), (dimension, cells) -> {
@@ -104,15 +130,11 @@ class WorldTasksSwitchTest {
         server.trafficSideSetter(this.sides::add);
         server.join(OPERATOR, this.sent::add);
         server.receive(OPERATOR, Messages.encode(new Message.HelloAck(Protocol.VERSION, "0.1.0", List.of())));
-        for (String task : List.of(Protocol.TASK_DRIVE_RIGHT, Protocol.TASK_DRIVE_RIGHT_ALL)) {
-            this.sent.clear();
-            server.receive(OPERATOR, Messages.encode(new Message.TaskRequest(2, task, Optional.empty())));
-            Message.TaskResult refused = this.sent.stream().filter(Message.TaskResult.class::isInstance).map(Message.TaskResult.class::cast).findFirst().orElseThrow();
-            assertEquals(Optional.of(Protocol.PERMISSION_DENIED), refused.reasonCode(), task);
-            assertEquals(Map.of("node", EditorServer.NODE_ADMIN), refused.args(), task);
-        }
-        assertEquals(List.of(), this.sides, "the world's side was not touched");
-        assertEquals(DrivingSide.LHT, RoadsModule.roads(this.operations.records()).get(this.road).drivingSide());
+        return server;
+    }
+
+    private Message.TaskResult taskResult() {
+        return this.sent.stream().filter(Message.TaskResult.class::isInstance).map(Message.TaskResult.class::cast).findFirst().orElseThrow();
     }
 
     /** One task to its result, in the server's order: the task ticks, the operations tick, finished ones are told to the task. */
