@@ -147,12 +147,22 @@ public final class Rasteriser {
     /**
      * The block plan of a junction piece (G-11): its columns (by world block; {@code road.junction.JunctionFootprint}), all
      * level at {@code top}, with real kerbs where {@code palette}'s kerb turns to face the road (B-1), stacked as a road's
-     * columns are. Its give-way lines come painted with their chords already.
+     * columns are. Its give-way lines come painted with their chords already. Each kerb in {@code crossings} (#193: its
+     * side roads' crossings, {@code road.junction.JunctionFootprint#crossings}) becomes a dropped kerb where the palette
+     * has them, keeping its facing.
      */
-    public static BlockPlan junction(Map<BlockXZ, Column> columns, double top, BlockPalette palette, int minY, int maxY) {
+    public static BlockPlan junction(Map<BlockXZ, Column> columns, Set<BlockXZ> crossings, double top, BlockPalette palette, int minY, int maxY) {
         List<Map.Entry<BlockXZ, Cell>> cells = new ArrayList<>();
         columns.forEach((xz, column) -> cells.add(Map.entry(xz, new Cell(column, snap(top)))));
         List<Map.Entry<BlockXZ, Cell>> kerbed = palette.kerbEdges() ? withKerbs(cells) : cells;
+        if (palette.droppedKerbs() && !crossings.isEmpty()) {
+            kerbed.replaceAll(entry -> {
+                Column column = entry.getValue().column();
+                boolean drop = crossings.contains(entry.getKey()) && column.band() == Band.KERB && column.kerb().isPresent() && column.detail().isEmpty();
+                return drop ? Map.entry(entry.getKey(), new Cell(column.with(Column.Detail.DROPPED_KERB, column.kerb().get()), entry.getValue().top()))
+                        : entry;
+            });
+        }
         BlockPlan.Builder plan = BlockPlan.builder(palette.dataVersion());
         for (Map.Entry<BlockXZ, Cell> entry : kerbed) {
             SurfaceFit.stack(plan, entry.getKey().x(), entry.getKey().z(), entry.getValue().column(), entry.getValue().top(), palette, minY, maxY);

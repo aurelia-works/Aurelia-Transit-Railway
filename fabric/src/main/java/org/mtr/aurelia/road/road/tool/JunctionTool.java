@@ -171,6 +171,9 @@ public final class JunctionTool implements Tool {
                 case RAISE -> this.raise++;
                 case LOWER -> this.raise--;
                 case NODES -> this.settings.cycleNodeAids();
+                case CROSSINGS -> {
+                    // a junction's side roads get their crossings by themselves
+                }
             }
         } else if (input instanceof ToolInput.Attack) {
             this.turn++;

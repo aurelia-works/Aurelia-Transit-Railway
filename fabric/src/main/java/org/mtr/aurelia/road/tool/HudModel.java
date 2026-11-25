@@ -124,7 +124,8 @@ public record HudModel(String titleKey, int step, int steps, Text state, List<Li
         SHAPE,
         RADIUS_UP,
         RADIUS_DOWN,
-        RADIUS_TYPE
+        RADIUS_TYPE,
+        CROSSINGS
     }
 
     /** What a binding does now. A binding without a hint does nothing in this state. */

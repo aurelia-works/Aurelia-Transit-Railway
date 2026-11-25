@@ -212,8 +212,8 @@ public final class StraightTool implements Tool {
         }
         RoadPlanParams.End from = RoadPlanParams.End.at(this.start.x(), this.start.y(), this.start.z(), this.end.heading());
         RoadPlanParams.End joined = this.startJoin.map(j -> JoinableRoads.joined(from, j)).orElse(from);
-        return Optional.of(RoadPlanParams.straight(this.settings.profile().id(), joined, this.end, this.settings.vertical(), this.settings.nodeAids())
-                .withPalette(this.settings.palette().id()).withDrivingSide(this.settings.drivingSide()));
+        return Optional.of(this.settings.crossed(RoadPlanParams.straight(this.settings.profile().id(), joined, this.end, this.settings.vertical(),
+                this.settings.nodeAids()).withPalette(this.settings.palette().id()).withDrivingSide(this.settings.drivingSide())));
     }
 
     /** The planner's answer for the road as it stands, once it has arrived. */
@@ -565,6 +565,7 @@ public final class StraightTool implements Tool {
                 ElevationHud.slope(this.settings.profile(), this.settings, planning, current, RoadNotices.turned(params, planning)),
                 ElevationHud.shape(this.settings, params),
                 ElevationHud.nodes(this.settings),
+                ElevationHud.crossings(this.settings),
                 new Line("stratos.tool.line.blocks", blocks, false));
         int step = switch (state) {
             case IDLE -> 1;

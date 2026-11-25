@@ -115,9 +115,11 @@ public final class StratosTools {
      * Tool in hand only.
      */
     public static final KeyBinding NODES_KEY = key("key.stratos.nodes", "key.keyboard.apostrophe");
+    /** The road tools' Crossing option (#193). */
+    public static final KeyBinding CROSSINGS_KEY = key("key.stratos.crossings", "key.keyboard.semicolon");
 
     /** The keys that work only with a tool in hand (R-4, R-6). */
-    private static final KeyBinding[] TOOL_KEYS = {RAISE_KEY, LOWER_KEY, SHAPE_KEY, RADIUS_UP_KEY, RADIUS_DOWN_KEY, RADIUS_TYPE_KEY, NODES_KEY};
+    private static final KeyBinding[] TOOL_KEYS = {RAISE_KEY, LOWER_KEY, SHAPE_KEY, RADIUS_UP_KEY, RADIUS_DOWN_KEY, RADIUS_TYPE_KEY, NODES_KEY, CROSSINGS_KEY};
 
     /**
      * The road tools' shared settings (R-4): the shape, and (R-6) the node aid, with MTR nodes only when the game has them
@@ -360,6 +362,7 @@ public final class StratosTools {
         adjust(RADIUS_UP_KEY, ToolInput.Adjustment.RADIUS_UP, yaw);
         adjust(RADIUS_DOWN_KEY, ToolInput.Adjustment.RADIUS_DOWN, yaw);
         adjust(NODES_KEY, ToolInput.Adjustment.NODES, yaw);
+        adjust(CROSSINGS_KEY, ToolInput.Adjustment.CROSSINGS, yaw);
         boolean typeRadius = false;
         while (RADIUS_TYPE_KEY.wasPressed()) {
             typeRadius = true;

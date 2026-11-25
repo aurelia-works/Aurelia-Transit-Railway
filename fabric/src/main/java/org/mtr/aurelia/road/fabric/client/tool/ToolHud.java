@@ -600,6 +600,7 @@ public final class ToolHud {
             case RADIUS_DOWN -> StratosTools.RADIUS_DOWN_KEY;
             case RADIUS_TYPE -> StratosTools.RADIUS_TYPE_KEY;
             case NODES -> StratosTools.NODES_KEY;
+            case CROSSINGS -> StratosTools.CROSSINGS_KEY;
         };
     }
 }

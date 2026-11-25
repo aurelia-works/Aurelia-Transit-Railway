@@ -192,8 +192,8 @@ public final class CurveTool implements Tool {
     private Optional<RoadPlanParams> drawn() {
         return this.start == null || this.end == null ? Optional.empty()
                 : road(this.settings.profile(), this.start, this.end, this.settings.vertical(), this.settings.nodeAids())
-                        .map(params -> params.withPalette(this.settings.palette().id())
-                                .withDrivingSide(this.loadedSide != null ? this.loadedSide : this.settings.drivingSide()));
+                        .map(params -> this.settings.crossed(params.withPalette(this.settings.palette().id())
+                                .withDrivingSide(this.loadedSide != null ? this.loadedSide : this.settings.drivingSide())));
     }
 
     /** {@code point}, or the road end it joins (R-5). */
@@ -538,6 +538,7 @@ public final class CurveTool implements Tool {
                 ElevationHud.slope(this.settings.profile(), this.settings, planning, current, RoadNotices.turned(params, planning)),
                 ElevationHud.shape(this.settings, params),
                 ElevationHud.nodes(this.settings),
+                ElevationHud.crossings(this.settings),
                 new Line("stratos.tool.line.blocks", blocks, false));
         int step = switch (state) {
             case IDLE -> 1;
