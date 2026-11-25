@@ -83,6 +83,14 @@ public final class RailLod {
 	}
 
 	/**
+	 * Whether the far pass draws a rail at all. It draws only what the near pass would: a rail with no styles (a road's
+	 * hidden lane track) shows only while a rail-related item is held.
+	 */
+	public static boolean drawnInFarView(boolean hasStyles, boolean holdingRailRelated) {
+		return hasStyles || holdingRailRelated;
+	}
+
+	/**
 	 * Horizontal distance from a point to an axis-aligned box, 0 when the point is inside it. Used to skip rails whose
 	 * whole bounding box is outside the far view without walking their pieces.
 	 */

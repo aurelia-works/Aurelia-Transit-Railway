@@ -6,7 +6,6 @@ import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 import org.mtr.aurelia.client.ui.AureliaChrome;
-import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.client.ui.AureliaUi;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -34,10 +33,10 @@ public abstract class AureliaCheckboxMixin {
 		if (!widget.visible || widget.getWidth() <= 0 || h <= 0) {
 			return;
 		}
-		AureliaChrome.checkbox(context, widget.getX(), widget.getY(), h, this.checked, widget.isHovered());
+		AureliaChrome.checkbox(context, widget.getX(), widget.getY(), h, this.checked, widget.isHovered() && widget.active, widget.isFocused() && AureliaUi.keyboardNavigation());
 		final Text message = ((AureliaWidgetText) (Object) this).atr$message();
 		if (this.showMessage && message != null) {
-			context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, message, widget.getX() + 24, widget.getY() + (h - 8) / 2, widget.active ? AureliaPalette.FG : AureliaPalette.FG_LIGHT);
+			context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, message, widget.getX() + 24, widget.getY() + (h - 8) / 2, AureliaChrome.labelColor(widget.active));
 		}
 		ci.cancel();
 	}

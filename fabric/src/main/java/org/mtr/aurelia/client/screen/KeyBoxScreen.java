@@ -185,7 +185,7 @@ public final class KeyBoxScreen extends Screen {
 		AureliaChrome.shadow(context, left, top, PANEL_WIDTH, PANEL_HEIGHT, 8);
 		AureliaChrome.rounded(context, left, top, PANEL_WIDTH, PANEL_HEIGHT, 8, AureliaPalette.SURFACE);
 		AureliaChrome.roundedFrame(context, left, top, PANEL_WIDTH, PANEL_HEIGHT, 8, AureliaPalette.LINE);
-		context.drawTextWithShadow(textRenderer, title, left + PAD, top + 11, 0xFFFFFF);
+		context.drawTextWithShadow(textRenderer, title, left + PAD, top + 11, AureliaPalette.TEXT);
 		depotPill(context, left, top);
 
 		cabinet(context, live ? mouseX : -1, live ? mouseY : -1);
@@ -310,7 +310,7 @@ public final class KeyBoxScreen extends Screen {
 
 	private void timeoutRow(DrawContext context, int mouseX, int mouseY) {
 		final int y = stepY();
-		context.drawTextWithShadow(textRenderer, Text.translatable("gui.aurelia.key_box.lasts"), left() + PAD, y + 5, 0xFFFFFF);
+		context.drawTextWithShadow(textRenderer, Text.translatable("gui.aurelia.key_box.lasts"), left() + PAD, y + 5, AureliaPalette.TEXT);
 		final int groupX = minusX();
 		final int groupWidth = 2 * STEP_BUTTON + VALUE_WIDTH;
 		AureliaChrome.rounded(context, groupX, y, groupWidth, STEP_BUTTON, 6, AureliaPalette.RAISED);
@@ -319,7 +319,7 @@ public final class KeyBoxScreen extends Screen {
 		context.fill(minusX() + STEP_BUTTON, y + 4, minusX() + STEP_BUTTON + 1, y + STEP_BUTTON - 4, AureliaPalette.LINE);
 		context.fill(plusX() - 1, y + 4, plusX(), y + STEP_BUTTON - 4, AureliaPalette.LINE);
 		final Text value = duration(timeout);
-		context.drawTextWithShadow(textRenderer, value, minusX() + STEP_BUTTON + (VALUE_WIDTH - textRenderer.getWidth(value)) / 2, y + 5, 0xFFFFFF);
+		context.drawTextWithShadow(textRenderer, value, minusX() + STEP_BUTTON + (VALUE_WIDTH - textRenderer.getWidth(value)) / 2, y + 5, AureliaPalette.TEXT);
 	}
 
 	private void stepButton(DrawContext context, int x, int y, String label, int id, int mouseX, int mouseY, boolean active) {
@@ -328,7 +328,7 @@ public final class KeyBoxScreen extends Screen {
 		if (hovered || down) {
 			AureliaChrome.rounded(context, x + 1, y + 1, STEP_BUTTON - 2, STEP_BUTTON - 2, 5, down ? AureliaPalette.LINE : AureliaPalette.RAISED_HOVER);
 		}
-		context.drawTextWithShadow(textRenderer, label, x + (STEP_BUTTON - textRenderer.getWidth(label)) / 2 + 1, y + 5, active ? 0xFFFFFF : 0x555B62);
+		context.drawTextWithShadow(textRenderer, label, x + (STEP_BUTTON - textRenderer.getWidth(label)) / 2 + 1, y + 5, AureliaChrome.labelColor(active));
 	}
 
 	/** The hint on the left and the one filled button, Done, on the right. */
@@ -340,7 +340,7 @@ public final class KeyBoxScreen extends Screen {
 		final boolean hovered = inside(mouseX, mouseY, doneX(), y, DONE_WIDTH, ROW_HEIGHT);
 		AureliaChrome.rounded(context, doneX(), y, DONE_WIDTH, ROW_HEIGHT, 6, hovered ? AureliaChrome.mix(AureliaPalette.ACCENT, 0xFFFFFFFF, 0.12F) : AureliaPalette.ACCENT);
 		final Text done = Text.translatable("gui.done");
-		context.drawTextWithShadow(textRenderer, done, doneX() + (DONE_WIDTH - textRenderer.getWidth(done)) / 2, y + 5, 0xFFFFFF);
+		context.drawTextWithShadow(textRenderer, done, doneX() + (DONE_WIDTH - textRenderer.getWidth(done)) / 2, y + 5, AureliaPalette.TEXT);
 	}
 
 	@Override

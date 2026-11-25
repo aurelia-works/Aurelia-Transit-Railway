@@ -272,4 +272,22 @@ class StationClassTest {
 		assertEquals(8, StationDescriptionParser.parse("1 track, no roof, 8 wide").spec().platformWidth(), "a said width wins");
 		assertEquals(StationSpec.DEFAULT_SIDE_WIDTH, StationDescriptionParser.parse("1 track, no roof, with station building").spec().platformWidth());
 	}
+
+	/**
+	 * The plan's "hub" class is the city class (Jah, 11-24): the city building and the city's 200-block platforms, not a bigger class,
+	 * whether said in words or picked in Studio's class field.
+	 */
+	@Test
+	void hubClassIsTheCityClass() {
+		for (final String words : new String[]{"hub class", "8 track hub class station", "paris style station, hub class", "6 tracks, hub class, island platforms"}) {
+			assertEquals(spec(words.replace("hub class", "city class")), spec(words), words);
+		}
+		final StationSpec hub = spec("hub class");
+		assertEquals(StationClass.CITY, hub.stationClass());
+		assertEquals(StationScale.CITY, hub.buildingScale());
+		assertEquals(StationDescriptionParser.CITY_LENGTH, hub.platformLength());
+		assertEquals(StationClass.CITY, StationClass.of("hub"));
+		assertEquals(spec(com.aureliatransit.architecture.station.studio.StudioApi.description(java.util.Map.of("class", "city"))),
+				spec(com.aureliatransit.architecture.station.studio.StudioApi.description(java.util.Map.of("class", "hub"))));
+	}
 }

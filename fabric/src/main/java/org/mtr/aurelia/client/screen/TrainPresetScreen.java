@@ -2,6 +2,7 @@ package org.mtr.aurelia.client.screen;
 
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.PresetStore;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.preset.PresetCheck;
 import org.mtr.aurelia.preset.PresetLibrary;
 import org.mtr.aurelia.preset.TrainPreset;
@@ -27,10 +28,10 @@ public final class TrainPresetScreen extends Screen {
 
 	private static final int MARGIN = 8;
 	private static final int TOP = 32;
-	private static final int COLOR_TEXT = 0xFFFFFF;
-	private static final int COLOR_DIM = 0xA0A0A0;
-	private static final int COLOR_OK = 0x55FF55;
-	private static final int COLOR_ERROR = 0xFF5555;
+	private static final int COLOR_TEXT = AureliaPalette.TEXT;
+	private static final int COLOR_DIM = AureliaPalette.TEXT_DIM;
+	private static final int COLOR_OK = AureliaPalette.SUCCESS;
+	private static final int COLOR_ERROR = AureliaPalette.DANGER;
 	/** Pre-select the closest siding when the player stands this close to it (blocks). */
 	private static final double NEAR_SIDING_DISTANCE = 32;
 
