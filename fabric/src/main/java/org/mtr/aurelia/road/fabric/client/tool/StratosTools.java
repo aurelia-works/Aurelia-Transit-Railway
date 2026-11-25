@@ -42,6 +42,7 @@ import org.mtr.aurelia.road.road.nodes.MtrNodes;
 import org.mtr.aurelia.road.road.tool.CurveTool;
 import org.mtr.aurelia.road.road.tool.EditRoadsTool;
 import org.mtr.aurelia.road.road.tool.JoinableRoads;
+import org.mtr.aurelia.road.road.tool.JunctionTool;
 import org.mtr.aurelia.road.road.tool.NodesTool;
 import org.mtr.aurelia.road.road.tool.RoadChoices;
 import org.mtr.aurelia.road.road.tool.RoadSettings;
@@ -298,9 +299,10 @@ public final class StratosTools {
         loadChoices();
         session = new ToolSession(StratosPreview.preview(), new Environment());
         // R-5: both road tools may join the ends of the roads the node aids know (yours you can still undo, and this visit's).
-        JoinableRoads joins = new JoinableRoads(() -> StratosNodes.aids().roads().roads());
+        JoinableRoads joins = new JoinableRoads(() -> StratosNodes.aids().roads().roads(), () -> StratosNodes.aids().roads().junctions());
         session.register(new StraightTool(ROAD_SETTINGS, joins));
         session.register(new CurveTool(ROAD_SETTINGS, joins));
+        session.register(new JunctionTool(ROAD_SETTINGS, joins)); // G-11
         session.register(new NodesTool(StratosNodes.aids()));
         // R-7: pick one of the node aids' roads, then rebuild or delete it.
         session.register(new EditRoadsTool(StratosNodes.aids().roads(), ROAD_SETTINGS));

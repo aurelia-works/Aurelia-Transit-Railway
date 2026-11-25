@@ -286,7 +286,7 @@ public final class EditRoadsTool implements Tool {
     private void startEditing() {
         UUID id = this.picked.operationId();
         this.settings.follow(this.picked.params());
-        this.editor = new CurveTool(this.settings, JoinableRoads.editing(id, this.roads::roads));
+        this.editor = new CurveTool(this.settings, JoinableRoads.editing(id, this.roads::roads, this.roads::junctions));
         this.editor.load(this.picked.params());
         this.stage = Stage.EDITING;
         this.notice = null;

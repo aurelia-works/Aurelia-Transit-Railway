@@ -447,6 +447,9 @@ final class WorldTasks {
             for (EditWorld world : worlds) {
                 List<OperationRecord> records = EditorServer.applied(world.operations(), RoadsModule.ID);
                 for (RoadHistory.Road road : RoadsModule.standing(records).values()) {
+                    if (road.params().tool() == RoadPlanParams.Tool.JUNCTION) {
+                        continue; // G-11: a junction isn't rebuilt (its give-way lines are its own)
+                    }
                     Optional<Palette> palette = world.limits().palettes().byId(road.params().paletteId());
                     if (palette.isEmpty() || !(palette.get().lines(LineMarking.Colour.WHITE) || palette.get().lines(LineMarking.Colour.YELLOW))) {
                         continue; // no line blocks to redraw

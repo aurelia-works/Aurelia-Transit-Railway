@@ -106,6 +106,7 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
     @Override
     public boolean usesPlaced(RoadPlanParams params) {
         return params.tool() == RoadPlanParams.Tool.REBUILD || params.tool() == RoadPlanParams.Tool.DELETE
+                || params.tool() == RoadPlanParams.Tool.JUNCTION // G-11: its arms may take road ends
                 || (params.tool() == RoadPlanParams.Tool.STRAIGHT || params.tool() == RoadPlanParams.Tool.CURVE)
                 && params.ends().stream().anyMatch(end -> end.snapRoadId().isPresent());
     }
@@ -200,10 +201,15 @@ public final class RoadsModule implements PlanModule<RoadPlanParams> {
         return union;
     }
 
-    /** The blocks of the roads joined to {@code road} that aren't in {@code group}, which its replacement keeps. */
+    /**
+     * The blocks of the roads joined to {@code road} that aren't in {@code group}, and (G-11) of the junctions joined to it,
+     * which its replacement keeps.
+     */
     private static Set<Long> keep(RoadGraph graph, UUID road, Set<UUID> group, Map<UUID, RoadHistory.Road> roads, WorldLimits limits) {
         Set<Long> keep = new HashSet<>();
-        for (UUID neighbour : graph.neighbours(road)) {
+        Set<UUID> joined = new LinkedHashSet<>(graph.neighbours(road));
+        joined.addAll(graph.junctionsOf(road));
+        for (UUID neighbour : joined) {
             if (!group.contains(neighbour)) {
                 keep.addAll(blocks(roads.get(neighbour).params(), limits));
             }

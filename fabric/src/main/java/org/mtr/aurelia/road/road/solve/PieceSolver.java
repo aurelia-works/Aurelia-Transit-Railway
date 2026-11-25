@@ -340,6 +340,19 @@ public final class PieceSolver {
         return usable(rail, ORIGIN, span, start.heading(), end.heading()) ? Optional.of(rail) : Optional.empty();
     }
 
+    /**
+     * G-11: the level rail MTR lays from a lane node to another {@code span} away, leaving at {@code from} and arriving at
+     * {@code to}, or empty unless MTR lays it as given: built, on its two nodes, running forwards, and joined the same way
+     * whichever facing each node has (the bar every road lane meets). For junction templates' turning lanes.
+     */
+    public static Optional<RailMath> laneLink(BlockStep span, Heading from, Heading to) {
+        if ((span.dx() == 0 && span.dz() == 0) || to == from.opposite()) {
+            return Optional.empty();
+        }
+        RailMath rail = rail(ORIGIN, 0, span, 0, from, to, Rail.Shape.QUADRATIC, 0);
+        return usable(rail, ORIGIN, span, from, to) && mtrJoinsAsLaid(ORIGIN, span, from, to) ? Optional.of(rail) : Optional.empty();
+    }
+
     /** A rail from {@code a} to {@code b} (relative to the start node), built with MTR's heading convention. */
     private static RailMath rail(BlockStep a, int ya, BlockStep b, int yb, Heading from, Heading to, Rail.Shape shape, double radius) {
         return new RailMath(new Position(a.dx(), ya, a.dz()), MtrRails.angle(from), new Position(b.dx(), yb, b.dz()), MtrRails.angle(to.opposite()),

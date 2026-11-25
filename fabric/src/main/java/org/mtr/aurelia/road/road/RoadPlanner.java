@@ -15,6 +15,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.mtr.aurelia.road.geom.BlockStep;
+import org.mtr.aurelia.road.geom.BlockXZ;
 import org.mtr.aurelia.road.geom.Frame;
 import org.mtr.aurelia.road.geom.Heading;
 import org.mtr.aurelia.road.geom.Vec2;
@@ -24,6 +26,12 @@ import org.mtr.aurelia.road.ops.WorldLimits;
 import org.mtr.aurelia.road.preview.Handle;
 import org.mtr.aurelia.road.proto.PlanResult;
 import org.mtr.aurelia.road.proto.Protocol;
+import org.mtr.aurelia.road.road.graph.RoadGraph;
+import org.mtr.aurelia.road.road.junction.JunctionFootprint;
+import org.mtr.aurelia.road.road.junction.JunctionSnap;
+import org.mtr.aurelia.road.road.junction.JunctionTemplate;
+import org.mtr.aurelia.road.road.junction.JunctionTemplates;
+import org.mtr.aurelia.road.road.junction.PlacedJunction;
 import org.mtr.aurelia.road.road.nodes.MtrNodes;
 import org.mtr.aurelia.road.road.palette.Palette;
 import org.mtr.aurelia.road.road.raster.Column;
@@ -161,6 +169,15 @@ public final class RoadPlanner {
      */
     public static final String ROAD_TOO_OLD = "ROAD_TOO_OLD";
 
+    /**
+     * Upstream BUG-2: the road's lanes would end staggered (a sharp bend near an end leaves a column beside one lane with
+     * no lane beyond it), which the rasteriser can't build yet. Refused with a reason instead of an internal error.
+     */
+    public static final String LANE_ENDS_STAGGERED = "LANE_ENDS_STAGGERED";
+
+    /** G-11: a junction request names no template there is (an unknown template, size or arm layout). */
+    public static final String UNKNOWN_JUNCTION = "UNKNOWN_JUNCTION";
+
     /** The shortest piece, in blocks (roads-v1 §12). */
     public static final double MIN_LENGTH = 2;
 
@@ -236,6 +253,9 @@ public final class RoadPlanner {
         if (params.tool() == RoadPlanParams.Tool.REBUILD || params.tool() == RoadPlanParams.Tool.DELETE) {
             return edit(params, limits, wantShape, placed);
         }
+        if (params.tool() == RoadPlanParams.Tool.JUNCTION) {
+            return junction(params, limits, wantShape, placed, checkJoins);
+        }
         Outcome early = refusal(params);
         if (early != null) {
             return early;
@@ -305,7 +325,41 @@ public final class RoadPlanner {
         if (palette.get().steps() == 1 && start.y() != end.y()) {
             warnings.add(new PlanResult.Warning(FULL_BLOCK_STEPS, Map.of()));
         }
-        return build(params, profile, palette.get(), pieces, limits, wantShape, warnings);
+        return besideJunctions(build(params, profile, palette.get(), pieces, limits, wantShape, warnings), params, placed);
+    }
+
+    /**
+     * {@code outcome} for the road {@code params} without the columns of the junctions its ends join (G-11; roads-v1 §7:
+     * "junction pieces own their footprint and take priority over road pieces that overlap it"): the arm's port row is the
+     * junction's, so placing or deleting the road leaves the junction as it is.
+     */
+    private static Outcome besideJunctions(Outcome outcome, RoadPlanParams params, Map<UUID, RoadPlanParams> placed) {
+        if (!outcome.result().isPlanned()) {
+            return outcome;
+        }
+        Set<Long> owned = new HashSet<>();
+        for (RoadPlanParams.End end : params.ends()) {
+            RoadPlanParams junction = end.snapRoadId().map(placed::get).orElse(null);
+            if (junction == null || junction.tool() != RoadPlanParams.Tool.JUNCTION || end.snapPortIndex().orElse(0) < RoadJoins.ARM_PORTS) {
+                continue;
+            }
+            Optional<JunctionTemplate> template = junction.junction().flatMap(j -> JunctionTemplates.of(j, junction.drivingSide()));
+            Optional<PlacedJunction> at = template.flatMap(t -> PlacedJunction.from(t, junction.ends()));
+            if (at.isPresent()) {
+                JunctionFootprint.columns(template.get()).keySet().forEach(local -> {
+                    BlockStep world = at.get().world(local.dx(), local.dz());
+                    owned.add(BlockChange.positionKey(world.dx(), 0, world.dz()));
+                });
+            }
+        }
+        if (owned.isEmpty()) {
+            return outcome;
+        }
+        PlanResult result = outcome.result();
+        BlockPlan.Builder plan = BlockPlan.builder(result.plan().orElseThrow().dataVersion());
+        result.plan().orElseThrow().blocks().stream().filter(block -> !owned.contains(BlockChange.positionKey(block.x(), 0, block.z())))
+                .forEach(block -> plan.set(block.x(), block.y(), block.z(), block.state(), block.data()));
+        return new Outcome(PlanResult.planned(plan.build(), result.warnings(), result.sideEffects()), Optional.empty());
     }
 
     /**
@@ -329,12 +383,18 @@ public final class RoadPlanner {
         if (road == null) {
             return refused(ROAD_GONE, Map.of());
         }
+        if (road.tool() == RoadPlanParams.Tool.JUNCTION) {
+            return notYet("junction_edit"); // G-11: a junction is placed and undone, not rebuilt or deleted yet
+        }
         boolean rebuild = params.tool() == RoadPlanParams.Tool.REBUILD;
         // R-9: a rebuild may put the road in another palette (owner, 2026-10-10) without editing it.
         RoadPlanParams asked = rebuild ? params.withPalette(road.paletteId()) : params;
         if (!road.road().equals(asked.road())) {
             if (!rebuild) {
                 return refused(ROAD_CHANGED, Map.of());
+            }
+            if (pullsFromJunction(id, road, params.road(), placed)) {
+                return refused(ROAD_JOINED, Map.of()); // G-11: a junction doesn't follow a moved end
             }
             List<RoadJoins.Incoming> incoming = RoadJoins.incoming(id, placed);
             Map<UUID, RoadPlanParams> others = new LinkedHashMap<>(placed);
@@ -361,6 +421,97 @@ public final class RoadPlanner {
         }
         List<SideEffect> track = params.tool() == RoadPlanParams.Tool.REBUILD ? result.sideEffects() : List.of();
         return new Outcome(PlanResult.planned(result.plan().orElseThrow(), List.of(), track), Optional.empty());
+    }
+
+    /**
+     * Whether editing road {@code id} from {@code before} to {@code edited} moves an end joined to a junction's arm, either
+     * way round, or drops its join (G-11): a junction stays where it is, so that edit would pull the road away from it.
+     */
+    private static boolean pullsFromJunction(UUID id, RoadPlanParams before, RoadPlanParams edited, Map<UUID, RoadPlanParams> placed) {
+        if (before.ends().size() != 2 || edited.ends().size() != 2) {
+            return false;
+        }
+        RoadGraph graph = RoadGraph.of(placed);
+        for (int i = 0; i < 2; i++) {
+            RoadPlanParams.End was = before.ends().get(i);
+            RoadPlanParams.End now = edited.ends().get(i);
+            boolean same = was.x() == now.x() && was.y() == now.y() && was.z() == now.z() && was.heading() == now.heading()
+                    && was.snapRoadId().equals(now.snapRoadId()) && was.snapPortIndex().equals(now.snapPortIndex());
+            if (!same && graph.atJunction(id, i)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A junction piece (G-11; R-8a, R-8b; roads-v1 §11), as the {@link RoadPlanParams.Tool#JUNCTION} request names it: its
+     * template ({@link JunctionTemplates}, for the request's driving side), set where its ends say (one per arm, each its
+     * arm's port facing the way a road leaving it runs: {@link PlacedJunction#from}; otherwise {@link RoadJoins#PORT_MISMATCH}),
+     * each end that names a road end joining it ({@link JunctionSnap#joinRefusal}).
+     * <ul>
+     *   <li><b>Blocks:</b> its surface, kerbs and give-way lines ({@link JunctionFootprint}), level at the ports' height,
+     *       with the node aid at every lane node: the arms' (the roads' own end nodes) and a roundabout's ring nodes.</li>
+     *   <li><b>Track</b> (with {@code TRACK}): one rail per link of the template, one way from its first node to its
+     *       second, at the arm layout's speed (G-4+): the turns, entries, ring pieces and exits MTR lays as given (G-11).</li>
+     * </ul>
+     */
+    private static Outcome junction(RoadPlanParams params, WorldLimits limits, boolean wantShape, Map<UUID, RoadPlanParams> placed,
+            boolean checkJoins) {
+        Optional<JunctionTemplate> template = params.junction().flatMap(junction -> JunctionTemplates.of(junction, params.drivingSide()));
+        if (template.isEmpty()) {
+            return refused(UNKNOWN_JUNCTION, Map.of());
+        }
+        Optional<PlacedJunction> at = PlacedJunction.from(template.get(), params.ends());
+        if (at.isEmpty()) {
+            return refused(RoadJoins.PORT_MISMATCH, Map.of());
+        }
+        Optional<Palette> palette = limits.palettes().byId(params.paletteId());
+        if (palette.isEmpty()) {
+            return refused(UNKNOWN_PALETTE, Map.of("palette", params.paletteId()));
+        }
+        boolean mtrNodes = params.nodeAids() == RoadPlanParams.NodeAids.PREORIENTED || params.nodeAids() == RoadPlanParams.NodeAids.TRACK;
+        if (mtrNodes && !limits.hasBlock(MtrNodes.BLOCK)) {
+            return refused(MTR_MISSING, Map.of());
+        }
+        if (checkJoins) {
+            Optional<String> joins = JunctionSnap.joinRefusal(at.get(), params.ends(), placed);
+            if (joins.isPresent()) {
+                return refused(joins.get(), Map.of());
+            }
+        }
+        int y = at.get().y();
+        if (y < limits.minY() || y >= limits.maxY()) {
+            return refused(WORLD_LIMIT, Map.of());
+        }
+        Map<BlockXZ, Column> columns = new LinkedHashMap<>();
+        JunctionFootprint.columns(template.get()).forEach((local, column) -> {
+            BlockStep world = at.get().world(local.dx(), local.dz());
+            columns.put(new BlockXZ(world.dx(), world.dz()), column);
+        });
+        BlockPlan plan = Rasteriser.junction(columns, y + 1, palette.get(), limits.minY(), limits.maxY());
+        List<LaneNode> nodes = new ArrayList<>();
+        for (int i = 0; i < template.get().nodes().size(); i++) {
+            RoadPlanParams.End node = at.get().node(i);
+            nodes.add(new LaneNode(1, node.x(), node.y(), node.z(), node.heading()));
+        }
+        plan = withNodeAids(plan, nodes, palette.get(), params.nodeAids());
+        for (BlockPlan.Block block : plan.blocks()) {
+            if (!limits.contains(block.x(), block.y(), block.z())) {
+                return new Outcome(PlanResult.refused(WORLD_LIMIT), wantShape ? Optional.of(plan) : Optional.empty());
+            }
+        }
+        List<SideEffect> track = new ArrayList<>();
+        if (params.nodeAids() == RoadPlanParams.NodeAids.TRACK) {
+            int speed = RoadProfiles.byId(template.get().arms().get(0).profileId()).orElseThrow().group().trackSpeed();
+            for (JunctionTemplate.Link link : template.get().links()) {
+                LaneNode a = nodes.get(link.from());
+                LaneNode b = nodes.get(link.to());
+                track.add(new SideEffect.TrackRail(a.x(), a.nodeY(), a.z(), a.mtrFacing(), b.x(), b.nodeY(), b.z(), b.mtrFacing(), speed, 0,
+                        SideEffect.TrackRail.Shape.QUADRATIC, 0));
+            }
+        }
+        return new Outcome(PlanResult.planned(plan, List.of(), track), Optional.empty());
     }
 
     /**
@@ -429,7 +580,12 @@ public final class RoadPlanner {
         boolean clearing = params.tool() == RoadPlanParams.Tool.CLEAR_MARKERS;
         boolean heightOutside = start.y() < limits.minY() || start.y() >= limits.maxY() || end.y() < limits.minY() || end.y() >= limits.maxY();
         // The foundation and the clearance stop at the build height; the surface itself is checked below.
-        BlockPlan plan = Rasteriser.plan(rasterPieces(profile, pieces, params.dashes()), palette, limits.minY(), limits.maxY());
+        BlockPlan plan;
+        try {
+            plan = Rasteriser.plan(rasterPieces(profile, pieces, params.dashes()), palette, limits.minY(), limits.maxY());
+        } catch (Rasteriser.StaggeredLaneEnds staggered) {
+            return refused(LANE_ENDS_STAGGERED, Map.of()); // upstream BUG-2
+        }
         List<LaneNode> nodes = LaneNodes.of(pieces);
         plan = withNodeColumns(plan, nodes, palette, limits);
         if (clearing) {

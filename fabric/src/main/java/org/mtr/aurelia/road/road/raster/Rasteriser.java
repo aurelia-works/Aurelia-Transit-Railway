@@ -39,6 +39,16 @@ import org.mtr.aurelia.road.road.line.MarkingCurve;
  * surface's top face (S6a). {@link #plan} fits it to the palette's steps and stacks the column ({@link SurfaceFit}).
  */
 public final class Rasteriser {
+    /**
+     * A column beside a lane with no neighbouring lane where the road needs one: the lanes end staggered (upstream BUG-2),
+     * which staggered lane ends would handle (not built yet). The planner refuses such a road.
+     */
+    public static final class StaggeredLaneEnds extends IllegalStateException {
+        StaggeredLaneEnds(String message) {
+            super(message);
+        }
+    }
+
     /** A classified column and its target top (absolute, unrounded but snapped). */
     public record Cell(Column column, double top) {
     }
@@ -120,6 +130,22 @@ public final class Rasteriser {
     public static BlockPlan plan(List<RoadPiece> pieces, BlockPalette palette, int minY, int maxY) {
         BlockPlan.Builder plan = BlockPlan.builder(palette.dataVersion());
         for (Map.Entry<BlockXZ, Cell> entry : planCells(pieces, palette)) {
+            SurfaceFit.stack(plan, entry.getKey().x(), entry.getKey().z(), entry.getValue().column(), entry.getValue().top(), palette, minY, maxY);
+        }
+        return plan.build();
+    }
+
+    /**
+     * The block plan of a junction piece (G-11): its columns (by world block; {@code road.junction.JunctionFootprint}), all
+     * level at {@code top}, with real kerbs where {@code palette}'s kerb turns to face the road (B-1), stacked as a road's
+     * columns are. Its give-way lines come painted with their chords already.
+     */
+    public static BlockPlan junction(Map<BlockXZ, Column> columns, double top, BlockPalette palette, int minY, int maxY) {
+        List<Map.Entry<BlockXZ, Cell>> cells = new ArrayList<>();
+        columns.forEach((xz, column) -> cells.add(Map.entry(xz, new Cell(column, snap(top)))));
+        List<Map.Entry<BlockXZ, Cell>> kerbed = palette.kerbEdges() ? withKerbs(cells) : cells;
+        BlockPlan.Builder plan = BlockPlan.builder(palette.dataVersion());
+        for (Map.Entry<BlockXZ, Cell> entry : kerbed) {
             SurfaceFit.stack(plan, entry.getKey().x(), entry.getKey().z(), entry.getValue().column(), entry.getValue().top(), palette, minY, maxY);
         }
         return plan.build();
@@ -351,7 +377,7 @@ public final class Rasteriser {
         }
         if (left != null && right != null) {
             if (right.lane() != left.lane() + 1) {
-                throw new IllegalStateException("Column " + p + " lies between lanes " + left.lane() + " and " + right.lane()
+                throw new StaggeredLaneEnds("Column " + p + " lies between lanes " + left.lane() + " and " + right.lane()
                         + ", which aren't neighbours; staggered lane ends come with G-6+");
             }
             Column column = between(piece, layout, left, right);
@@ -366,7 +392,7 @@ public final class Rasteriser {
         boolean rightSide = left != null;
         int outermost = rightSide ? lanes.size() - 1 : 0;
         if (outer.lane() != outermost) {
-            throw new IllegalStateException("Column " + p + " is beside lane " + outer.lane() + " but no lane beyond it; staggered lane ends come with G-6+");
+            throw new StaggeredLaneEnds("Column " + p + " is beside lane " + outer.lane() + " but no lane beyond it; staggered lane ends come with G-6+");
         }
         Column column = outside(layout, outer, rightSide);
         return column == null ? null : new Cell(column, snap(piece.height(outer.lane(), outer.s()) + 1));

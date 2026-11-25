@@ -85,6 +85,7 @@ public enum HubIcon {
             case "roads.curve" -> ROAD_CURVE;
             case "roads.nodes" -> LANE_NODES;
             case "roads.edit" -> EDIT_ROADS;
+            case "roads.junction" -> JOINED; // G-11: roads meeting
             default -> INFO;
         };
     }

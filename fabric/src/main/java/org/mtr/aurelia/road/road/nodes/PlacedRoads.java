@@ -7,6 +7,7 @@ package org.mtr.aurelia.road.road.nodes;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -250,6 +251,26 @@ public final class PlacedRoads {
             }
         }
         return active;
+    }
+
+    /**
+     * G-11: the junctions that stand now, by the operation that placed each, newest first. They have no lane nodes of their
+     * own for the aids, so {@link #roads()} leaves them out; the road tools join their free arms.
+     */
+    public Map<UUID, RoadPlanParams> junctions() {
+        List<RoadHistory.Op> ops = new ArrayList<>();
+        for (Entry entry : this.entries) {
+            ops.add(new RoadHistory.Op(entry.id(), entry.params(), !this.undone.contains(entry.id())));
+        }
+        Map<UUID, RoadHistory.Road> standing = RoadHistory.resolve(ops);
+        Map<UUID, RoadPlanParams> junctions = new LinkedHashMap<>();
+        for (int i = this.entries.size() - 1; i >= 0; i--) {
+            RoadHistory.Road stands = standing.get(this.entries.get(i).id());
+            if (stands != null && stands.params().tool() == RoadPlanParams.Tool.JUNCTION) {
+                junctions.put(stands.id(), stands.params());
+            }
+        }
+        return junctions;
     }
 
     /**
