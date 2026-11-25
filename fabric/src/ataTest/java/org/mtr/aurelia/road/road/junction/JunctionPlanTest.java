@@ -34,6 +34,13 @@ import org.mtr.aurelia.road.road.RoadPlanner;
 import org.mtr.aurelia.road.road.RoadsModule;
 import org.mtr.aurelia.road.road.graph.RoadGraph;
 import org.mtr.aurelia.road.road.nodes.MtrNodes;
+import org.mtr.aurelia.road.road.nodes.PlacedRoads;
+import org.mtr.aurelia.road.road.tool.JoinableRoads;
+import org.mtr.aurelia.road.road.tool.JunctionTool;
+import org.mtr.aurelia.road.road.tool.RoadSettings;
+import org.mtr.aurelia.road.road.tool.StraightTool;
+import org.mtr.aurelia.road.tool.Target;
+import org.mtr.aurelia.road.tool.ToolInput;
 import org.mtr.aurelia.road.road.raster.Column;
 import org.mtr.aurelia.road.road.solve.PieceSolver;
 import org.mtr.aurelia.road.spi.SideEffectWriter;
@@ -146,6 +153,48 @@ class JunctionPlanTest {
     }
 
     /** #189: B follows A's moved end, then B alone is deleted: A's track, made by the move, stays. */
+    /**
+     * The in-world half: the Junction tool snaps a T onto a road's end the player aims near, and once it stands the road
+     * tools offer its free arms (port {@code ARM_PORTS} + arm), so a road drawn there joins it and plans.
+     */
+    @Test
+    void theJunctionToolSnapsOntoARoadEndAndItsFreeArmsCanBeJoined() {
+        UUID road = new UUID(0, 0x51);
+        UUID junction = new UUID(0, 0x52);
+        RoadPlanParams a = RoadPlanParams.curve("city-17", End.at(0, 64, 0, Heading.E), End.at(30, 64, 0, Heading.E));
+        PlacedRoads placed = new PlacedRoads();
+        placed.placed(road, a, RoadPlanner.plan(a, WorldLimits.OVERWORLD).plan().orElseThrow());
+        JoinableRoads joins = new JoinableRoads(placed::roads, placed::junctions);
+        RoadSettings settings = new RoadSettings();
+        settings.setNodeAids(RoadPlanParams.NodeAids.NONE);
+        JunctionTool tool = new JunctionTool(settings, joins);
+        tool.input(new ToolInput.Aim(Optional.of(new Target(31, 64, 1, 5))));
+        RoadPlanParams t = tool.params().orElseThrow();
+        assertEquals(Optional.of(road), t.ends().stream().flatMap(end -> end.snapRoadId().stream()).findFirst(), "snapped onto A's end");
+        PlanResult planned = new StraightTool.RoadJob(t, joins.placed()).run(WorldLimits.OVERWORLD).result();
+        assertTrue(planned.isPlanned(), () -> "refused " + planned.code());
+
+        placed.placed(junction, t, planned.plan().orElseThrow());
+        int free = -1;
+        for (int i = 0; i < t.ends().size(); i++) {
+            free = t.ends().get(i).snapRoadId().isEmpty() ? i : free;
+        }
+        End arm = t.ends().get(free);
+        JoinableRoads.Join join = joins.near(arm.x(), arm.y(), arm.z()).orElseThrow();
+        assertEquals(junction, join.road());
+        assertEquals(RoadJoins.ARM_PORTS + free, join.port().index());
+        BlockStep out = switch (arm.heading()) {
+            case E -> new BlockStep(1, 0);
+            case W -> new BlockStep(-1, 0);
+            case S -> new BlockStep(0, 1);
+            default -> new BlockStep(0, -1);
+        };
+        End from = new End(arm.x(), arm.y(), arm.z(), arm.heading(), Optional.of(junction), OptionalInt.of(join.port().index()));
+        RoadPlanParams stem = joins.finish(RoadPlanParams.curve("city-17", from, End.at(arm.x() + 20 * out.dx(), 64, arm.z() + 20 * out.dz(), arm.heading())));
+        PlanResult drawn = StraightTool.RoadJob.of(stem, joins).run(WorldLimits.OVERWORLD).result();
+        assertTrue(drawn.isPlanned(), () -> "refused " + drawn.code());
+    }
+
     @Test
     void deletingTheRoadThatFollowedKeepsTheEditedRoadsTrack() throws IOException {
         start();

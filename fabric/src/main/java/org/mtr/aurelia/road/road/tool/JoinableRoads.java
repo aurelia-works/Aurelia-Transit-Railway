@@ -26,6 +26,7 @@ import org.mtr.aurelia.road.tool.Target;
  *       middle of one of these roads' ends ({@link RoadJoins.Port}), at its height ±{@value #HEIGHT}, joins it. The
  *       nearest end wins; on a tie, the newest road's.</li>
  *   <li>An end another road already joins isn't offered: a road there would make a junction (Slice D).</li>
+ *   <li>G-11: a standing junction's free arms are offered too, as ports {@link RoadJoins#ARM_PORTS} + arm.</li>
  * </ul>
  */
 public final class JoinableRoads {
@@ -46,20 +47,30 @@ public final class JoinableRoads {
     }
 
     private final Supplier<List<PlacedRoads.Road>> roads;
+    /** G-11: the standing junctions, by operation id (newest first). */
+    private final Supplier<Map<UUID, RoadPlanParams>> junctions;
     /** R-10+: the road being edited, which is among the roads but can't be joined (empty when drawing a new road). */
     private final Optional<UUID> editing;
     /** The roads {@link #graph} was last built from (the node aids keep each road's object while it stands). */
     private List<PlacedRoads.Road> graphOf = List.of();
+    /** The junctions {@link #graph} was last built with. */
+    private Map<UUID, RoadPlanParams> graphJunctions = Map.of();
     /** The road graph of {@link #graphOf}, built when the roads listed change, not on every aim (council r4). */
     private RoadGraph graph = RoadGraph.EMPTY;
 
     /** The roads {@code roads} lists, newest first, asked each time. */
     public JoinableRoads(Supplier<List<PlacedRoads.Road>> roads) {
-        this(roads, Optional.empty());
+        this(roads, Map::of);
     }
 
-    private JoinableRoads(Supplier<List<PlacedRoads.Road>> roads, Optional<UUID> editing) {
+    /** The roads {@code roads} lists, newest first, and (G-11) the junctions {@code junctions} lists, asked each time. */
+    public JoinableRoads(Supplier<List<PlacedRoads.Road>> roads, Supplier<Map<UUID, RoadPlanParams>> junctions) {
+        this(roads, junctions, Optional.empty());
+    }
+
+    private JoinableRoads(Supplier<List<PlacedRoads.Road>> roads, Supplier<Map<UUID, RoadPlanParams>> junctions, Optional<UUID> editing) {
         this.roads = Objects.requireNonNull(roads, "roads");
+        this.junctions = Objects.requireNonNull(junctions, "junctions");
         this.editing = Objects.requireNonNull(editing, "editing");
     }
 
@@ -68,7 +79,12 @@ public final class JoinableRoads {
      * join the others' free ends, never its own; the others' ends drawn onto it are kept ({@link #incoming}).
      */
     public static JoinableRoads editing(UUID road, Supplier<List<PlacedRoads.Road>> roads) {
-        return new JoinableRoads(roads, Optional.of(road));
+        return editing(road, roads, Map::of);
+    }
+
+    /** As {@link #editing(UUID, Supplier)}, with (G-11) the standing junctions. */
+    public static JoinableRoads editing(UUID road, Supplier<List<PlacedRoads.Road>> roads, Supplier<Map<UUID, RoadPlanParams>> junctions) {
+        return new JoinableRoads(roads, junctions, Optional.of(road));
     }
 
     /** The road being edited, if this is an edit (R-10+). */
@@ -76,13 +92,24 @@ public final class JoinableRoads {
         return this.editing;
     }
 
-    /** Every road listed, the edited one included, by operation id (newest first). */
+    /** Every road listed, the edited one included, then (G-11) the junctions, by operation id (newest first). */
     private Map<UUID, RoadPlanParams> all() {
         Map<UUID, RoadPlanParams> all = new LinkedHashMap<>();
         for (PlacedRoads.Road road : this.roads.get()) {
             all.putIfAbsent(road.operationId(), road.params());
         }
+        this.junctions.get().forEach(all::putIfAbsent);
         return all;
+    }
+
+    /** The road graph of the roads and junctions listed now (the junction tool snaps onto it). */
+    public RoadGraph graph() {
+        List<PlacedRoads.Road> listed = this.roads.get();
+        Map<UUID, PlacedRoads.Road> roads = new LinkedHashMap<>();
+        for (PlacedRoads.Road road : listed) {
+            roads.putIfAbsent(road.operationId(), road);
+        }
+        return graph(listed, roads);
     }
 
     /** The roads that can be joined now, by operation id: for the planner, which checks a join against them. */
@@ -108,10 +135,18 @@ public final class JoinableRoads {
      */
     public Optional<Join> joinOf(RoadPlanParams road, int index) {
         RoadPlanParams.End end = road.ends().get(index);
-        if (end.snapRoadId().isEmpty() || end.snapPortIndex().isEmpty() || end.snapPortIndex().getAsInt() > 1) {
+        if (end.snapRoadId().isEmpty() || end.snapPortIndex().isEmpty()) {
             return Optional.empty();
         }
         UUID other = end.snapRoadId().get();
+        if (end.snapPortIndex().getAsInt() >= RoadJoins.ARM_PORTS) { // G-11: drawn onto a junction's arm
+            int arm = end.snapPortIndex().getAsInt() - RoadJoins.ARM_PORTS;
+            List<RoadJoins.Port> arms = Optional.ofNullable(this.junctions.get().get(other)).map(RoadJoins::armPorts).orElse(List.of());
+            return arm < arms.size() ? Optional.of(new Join(other, arms.get(arm))) : Optional.empty();
+        }
+        if (end.snapPortIndex().getAsInt() > 1) {
+            return Optional.empty();
+        }
         return this.roads.get().stream().filter(r -> r.operationId().equals(other) && !this.editing.equals(Optional.of(other))).findFirst()
                 .filter(r -> r.ports().size() == 2).map(r -> new Join(other, r.ports().get(end.snapPortIndex().getAsInt())));
     }
@@ -119,10 +154,11 @@ public final class JoinableRoads {
     /**
      * R-10+: whether end {@code index} of the edited road {@code road} stays where it is while the road is edited: it was
      * drawn onto a standing road. An end another road was drawn onto can be moved (owner, 2026-11-24): that road's end
-     * follows it, in the same operation ({@code RoadJoins.followers}).
+     * follows it, in the same operation ({@code RoadJoins.followers}). G-11: an end a junction's arm was drawn onto stays
+     * too, as the junction doesn't follow.
      */
     public boolean pinned(RoadPlanParams road, int index) {
-        return this.editing.isPresent() && joinOf(road, index).isPresent();
+        return this.editing.isPresent() && (joinOf(road, index).isPresent() || graph().atJunction(this.editing.get(), index));
     }
 
     /**
@@ -155,18 +191,34 @@ public final class JoinableRoads {
                 bestDistance = distance;
             }
         }
+        Map<UUID, RoadPlanParams> junctions = this.junctions.get();
+        for (RoadGraph.Port arm : graph.armsNear(x, z, RADIUS)) { // G-11: a junction's free arm
+            double distance = StrictMath.hypot(arm.x() - x, arm.z() - z);
+            if (distance >= bestDistance || StrictMath.abs(arm.y() - y) > HEIGHT || graph.armTaken(arm.road(), arm.index())
+                    || !junctions.containsKey(arm.road())) {
+                continue;
+            }
+            List<RoadJoins.Port> arms = RoadJoins.armPorts(junctions.get(arm.road()));
+            if (arm.index() < arms.size()) {
+                best = new Join(arm.road(), arms.get(arm.index()));
+                bestDistance = distance;
+            }
+        }
         return Optional.ofNullable(best);
     }
 
     /** The road graph of the roads {@code listed} ({@code roads} by id), the last one built while they are the same roads. */
     private RoadGraph graph(List<PlacedRoads.Road> listed, Map<UUID, PlacedRoads.Road> roads) {
-        if (!listed.equals(this.graphOf)) { // a road's object is its identity: placed, undone or rebuilt, it is another
+        Map<UUID, RoadPlanParams> junctions = this.junctions.get();
+        if (!listed.equals(this.graphOf) || !junctions.equals(this.graphJunctions)) { // a road's object is its identity: placed, undone or rebuilt, it is another
             Map<UUID, RoadPlanParams> standing = new LinkedHashMap<>();
             for (Map.Entry<UUID, PlacedRoads.Road> road : roads.entrySet()) {
                 standing.put(road.getKey(), road.getValue().params());
             }
+            junctions.forEach(standing::putIfAbsent);
             this.graph = RoadGraph.of(standing);
             this.graphOf = List.copyOf(listed);
+            this.graphJunctions = Map.copyOf(junctions);
         }
         return this.graph;
     }
@@ -174,6 +226,13 @@ public final class JoinableRoads {
     /** The layout (profile id) of the road with operation {@code road}, if it can be joined. */
     public Optional<String> profile(UUID road) {
         return this.roads.get().stream().filter(r -> r.operationId().equals(road)).findFirst().map(r -> r.params().profileId());
+    }
+
+    /** G-11: the layout of arm port {@code port} of the junction {@code junction}, if it stands. */
+    public Optional<String> armProfile(UUID junction, int port) {
+        List<RoadJoins.Port> arms = Optional.ofNullable(this.junctions.get().get(junction)).map(RoadJoins::armPorts).orElse(List.of());
+        int arm = port - RoadJoins.ARM_PORTS;
+        return arm >= 0 && arm < arms.size() ? Optional.of(arms.get(arm).profileId()) : Optional.empty();
     }
 
     /** As {@link #near(int, int, int)}, for the block aimed at. */
