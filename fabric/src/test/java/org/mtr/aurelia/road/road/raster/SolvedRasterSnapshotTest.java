@@ -30,8 +30,8 @@ import org.mtr.aurelia.road.road.solve.PieceSolver;
 
 /**
  * ASCII snapshots of solved pieces (task G-6+; residential and alley from G-4+): each lane on its own MTR rail, square ends, with the plan
- * hash on the second line, compared with core/src/test/resources/snapshots/raster-solved/. To accept a deliberate
- * change, run {@code .\gradlew.bat :core:test -PupdateSnapshots=true} and review the diff before committing. Also checks
+ * hash on the second line, compared with fabric/src/test/resources/road-snapshots/raster-solved/. To accept a deliberate
+ * change, run {@code JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true ./gradlew :fabric:test --tests <class>} and review the diff before committing. Also checks
  * that a solved cardinal straight is block for block G-6's straight piece.
  */
 class SolvedRasterSnapshotTest {
@@ -75,7 +75,7 @@ class SolvedRasterSnapshotTest {
                 Files.createDirectories(DIRECTORY);
                 Files.writeString(file, actual, StandardCharsets.UTF_8);
             } else if (!Files.isRegularFile(file)) {
-                differences.add(file + " is missing; run with -PupdateSnapshots=true to create it");
+                differences.add(file + " is missing; run with JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true to create it");
             } else if (!Files.readString(file, StandardCharsets.UTF_8).replace("\r\n", "\n").equals(actual)) {
                 differences.add(file + " differs from the rasteriser's output");
             }

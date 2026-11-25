@@ -28,8 +28,8 @@ import org.mtr.aurelia.road.tool.ToolInput;
 /**
  * The road tool's snapshot (R-2, the road tasks' standard check): from block (0, 64, 0), aiming at the block nearest 10,
  * 40 and 100 blocks along each of the 16 headings, the end the tool picks, its length, how far it is off the start's
- * heading line, the block count and the plan hash, compared with core/src/test/resources/snapshots/tool/. To accept a
- * deliberate change, run {@code .\gradlew.bat :core:test -PupdateSnapshots=true} and review the diff before committing.
+ * heading line, the block count and the plan hash, compared with fabric/src/test/resources/road-snapshots/tool/. To accept a
+ * deliberate change, run {@code JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true ./gradlew :fabric:test --tests <class>} and review the diff before committing.
  */
 class StraightToolSnapshotTest {
     private static final Path FILE = Path.of("src", "test", "resources", "road-snapshots", "tool", "straight-city-17.txt");
@@ -62,7 +62,7 @@ class StraightToolSnapshotTest {
             Files.writeString(FILE, actual.toString(), StandardCharsets.UTF_8);
             return;
         }
-        assertTrue(Files.isRegularFile(FILE), FILE + " is missing; run with -PupdateSnapshots=true to create it");
+        assertTrue(Files.isRegularFile(FILE), FILE + " is missing; run with JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true to create it");
         assertEquals(Files.readString(FILE, StandardCharsets.UTF_8).replace("\r\n", "\n"), actual.toString(), FILE + " differs from the tool's output");
     }
 }

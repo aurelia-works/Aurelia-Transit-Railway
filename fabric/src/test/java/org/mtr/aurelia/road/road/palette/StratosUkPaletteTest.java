@@ -121,7 +121,7 @@ class StratosUkPaletteTest {
                 "{ \"full\": \"stratos:kerb[facing=north,layers=8,shape=straight]\", \"layers\": \"stratos:kerb[facing=north,layers={layers},shape=straight]\", \"edge\": true }");
         assertTrue(refusal(edgedFootway).contains("only the kerb, gully and dropped kerb turn"));
         String noShape = ukWith("\"full\": \"stratos:kerb[facing=north,layers=8,shape=straight]\"", "\"full\": \"stratos:kerb[facing=north,layers=8]\"");
-        assertTrue(refusal(noShape).contains("states have facing and shape"));
+        assertTrue(refusal(noShape).contains("an edge kerb's states have facing and shape"));
         assertTrue(refusal(ukWith("\"raise\": 1, \"edge\"", "\"raise\": 9, \"edge\"")).contains("raise is in eighths of a block, 0 to 8"));
         String linedSurface = ukWith("{ \"full\": \"stratos:asphalt[layers=8]\", \"layers\": \"stratos:asphalt[layers={layers}]\" }",
                 "{ \"full\": \"stratos:white_line[chord=0,layers=8]\", \"layers\": \"stratos:white_line[chord=0,layers={layers}]\", \"line\": true }");

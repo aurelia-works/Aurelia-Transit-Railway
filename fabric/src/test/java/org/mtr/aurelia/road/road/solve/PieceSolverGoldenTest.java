@@ -26,8 +26,8 @@ import org.mtr.aurelia.road.road.RoadProfiles;
 /**
  * Golden cases for the per-lane solver (task G-5): City street pieces from block (0, 0) at y 64 (game-scale), with each
  * lane's nodes, length and tightest radius, or the refusal, compared with
- * core/src/test/resources/snapshots/solve/city-17-golden.txt. To accept a deliberate change, run
- * {@code .\gradlew.bat :core:test -PupdateSnapshots=true} and review the diff before committing.
+ * fabric/src/test/resources/road-snapshots/solve/city-17-golden.txt. To accept a deliberate change, run
+ * {@code JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true ./gradlew :fabric:test --tests <class>} and review the diff before committing.
  */
 class PieceSolverGoldenTest {
     private static final Path FILE = Path.of("src", "test", "resources", "road-snapshots", "solve", "city-17-golden.txt");
@@ -104,7 +104,7 @@ class PieceSolverGoldenTest {
             Files.writeString(FILE, actual.toString(), StandardCharsets.UTF_8);
             return;
         }
-        assertTrue(Files.isRegularFile(FILE), FILE + " is missing; run with -PupdateSnapshots=true to create it");
+        assertTrue(Files.isRegularFile(FILE), FILE + " is missing; run with JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true to create it");
         assertEquals(Files.readString(FILE, StandardCharsets.UTF_8).replace("\r\n", "\n"), actual.toString(), FILE + " differs from the solver's output");
     }
 }

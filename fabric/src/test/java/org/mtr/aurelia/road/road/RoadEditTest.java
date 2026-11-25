@@ -241,4 +241,21 @@ class RoadEditTest {
         assertEquals(RoadPlanner.plan(ROAD, LIMITS).plan().orElseThrow(), plan, "a rebuilt road as placed is the road");
         assertEquals(RoadJoins.ports(ROAD), RoadJoins.ports(edit(RoadPlanParams.Tool.REBUILD, ROAD, Optional.empty())));
     }
+
+    @Test
+    void anEditThatPullsAJoinedRoadAwayIsRefusedButARoadsOwnFarEndMoves() {
+        // B joins A's end.
+        RoadPlanParams joining = RoadPlanParams.straight("city-17", new End(40, 64, 0, Heading.E, Optional.of(A), OptionalInt.of(1)),
+                End.at(80, 64, 0, Heading.E), RoadPlanParams.Vertical.QUADRATIC, RoadPlanParams.NodeAids.TRACK);
+        Map<UUID, RoadPlanParams> standing = Map.of(A, ROAD, B, joining);
+        RoadPlanParams movedA = ROAD.withEnds(List.of(End.at(0, 64, 5, Heading.E), ROAD.ends().get(1)));
+        assertEquals(Optional.of(RoadPlanner.ROAD_JOINED), RoadPlanner.plan(edit(RoadPlanParams.Tool.REBUILD, movedA, Optional.empty()), LIMITS, standing)
+                .code(), "another road joins it");
+        RoadPlanParams movedB = joining.withEnds(List.of(joining.ends().get(0), End.at(90, 64, 0, Heading.E)));
+        // Master (802229e42, 2026-11-24): moving the far end of a road that joins another is fine, so it plans; upstream refused it.
+        assertTrue(RoadPlanner.plan(RoadPlanParams.edit(RoadPlanParams.Tool.REBUILD, B, movedB, Optional.empty()), LIMITS, standing).isPlanned(),
+                "it joins another road at its start, and its far end moves");
+        assertTrue(RoadPlanner.plan(edit(RoadPlanParams.Tool.REBUILD, ROAD, Optional.empty()), LIMITS, standing).isPlanned(), "a plain rebuild");
+        assertTrue(RoadPlanner.plan(edit(RoadPlanParams.Tool.DELETE, ROAD, Optional.empty()), LIMITS, standing).isPlanned(), "a delete");
+    }
 }

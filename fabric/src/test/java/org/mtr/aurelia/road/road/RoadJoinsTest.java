@@ -107,6 +107,9 @@ class RoadJoinsTest {
                 End.at(60, 64, 60, Heading.S)), WORLD, PLACED));
         assertRefused(PieceSolver.REVERSE_HEADING, Map.of(), RoadPlanner.plan(RoadPlanParams.curve("city-17", joined(40, 64, 0, Heading.W, A, 1),
                 End.at(0, 64, 40, Heading.S)), WORLD, PLACED));
+        // Master (c29fec35c): the server works out a joined road's dashes, so default ones are not refused as PORT_MISMATCH any more.
+        assertTrue(RoadPlanner.plan(RoadPlanParams.straight("city-17", joined(40, 64, 0, Heading.E, A, 1), onward), WORLD, PLACED).isPlanned(),
+                "its dashes are worked out to carry on A's");
         Map<String, String> layouts = new java.util.LinkedHashMap<>();
         layouts.put("layout", "alley-7");
         layouts.put("joins", "city-17");

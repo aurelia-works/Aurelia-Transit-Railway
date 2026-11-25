@@ -358,4 +358,21 @@ class EditRoadsToolTest {
         assertEquals(EditRoadsTool.Stage.AIMING, this.tool.stage());
         assertEquals("ROAD_GONE", this.tool.hud().notice().orElseThrow().reason().orElseThrow().code());
     }
+
+    @Test
+    void aJoinedRoadIsEditedAndRebuilt() {
+        RoadPlanParams joining = RoadPlanParams.straight("city-17", new End(40, 64, 0, Heading.E, Optional.of(ID), OptionalInt.of(1)),
+                End.at(80, 64, 0, Heading.E));
+        this.roads.placed(new UUID(5, 6), joining, RoadPlanner.asPlaced(joining, WorldLimits.OVERWORLD).plan().orElseThrow());
+        this.tool.input(new ToolInput.Use(ON_THE_ROAD));
+        this.tool.input(new ToolInput.Choose(EditRoadsTool.EDIT));
+        // Master (802229e42, 2026-11-24): a joined road can be edited, its joined roads follow; upstream refused with ROAD_JOINED.
+        assertEquals(EditRoadsTool.Stage.EDITING, this.tool.stage());
+        assertTrue(this.tool.hud().notice().isEmpty());
+        this.tool.input(new ToolInput.Attack(ON_THE_ROAD));
+        assertEquals(EditRoadsTool.Stage.AIMING, this.tool.stage(), "let go of the edit");
+        this.tool.input(new ToolInput.Use(ON_THE_ROAD));
+        this.tool.input(new ToolInput.Choose(EditRoadsTool.REBUILD));
+        assertEquals(EditRoadsTool.Stage.SENDING, this.tool.stage(), "it can still be rebuilt");
+    }
 }

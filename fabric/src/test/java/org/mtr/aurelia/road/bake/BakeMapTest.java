@@ -15,7 +15,6 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mtr.aurelia.road.ops.BlockPlan;
 import org.mtr.aurelia.road.road.line.LineChords;
-import org.mtr.aurelia.road.road.line.LineKind;
 import org.mtr.aurelia.road.road.palette.BuiltInPalettes;
 import org.mtr.aurelia.road.road.palette.Family;
 import org.mtr.aurelia.road.road.palette.PaletteRole;

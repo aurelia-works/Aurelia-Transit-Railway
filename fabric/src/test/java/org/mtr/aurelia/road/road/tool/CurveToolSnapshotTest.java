@@ -29,8 +29,8 @@ import org.mtr.aurelia.road.tool.ToolInput;
  * The curve tool's snapshot (R-3, the road tasks' standard check): a start at block (0, 64, 0) facing east, and ends on a
  * grid every 15 blocks out to 60 with each of the 8 facings a node can have. For each: the headings the tool gives the
  * road, and the planner's answer (the centre line's length and tightest radius, the block count and the plan hash, or
- * the refusal), compared with core/src/test/resources/snapshots/tool/. To accept a deliberate change, run
- * {@code .\gradlew.bat :core:test -PupdateSnapshots=true} and review the diff before committing.
+ * the refusal), compared with fabric/src/test/resources/road-snapshots/tool/. To accept a deliberate change, run
+ * {@code JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true ./gradlew :fabric:test --tests <class>} and review the diff before committing.
  */
 class CurveToolSnapshotTest {
     private static final Path FILE = Path.of("src", "test", "resources", "road-snapshots", "tool", "curve-city-17.txt");
@@ -79,7 +79,7 @@ class CurveToolSnapshotTest {
             Files.writeString(FILE, actual.toString(), StandardCharsets.UTF_8);
             return;
         }
-        assertTrue(Files.isRegularFile(FILE), FILE + " is missing; run with -PupdateSnapshots=true to create it");
+        assertTrue(Files.isRegularFile(FILE), FILE + " is missing; run with JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true to create it");
         assertEquals(Files.readString(FILE, StandardCharsets.UTF_8).replace("\r\n", "\n"), actual.toString(), FILE + " differs from the tool's output");
     }
 }

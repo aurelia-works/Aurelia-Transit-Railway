@@ -38,7 +38,7 @@ import org.mtr.aurelia.road.road.solve.PieceSolver;
 
 /**
  * B-1: real kerbs in the Stratos UK palette. ASCII snapshots of where each kerb meets the road, compared with
- * core/src/test/resources/snapshots/kerbs/ (accept a deliberate change with {@code -PupdateSnapshots=true} and review the
+ * fabric/src/test/resources/road-snapshots/kerbs/ (accept a deliberate change with {@code JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true} and review the
  * diff), and over many roads: wherever the raised footway meets the road at a side, a kerb's stone runs along that side.
  */
 class KerbSnapshotTest {
@@ -74,7 +74,7 @@ class KerbSnapshotTest {
                 Files.createDirectories(DIRECTORY);
                 Files.writeString(file, actual, StandardCharsets.UTF_8);
             } else if (!Files.isRegularFile(file)) {
-                differences.add(file + " is missing; run with -PupdateSnapshots=true to create it");
+                differences.add(file + " is missing; run with JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true to create it");
             } else if (!Files.readString(file, StandardCharsets.UTF_8).replace("\r\n", "\n").equals(actual)) {
                 differences.add(file + " differs from the rasteriser's output");
             }

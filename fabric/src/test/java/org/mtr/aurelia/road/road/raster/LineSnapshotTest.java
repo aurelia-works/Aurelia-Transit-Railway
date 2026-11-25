@@ -26,7 +26,7 @@ import org.mtr.aurelia.road.road.palette.BuiltInPalettes;
 
 /**
  * B-2: where Stratos UK's line blocks fall on City streets, as ASCII snapshots compared with
- * core/src/test/resources/snapshots/lines/ (accept a deliberate change with {@code -PupdateSnapshots=true} and review the
+ * fabric/src/test/resources/road-snapshots/lines/ (accept a deliberate change with {@code JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true} and review the
  * diff). Each {@code #} is a block the centre line's paint touches in a dash; dashes are whole blocks (ADR-0044).
  */
 class LineSnapshotTest {
@@ -59,7 +59,7 @@ class LineSnapshotTest {
                 Files.createDirectories(DIRECTORY);
                 Files.writeString(file, actual, StandardCharsets.UTF_8);
             } else if (!Files.isRegularFile(file)) {
-                differences.add(file + " is missing; run with -PupdateSnapshots=true to create it");
+                differences.add(file + " is missing; run with JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true to create it");
             } else if (!Files.readString(file, StandardCharsets.UTF_8).replace("\r\n", "\n").equals(actual)) {
                 differences.add(file + " differs from the rasteriser's output");
             }

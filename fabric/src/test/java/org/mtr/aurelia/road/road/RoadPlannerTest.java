@@ -312,11 +312,14 @@ class RoadPlannerTest {
         RoadPlanParams base = straight(0, 0, 20, 0, Heading.E);
         End start = base.ends().get(0);
         End end = base.ends().get(1);
-        for (RoadPlanParams.Tool tool : List.of(RoadPlanParams.Tool.TAPER)) { // JUNCTION is built since P10
+        for (RoadPlanParams.Tool tool : List.of(RoadPlanParams.Tool.TAPER)) {
             RoadPlanParams other = new RoadPlanParams(tool, "city-17", base.preset(), "vanilla", base.drivingSide(), base.ends(), base.vertical(),
                     base.nodeAids(), false, Optional.empty(), Optional.empty(), Optional.empty());
             assertRefused(Protocol.NOT_AVAILABLE_YET, Map.of("feature", tool.name().toLowerCase(java.util.Locale.ROOT)), plan(other));
         }
+        // JUNCTION is built since P10: with no junction template named it is refused as unknown, not as not available yet.
+        assertRefused(RoadPlanner.UNKNOWN_JUNCTION, Map.of(), plan(new RoadPlanParams(RoadPlanParams.Tool.JUNCTION, "city-17", base.preset(), "vanilla",
+                base.drivingSide(), base.ends(), base.vertical(), base.nodeAids(), false, Optional.empty(), Optional.empty(), Optional.empty())));
         // R-7: rebuilding and deleting are available; a road the planner wasn't given (or no road named) is gone.
         for (RoadPlanParams.Tool tool : List.of(RoadPlanParams.Tool.REBUILD, RoadPlanParams.Tool.DELETE)) {
             RoadPlanParams other = new RoadPlanParams(tool, "city-17", base.preset(), "vanilla", base.drivingSide(), base.ends(), base.vertical(),

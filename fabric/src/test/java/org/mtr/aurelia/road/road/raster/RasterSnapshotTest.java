@@ -25,8 +25,8 @@ import org.mtr.aurelia.road.road.RoadProfiles;
 /**
  * ASCII snapshots (spec roads-v1 §2, G-6): a 12-block road of every built-in profile (City street; from G-4+ also
  * residential 15 and 17 and alley 7) from block (0, 0) at each of the 16 headings, with its plan hash on the first line,
- * compared with core/src/test/resources/snapshots/raster/. Any difference fails. To accept a deliberate change, run
- * {@code .\gradlew.bat :core:test -PupdateSnapshots=true} and review the diff before committing.
+ * compared with fabric/src/test/resources/road-snapshots/raster/. Any difference fails. To accept a deliberate change, run
+ * {@code JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true ./gradlew :fabric:test --tests <class>} and review the diff before committing.
  */
 class RasterSnapshotTest {
     private static final Path DIRECTORY = Path.of("src", "test", "resources", "road-snapshots", "raster");
@@ -61,7 +61,7 @@ class RasterSnapshotTest {
                 continue;
             }
             if (!Files.isRegularFile(file)) {
-                differences.add(file + " is missing; run with -PupdateSnapshots=true to create it");
+                differences.add(file + " is missing; run with JAVA_TOOL_OPTIONS=-Dstratos.updateSnapshots=true to create it");
             } else if (!Files.readString(file, StandardCharsets.UTF_8).replace("\r\n", "\n").equals(actual)) {
                 differences.add(file + " differs from the rasteriser's output");
             }
