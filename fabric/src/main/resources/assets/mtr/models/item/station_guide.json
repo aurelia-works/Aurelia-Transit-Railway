@@ -1,6 +1,6 @@
 {
 	"parent": "minecraft:item/generated",
 	"textures": {
-		"layer0": "minecraft:item/recovery_compass"
+		"layer0": "mtr:item/station_guide"
 	}
 }

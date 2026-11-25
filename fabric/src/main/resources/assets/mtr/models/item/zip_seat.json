@@ -1,3 +1,6 @@
 {
-	"parent": "minecraft:item/oak_boat"
+	"parent": "minecraft:item/generated",
+	"textures": {
+		"layer0": "mtr:item/zip_seat"
+	}
 }

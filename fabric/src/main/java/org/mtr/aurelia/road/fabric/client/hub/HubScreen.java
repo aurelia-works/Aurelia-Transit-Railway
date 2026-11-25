@@ -7,6 +7,7 @@ package org.mtr.aurelia.road.fabric.client.hub;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.OrderedText;
@@ -216,12 +217,12 @@ public final class HubScreen extends Screen {
 
         int right = barX + barWidth - 4 - TAB_TILE;
         tabTile(graphics, right, tabY, TAB_TILE, HubIcon.GEAR, null, this.popUp == PopUp.SETTINGS, false, () -> togglePopUp(PopUp.SETTINGS),
-                List.of(Text.translatable("stratos.hub.settings")));
+                named("stratos.hub.settings"));
         int globeRight = right - 2;
         if (StratosEditorClient.editingEnabled()) {
             right -= 2 + TAB_TILE;
             tabTile(graphics, right, tabY, TAB_TILE, HubIcon.GLOBE, null, this.popUp == PopUp.WORLD, StratosEditorClient.stratosBlocks(),
-                    () -> togglePopUp(PopUp.WORLD), List.of(Text.translatable("stratos.hub.world")));
+                    () -> togglePopUp(PopUp.WORLD), named("stratos.hub.world"));
         }
         if (StratosTools.toolActive()) {
             Text putAway = Text.translatable("stratos.hub.put_away_short");
@@ -270,7 +271,7 @@ public final class HubScreen extends Screen {
             int inset = (Toolbar.TILE - HubIcon.LARGE) / 2;
             icon.draw(graphics, x + inset, y + inset, HubIcon.LARGE, icon.picture() ? 0xFFFFFFFF : RoadColours.TEXT_MAIN);
             String id = tool.id();
-            hot(new Box(x, y, Toolbar.TILE, Toolbar.TILE), () -> chooseTool(id), List.of(Text.translatable(tool.titleKey())));
+            hot(new Box(x, y, Toolbar.TILE, Toolbar.TILE), () -> chooseTool(id), named(tool.titleKey()));
         }
         Text inHand = active != null ? Text.translatable(active.titleKey()) : Text.translatable(tools.isEmpty() ? "stratos.hub.no_tools" : "stratos.hub.no_tool");
         caption(graphics, inHand, active != null ? RoadColours.TEXT_MAIN : RoadColours.TEXT_MUTED, toolsX, panelY + CAPTION_Y,
@@ -307,7 +308,8 @@ public final class HubScreen extends Screen {
             RoadPicture.draw(graphics, profile, palette, x + 1, y + 1, PICTURE_WIDTH, PICTURE_HEIGHT);
             badge(graphics, Integer.toString(profile.width()), x, y, Toolbar.TILE, SHORT_TILE);
             String id = profile.id();
-            hot(new Box(x, y, Toolbar.TILE, SHORT_TILE), () -> StratosTools.chooseLayout(id), List.of(Text.translatable("stratos.road.profile." + id)));
+            hot(new Box(x, y, Toolbar.TILE, SHORT_TILE), () -> StratosTools.chooseLayout(id),
+                    List.of(Text.translatable("stratos.road.profile." + id), muted(Text.translatable("stratos.hub.layout_tip", profile.width()))));
         }
         if (shown.pages()) {
             arrow(graphics, stripX, y, false, shown.canBack());
@@ -326,7 +328,7 @@ public final class HubScreen extends Screen {
             int column = on ? x + 2 + i : x + w - 3 - i;
             graphics.fill(column, middle - 3 + i, column + 1, middle + 4 - i, colour);
         }
-        hot(new Box(x, y, w, SHORT_TILE), enabled ? () -> scroll(on ? 1 : -1) : null, List.of());
+        hot(new Box(x, y, w, SHORT_TILE), enabled ? () -> scroll(on ? 1 : -1) : null, List.of(Text.translatable(on ? "stratos.hub.layout_next" : "stratos.hub.layout_back")));
     }
 
     private void scroll(int tiles) {
@@ -797,6 +799,12 @@ public final class HubScreen extends Screen {
             graphics.drawText(this.textRenderer, line, x, y, argb, false);
             y += this.textRenderer.fontHeight;
         }
+    }
+
+    /** A tooltip: the name under {@code key}, then its explanation under {@code key + ".tip"} when the lang file has one. */
+    private static List<Text> named(String key) {
+        Text name = Text.translatable(key);
+        return I18n.hasTranslation(key + ".tip") ? List.of(name, muted(Text.translatable(key + ".tip"))) : List.of(name);
     }
 
     private static Text muted(Text text) {
