@@ -17,8 +17,8 @@ class JumpTargetTest {
 
 	@Test
 	void commands() {
-		assertEquals("tp @s 10 65 -3", JumpTarget.command(new Point(10, 65, -3)));
-		assertEquals("tp @s 5 ~ -7", JumpTarget.commandKeepingHeight(5, -7));
+		assertEquals("atr_jump 10 65 -3", JumpTarget.command(new Point(10, 65, -3)));
+		assertEquals("atr_jump 5 ~ -7", JumpTarget.commandKeepingHeight(5, -7));
 	}
 
 	@Test

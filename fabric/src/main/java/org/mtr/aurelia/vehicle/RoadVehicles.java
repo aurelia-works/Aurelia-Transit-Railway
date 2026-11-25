@@ -15,6 +15,7 @@ import net.minecraft.registry.Registry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
+import org.mtr.aurelia.Operators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,9 +82,9 @@ public final class RoadVehicles {
 		clientSettings = settings.clamped();
 	}
 
-	/** Operators, and the host of a single player or LAN world. */
+	/** Operators, the single-player host and creative-mode players ({@link Operators#isOperatorOrCreative}). */
 	public static boolean mayEdit(ServerPlayerEntity player) {
-		return player.hasPermissionLevel(2) || player.server.isHost(player.getGameProfile());
+		return Operators.isOperatorOrCreative(player);
 	}
 
 	private static void applySettings(MinecraftServer server, ServerPlayerEntity player, RoadVehicleSettings requested) {

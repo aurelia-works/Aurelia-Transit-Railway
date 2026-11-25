@@ -23,12 +23,12 @@ public final class JumpTarget {
 	}
 
 	public static String command(Point point) {
-		return "tp @s " + point.x() + " " + point.y() + " " + point.z();
+		return "atr_jump " + point.x() + " " + point.y() + " " + point.z();
 	}
 
 	/** Zone without rails: its X/Z centre, keeping the player's height ("~"). */
 	public static String commandKeepingHeight(long x, long z) {
-		return "tp @s " + x + " ~ " + z;
+		return "atr_jump " + x + " ~ " + z;
 	}
 
 	public static boolean matches(String label, String query) {

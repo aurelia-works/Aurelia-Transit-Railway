@@ -1,5 +1,6 @@
 package org.mtr.aurelia.client.screen;
 
+import org.mtr.aurelia.client.ClientOperators;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.speed.SpeedAudit;
@@ -77,7 +78,7 @@ public final class SpeedAuditScreen extends Screen {
 	}
 
 	private boolean canTeleport() {
-		return client.player != null && client.player.hasPermissionLevel(2);
+		return ClientOperators.isOperator(client);
 	}
 
 	private void updateButtons() {
@@ -89,7 +90,7 @@ public final class SpeedAuditScreen extends Screen {
 			return;
 		}
 		final SpeedAudit.Rail rail = selected.rail();
-		client.player.networkHandler.sendCommand(String.format(Locale.ROOT, "tp @s %.1f %.1f %.1f", rail.x(), rail.y() + 1, rail.z()));
+		client.player.networkHandler.sendCommand(String.format(Locale.ROOT, "atr_jump %.1f %.1f %.1f", rail.x(), rail.y() + 1, rail.z()));
 		client.setScreen(null);
 	}
 

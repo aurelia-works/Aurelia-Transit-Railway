@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.wayfinding;
 
+import org.mtr.aurelia.Operators;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -42,7 +43,7 @@ final class StationSuffixCommand {
 					.executes(context -> show(context, suffixContext))));
 		}
 
-		dispatcher.register(CommandManager.literal("ata_suffix").requires(source -> source.hasPermissionLevel(2))
+		dispatcher.register(CommandManager.literal("ata_suffix").requires(source -> Operators.isOperatorOrCreativeSource(source))
 				.then(CommandManager.literal("set").then(set))
 				.then(CommandManager.literal("show").then(show))
 				.then(CommandManager.literal("remove").then(CommandManager.argument("station", StringArgumentType.string()).executes(StationSuffixCommand::remove)))
