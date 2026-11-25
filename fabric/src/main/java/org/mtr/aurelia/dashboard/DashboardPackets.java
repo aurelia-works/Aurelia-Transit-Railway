@@ -1,5 +1,6 @@
 package org.mtr.aurelia.dashboard;
 
+import org.mtr.aurelia.Operators;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -54,6 +55,7 @@ public final class DashboardPackets {
 		return List.of("item.aurelia.transit_dashboard.legacy");
 	}
 
+	/** Creative mode, operators (including the single-player host), or anyone carrying a dashboard item as in MTR. */
 	public static boolean isAllowed(boolean creative, boolean operator, boolean carryingDashboard) {
 		return creative || operator || carryingDashboard;
 	}
@@ -78,7 +80,7 @@ public final class DashboardPackets {
 				buf.readString(32);
 			}
 			server.execute(() -> {
-				if (!isAllowed(player.isCreative(), player.hasPermissionLevel(2), hasDashboardItem(player))) {
+				if (!isAllowed(player.isCreative(), Operators.isOperator(player), hasDashboardItem(player))) {
 					return;
 				}
 				// Always reply with TRAIN + DEFAULT so pending menu requests never collide with legacy dashboard_2..4 packets.

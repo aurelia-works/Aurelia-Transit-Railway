@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.bridge.world;
 
+import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.bridge.BridgeStampPlan;
 import com.aureliatransit.architecture.bridge.BridgeTemplate;
 import com.aureliatransit.architecture.station.Heading;
@@ -26,7 +27,7 @@ import java.util.UUID;
 
 /**
  * {@code /atr_bridge}: capture a bridge section from the world, list or delete templates, preview a template along a rail,
- * build it and undo the last build. Operators only (level 2), like the other ATA building commands.
+ * build it and undo the last build. Operators and creative mode only, like the other ATA building commands.
  *
  * <p>The rail is named by two of its MTR rail nodes, the same two clicks the Bridge Creator takes. Capture uses an
  * explicit origin block in the box, normally the rail block at the section's centre, so the template knows where the
@@ -38,7 +39,7 @@ final class BridgeCommand {
 	}
 
 	static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
-		dispatcher.register(CommandManager.literal("atr_bridge").requires(source -> source.hasPermissionLevel(2))
+		dispatcher.register(CommandManager.literal("atr_bridge").requires(source -> Operators.isOperatorOrCreativeSource(source))
 				.executes(BridgeCommand::help)
 				.then(CommandManager.literal("help").executes(BridgeCommand::help))
 				.then(CommandManager.literal("capture")

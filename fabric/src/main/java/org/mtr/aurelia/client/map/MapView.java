@@ -5,10 +5,8 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
 import org.mtr.aurelia.map.MapCamera;
-import org.mtr.aurelia.map.MapRegion;
 import org.mtr.core.tool.Vector;
 import org.mtr.mod.client.MinecraftClientData;
 import org.mtr.mod.data.VehicleExtension;
@@ -17,7 +15,7 @@ import java.util.Map;
 
 /**
  * Draws a map view into a screen rectangle: the explored ground, then the rails, stations and trains the Map tab
- * switches on, then the player. Every map screen draws through here, so they all agree.
+ * switches on, then the player's home and landmark pins, then the player. Every map screen draws through here, so they all agree.
  */
 public final class MapView {
 
@@ -27,8 +25,6 @@ public final class MapView {
 	private static final int BOAT = 0xFF4AA3DF;
 	private static final int RUNWAY = 0xFF6B7078;
 	private static final int OUTLINE = 0xFF000000;
-	/** New regions read from disk per frame, so zooming far out fills in over a few frames instead of in one stall. */
-	private static final int LOADS_PER_FRAME = 4;
 	/** Station names show from this zoom in. */
 	private static final double LABEL_SCALE = 0.5;
 
@@ -36,14 +32,11 @@ public final class MapView {
 	}
 
 	public static void draw(DrawContext context, int left, int top, int width, int height, MapCamera camera) {
-		final ExploredMap map = MapClient.map();
 		final SeenNetwork network = MapClient.network();
 		final MinecraftClient client = MinecraftClient.getInstance();
 		context.enableScissor(left, top, left + width, top + height);
 		context.fill(left, top, left + width, top + height, BACKGROUND);
-		if (map != null) {
-			drawGround(context, map, left, top, width, height, camera);
-		}
+		MapGround.draw(context, left, top, width, height, camera.centerX(), camera.centerZ(), camera.scale());
 		if (network != null) {
 			if (MapSettings.stations()) {
 				drawStations(context, client.textRenderer, network, left, top, width, height, camera);
@@ -58,44 +51,11 @@ public final class MapView {
 		if (MapSettings.trains()) {
 			drawTrains(context, left, top, width, height, camera, 4);
 		}
+		MapPinLayer.draw(context, left, top, width, height, camera.centerX(), camera.centerZ(), camera.scale());
 		if (client.player != null) {
 			drawPlayer(context, client.player, camera, left, top, width, height);
 		}
 		context.disableScissor();
-	}
-
-	private static void drawGround(DrawContext context, ExploredMap map, int left, int top, int width, int height, MapCamera camera) {
-		final MapTextures textures = MapClient.textures();
-		textures.beginFrame();
-		final double scale = camera.scale();
-		final int firstX = MapRegion.regionOf((int) Math.floor(camera.worldX(left, left, width)));
-		final int lastX = MapRegion.regionOf((int) Math.floor(camera.worldX(left + width, left, width)));
-		final int firstZ = MapRegion.regionOf((int) Math.floor(camera.worldZ(top, top, height)));
-		final int lastZ = MapRegion.regionOf((int) Math.floor(camera.worldZ(top + height, top, height)));
-		int loads = LOADS_PER_FRAME;
-		context.getMatrices().push();
-		context.getMatrices().translate(left + width / 2.0 - camera.centerX() * scale, top + height / 2.0 - camera.centerZ() * scale, 0);
-		context.getMatrices().scale((float) scale, (float) scale, 1);
-		for (int regionZ = firstZ; regionZ <= lastZ; regionZ++) {
-			for (int regionX = firstX; regionX <= lastX; regionX++) {
-				if (!map.known(regionX, regionZ)) {
-					continue;
-				}
-				MapRegion region = map.loadedRegion(regionX, regionZ);
-				if (region == null && loads > 0) {
-					loads--;
-					region = map.region(regionX, regionZ, false);
-				}
-				if (region == null) {
-					continue;
-				}
-				final Identifier texture = textures.texture(region);
-				if (texture != null) {
-					context.drawTexture(texture, regionX * MapRegion.SIZE, regionZ * MapRegion.SIZE, 0, 0, MapRegion.SIZE, MapRegion.SIZE, MapRegion.SIZE, MapRegion.SIZE);
-				}
-			}
-		}
-		context.getMatrices().pop();
 	}
 
 	private static void drawRails(DrawContext context, SeenNetwork network, int left, int top, int width, int height, MapCamera camera, int thickness) {

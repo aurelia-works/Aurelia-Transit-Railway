@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station.world;
 
+import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.registry.ModItems;
 import com.aureliatransit.architecture.station.RealStation;
 import com.aureliatransit.architecture.station.StationPresets;
@@ -40,7 +41,7 @@ public final class StationGuide {
 	public static final List<Chapter> CHAPTERS = List.of(
 			new Chapter("Getting started", ATA + "station_wrench", List.of(
 					Page.of("Station Generator", "Describe a railway station in plain words and ATA builds it from its own blocks.\n\n"
-							+ "Operators only. This Codex covers the Station Wrench, Station Studio, the words and the commands."),
+							+ "Operators and creative mode only. This Codex covers the Station Wrench, Station Studio, the words and the commands."),
 					Page.of("The Station Wrench", "Find it in the Passenger Equipment tab.\n\n"
 							+ "Right-click the air to open it. Pick a city, the tracks, length and roof, then press Place in front of me and Build it!"),
 					Page.of("Wrench clicks", "Right-click the air: open the menu.\n"
@@ -152,7 +153,7 @@ public final class StationGuide {
 	}
 
 	static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
-		dispatcher.register(CommandManager.literal("ata_guide").requires(source -> source.hasPermissionLevel(StationActions.PERMISSION_LEVEL))
+		dispatcher.register(CommandManager.literal("ata_guide").requires(source -> Operators.isOperatorOrCreativeSource(source))
 				.executes(context -> {
 					context.getSource().getPlayerOrThrow().getInventory().offerOrDrop(codex());
 					context.getSource().sendFeedback(() -> Text.literal("Gave you the " + TITLE + "."), false);
@@ -162,7 +163,7 @@ public final class StationGuide {
 
 	/** On join: an operator who never had the Codex gets it once. Returns whether it was given. */
 	public static boolean welcome(ServerPlayerEntity player) {
-		if (!player.hasPermissionLevel(StationActions.PERMISSION_LEVEL) || !player.addCommandTag(GIVEN_TAG)) {
+		if (!Operators.isOperator(player) || !player.addCommandTag(GIVEN_TAG)) {
 			return false;
 		}
 		player.getInventory().offerOrDrop(codex());

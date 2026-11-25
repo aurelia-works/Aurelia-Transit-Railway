@@ -1,11 +1,13 @@
 package org.mtr.aurelia.client.screen;
 
+import org.mtr.aurelia.client.ClientOperators;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.TrainView;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,10 +23,10 @@ public final class TrainInspectorScreen extends Screen {
 	private static final int MARGIN = 8;
 	private static final int TOP = 32;
 	private static final int REFRESH_TICKS = 20;
-	private static final int COLOR_TEXT = 0xFFFFFF;
-	private static final int COLOR_DIM = 0xA0A0A0;
-	private static final int COLOR_OK = 0x55FF55;
-	private static final int COLOR_WARN = 0xFFAA00;
+	private static final int COLOR_TEXT = AureliaPalette.TEXT;
+	private static final int COLOR_DIM = AureliaPalette.TEXT_DIM;
+	private static final int COLOR_OK = AureliaPalette.SUCCESS;
+	private static final int COLOR_WARN = AureliaPalette.CAUTION;
 
 	private final Screen parent;
 	private SimpleListWidget<Long> list;
@@ -98,7 +100,7 @@ public final class TrainInspectorScreen extends Screen {
 	}
 
 	private boolean canTeleport() {
-		return client.player != null && client.player.hasPermissionLevel(2);
+		return ClientOperators.isOperator(client);
 	}
 
 	private void updateButtons() {
@@ -111,7 +113,7 @@ public final class TrainInspectorScreen extends Screen {
 		if (train == null || !canTeleport()) {
 			return;
 		}
-		client.player.networkHandler.sendCommand(String.format(Locale.ROOT, "tp @s %.1f %.1f %.1f", train.x(), train.y() + 1, train.z()));
+		client.player.networkHandler.sendCommand(String.format(Locale.ROOT, "atr_jump %.1f %.1f %.1f", train.x(), train.y() + 1, train.z()));
 		client.setScreen(null);
 	}
 

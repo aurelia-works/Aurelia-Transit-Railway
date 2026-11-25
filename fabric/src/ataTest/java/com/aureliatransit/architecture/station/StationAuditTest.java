@@ -56,10 +56,31 @@ class StationAuditTest {
 		return text.toString();
 	}
 
+	/**
+	 * CI splits the plan sweep over jobs: -Pata.sweep.shard=i/n (fabric/build.gradle) sweeps every n-th track count from
+	 * the i-th, so the shards share the big stations. Without it every track count is swept.
+	 */
+	private static boolean inSweepShard(int tracks) {
+		final String shard = System.getProperty("ata.sweep.shard", "").trim();
+		if (shard.isEmpty()) {
+			return true;
+		}
+		final String[] parts = shard.split("/");
+		final int index = Integer.parseInt(parts[0].trim());
+		final int count = Integer.parseInt(parts[parts.length - 1].trim());
+		if (parts.length != 2 || count < 1 || index < 1 || index > count) {
+			throw new IllegalArgumentException("ata.sweep.shard must be i/n with 1 <= i <= n, got " + shard);
+		}
+		return (tracks - StationSpec.MIN_TRACKS) % count == index - 1;
+	}
+
 	@Test
 	void everyPlannablePlanPassesExceptIslandsReachedAtGrade() {
 		final List<StationSpec.Builder> builders = new ArrayList<>();
 		for (int tracks = StationSpec.MIN_TRACKS; tracks <= StationSpec.MAX_TRACKS; tracks++) {
+			if (!inSweepShard(tracks)) {
+				continue;
+			}
 			for (final PlatformLayout layout : PlatformLayout.values()) {
 				if (layout == PlatformLayout.ISLAND && tracks < 2) {
 					continue;

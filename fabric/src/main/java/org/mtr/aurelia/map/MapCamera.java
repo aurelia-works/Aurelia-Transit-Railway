@@ -7,7 +7,8 @@ package org.mtr.aurelia.map;
  */
 public final class MapCamera {
 
-	public static final double MIN_SCALE = 0.25;
+	/** As far out as MTR's dashboard map, so every view of the map can show a whole network. */
+	public static final double MIN_SCALE = 1.0 / 128;
 	public static final double MAX_SCALE = 8;
 
 	private double centerX;

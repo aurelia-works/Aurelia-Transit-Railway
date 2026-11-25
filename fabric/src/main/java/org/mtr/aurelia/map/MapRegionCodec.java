@@ -16,6 +16,7 @@ public final class MapRegionCodec {
 
 	private static final int MAGIC = 0x4154524D; // "ATRM"
 	private static final int VERSION = 1;
+	private static final int TILE_MAGIC = 0x41545254; // "ATRT"
 
 	private MapRegionCodec() {
 	}
@@ -50,5 +51,31 @@ public final class MapRegionCodec {
 			heights[i] = data.readShort();
 		}
 		return new MapRegion(regionX, regionZ, colors, heights);
+	}
+
+	/** A small overview picture of a region, {@code size} pixels a side, in the same deflated form. */
+	public static void writeTile(OutputStream out, int[] pixels, int size) throws IOException {
+		final DeflaterOutputStream deflated = new DeflaterOutputStream(out);
+		final DataOutputStream data = new DataOutputStream(deflated);
+		data.writeInt(TILE_MAGIC);
+		data.writeInt(VERSION);
+		data.writeInt(size);
+		for (final int pixel : pixels) {
+			data.writeInt(pixel);
+		}
+		data.flush();
+		deflated.finish();
+	}
+
+	public static int[] readTile(InputStream in, int size) throws IOException {
+		final DataInputStream data = new DataInputStream(new InflaterInputStream(in));
+		if (data.readInt() != TILE_MAGIC || data.readInt() != VERSION || data.readInt() != size) {
+			throw new IOException("not an ATR map tile of this version");
+		}
+		final int[] pixels = new int[size * size];
+		for (int i = 0; i < pixels.length; i++) {
+			pixels[i] = data.readInt();
+		}
+		return pixels;
 	}
 }

@@ -1,5 +1,6 @@
 package com.aureliatransit.architecture.station.world;
 
+import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.station.Heading;
 import com.aureliatransit.architecture.station.LayoutValidator;
 import com.aureliatransit.architecture.station.LocalFrame;
@@ -33,8 +34,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * {@code /ata_station}: plan a station from a description, preview it, confirm, cancel, undo, set the build pace. Operators only
- * (level 2), like the other ATA admin commands. A build changes the terrain it stands on; {@code replace_terrain} is still
+ * {@code /ata_station}: plan a station from a description, preview it, confirm, cancel, undo, set the build pace. Operators and
+ * creative mode only, like the other ATA admin commands. A build changes the terrain it stands on; {@code replace_terrain} is still
  * accepted after {@code confirm} and {@code rebuild} as a harmless alias for old scripts, and confirms like no word at all.
  */
 public final class StationCommand {
@@ -55,7 +56,7 @@ public final class StationCommand {
 	 * player path, and the scripted visual shots pass {@code -Datr.visualshots=...} so their {@code ata_station plan} steps work.
 	 */
 	static void register(CommandDispatcher<ServerCommandSource> dispatcher, boolean withPlan) {
-		final var root = CommandManager.literal("ata_station").requires(source -> source.hasPermissionLevel(2))
+		final var root = CommandManager.literal("ata_station").requires(source -> Operators.isOperatorOrCreativeSource(source))
 				.executes(StationCommand::help)
 				.then(CommandManager.literal("help").executes(StationCommand::help));
 		if (withPlan) {

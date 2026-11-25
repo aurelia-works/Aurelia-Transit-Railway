@@ -183,7 +183,6 @@ class JunctionPlanTest {
         planned.sideEffects().forEach(rail -> assertFalse(left.contains(rail) && !roadRails.contains(rail), "the junction's track goes"));
     }
 
-    /** #189: B follows A's moved end, then B alone is deleted: A's track, made by the move, stays. */
     /**
      * The in-world half: the Junction tool snaps a T onto a road's end the player aims near, and once it stands the road
      * tools offer its free arms (port {@code ARM_PORTS} + arm), so a road drawn there joins it and plans.
@@ -226,6 +225,7 @@ class JunctionPlanTest {
         assertTrue(drawn.isPlanned(), () -> "refused " + drawn.code());
     }
 
+    /** #189: B follows A's moved end, then B alone is deleted: A's track, made by the move, stays. */
     @Test
     void deletingTheRoadThatFollowedKeepsTheEditedRoadsTrack() throws IOException {
         start();
