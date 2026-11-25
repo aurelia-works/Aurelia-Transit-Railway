@@ -314,7 +314,7 @@ public final class HubScreen extends Screen {
             arrow(graphics, tilesX + shown.shown() * (Toolbar.TILE + Toolbar.GAP) - Toolbar.GAP, y, true, shown.canForward());
         }
         caption(graphics, Text.translatable("stratos.road.profile." + chosen.id()), RoadColours.TEXT_MAIN, stripX, panelY + CAPTION_Y,
-                StrictMath.max(sections.stripWidth(), 60));
+                sections.stripWidth());
     }
 
     /** A strip arrow, a small triangle pointing back or on; faded at the end it points to. */
@@ -541,6 +541,18 @@ public final class HubScreen extends Screen {
         });
     }
 
+    /** The width a Choice's options or a Toggle's switch take at the right of their row. */
+    private int controlsWidth(HubSettings.Row row) {
+        if (row instanceof HubSettings.Choice choice) {
+            int width = -1;
+            for (Text option : choice.options()) {
+                width += this.textRenderer.getWidth(option) + 10 + 1;
+            }
+            return StrictMath.max(0, width);
+        }
+        return row instanceof HubSettings.Toggle ? SWITCH_WIDTH : 0;
+    }
+
     /** Draws one row of a Settings page at ({@code x}, {@code y}), {@code width} wide; returns the height it took. */
     private int settingsRow(DrawContext graphics, HubSettings.Row row, int x, int y, int width) {
         if (row instanceof HubSettings.Note note) {
@@ -561,8 +573,10 @@ public final class HubScreen extends Screen {
             label = measure.label();
             tip = measure.tip();
         }
-        int labelWidth = this.textRenderer.getWidth(label) + 2;
-        graphics.drawText(this.textRenderer, label, x, y + 3, RoadColours.TEXT_MAIN, false);
+        // a long label is cut with "…" short of its controls; its tooltip still has all of it
+        Text shown = row instanceof HubSettings.Measure ? label : UiText.fit(this.textRenderer, label, StrictMath.max(0, width - controlsWidth(row) - 6));
+        int labelWidth = this.textRenderer.getWidth(shown) + 2;
+        graphics.drawText(this.textRenderer, shown, x, y + 3, RoadColours.TEXT_MAIN, false);
         hot(new Box(x, y, labelWidth, SETTINGS_CONTROL), null, tipLines(label, tip));
         int right = x + width;
         if (row instanceof HubSettings.Choice choice) {
