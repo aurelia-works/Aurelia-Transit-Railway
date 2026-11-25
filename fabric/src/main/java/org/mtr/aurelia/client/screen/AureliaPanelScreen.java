@@ -23,6 +23,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Language;
 import org.mtr.aurelia.client.Announcer;
 import org.mtr.aurelia.client.AureliaExamplePack;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.client.ui.AureliaUiSettings;
 import org.mtr.aurelia.dashboard.DashboardParentAccess;
 import org.mtr.aurelia.dashboard.UnifiedDashboardClient;
@@ -128,7 +129,10 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	private record Distance(String key, int max, IntSupplier get, IntConsumer set) implements Row {
 	}
 
-	/** {@code needsEdit}: greyed out without MTR edit permission. Depot health only reads until Regenerate is pressed. */
+	/**
+	 * The Tools tab is for operators (permission level 2, or the single-player host): every tool but the dashboard is greyed out for anyone else.
+	 * {@code needsEdit}: also greyed out without MTR edit permission. Depot health only reads until Regenerate is pressed.
+	 */
 	private record Tool(String key, boolean needsEdit, Function<Screen, Screen> open) {
 	}
 
@@ -301,6 +305,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		final int rows = (TOOLS.size() + columns - 1) / columns;
 		final int left = centerX() - (columns * buttonWidth + (columns - 1) * 8) / 2;
 		final boolean canEdit = MtrBridge.canEdit();
+		final boolean operator = ClientOperators.isOperator(client);
 		final boolean canOpenDashboard = UnifiedDashboardClient.canOpenDashboard(client);
 		for (int i = 0; i < TOOLS.size(); i++) {
 			final Tool tool = TOOLS.get(i);
@@ -316,7 +321,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 						? "gui.aurelia.menu.build.dashboard.tooltip"
 						: "gui.aurelia.dashboard.no_permission")));
 			} else {
-				button.active = canEdit || !tool.needsEdit();
+				button.active = operator && (canEdit || !tool.needsEdit());
 			}
 		}
 	}
@@ -1383,6 +1388,8 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.zip.operators"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.TRAIN_SOUND) {
 			scrollLine(context, trainSoundFirst, visibleRows(), TRAIN_SOUND_ROWS);
+		} else if (tab == Tab.TOOLS && !ClientOperators.isOperator(client)) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.tools.operators"), centerX(), top - 12, AureliaPalette.DANGER);
 		} else if (tab == Tab.TOOLS && !MtrBridge.canEdit()) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.DRIVING) {
