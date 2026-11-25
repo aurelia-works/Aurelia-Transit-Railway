@@ -23,6 +23,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Language;
 import org.mtr.aurelia.client.Announcer;
 import org.mtr.aurelia.client.AureliaExamplePack;
+import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.client.ui.AureliaUiSettings;
 import org.mtr.aurelia.dashboard.DashboardParentAccess;
 import org.mtr.aurelia.dashboard.UnifiedDashboardClient;
@@ -1378,7 +1379,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 		} else if (tab == Tab.TRAIN_SOUND) {
 			scrollLine(context, trainSoundFirst, visibleRows(), TRAIN_SOUND_ROWS);
 		} else if (tab == Tab.TOOLS && !ClientOperators.isOperator(client)) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.tools.operators"), centerX(), top - 12, 0xFF5555);
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.tools.operators"), centerX(), top - 12, AureliaPalette.DANGER);
 		} else if (tab == Tab.TOOLS && !MtrBridge.canEdit()) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.no_permission"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.DRIVING) {
