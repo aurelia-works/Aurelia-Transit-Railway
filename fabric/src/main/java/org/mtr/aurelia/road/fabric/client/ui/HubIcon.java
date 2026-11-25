@@ -25,7 +25,10 @@ public enum HubIcon {
     RADIUS, KEYBOARD, LENGTH, HEADING, SLOPE, BLOCKS, PALETTE, REBUILD,
     REBUILD_IN, DELETE, EDIT, CANCEL, MOUSE_LEFT, MOUSE_RIGHT, ERROR, JOINED,
     // UI-1c: Settings' Preview page.
-    EYE;
+    EYE,
+    // Polish pass: the junction tool, the crossing option, a junction's size and a road joined to another. Drawn at the end so
+    // the order of the sheets above stays as it was.
+    JUNCTION, CROSSING, SIZE, LINK;
 
     /** A tool or module tile's icon, in GUI pixels. */
     public static final int LARGE = 20;
@@ -85,7 +88,7 @@ public enum HubIcon {
             case "roads.curve" -> ROAD_CURVE;
             case "roads.nodes" -> LANE_NODES;
             case "roads.edit" -> EDIT_ROADS;
-            case "roads.junction" -> JOINED; // G-11: roads meeting
+            case "roads.junction" -> JUNCTION;
             default -> INFO;
         };
     }
@@ -104,7 +107,7 @@ public enum HubIcon {
     public boolean picture() {
         return switch (this) {
             case ROADS, ROAD_STRAIGHT, ROAD_CURVE, LANE_NODES, EDIT_ROADS, WOOL, MTR_NODES, WARN, BAKE, INFO, SHAPE, RADIUS, KEYBOARD,
-                    LENGTH, HEADING, SLOPE, BLOCKS, PALETTE, REBUILD_IN, EDIT, MOUSE_LEFT, MOUSE_RIGHT, ERROR, JOINED -> true;
+                    LENGTH, HEADING, SLOPE, BLOCKS, PALETTE, REBUILD_IN, EDIT, MOUSE_LEFT, MOUSE_RIGHT, ERROR, JOINED, JUNCTION, CROSSING -> true;
             default -> false;
         };
     }

@@ -99,6 +99,7 @@ public final class ToolHud {
     /** An icon in its own colours, a little dimmed beside the values. */
     private static final int PICTURE_TINT = 0xFFD8D8E0;
 
+    private static final String JUNCTION_TOOL = "roads.junction";
     private static final String LAYOUT = "stratos.tool.line.layout";
     private static final String PALETTE = "stratos.tool.line.palette";
     private static final String NODES = "stratos.tool.line.nodes";
@@ -116,12 +117,13 @@ public final class ToolHud {
 
     /**
      * The key rows (mockup 02): the tool key, undo, redo and the node aid (whose icon is the node aid in force); the
-     * height keys and the shape (R-4, owner 2026-10-06); the radius keys and the typed radius.
+     * height keys, the shape (R-4, owner 2026-10-06) and the crossing; the radius keys and the typed radius.
      */
     private static final List<List<Group>> KEY_ROWS = List.of(
             List.of(new Group(HubIcon.PUT_AWAY, HudModel.Action.TOOL_KEY), new Group(HubIcon.UNDO, HudModel.Action.UNDO),
                     new Group(HubIcon.REDO, HudModel.Action.REDO), new Group(HubIcon.TRACK, HudModel.Action.NODES)),
-            List.of(new Group(HubIcon.HEIGHT, HudModel.Action.RAISE, HudModel.Action.LOWER), new Group(HubIcon.SHAPE, HudModel.Action.SHAPE)),
+            List.of(new Group(HubIcon.HEIGHT, HudModel.Action.RAISE, HudModel.Action.LOWER), new Group(HubIcon.SHAPE, HudModel.Action.SHAPE),
+                    new Group(HubIcon.CROSSING, HudModel.Action.CROSSINGS)),
             List.of(new Group(List.of(HudModel.Action.RADIUS_UP, HudModel.Action.RADIUS_DOWN), HubIcon.RADIUS, "stratos.tool.panel.radius_step"),
                     new Group(HubIcon.KEYBOARD, HudModel.Action.RADIUS_TYPE)));
     /** The mouse rows, left button first (mockup 02). */
@@ -372,11 +374,10 @@ public final class ToolHud {
                     any |= live;
                     groupX += chip(graphics, font, keyName(minecraft, action), live, groupX, cursor + 1) + CHIP_GAP;
                 }
-                HubIcon groupIcon = group.actions().contains(HudModel.Action.NODES)
-                        ? HubIcon.forNodeAids(StratosTools.roadSettings().nodeAids()) : group.icon();
+                HubIcon groupIcon = groupIcon(group, tool);
                 groupIcon.draw(graphics, groupX, cursor + 2, HubIcon.TINY, any ? tint(groupIcon) : OFF);
                 groupX += HubIcon.TINY;
-                if (group.afterKey() != null) {
+                if (group.afterKey() != null && !junction(tool)) {
                     MutableText after = UiText.of(Text.translatable(group.afterKey()), RoadColours.TEXT_MUTED);
                     graphics.drawText(font, after, groupX + CHIP_GAP, cursor + 2, 0xFFFFFFFF, false);
                     groupX += CHIP_GAP + font.getWidth(after);
@@ -385,6 +386,27 @@ public final class ToolHud {
             }
             cursor += KEY_ROW;
         }
+    }
+
+    /** Whether {@code tool} is the junction tool, whose shape key picks the kind and whose radius keys pick the size. */
+    private static boolean junction(Optional<Tool> tool) {
+        return tool.map(Tool::id).filter(JUNCTION_TOOL::equals).isPresent();
+    }
+
+    /** A key group's icon: the node aid in force for the nodes key; the junction's kind and size for its keys; else the group's own. */
+    private static HubIcon groupIcon(Group group, Optional<Tool> tool) {
+        if (group.actions().contains(HudModel.Action.NODES)) {
+            return HubIcon.forNodeAids(StratosTools.roadSettings().nodeAids());
+        }
+        if (junction(tool)) {
+            if (group.actions().contains(HudModel.Action.SHAPE)) {
+                return HubIcon.JUNCTION;
+            }
+            if (group.actions().contains(HudModel.Action.RADIUS_UP)) {
+                return HubIcon.SIZE;
+            }
+        }
+        return group.icon();
     }
 
     /** A short value at ({@code x}, {@code y}): its icon, then its text, shortened to fit {@code room}. */
@@ -436,7 +458,10 @@ public final class ToolHud {
             case "stratos.tool.line.shape" -> icon(HubIcon.SHAPE, text, true);
             case NODES -> icon(nodeAids(line.value()), text, false);
             case "stratos.tool.line.blocks" -> icon(HubIcon.BLOCKS, text, false);
-            case "stratos.edit.line.joined" -> icon(HubIcon.JOINED, text, false);
+            case "stratos.tool.line.crossing" -> icon(HubIcon.CROSSING, text, false);
+            case "stratos.tool.line.junction" -> icon(HubIcon.JUNCTION, text, false);
+            case "stratos.tool.line.size" -> icon(HubIcon.SIZE, text, false);
+            case "stratos.edit.line.joined" -> icon(HubIcon.LINK, text, false);
             case "stratos.nodes.line.road" -> icon(HubIcon.ROADS, text, true);
             case "stratos.nodes.line.nodes" -> icon(HubIcon.MTR_NODES, text, true);
             case "stratos.nodes.line.markers" -> icon(HubIcon.WOOL, text, true);
