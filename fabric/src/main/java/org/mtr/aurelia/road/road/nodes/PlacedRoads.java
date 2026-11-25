@@ -7,6 +7,7 @@ package org.mtr.aurelia.road.road.nodes;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -15,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.mtr.aurelia.road.ops.BlockChange;
 import org.mtr.aurelia.road.ops.BlockPlan;
+import org.mtr.aurelia.road.ops.WorldLimits;
 import org.mtr.aurelia.road.road.RoadHistory;
 import org.mtr.aurelia.road.road.RoadJoins;
 import org.mtr.aurelia.road.road.RoadPlanParams;
@@ -145,8 +147,14 @@ public final class PlacedRoads {
     /** Every road operation known this visit, oldest first; undone ones too, until redone or replaced. */
     private final List<Entry> entries = new ArrayList<>();
     private final Set<UUID> undone = new HashSet<>();
-    /** The roads built so far, by the operation that built them last, so a road is worked out once. */
-    private final Map<UUID, Road> built = new HashMap<>();
+    /**
+     * The roads built so far, by the operation that built them last and the road (owner, 2026-11-24: an edit that moves a
+     * joined end builds the roads joined there too), so a road is worked out once and keeps its object while it stands.
+     */
+    private final Map<Built, Road> built = new HashMap<>();
+
+    private record Built(UUID operation, UUID road) {
+    }
 
     /**
      * Remembers the operation {@code operationId}, placed with {@code params} and the blocks of {@code plan}: placing a
@@ -161,7 +169,7 @@ public final class PlacedRoads {
         }
         this.entries.removeIf(entry -> entry.id().equals(operationId));
         this.undone.remove(operationId);
-        this.built.remove(operationId);
+        this.built.keySet().removeIf(key -> key.operation().equals(operationId));
         this.entries.add(new Entry(operationId, params, plan));
         return roads().stream().filter(r -> r.operationId.equals(road.get())).findFirst();
     }
@@ -224,38 +232,65 @@ public final class PlacedRoads {
             byId.put(entry.id(), entry);
         }
         Map<UUID, RoadHistory.Road> standing = RoadHistory.resolve(ops);
+        Map<UUID, List<RoadHistory.Road>> byLatest = new HashMap<>();
+        standing.values().forEach(road -> byLatest.computeIfAbsent(road.latest(), id -> new ArrayList<>()).add(road));
         List<Road> active = new ArrayList<>();
         for (int i = this.entries.size() - 1; i >= 0; i--) {
             Entry entry = this.entries.get(i);
-            Optional<UUID> road = RoadHistory.roadOf(entry.id(), entry.params());
-            RoadHistory.Road stands = road.map(standing::get).orElse(null);
-            if (stands == null || !stands.latest().equals(entry.id())) {
-                continue; // not the operation that built a standing road last
-            }
-            Road built = this.built.get(entry.id());
-            if (built == null) {
-                built = build(stands.id(), entry);
-                if (built == null) {
-                    continue;
+            for (RoadHistory.Road stands : byLatest.getOrDefault(entry.id(), List.of())) { // the roads it built last
+                Built key = new Built(entry.id(), stands.id());
+                Road built = this.built.get(key);
+                if (built == null || !built.params().equals(stands.params())) {
+                    built = build(stands, entry);
+                    if (built == null) {
+                        continue;
+                    }
+                    this.built.put(key, built);
                 }
-                this.built.put(entry.id(), built);
+                active.add(built);
             }
-            active.add(built);
         }
         return active;
     }
 
-    /** The road {@code entry} builds, as road {@code id}; null when the planner doesn't solve it. */
-    private static Road build(UUID id, Entry entry) {
-        RoadPlanParams params = entry.params();
+    /**
+     * G-11: the junctions that stand now, by the operation that placed each, newest first. They have no lane nodes of their
+     * own for the aids, so {@link #roads()} leaves them out; the road tools join their free arms.
+     */
+    public Map<UUID, RoadPlanParams> junctions() {
+        List<RoadHistory.Op> ops = new ArrayList<>();
+        for (Entry entry : this.entries) {
+            ops.add(new RoadHistory.Op(entry.id(), entry.params(), !this.undone.contains(entry.id())));
+        }
+        Map<UUID, RoadHistory.Road> standing = RoadHistory.resolve(ops);
+        Map<UUID, RoadPlanParams> junctions = new LinkedHashMap<>();
+        for (int i = this.entries.size() - 1; i >= 0; i--) {
+            RoadHistory.Road stands = standing.get(this.entries.get(i).id());
+            if (stands != null && stands.params().tool() == RoadPlanParams.Tool.JUNCTION) {
+                junctions.put(stands.id(), stands.params());
+            }
+        }
+        return junctions;
+    }
+
+    /**
+     * The road {@code stands} as {@code entry} built it last; null when the planner doesn't solve it. An operation that
+     * built several roads (a moved joined end) has one plan for them all, so each road's blocks are its own plan's.
+     */
+    private static Road build(RoadHistory.Road stands, Entry entry) {
+        RoadPlanParams params = stands.params();
         Optional<List<LaneNode>> nodes = RoadPlanner.laneNodes(params);
         if (nodes.isEmpty() || entry.plan() == null) {
             return null;
         }
+        BlockPlan plan = entry.plan();
+        if (stands.shared().contains(entry.id())) {
+            plan = RoadPlanner.asPlaced(params, WorldLimits.OVERWORLD).plan().orElse(plan);
+        }
         Set<Long> blocks = new HashSet<>();
         Optional<String> marker = Optional.empty();
         LaneNode first = nodes.get().get(0);
-        for (BlockPlan.Block block : entry.plan().blocks()) {
+        for (BlockPlan.Block block : plan.blocks()) {
             blocks.add(BlockChange.positionKey(block.x(), block.y(), block.z()));
             if (params.nodeAids() == RoadPlanParams.NodeAids.WOOL && block.x() == first.x() && block.y() == first.y() && block.z() == first.z()) {
                 marker = Optional.of(block.state()); // R-9: the road's palette's marker
@@ -263,7 +298,7 @@ public final class PlacedRoads {
         }
         double length = PieceSolver.centreLine(params.ends().get(0), params.ends().get(1)).map(rail -> rail.getLength()).orElse(0.0);
         List<RoadJoins.Port> ports = RoadJoins.ports(params).orElse(List.of());
-        return new Road(id, entry.id(), params, nodes.get(), length, blocks, ports, marker);
+        return new Road(stands.id(), entry.id(), params, nodes.get(), length, blocks, ports, marker);
     }
 
     /** The newest placed road whose node (marker spot or node block) is at {@code (x, y, z)}, with the node's index. */

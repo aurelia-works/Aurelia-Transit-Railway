@@ -7,6 +7,7 @@ package org.mtr.aurelia.road.road.tool;
 import java.util.Map;
 import java.util.Optional;
 import org.mtr.aurelia.road.proto.PlanResult;
+import org.mtr.aurelia.road.road.RoadJoins;
 import org.mtr.aurelia.road.road.RoadPlanParams;
 import org.mtr.aurelia.road.road.RoadPlanner;
 import org.mtr.aurelia.road.tool.HudModel.Level;
@@ -51,7 +52,9 @@ final class RoadNotices {
         }
         for (RoadPlanParams.End end : params.get().ends()) {
             if (end.snapRoadId().isPresent()) {
-                Optional<String> layout = joins.profile(end.snapRoadId().get());
+                int port = end.snapPortIndex().orElse(0);
+                Optional<String> layout = port >= RoadJoins.ARM_PORTS ? joins.armProfile(end.snapRoadId().get(), port) // G-11
+                        : joins.profile(end.snapRoadId().get());
                 if (layout.isPresent()) {
                     String code = layout.get().equals(params.get().profileId()) ? JOINED : JOINED_TAPER;
                     return Optional.of(Notice.reason(Level.INFO, code, Map.of("layout", layout.get())));

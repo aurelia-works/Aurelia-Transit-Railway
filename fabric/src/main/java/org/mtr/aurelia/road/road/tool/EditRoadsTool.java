@@ -69,8 +69,9 @@ import org.mtr.aurelia.road.tool.WorldTask;
  *       drawing) and put down as there; the hub's layout, palette, node aid and shape become the road's and change it while
  *       it is edited (they stay for the next road). <b>Use</b> sends a {@code REBUILD} with the new parameters, asking
  *       about hand edits as a rebuild does; <b>attack</b> leaves the road as it was. <b>R-10+:</b> a joined road is
- *       edited too: its joined ends stay where they are (their handles can't be picked up), and the roads joined to it
- *       keep their joins; an edit that would break one is refused ({@code ROAD_JOINED}).</li>
+ *       edited too: an end it drew onto another road stays where it is (its handle can't be picked up); an end another
+ *       road was drawn onto can be moved, and that road's end moves with it in the same operation (owner, 2026-11-24).
+ *       An edit that would still pull a joined road away is refused ({@code ROAD_JOINED}).</li>
  *   <li><b>B-3: Bake to vanilla</b>, offered for a road whose palette places Stratos blocks, asks the server to turn the
  *       road's Stratos blocks into vanilla ones where they stand ({@code BAKE_ROAD}, a world task): one operation, undone
  *       like any edit.</li>
@@ -285,7 +286,7 @@ public final class EditRoadsTool implements Tool {
     private void startEditing() {
         UUID id = this.picked.operationId();
         this.settings.follow(this.picked.params());
-        this.editor = new CurveTool(this.settings, JoinableRoads.editing(id, this.roads::roads));
+        this.editor = new CurveTool(this.settings, JoinableRoads.editing(id, this.roads::roads, this.roads::junctions));
         this.editor.load(this.picked.params());
         this.stage = Stage.EDITING;
         this.notice = null;

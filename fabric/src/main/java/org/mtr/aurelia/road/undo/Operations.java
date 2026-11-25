@@ -467,8 +467,25 @@ public final class Operations {
         if (this.pending.containsKey(owner)) {
             return Request.refused(Refusal.BUSY);
         }
-        List<UndoStore.Entry> entries = new ArrayList<>();
-        for (UUID id : replacement.chain()) {
+        // Owner, 2026-11-24: an edit that moves a joined end replaces the roads joined there too, in the same job.
+        List<Replacement> parts = replacement.parts();
+        List<UUID> ops = new ArrayList<>(); // every road's operations, each once
+        for (Replacement part : parts) {
+            part.chain().stream().filter(id -> !ops.contains(id)).forEach(ops::add);
+        }
+        Map<UUID, UndoStore.Entry> entries = new LinkedHashMap<>();
+        List<UUID> grounds = new ArrayList<>(); // other roads' operations that hold the ground of blocks these took over
+        for (Replacement part : parts) {
+            for (UUID id : part.only().keySet()) {
+                OperationRecord record = this.records.get(id);
+                Optional<UndoStore.Entry> entry = this.store.entry(id);
+                if (!ops.contains(id) && !grounds.contains(id) && record != null && record.status() == OperationRecord.Status.APPLIED && entry.isPresent()) {
+                    grounds.add(id);
+                    entries.put(id, entry.get());
+                }
+            }
+        }
+        for (UUID id : ops) {
             OperationRecord record = this.records.get(id);
             if (record == null || record.status() != OperationRecord.Status.APPLIED) {
                 return Request.refused(Refusal.ROAD_GONE);
@@ -478,23 +495,38 @@ public final class Operations {
             }
             Optional<UndoStore.Entry> entry = this.store.entry(id);
             if (entry.isPresent()) {
-                entries.add(entry.get());
+                entries.put(id, entry.get());
             } else if (replacement.delete() && !record.sections().isEmpty()) {
                 return Request.refused(Refusal.ROAD_TOO_OLD);
             }
         }
-        List<UndoStore.Captured> captured = new ArrayList<>();
-        entries.forEach(entry -> captured.add(this.store.capture(entry)));
+        ops.addAll(grounds);
+        if (parts.size() > 1 || !grounds.isEmpty()) {
+            ops.sort(java.util.Comparator.comparing(id -> this.records.get(id).time())); // oldest first, across the roads
+        }
+        Map<UUID, Set<Long>> only = only(parts, ops); // the positions each shared operation's images hold for these roads
+        Map<UUID, UndoStore.Captured> captured = new LinkedHashMap<>();
+        entries.forEach((id, entry) -> captured.put(id, this.store.capture(entry)));
         Pending pending = new Pending(new Handle(Kind.APPLY, owner, operationId), draft, null);
-        pending.held = List.copyOf(entries);
-        pending.roadEffects = this.records.get(replacement.latest()).roadEffects();
-        pending.repairs = replacement.delete() ? null : replacement.latest();
-        pending.preparing = new HelperTask<>(() -> {
-            List<List<BlockChange>> images = new ArrayList<>();
-            for (UndoStore.Captured images1 : captured) {
-                images.add(images1.read());
+        pending.held = List.copyOf(entries.values());
+        List<SideEffect> roadEffects = new ArrayList<>();
+        for (Replacement part : parts) {
+            for (SideEffect effect : this.records.get(part.latest()).roadEffects()) {
+                if (part.rails().map(rails -> rails.contains(effect)).orElse(true) && !roadEffects.contains(effect)) {
+                    roadEffects.add(effect);
+                }
             }
-            return new Prepared(null, replacementJob(plan, images, replacement));
+        }
+        pending.roadEffects = roadEffects;
+        pending.repairs = replacement.delete() || parts.size() > 1 ? null : replacement.latest();
+        pending.preparing = new HelperTask<>(() -> {
+            Map<UUID, List<BlockChange>> images = new LinkedHashMap<>();
+            for (Map.Entry<UUID, UndoStore.Captured> entry : captured.entrySet()) {
+                List<BlockChange> changes = entry.getValue().read();
+                Set<Long> positions = only.get(entry.getKey());
+                images.put(entry.getKey(), positions == null ? changes : changes.stream().filter(c -> positions.contains(c.positionKey())).toList());
+            }
+            return new Prepared(null, replacementJob(plan, ops, images, replacement));
         });
         this.pending.put(owner, pending);
         submit(pending.preparing);
@@ -502,8 +534,34 @@ public final class Operations {
     }
 
     /**
-     * The job of a delete or rebuild (R-7), from {@code plan} (the road's new plan, empty for a delete) and
-     * {@code images}, the changes of the road's operations, oldest first:
+     * Of {@code ops}, the shared ones and other roads' ({@link Replacement#only}) with the positions their images hold for
+     * the roads {@code parts}: those the parts name. An operation some part takes whole isn't there.
+     */
+    private static Map<UUID, Set<Long>> only(List<Replacement> parts, List<UUID> ops) {
+        Map<UUID, Set<Long>> only = new HashMap<>();
+        for (UUID id : ops) {
+            Set<Long> positions = new java.util.HashSet<>();
+            boolean whole = false;
+            for (Replacement part : parts) {
+                Set<Long> named = part.only().get(id);
+                if (named != null) {
+                    positions.addAll(named);
+                } else if (part.chain().contains(id)) {
+                    whole = true;
+                    break;
+                }
+            }
+            if (!whole) {
+                only.put(id, positions);
+            }
+        }
+        return only;
+    }
+
+    /**
+     * The job of a delete or rebuild (R-7), from {@code plan} (the road's new plan, empty for a delete) and the undo
+     * images of the road's operations {@code ops}, oldest first ({@code images}, by operation, each as much of it as is
+     * the road's; one whose images the cap dropped isn't there):
      * <ul>
      *   <li>every block of {@code plan} is written; its expected state is what the road's last operation to change it
      *       left there, else its state in the road's plan as placed, else any ({@link ApplyJob#ANY}: a block the road
@@ -514,28 +572,38 @@ public final class Operations {
      *       operation's plan that it didn't change already had its planned state: that is the ground there, even when a
      *       rebuild later changed it ({@link Replacement#firstPlaced}).</li>
      * </ul>
-     * The guard is the replacement's; the job refuses to start when it would change nothing. Any thread.
+     * From 2026-11-24 the roads the edit takes with it ({@link Replacement#joined}) are replaced the same way in the same
+     * job: {@code ops} are all the roads' operations. The guard is the replacement's; the job refuses to start when it
+     * would change nothing. Any thread.
      */
-    static ApplyJob replacementJob(BlockPlan plan, List<List<BlockChange>> images, Replacement replacement) {
+    static ApplyJob replacementJob(BlockPlan plan, List<UUID> ops, Map<UUID, List<BlockChange>> images, Replacement replacement) {
         Map<Long, BlockChange> ground = new HashMap<>();
         Map<Long, BlockChange> last = new LinkedHashMap<>();
-        Set<Long> firstChanged = new java.util.HashSet<>(); // changed by the first operation (when its images are there)
-        for (int i = 0; i < images.size(); i++) {
-            for (BlockChange change : images.get(i)) {
+        for (UUID op : ops) {
+            for (BlockChange change : images.getOrDefault(op, List.of())) {
                 ground.putIfAbsent(change.positionKey(), change);
                 last.put(change.positionKey(), change);
-                if (i == 0) {
-                    firstChanged.add(change.positionKey());
+            }
+        }
+        Map<Long, BlockPlan.Block> firstGround = new HashMap<>(); // a block of a road's first plan that its first operation found so
+        Map<Long, BlockPlan.Block> placed = new HashMap<>();
+        Set<Long> keep = new java.util.HashSet<>();
+        for (Replacement part : replacement.parts()) {
+            keep.addAll(part.keep());
+            part.asPlaced().ifPresent(asPlaced -> asPlaced.blocks().forEach(block -> placed.putIfAbsent(BlockChange.positionKey(block.x(), block.y(),
+                    block.z()), block)));
+            boolean firstImages = part.chain().stream().allMatch(images::containsKey); // every operation's images, the first's included
+            if (part.firstPlaced().isPresent() && firstImages) {
+                Set<Long> firstChanged = new java.util.HashSet<>();
+                images.get(part.chain().get(0)).forEach(change -> firstChanged.add(change.positionKey()));
+                for (BlockPlan.Block block : part.firstPlaced().get().blocks()) {
+                    long key = BlockChange.positionKey(block.x(), block.y(), block.z());
+                    if (!firstChanged.contains(key)) {
+                        firstGround.putIfAbsent(key, block);
+                    }
                 }
             }
         }
-        Map<Long, BlockPlan.Block> firstPlan = new HashMap<>();
-        replacement.firstPlaced().ifPresent(first -> first.blocks().forEach(block -> firstPlan.put(BlockChange.positionKey(block.x(), block.y(),
-                block.z()), block)));
-        boolean firstImages = images.size() == replacement.chain().size(); // every operation's images, the first's included
-        Map<Long, BlockPlan.Block> placed = new HashMap<>();
-        replacement.asPlaced().ifPresent(asPlaced -> asPlaced.blocks().forEach(block -> placed.put(BlockChange.positionKey(block.x(), block.y(),
-                block.z()), block)));
         BlockPlan.Builder writes = BlockPlan.builder(plan.dataVersion());
         BlockPlan.Builder expects = BlockPlan.builder(plan.dataVersion());
         Set<Long> planned = new java.util.HashSet<>();
@@ -558,13 +626,12 @@ public final class Operations {
             BlockChange first = ground.get(key);
             String groundState = first.before();
             String groundData = first.beforeData();
-            BlockPlan.Block unchanged = firstPlan.get(key);
-            if (unchanged != null && firstImages && !firstChanged.contains(key)) {
+            BlockPlan.Block unchanged = firstGround.get(key);
+            if (unchanged != null) {
                 groundState = unchanged.state(); // the first operation found it in its planned state
                 groundData = unchanged.data();
             }
-            if (planned.contains(key) || replacement.keep().contains(key)
-                    || (groundState.equals(was.after()) && Objects.equals(groundData, was.afterData()))) {
+            if (planned.contains(key) || keep.contains(key) || (groundState.equals(was.after()) && Objects.equals(groundData, was.afterData()))) {
                 continue;
             }
             writes.set(was.x(), was.y(), was.z(), groundState, groundData);

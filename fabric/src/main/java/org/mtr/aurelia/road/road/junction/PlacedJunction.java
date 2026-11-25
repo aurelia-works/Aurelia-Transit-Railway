@@ -21,6 +21,45 @@ public record PlacedJunction(JunctionTemplate template, int x, int y, int z, int
         quarterTurns = StrictMath.floorMod(quarterTurns, 4);
     }
 
+    /**
+     * The junction a request's ends place (one per arm, in the template's order): set where its first arm's port is
+     * {@code ends.get(0)}, turned so that arm faces that end's heading; empty unless every end is its arm's port, with the
+     * heading a road leaving it runs, all at one height (a junction is level).
+     */
+    public static Optional<PlacedJunction> from(JunctionTemplate template, List<RoadPlanParams.End> ends) {
+        if (ends.size() != template.arms().size()) {
+            return Optional.empty();
+        }
+        JunctionTemplate.Arm first = template.arms().get(0);
+        RoadPlanParams.End at = ends.get(0);
+        int steps = StrictMath.floorMod(first.outgoing().stepsTo(at.heading()), 16);
+        if (steps % 4 != 0) {
+            return Optional.empty();
+        }
+        BlockStep offset = new BlockStep(first.x(), first.z());
+        for (int i = 0; i < steps / 4; i++) {
+            offset = offset.rotateQuarterClockwise();
+        }
+        PlacedJunction placed = new PlacedJunction(template, at.x() - offset.dx(), at.y(), at.z() - offset.dz(), steps / 4);
+        for (int i = 0; i < ends.size(); i++) {
+            RoadPlanParams.End end = ends.get(i);
+            RoadPlanParams.End arm = placed.arm(i);
+            if (end.x() != arm.x() || end.y() != arm.y() || end.z() != arm.z() || end.heading() != arm.heading()) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(placed);
+    }
+
+    /** The block {@code (x, z)} of the template's own frame, in the world. */
+    public BlockStep world(int x, int z) {
+        BlockStep step = new BlockStep(x, z);
+        for (int i = 0; i < this.quarterTurns; i++) {
+            step = step.rotateQuarterClockwise();
+        }
+        return new BlockStep(this.x + step.dx(), this.z + step.dz());
+    }
+
     /** Arm {@code arm}'s port in the world: its centre-line block, with the heading a road leaving the junction there runs. */
     public RoadPlanParams.End arm(int arm) {
         JunctionTemplate.Arm local = this.template.arms().get(arm);

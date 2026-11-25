@@ -144,6 +144,22 @@ public final class Rasteriser {
         return plan.build();
     }
 
+    /**
+     * The block plan of a junction piece (G-11): its columns (by world block; {@code road.junction.JunctionFootprint}), all
+     * level at {@code top}, with real kerbs where {@code palette}'s kerb turns to face the road (B-1), stacked as a road's
+     * columns are. Its give-way lines come painted with their chords already.
+     */
+    public static BlockPlan junction(Map<BlockXZ, Column> columns, double top, BlockPalette palette, int minY, int maxY) {
+        List<Map.Entry<BlockXZ, Cell>> cells = new ArrayList<>();
+        columns.forEach((xz, column) -> cells.add(Map.entry(xz, new Cell(column, snap(top)))));
+        List<Map.Entry<BlockXZ, Cell>> kerbed = palette.kerbEdges() ? withKerbs(cells) : cells;
+        BlockPlan.Builder plan = BlockPlan.builder(palette.dataVersion());
+        for (Map.Entry<BlockXZ, Cell> entry : kerbed) {
+            SurfaceFit.stack(plan, entry.getKey().x(), entry.getKey().z(), entry.getValue().column(), entry.getValue().top(), palette, minY, maxY);
+        }
+        return plan.build();
+    }
+
     /** The columns {@link #plan(List, BlockPalette, int, int)} stacks, in order: every piece's, with kerbs and lines as {@code palette} has them. */
     static List<Map.Entry<BlockXZ, Cell>> planCells(List<RoadPiece> pieces, BlockPalette palette) {
         return planCells(pieces, palette, List.of());

@@ -17,6 +17,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
 import org.mtr.aurelia.road.geom.Heading;
+import org.mtr.aurelia.road.road.RoadJoins;
 import org.mtr.aurelia.road.road.RoadPlanParams;
 
 /**
@@ -71,6 +72,8 @@ public final class RoadGraph {
     private final Map<UUID, List<Port>> arms = new LinkedHashMap<>();
     /** Junction arms drawn onto road ends: {@code road} is the junction, {@code index} its arm. */
     private final List<Join> armJoins = new ArrayList<>();
+    /** Road ends drawn onto junction arms (their port {@link RoadJoins#ARM_PORTS} + arm): {@code joins} is the junction, {@code joinsIndex} its arm. */
+    private final List<Join> onArms = new ArrayList<>();
 
     private RoadGraph(Map<UUID, RoadPlanParams> roads) {
         this.roads = Collections.unmodifiableMap(new LinkedHashMap<>(roads));
@@ -95,6 +98,10 @@ public final class RoadGraph {
             for (int i = 0; i < 2; i++) {
                 Optional<UUID> other = ends.get(i).snapRoadId();
                 OptionalInt otherIndex = ends.get(i).snapPortIndex();
+                if (other.isPresent() && otherIndex.isPresent() && otherIndex.getAsInt() >= RoadJoins.ARM_PORTS && this.arms.containsKey(other.get())
+                        && otherIndex.getAsInt() - RoadJoins.ARM_PORTS < this.arms.get(other.get()).size()) {
+                    this.onArms.add(new Join(id, i, other.get(), otherIndex.getAsInt() - RoadJoins.ARM_PORTS)); // G-11: drawn onto an arm
+                }
                 if (other.isPresent() && !other.get().equals(id) && otherIndex.isPresent() && otherIndex.getAsInt() <= 1
                         && this.ports.containsKey(other.get())) {
                     this.joins.add(new Join(id, i, other.get(), otherIndex.getAsInt()));
@@ -174,7 +181,43 @@ public final class RoadGraph {
                 return true;
             }
         }
+        for (Join join : this.onArms) {
+            if (join.road().equals(road) && join.index() == index) {
+                return true;
+            }
+        }
         return false;
+    }
+
+    /** Whether end {@code index} of road {@code road} is joined to a junction's arm, either way round (G-11). */
+    public boolean atJunction(UUID road, int index) {
+        return this.armJoins.stream().anyMatch(join -> join.joins().equals(road) && join.joinsIndex() == index)
+                || this.onArms.stream().anyMatch(join -> join.road().equals(road) && join.index() == index);
+    }
+
+    /** Whether arm {@code arm} of junction {@code junction} is joined: drawn onto a road end, or a road end drawn onto it. */
+    public boolean armTaken(UUID junction, int arm) {
+        return this.armJoins.stream().anyMatch(join -> join.road().equals(junction) && join.index() == arm)
+                || this.onArms.stream().anyMatch(join -> join.joins().equals(junction) && join.joinsIndex() == arm);
+    }
+
+    /** The junctions joined to an end of road {@code road}, either way round, in the order given. */
+    public Set<UUID> junctionsOf(UUID road) {
+        Set<UUID> junctions = new LinkedHashSet<>();
+        this.armJoins.stream().filter(join -> join.joins().equals(road)).forEach(join -> junctions.add(join.road()));
+        this.onArms.stream().filter(join -> join.road().equals(road)).forEach(join -> junctions.add(join.joins()));
+        return junctions;
+    }
+
+    /** Every junction arm within {@code radius} of block {@code (x, z)} across (any height), in the order given. */
+    public List<Port> armsNear(int x, int z, double radius) {
+        List<Port> near = new ArrayList<>();
+        this.arms.values().forEach(arms -> arms.stream().filter(arm -> {
+            double dx = arm.x() - x;
+            double dz = arm.z() - z;
+            return dx * dx + dz * dz <= radius * radius;
+        }).forEach(near::add));
+        return near;
     }
 
     /** The joins of other roads' ends drawn onto an end of {@code road} (R-10+: the ends an edit must leave in place). */
