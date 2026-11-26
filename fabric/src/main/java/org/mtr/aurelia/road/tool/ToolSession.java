@@ -156,20 +156,28 @@ public final class ToolSession implements EditorClient.Listener {
 
     /**
      * Sends {@code input} to the tool in hand. Returns false when no tool is active, so the game keeps the input. An attack
-     * the tool has no step for (its HUD shows none) puts the tool away and also returns false, so the click breaks the
-     * block aimed at instead of doing nothing (2026-11-26).
+     * on an idle tool with no step for it ({@link #attackPutsAway}) puts the tool away and also returns false, so the click
+     * breaks the block aimed at instead of doing nothing (2026-11-26).
      */
     public boolean input(ToolInput input) {
         if (this.active == null) {
             return false;
         }
-        if (input instanceof ToolInput.Attack && this.active.hud().hint(HudModel.Action.ATTACK).isEmpty()) {
+        if (input instanceof ToolInput.Attack && attackPutsAway()) {
             leave();
             return false;
         }
         this.active.input(input);
         update();
         return true;
+    }
+
+    /**
+     * Whether an attack now puts the tool in hand away: only while it is idle (nothing set, nothing being placed) and has
+     * no step of its own for the click. A busy tool keeps the click, so a stray one can't drop a road being placed.
+     */
+    private boolean attackPutsAway() {
+        return this.active != null && this.active.state() == ToolState.IDLE && this.active.hud().hint(HudModel.Action.ATTACK).isEmpty();
     }
 
     /** Shows the tool in hand's output again after its settings changed outside its input (R-4: the radius box). */
@@ -179,13 +187,13 @@ public final class ToolSession implements EditorClient.Listener {
         }
     }
 
-    /** The HUD of the tool in hand. Where the tool has no attack step, the attack row says it puts the tool away. */
+    /** The HUD of the tool in hand. Where an attack puts the tool away, the attack row says so. */
     public Optional<HudModel> hud() {
         if (this.active == null) {
             return Optional.empty();
         }
         HudModel hud = this.active.hud();
-        if (hud.hint(HudModel.Action.ATTACK).isPresent()) {
+        if (!attackPutsAway()) {
             return Optional.of(hud);
         }
         List<HudModel.Hint> hints = new ArrayList<>(hud.hints());

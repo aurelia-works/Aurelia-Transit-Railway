@@ -300,6 +300,16 @@ class ToolSessionTest {
     }
 
     @Test
+    void aLeftClickWhileARoadIsBeingPlacedKeepsTheToolAndItsRequest() {
+        roadReadyToPlace();
+        int id = place();
+        assertTrue(this.session.input(new ToolInput.Attack(at(5, 64, 5))), "the click is the tool's, and does nothing");
+        assertEquals(Optional.of(this.straight), this.session.active());
+        assertEquals(ToolState.COMMITTING, this.straight.state());
+        assertTrue(this.session.ownsRequest(id), "the road being placed still hears its answers");
+    }
+
+    @Test
     void theHudSaysWhatALeftClickDoesWhenItPutsTheToolAway() {
         this.session.select(StraightTool.ID);
         assertEquals(Optional.of("stratos.tool.hint.put_away"),
