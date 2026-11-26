@@ -76,13 +76,46 @@ import java.util.function.IntSupplier;
 import java.util.function.UnaryOperator;
 
 /**
- * The Aurelia panel: one screen with tabs for ATR's own switches and tools. Rendering rows read and write ATR's client
- * config ({@code config/mtr.json}); Tools are ATU's hub; Sound holds the Announcer switches; Riding holds sitting while
- * riding; Builder sets the Rail Builder in the player's hand.
+ * The Aurelia panel: one screen for ATR's own switches and tools. The left list holds seven groups; the open group's
+ * sections (the {@link Tab}s) are listed under it. Rendering rows read and write ATR's client config
+ * ({@code config/mtr.json}); Tools are ATU's hub; Sound holds the Announcer switches; Riding holds sitting while riding;
+ * Builder sets the Rail Builder in the player's hand. Nothing saves the open tab, so groups and order can change freely.
  */
 public final class AureliaPanelScreen extends CompatScreen implements DashboardParentAccess {
 
-	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, LOOK, DRIVING, PACKS, MAP, VEHICLES, ENGINE}
+	/** The seven entries of the left list, top to bottom. */
+	public enum Group {TRAINS, SOUND, LOOK, BUILD, PASSENGERS, MAP, TOOLS}
+
+	/**
+	 * One section of a group. Each names its group, so no section can be left out of the list. Within a group, sections
+	 * show in this order. Callers open the panel by these names ({@code PanelShots}, {@code VisualShots}), so keep them.
+	 */
+	public enum Tab {
+		ENGINE(Group.TRAINS), ROUTES(Group.TRAINS), DRIVING(Group.TRAINS),
+		SOUND(Group.SOUND), TRAIN_SOUND(Group.SOUND),
+		RENDERING(Group.LOOK), LOOK(Group.LOOK), PANTOGRAPH(Group.LOOK), RIDING(Group.LOOK), PACKS(Group.LOOK),
+		ARCHITECTURE(Group.BUILD), BUILDER(Group.BUILD),
+		PASSENGERS(Group.PASSENGERS), VEHICLES(Group.PASSENGERS), ZIP(Group.PASSENGERS),
+		MAP(Group.MAP),
+		TOOLS(Group.TOOLS);
+
+		public final Group group;
+
+		Tab(Group group) {
+			this.group = group;
+		}
+
+		/** The group's sections in list order; the first is what clicking the group opens. */
+		public static List<Tab> of(Group group) {
+			final List<Tab> tabs = new ArrayList<>();
+			for (final Tab tab : values()) {
+				if (tab.group == group) {
+					tabs.add(tab);
+				}
+			}
+			return tabs;
+		}
+	}
 
 	private static final int BUTTON_WIDTH = 200;
 	private static final int VALUE_WIDTH = 80;
@@ -92,10 +125,10 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 	private static final int TOOL_ROW = 22;
 	/** The bar along the top: the panel's name. */
 	private static final int HEADER = 22;
-	/** The tab list down the left side, one row per tab, in four groups. */
+	/** The list down the left side: one row per group, and the open group's sections indented under it. */
 	private static final int SIDEBAR = 104;
 	private static final int SIDE_ROW = 12;
-	private static final int GROUP_GAP = 5;
+	private static final int SECTION_INDENT = 10;
 	/** First row of a tab's controls: under the header, the tab's name and its status line. */
 	private static final int CONTENT_TOP = HEADER + 36;
 	/** The Done button and the scroll line sit in this strip at the bottom. */
@@ -107,13 +140,6 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 	private static final int SELECTED_BAR = 0xFF4A90E2;
 	private static final int ROW_STRIPE = 0x14FFFFFF;
 	private static final int HOVER = 0x28FFFFFF;
-	/** Riding and driving, then the network, then building, then this client's look and speed. */
-	private static final Tab[][] GROUPS = {
-			{Tab.RIDING, Tab.DRIVING, Tab.VEHICLES, Tab.PANTOGRAPH, Tab.TRAIN_SOUND, Tab.SOUND},
-			{Tab.ROUTES, Tab.TOOLS, Tab.PASSENGERS, Tab.ENGINE, Tab.ZIP, Tab.MAP},
-			{Tab.ARCHITECTURE, Tab.BUILDER},
-			{Tab.RENDERING, Tab.LOOK, Tab.PACKS}
-	};
 	private int top = CONTENT_TOP;
 	private int contentLeft;
 	private int contentRight;
@@ -220,12 +246,16 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 		contentRight = width - 8;
 		top = CONTENT_TOP;
 		int y = HEADER + 6;
-		for (final Tab[] group : GROUPS) {
-			for (final Tab target : group) {
-				addDrawableChild(new SideTab(0, y, SIDEBAR, target));
-				y += SIDE_ROW;
+		for (final Group group : Group.values()) {
+			final List<Tab> sections = Tab.of(group);
+			addDrawableChild(new SideTab(0, y, SIDEBAR, sections.get(0), group, 0));
+			y += SIDE_ROW;
+			if (group == tab.group && sections.size() > 1) {
+				for (final Tab section : sections) {
+					addDrawableChild(new SideTab(0, y, SIDEBAR, section, null, SECTION_INDENT));
+					y += SIDE_ROW;
+				}
 			}
-			y += GROUP_GAP;
 		}
 		switch (tab) {
 			case RENDERING -> initRendering();
@@ -263,7 +293,7 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 		clearAndInit();
 	}
 
-	/** Centre of the content column, right of the tab list. */
+	/** Centre of the content column, right of the left list. */
 	private int centerX() {
 		return (contentLeft + contentRight) / 2;
 	}
@@ -1637,7 +1667,7 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 		return Language.getInstance().reorder(StringVisitable.concat(cut, Text.literal("…")));
 	}
 
-	/** The header bar, the tab list's background and the open tab's name over the content column. */
+	/** The header bar, the left list's background and the open section's name over the content column. */
 	private void renderChrome(DrawContext context) {
 		context.fill(0, 0, width, HEADER, HEADER_BG);
 		context.fill(0, HEADER - 1, width, HEADER, LINE);
@@ -1648,14 +1678,27 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 		context.fill(contentLeft, HEADER + 19, contentRight, HEADER + 20, LINE);
 	}
 
-	/** One row of the tab list: flat, the open tab lit with a bar on its left edge. Still a button, so Tab and Enter reach it. */
+	/**
+	 * One row of the left list: a group (opens its first section) or, indented, a section of the open group. Flat, the
+	 * open row lit with a bar on its left edge. Still a button, so Tab and Enter reach it.
+	 */
 	private final class SideTab extends ButtonWidget {
 
 		private final Tab target;
+		/** Set for a group row, null for a section row. */
+		@Nullable
+		private final Group group;
+		private final int indent;
+		/** A group row that is its only section, so it lights like a section. */
+		private final boolean single;
 
-		private SideTab(int x, int y, int w, Tab target) {
-			super(x, y, w, SIDE_ROW, Text.translatable("gui.aurelia.panel.tab." + target.name().toLowerCase()), b -> selectTab(target), DEFAULT_NARRATION_SUPPLIER);
+		private SideTab(int x, int y, int w, Tab target, @Nullable Group group, int indent) {
+			super(x, y, w, SIDE_ROW, Text.translatable(group == null ? "gui.aurelia.panel.tab." + target.name().toLowerCase() : "gui.aurelia.panel.group." + group.name().toLowerCase()),
+					b -> selectTab(target), DEFAULT_NARRATION_SUPPLIER);
 			this.target = target;
+			this.group = group;
+			this.indent = indent;
+			single = group != null && Tab.of(group).size() == 1;
 		}
 
 		/** Minecraft 1.20.4's name for {@link #renderButton}; nothing calls it on 1.20.1. */
@@ -1664,14 +1707,16 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 		}
 
 		protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
-			final boolean open = target == tab;
+			// a group row with sections lights only its name; the bar marks the open section under it
+			final boolean openGroup = group != null && group == tab.group;
+			final boolean open = group == null ? target == tab : openGroup && single;
 			if (open) {
 				context.fill(getX(), getY(), getX() + getWidth() - 1, getY() + getHeight(), SELECTED);
-				context.fill(getX(), getY(), getX() + 2, getY() + getHeight(), SELECTED_BAR);
+				context.fill(getX() + indent, getY(), getX() + indent + 2, getY() + getHeight(), SELECTED_BAR);
 			} else if (isHovered() || isFocused()) {
 				context.fill(getX(), getY(), getX() + getWidth() - 1, getY() + getHeight(), HOVER);
 			}
-			context.drawTextWithShadow(textRenderer, getMessage(), getX() + 8, getY() + (getHeight() - 8) / 2, open ? 0xFFFFFF : 0xB0B4BA);
+			context.drawTextWithShadow(textRenderer, getMessage(), getX() + 8 + indent, getY() + (getHeight() - 8) / 2, open || openGroup ? 0xFFFFFF : 0xB0B4BA);
 		}
 	}
 }
