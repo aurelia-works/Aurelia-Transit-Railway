@@ -80,7 +80,7 @@ public class VehicleExtension extends Vehicle implements Utilities {
 		final double oldRailProgress = railProgress;
 		oldSpeed = speed;
 		simulate(millisElapsed, null, null);
-		persistentVehicleData.tick(railProgress, millisElapsed, vehicleExtraData);
+		persistentVehicleData.tick(railProgress, millisElapsed, vehicleExtraData, reversed);
 		persistentVehicleData.updateSoundProfile(getId(), aureliaDefaultSoundProfile());
 		final MinecraftClient minecraftClient = MinecraftClient.getInstance();
 		final ClientWorld clientWorld = minecraftClient.getWorldMapped();

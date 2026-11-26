@@ -53,6 +53,7 @@ public final class PersistentVehicleData {
 	private double runSoundRailProgress;
 	@Nullable
 	private VehicleExtraData runSoundVehicleExtraData;
+	private boolean runSoundReversed;
 	private boolean runSoundStatesStale;
 	private final Object2ObjectOpenHashMap<String, DoorMovementInterpolation> doorMovementInterpolations = new Object2ObjectOpenHashMap<>();
 
@@ -111,6 +112,13 @@ public final class PersistentVehicleData {
 	}
 
 	public void tick(double railProgress, long millisElapsed, VehicleExtraData vehicleExtraData) {
+		tick(railProgress, millisElapsed, vehicleExtraData, false);
+	}
+
+	/**
+	 * @param reversed whether the train runs with its last car leading, so the car at the head of the path is the last car
+	 */
+	public void tick(double railProgress, long millisElapsed, VehicleExtraData vehicleExtraData, boolean reversed) {
 		oldDoorValue = doorValue;
 		doorValue = Utilities.clamp(doorValue + (double) (millisElapsed * getAdjustedDoorMultiplier(vehicleExtraData)) / Vehicle.DOOR_MOVE_TIME, 0, 1);
 		if (checkCanOpenDoors()) {
@@ -128,6 +136,7 @@ public final class PersistentVehicleData {
 		// that are out of earshot or have no sound cost nothing here
 		runSoundRailProgress = railProgress;
 		runSoundVehicleExtraData = vehicleExtraData;
+		runSoundReversed = reversed;
 		runSoundStatesStale = true;
 	}
 
@@ -137,9 +146,13 @@ public final class PersistentVehicleData {
 		runSoundStates.clear();
 		final VehicleExtraData vehicleExtraData = runSoundVehicleExtraData;
 		if (vehicleExtraData != null && !vehicleExtraData.immutablePath.isEmpty()) {
+			final int carCount = vehicleExtraData.immutableVehicleCars.size();
+			// Filled by car number, which is what playMotorSound looks up; a reversed train has its last car at the head
+			runSoundStates.size(carCount);
 			double headRailProgress = runSoundRailProgress;
-			for (int i = 0; i < vehicleExtraData.immutableVehicleCars.size(); i++) {
-				final VehicleCar vehicleCar = vehicleExtraData.immutableVehicleCars.get(i);
+			for (int i = 0; i < carCount; i++) {
+				final int carNumber = runSoundReversed ? carCount - i - 1 : i;
+				final VehicleCar vehicleCar = vehicleExtraData.immutableVehicleCars.get(carNumber);
 				final double carLength = vehicleCar.getLength();
 				final double tailRailProgress = headRailProgress - carLength;
 
@@ -149,7 +162,7 @@ public final class PersistentVehicleData {
 				final PathData thisPathData = Utilities.getElement(vehicleExtraData.immutablePath, thisPathIndex);
 				final PathData lastPathData = thisPathIndex == lastPathIndex ? thisPathData : Utilities.getElement(vehicleExtraData.immutablePath, lastPathIndex);
 				final float pathDelta = thisPathIndex == lastPathIndex ? 1 : (float) Math.min(1, (headRailProgress - lastPathData.getEndDistance()) / carLength);
-				runSoundStates.add(VehicleSoundBase.RunSoundInfo.create(styledRail(lastPathData), styledRail(thisPathData), pathDelta));
+				runSoundStates.set(carNumber, VehicleSoundBase.RunSoundInfo.create(styledRail(lastPathData), styledRail(thisPathData), pathDelta));
 				headRailProgress -= carLength;
 			}
 		}

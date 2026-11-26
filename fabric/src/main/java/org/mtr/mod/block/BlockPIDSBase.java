@@ -35,7 +35,7 @@ public abstract class BlockPIDSBase extends BlockExtension implements DirectionH
 		final BlockPos dataBlockPos = getBlockPosWithData.apply(world, pos);
 		final BlockEntity dataEntity = world.getBlockEntity(dataBlockPos);
 		if (dataEntity != null && dataEntity.data instanceof BlockEntityBase) {
-			final ActionResult dyeResult = PIDSColorHelper.applyDye(world, dataBlockPos, player, (BlockEntityBase) dataEntity.data);
+			final ActionResult dyeResult = PIDSColorHelper.applyDye(world, dataBlockPos, player, hand, (BlockEntityBase) dataEntity.data);
 			if (dyeResult != null) {
 				return dyeResult;
 			}
@@ -168,40 +168,45 @@ public abstract class BlockPIDSBase extends BlockExtension implements DirectionH
 	static class PIDSColorHelper {
 
 		/**
-		 * Applies a held dye or a milk bucket, or returns null when the player is holding neither, so the caller can fall
-		 * back to the brush. Called on both sides; only the server changes the block entity.
+		 * Applies a dye or a milk bucket held in the hand this right-click is for, or returns null when that hand holds
+		 * neither (or the dye would change nothing), so the caller can fall back to the brush. Only the clicking hand
+		 * counts, so a dye in the off hand never takes over a click made with the brush or a block in the main hand.
+		 * Called on both sides; only the server changes the block entity.
 		 */
 		@Nullable
-		static ActionResult applyDye(World world, BlockPos blockPos, PlayerEntity player, BlockEntityBase blockEntity) {
+		static ActionResult applyDye(World world, BlockPos blockPos, PlayerEntity player, Hand hand, BlockEntityBase blockEntity) {
 			if (player.data.isSneaking()) {
 				// sneaking keeps the brush reachable while a dye is held
 				return null;
 			}
-			for (final Hand hand : Hand.values()) {
-				final ItemStack itemStack = player.getStackInHand(hand);
-				final net.minecraft.item.Item item = itemStack.getItem().data;
-				if (item instanceof net.minecraft.item.DyeItem dyeItem) {
-					if (!world.isClient()) {
-						blockEntity.customColor = convert(dyeItem.getColor());
-						blockEntity.markDirty2();
-						world.playSound(null, blockPos, new SoundEvent(net.minecraft.sound.SoundEvents.ITEM_DYE_USE), SoundCategory.BLOCKS, 1, 1);
-						if (!player.isCreative()) {
-							itemStack.decrement(1);
-						}
-					}
-					return ActionResult.SUCCESS;
-				} else if (item == net.minecraft.item.Items.MILK_BUCKET && blockEntity.customColor != null) {
-					// only clear when there is a colour to clear, or the bucket would be spent for nothing
-					if (!world.isClient()) {
-						blockEntity.customColor = null;
-						blockEntity.markDirty2();
-						world.playSound(null, blockPos, new SoundEvent(net.minecraft.sound.SoundEvents.ITEM_BUCKET_FILL_TADPOLE), SoundCategory.BLOCKS, 1, 1);
-						if (!player.isCreative()) {
-							player.data.setStackInHand(hand.data, new net.minecraft.item.ItemStack(net.minecraft.item.Items.BUCKET));
-						}
-					}
-					return ActionResult.SUCCESS;
+			final ItemStack itemStack = player.getStackInHand(hand);
+			final net.minecraft.item.Item item = itemStack.getItem().data;
+			if (item instanceof net.minecraft.item.DyeItem dyeItem) {
+				final int newColor = convert(dyeItem.getColor());
+				if (blockEntity.customColor != null && blockEntity.customColor == newColor) {
+					// already this colour: don't spend a dye on it
+					return null;
 				}
+				if (!world.isClient()) {
+					blockEntity.customColor = newColor;
+					blockEntity.markDirty2();
+					world.playSound(null, blockPos, new SoundEvent(net.minecraft.sound.SoundEvents.ITEM_DYE_USE), SoundCategory.BLOCKS, 1, 1);
+					if (!player.isCreative()) {
+						itemStack.decrement(1);
+					}
+				}
+				return ActionResult.SUCCESS;
+			} else if (item == net.minecraft.item.Items.MILK_BUCKET && blockEntity.customColor != null) {
+				// only clear when there is a colour to clear, or the bucket would be spent for nothing
+				if (!world.isClient()) {
+					blockEntity.customColor = null;
+					blockEntity.markDirty2();
+					world.playSound(null, blockPos, new SoundEvent(net.minecraft.sound.SoundEvents.ITEM_BUCKET_FILL_TADPOLE), SoundCategory.BLOCKS, 1, 1);
+					if (!player.isCreative()) {
+						player.data.setStackInHand(hand.data, new net.minecraft.item.ItemStack(net.minecraft.item.Items.BUCKET));
+					}
+				}
+				return ActionResult.SUCCESS;
 			}
 			return null;
 		}
