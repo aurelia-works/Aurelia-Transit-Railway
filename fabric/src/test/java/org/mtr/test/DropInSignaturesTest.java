@@ -27,9 +27,42 @@ public final class DropInSignaturesTest {
 	/** Generated from the config schema; no add-on hooks it, and new config keys renumber its lambdas. */
 	private static final String GENERATED = "org/mtr/mod/generated/";
 	private static final int ACC_STATIC = 0x0008;
+	/**
+	 * Fields of a private nested class whose type changed for multi-flange and per-speed running sounds. An add-on can't
+	 * point an accessor at a private nested class without naming it by string, and none of the add-ons we checked does.
+	 */
+	private static final List<String> RESHAPED_FIELDS = List.of(
+			"org/mtr/mod/sound/BveVehicleSound$VehicleLoopingSoundHolder.soundLoopFlangeLorg/mtr/mod/sound/VehicleLoopingSoundInstance;",
+			"org/mtr/mod/sound/BveVehicleSound$VehicleLoopingSoundHolder.soundLoopRunLorg/mtr/mod/sound/VehicleLoopingSoundInstance;"
+	);
 
 	@Test
 	public void everyMtr405MethodStillExists() throws IOException {
+		final List<String> missing = missingMembers(false);
+		Assertions.assertEquals(List.of(), missing, missing.size() + " MTR 4.0.5 methods are missing or changed");
+	}
+
+	/**
+	 * Add-ons also read MTR's fields by name with {@code @Accessor} mixins, which crash the game at launch when the field is gone
+	 * (MTR Rail Works reads {@code ItemNodeModifierSelectableBlockBase.radius}).
+	 */
+	@Test
+	public void everyMtr405FieldStillExists() throws IOException {
+		final List<String> missing = missingMembers(true);
+		for (final String reshaped : RESHAPED_FIELDS) {
+			// Excused only while a field of that name is still there with its new type
+			final String className = reshaped.substring(0, reshaped.lastIndexOf('.'));
+			final String fieldName = reshaped.substring(reshaped.lastIndexOf('.') + 1, reshaped.indexOf("Lorg/", reshaped.lastIndexOf('.')));
+			try (final InputStream inputStream = DropInSignaturesTest.class.getClassLoader().getResourceAsStream(className + ".class")) {
+				Assertions.assertNotNull(inputStream, className);
+				Assertions.assertTrue(members(inputStream, true).stream().anyMatch(field -> field.startsWith(fieldName + "[") || field.startsWith(fieldName + "L")), reshaped + " is gone, not just reshaped");
+			}
+			missing.remove(reshaped);
+		}
+		Assertions.assertEquals(List.of(), missing, missing.size() + " MTR 4.0.5 fields are missing or changed");
+	}
+
+	private static List<String> missingMembers(boolean fields) throws IOException {
 		final String baselineJar = System.getProperty("atr.mtrBaselineJar");
 		Assertions.assertNotNull(baselineJar, "atr.mtrBaselineJar is set by fabric/build.gradle");
 		final List<String> missing = new ArrayList<>();
@@ -45,17 +78,17 @@ public final class DropInSignaturesTest {
 				classes++;
 				final Set<String> baselineMethods;
 				try (final InputStream inputStream = zipFile.getInputStream(zipFile.getEntry(name))) {
-					baselineMethods = methods(inputStream);
+					baselineMethods = members(inputStream, fields);
 				}
 				try (final InputStream inputStream = DropInSignaturesTest.class.getClassLoader().getResourceAsStream(name)) {
 					if (inputStream == null) {
 						missing.add(name + " (class gone)");
 						continue;
 					}
-					final Set<String> atrMethods = methods(inputStream);
+					final Set<String> atrMethods = members(inputStream, fields);
 					for (final String method : baselineMethods) {
 						// Minecraft types and overridden Minecraft methods (method_1234) are named differently in the dev build than in released jars
-						if (!method.contains("net/minecraft/") && !method.contains("com/mojang/") && !method.replace("static ", "").startsWith("method_") && !atrMethods.contains(method)) {
+						if (!method.contains("net/minecraft/") && !method.contains("com/mojang/") && !method.replace("static ", "").startsWith(fields ? "field_" : "method_") && !atrMethods.contains(method)) {
 							missing.add(name.substring(0, name.length() - 6) + "." + method);
 						}
 					}
@@ -65,11 +98,11 @@ public final class DropInSignaturesTest {
 
 		Assertions.assertTrue(classes > 500, "baseline jar has the org.mtr.mod classes");
 		missing.sort(String::compareTo);
-		Assertions.assertEquals(List.of(), missing, missing.size() + " MTR 4.0.5 methods are missing or changed");
+		return missing;
 	}
 
-	/** Name plus descriptor of every method in a class file. */
-	private static Set<String> methods(InputStream inputStream) throws IOException {
+	/** Name plus descriptor of every field or every method in a class file. */
+	private static Set<String> members(InputStream inputStream, boolean fields) throws IOException {
 		final DataInputStream in = new DataInputStream(inputStream);
 		in.skipBytes(8);
 		final int constantCount = in.readUnsignedShort();
@@ -113,10 +146,11 @@ public final class DropInSignaturesTest {
 		}
 		in.skipBytes(6);
 		in.skipBytes(2 * in.readUnsignedShort());
-		skipMembers(in, null, utf8);
-		final Set<String> methods = new HashSet<>();
-		skipMembers(in, methods, utf8);
-		return methods;
+		final Set<String> fieldNames = new HashSet<>();
+		skipMembers(in, fieldNames, utf8);
+		final Set<String> methodNames = new HashSet<>();
+		skipMembers(in, methodNames, utf8);
+		return fields ? fieldNames : methodNames;
 	}
 
 	private static void skipMembers(DataInputStream in, Set<String> names, String[] utf8) throws IOException {

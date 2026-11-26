@@ -38,6 +38,9 @@ public class DynamicTextureCache implements IGui {
 	public static DynamicTextureCache instance = new DynamicTextureCache();
 
 	public static final float LINE_HEIGHT_MULTIPLIER = 1.25F;
+	/** MTR 4.0.5's constant, kept so add-ons that read it by name still find it; ATR's scaling no longer reads it. */
+	@SuppressWarnings("unused")
+	private static final int MAX_IMAGE_SIZE = 2048;
 	private static final int COOLDOWN_TIME = 10000; // Images not requested within the last 10 seconds will be unregistered
 	private static final Identifier DEFAULT_BLACK_RESOURCE = new Identifier(Init.MOD_ID, "textures/block/black.png");
 	private static final Identifier DEFAULT_WHITE_RESOURCE = new Identifier(Init.MOD_ID, "textures/block/white.png");
