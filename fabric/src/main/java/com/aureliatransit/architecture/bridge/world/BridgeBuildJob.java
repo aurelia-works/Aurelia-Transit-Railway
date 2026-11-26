@@ -2,7 +2,6 @@ package com.aureliatransit.architecture.bridge.world;
 
 import com.aureliatransit.architecture.block.BridgeMemberBlock;
 import com.aureliatransit.architecture.bridge.BridgeStampPlan;
-import com.aureliatransit.architecture.bridge.BridgeTemplate;
 import com.aureliatransit.architecture.station.StylePalette;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -42,11 +41,6 @@ final class BridgeBuildJob implements BridgeTask {
 	private int missing;
 	private int ticks;
 	private boolean finished;
-
-	BridgeBuildJob(ServerWorld world, UUID owner, BridgeStampPlan plan, BridgeTemplate template) {
-		this(world, owner, plan.placements(), template.palette(), Map.of(), entries -> {
-		});
-	}
 
 	/**
 	 * A build from placements and their palette, as the rail bridge builder plans them. {@code entities} is block entity data
