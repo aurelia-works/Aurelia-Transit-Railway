@@ -18,7 +18,7 @@ import java.util.Set;
  * column at a time, so a big job can be planned a slice per server tick ({@link #step}). The ops go to the station build job,
  * which builds bottom up over time and keeps an undo that survives a restart.
  *
- * <p>It never plans a write into a protected cell (block entities, unbreakable blocks), an MTR rail node or an unloaded
+ * <p>It never plans a write into a protected cell (unbreakable blocks), an MTR rail node or an unloaded
  * chunk; those are counted in {@link Result#skipped}. Trees do not count as ground: a level site clears them, and a pier
  * goes past their leaves to the soil. Pure logic, no Minecraft classes.
  */

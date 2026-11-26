@@ -554,6 +554,10 @@ public final class StationBuildJob {
 			stop("Stopped at " + op.x() + " " + op.y() + " " + op.z() + ": " + op.blockId() + " would not stay there next to its neighbours; nothing more was placed. ", true);
 			return Step.STOP;
 		}
+		if (original == null && previousEntity != null) {
+			// empty a chest or barrel first, as /setblock does: its items would spill and undo would then give them back twice
+			net.minecraft.util.Clearable.clear(world.getBlockEntity(pos));
+		}
 		final BlockState below = world.getBlockState(pos.down());
 		if (below.getBlock() instanceof SpreadableBlock && !wanted.isAir()) {
 			log.coverSoil(pos.down(), below);

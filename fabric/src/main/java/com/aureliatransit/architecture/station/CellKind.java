@@ -16,7 +16,10 @@ public enum CellKind {
 	 * planned node cell, leaves it alone in clearances and treats it as protected everywhere else.
 	 */
 	RAIL_NODE,
-	/** Never touched: has a block entity (chests, signs ...) or cannot be broken (bedrock, barriers). */
+	/**
+	 * Never touched: cannot be broken (bedrock, barriers, command blocks). A block with contents (a chest, a sign, a bee nest) is
+	 * not protected: a build replaces it and its undo puts it back with its contents.
+	 */
 	PROTECTED,
 	/** In a chunk that is not loaded. Never loaded on purpose. */
 	UNLOADED,

@@ -208,7 +208,7 @@ public final class EarthworksCommand {
 			final int grade = job.gradeOneIn();
 			out.accept(Text.literal("Building " + label(job.tool()) + ": " + result.ops().size() + " changes, bottom up"
 					+ (job.tool().line() && grade > 0 ? ", grade 1 in " + grade : "")
-					+ (result.skipped() == 0 ? "" : "; " + result.skipped() + " cells left alone (block entities, rail nodes, unbreakable)")
+					+ (result.skipped() == 0 ? "" : "; " + result.skipped() + " cells left alone (rail nodes, unbreakable)")
 					+ (result.columnsLeft() == 0 ? "" : "; " + result.columnsLeft() + " columns not done (no ground in reach, too tall, or not under ground)")
 					+ ". Undo puts it all back.").formatted(Formatting.GREEN));
 		}

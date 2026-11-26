@@ -183,12 +183,14 @@ public class StationGameTests implements FabricGameTest {
 		context.setBlockState(3, 2, 1, Blocks.GRASS);
 		context.setBlockState(5, 1, 1, Blocks.WATER);
 		context.setBlockState(1, 1, 3, Blocks.CHEST);
+		context.setBlockState(5, 1, 3, Blocks.BEDROCK);
 		context.setBlockState(3, 1, 3, Blocks.STONE_SLAB.getDefaultState().with(SlabBlock.TYPE, SlabType.BOTTOM));
 		check(kind(context, probe, 1, 4, 1) == CellKind.AIR, "air");
 		check(kind(context, probe, 1, 1, 1) == CellKind.SOLID && sturdy(context, probe, 1, 1, 1), "stone is solid and sturdy");
 		check(kind(context, probe, 3, 2, 1) == CellKind.SOFT, "grass plant is soft");
 		check(kind(context, probe, 5, 1, 1) == CellKind.FLUID, "water is fluid");
-		check(kind(context, probe, 1, 1, 3) == CellKind.PROTECTED, "a chest is protected");
+		check(kind(context, probe, 1, 1, 3) == CellKind.SOLID, "a chest is built over like any solid block");
+		check(kind(context, probe, 5, 1, 3) == CellKind.PROTECTED, "bedrock is protected");
 		check(kind(context, probe, 3, 1, 3) == CellKind.SOLID && !sturdy(context, probe, 3, 1, 3), "a bottom slab is solid but not sturdy");
 		final BlockPos top = context.getAbsolutePos(new BlockPos(0, 0, 0)).withY(context.getWorld().getTopY());
 		check(probe.kind(top.getX(), top.getY(), top.getZ()) == CellKind.OUT_OF_WORLD, "above the world");
@@ -1011,6 +1013,42 @@ public class StationGameTests implements FabricGameTest {
 		context.complete();
 	}
 
+	/**
+	 * A chest where the station goes no longer refuses the site: the build replaces it without spilling its items, and undo puts
+	 * the chest back with them (Jah 11-26: nothing in the way should refuse a station but unbreakable blocks and other lines' rails).
+	 */
+	@GameTest(templateName = SITE_Z, tickLimit = 600)
+	public void chestInTheWayIsBuiltOverAndUndoGivesItBack(TestContext context) {
+		final ServerWorld world = context.getWorld();
+		final UUID owner = new UUID(0, 71);
+		final StationSessions.Pending sizing = StationCommand.prepare(world, SMALL, context.getAbsolutePos(FEET_Z), Heading.SOUTH);
+		final BlockPos chest = cellPos(sizing, firstOf(sizing, Role.PLATFORM_SURFACE));
+		world.setBlockState(chest, Blocks.CHEST.getDefaultState());
+		((net.minecraft.block.entity.ChestBlockEntity) world.getBlockEntity(chest)).setStack(0, new net.minecraft.item.ItemStack(net.minecraft.item.Items.DIAMOND, 7));
+		final StationSessions.Pending pending = StationCommand.prepare(world, SMALL, context.getAbsolutePos(FEET_Z), Heading.SOUTH);
+		check(pending.report().buildable(), "a chest refused the site: " + pending.report().counts());
+		final StationBuildJob job = StationCommand.startBuild(world, owner, pending, true, text -> {
+		});
+		check(job != null, "the build did not start");
+		while (!job.finished()) {
+			job.step(StationBuildJob.OPS_PER_TICK);
+		}
+		StationSessions.cancelJob(owner);
+		check(job.state() == StationBuildJob.State.DONE, "build " + job.state());
+		check(!world.getBlockState(chest).isOf(Blocks.CHEST), "the chest is still there");
+		final net.minecraft.util.math.Box around = new net.minecraft.util.math.Box(chest).expand(4);
+		check(world.getEntitiesByClass(net.minecraft.entity.ItemEntity.class, around, entity -> true).isEmpty(), "the chest spilled its items");
+		final StationBuildJob undo = StationBuildJob.undo(world, owner, job.undoLog(), text -> {
+		});
+		while (!undo.finished()) {
+			undo.step(StationBuildJob.OPS_PER_TICK);
+		}
+		check(world.getBlockState(chest).isOf(Blocks.CHEST), "undo did not put the chest back");
+		final net.minecraft.item.ItemStack back = ((net.minecraft.block.entity.ChestBlockEntity) world.getBlockEntity(chest)).getStack(0);
+		check(back.isOf(net.minecraft.item.Items.DIAMOND) && back.getCount() == 7, "undo gave back " + back);
+		context.complete();
+	}
+
 	@GameTest(templateName = SITE_Z, tickLimit = 600)
 	public void cellChangedAfterSurveyStopsTheJob(TestContext context) {
 		final ServerWorld world = context.getWorld();
@@ -1018,7 +1056,7 @@ public class StationGameTests implements FabricGameTest {
 		final List<PlannedBlock> blocks = pending.plan().blocks();
 		final PlannedBlock changed = blocks.get(blocks.size() / 2);
 		final BlockPos changedPos = cellPos(pending, changed);
-		world.setBlockState(changedPos, Blocks.CHEST.getDefaultState());
+		world.setBlockState(changedPos, Blocks.BEDROCK.getDefaultState());
 		final List<WorldOp> ordered = new ArrayList<>(pending.report().ops());
 		ordered.sort(java.util.Comparator.comparingInt(WorldOp::y));
 		int blocked = -1;
@@ -1037,7 +1075,7 @@ public class StationGameTests implements FabricGameTest {
 		}
 		check(job.state() == StationBuildJob.State.STOPPED, "job must stop at the changed cell, was " + job.state());
 		check(job.done() == blocked, "stopped after " + job.done() + " ops, expected " + blocked);
-		check(world.getBlockState(changedPos).isOf(Blocks.CHEST), "the build replaced the changed cell");
+		check(world.getBlockState(changedPos).isOf(Blocks.BEDROCK), "the build replaced the changed cell");
 		for (int i = blocked + 1; i < ordered.size(); i++) {
 			final WorldOp op = ordered.get(i);
 			if (op.kind() == WorldOp.Kind.PLACE) {

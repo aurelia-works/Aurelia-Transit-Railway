@@ -16,7 +16,7 @@ public record SiteIssue(Kind kind, int x, int y, int z, String block) {
 		UNSUPPORTED(false),
 		/** No sturdy ground within {@link SiteSurvey#MAX_FILL_DEPTH} cells below, deeper than Earthworks fills. Never built (would need a viaduct). */
 		GAP_TOO_DEEP(true),
-		/** A block entity or an unbreakable block in a cell the build would change. Never touched. */
+		/** An unbreakable block (bedrock, barriers, command blocks) or another line's MTR rail node in a cell the build would change. Never touched. */
 		PROTECTED(true),
 		/** Part of the site is in an unloaded chunk. */
 		UNLOADED(true),
