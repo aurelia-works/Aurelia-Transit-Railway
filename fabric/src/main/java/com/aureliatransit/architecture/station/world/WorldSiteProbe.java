@@ -155,7 +155,8 @@ public final class WorldSiteProbe implements SiteProbe {
 		if (Registries.BLOCK.getId(state.getBlock()).toString().equals(StylePalette.MTR_RAIL_NODE)) {
 			return CellKind.RAIL_NODE;
 		}
-		if (state.hasBlockEntity() || state.getHardness(world, pos) < 0) {
+		// a chest, sign or bee nest is built over like any block: the undo log keeps its contents and puts them back
+		if (state.getHardness(world, pos) < 0) {
 			return CellKind.PROTECTED;
 		}
 		if (!state.getFluidState().isEmpty()) {

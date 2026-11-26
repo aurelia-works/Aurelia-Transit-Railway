@@ -1,6 +1,7 @@
 package com.aureliatransit.architecture.station.world;
 
 import org.mtr.aurelia.Operators;
+import com.aureliatransit.architecture.earthworks.StationPad;
 import com.aureliatransit.architecture.station.Heading;
 import com.aureliatransit.architecture.station.LayoutValidator;
 import com.aureliatransit.architecture.station.LocalFrame;
@@ -130,18 +131,24 @@ public final class StationCommand {
 				design.parse().spec(), plan, frame, world.getRegistryKey(), design.violations(), design.audit(), report, design.check().railSkipped())));
 	}
 
-	/** Surveys with {@code probe} (as {@code owner}'s site task when {@code later}, else at once), lets go of its chunks, then hands on the report. */
+	/**
+	 * Surveys with {@code probe} and levels the ground round a street-level station ({@link StationPad}), as {@code owner}'s site
+	 * task when {@code later}, else at once; lets go of its chunks, then hands on the report. The pad's ops are in the report, so
+	 * the build that runs them is one job and one undo.
+	 */
 	private static void survey(UUID owner, boolean later, WorldSiteProbe probe, StationPlan plan, LocalFrame frame, boolean replaceTerrain,
 			Consumer<SurveyReport> then) {
 		final SiteSurvey.Survey survey = SiteSurvey.start(plan, frame, probe, replaceTerrain);
+		final StationPad pad = StationPad.start(plan, frame);
 		run(owner, later, new StationSessions.Task() {
 			@Override
 			public boolean step(long deadline) {
-				if (!survey.step(deadline)) {
+				if (!survey.step(deadline) || !pad.step(probe, deadline)) {
 					return false;
 				}
+				final SurveyReport report = pad.merge(survey.report(), probe);
 				probe.release();
-				then.accept(survey.report());
+				then.accept(report);
 				return true;
 			}
 

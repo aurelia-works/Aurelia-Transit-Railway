@@ -156,7 +156,7 @@ final class StationText {
 			}
 		}
 		if (pending.report().hasHardIssue()) {
-			return "protected blocks, unloaded chunks, the world limit or a deep gap are in the way. Try another spot.";
+			return "unbreakable blocks, other lines' rails, unloaded chunks, the world limit or a drop too deep to fill are in the way. Try another spot.";
 		}
 		return null;
 	}
@@ -291,7 +291,7 @@ final class StationText {
 					+ ": " + issue.block()).formatted(Formatting.GRAY));
 		}
 		if (report.hasHardIssue()) {
-			out.accept(Text.literal("Cannot build here: protected blocks, unloaded chunks, the world limit or a deep gap are in the way.")
+			out.accept(Text.literal("Cannot build here: unbreakable blocks, other lines' rails, unloaded chunks, the world limit or a drop too deep to fill are in the way.")
 					.formatted(Formatting.RED));
 		} else if (report.replaceTerrain() && report.terrainChanges() > 0) {
 			out.accept(Text.literal("The build changes " + report.terrainChanges() + " cells of ground; /ata_station undo puts them back.")

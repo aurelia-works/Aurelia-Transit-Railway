@@ -11,7 +11,8 @@ import java.util.Set;
 /**
  * Checks a validated plan against the world and lists the changes a build would make. Every build now changes the ground it
  * stands on, so the generator surveys with {@code replaceTerrain} set; the flag stays for the direct callers and tests that
- * want to see the site without its clearer and fill ops.
+ * want to see the site without its clearer and fill ops. The generator also levels the ground round a street-level station
+ * ({@code StationPad}, Earthworks' Level tool) and adds those ops to this report.
  *
  * <p>Rules, all in world coordinates through the frame:
  * <ol>
@@ -36,8 +37,11 @@ import java.util.Set;
  */
 public final class SiteSurvey {
 
-	/** Deepest foundation fill below a support cell. */
-	public static final int MAX_FILL_DEPTH = 4;
+	/**
+	 * Deepest foundation fill below a support cell: as deep as Earthworks fills a hollow
+	 * ({@code EarthPlanner.SCAN_DOWN}), so a dip it can level never refuses a station.
+	 */
+	public static final int MAX_FILL_DEPTH = 64;
 	/** Issues listed individually in a report (all are counted). */
 	public static final int MAX_LISTED = 64;
 

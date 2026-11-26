@@ -424,18 +424,22 @@ class SiteSurveyTest {
 	}
 
 	@Test
-	void fillDepthLimitIsFourCells() {
-		final FakeProbe four = flat().hole(wx(0), 63, wz(1), 4);
-		final SurveyReport ok = survey(four, true);
-		assertEquals(1, ok.count(SiteIssue.Kind.UNSUPPORTED));
-		assertEquals(0, ok.count(SiteIssue.Kind.GAP_TOO_DEEP));
-		assertEquals(4, count(ok, WorldOp.Kind.FILL));
-		assertEquals(60, ok.ops().get(0).y(), "bottom-up: the lowest fill cell comes first");
-		assertEquals(63, ok.ops().get(3).y());
-		assertTrue(ok.buildable());
+	void fillReachesAsDeepAsEarthworks() {
+		// a 5-deep dip used to be refused; now the foundation fills it down to the ground
+		final SurveyReport five = survey(flat().hole(wx(0), 63, wz(1), 5), true);
+		assertEquals(0, five.count(SiteIssue.Kind.GAP_TOO_DEEP));
+		assertEquals(1, five.count(SiteIssue.Kind.UNSUPPORTED));
+		assertEquals(5, count(five, WorldOp.Kind.FILL));
+		assertEquals(59, five.ops().get(0).y(), "bottom-up: the lowest fill cell comes first");
+		assertEquals(63, five.ops().get(4).y());
+		assertTrue(five.buildable());
 
-		final FakeProbe five = flat().hole(wx(0), 63, wz(1), 5);
-		final SurveyReport deep = survey(five, true);
+		final SurveyReport deepest = survey(flat().hole(wx(0), 63, wz(1), SiteSurvey.MAX_FILL_DEPTH), true);
+		assertEquals(0, deepest.count(SiteIssue.Kind.GAP_TOO_DEEP));
+		assertEquals(SiteSurvey.MAX_FILL_DEPTH, count(deepest, WorldOp.Kind.FILL));
+		assertTrue(deepest.buildable());
+
+		final SurveyReport deep = survey(flat().hole(wx(0), 63, wz(1), SiteSurvey.MAX_FILL_DEPTH + 1), true);
 		assertEquals(1, deep.count(SiteIssue.Kind.GAP_TOO_DEEP));
 		assertEquals(0, deep.count(SiteIssue.Kind.UNSUPPORTED));
 		assertEquals(0, count(deep, WorldOp.Kind.FILL));
@@ -443,8 +447,8 @@ class SiteSurveyTest {
 	}
 
 	@Test
-	void deepHoleIsHardEvenWithApproval() {
-		final FakeProbe probe = flat().hole(wx(0), 63, wz(1), 6);
+	void holeDeeperThanEarthworksReachIsHardEvenWithApproval() {
+		final FakeProbe probe = flat().hole(wx(0), 63, wz(1), SiteSurvey.MAX_FILL_DEPTH + 2);
 		for (final boolean approved : new boolean[] {false, true}) {
 			final SurveyReport report = survey(probe, approved);
 			assertEquals(1, report.count(SiteIssue.Kind.GAP_TOO_DEEP));
@@ -453,6 +457,93 @@ class SiteSurveyTest {
 			assertEquals(0, count(report, WorldOp.Kind.FILL));
 			assertEquals(new Pos(100, 63, 199), new Pos(report.issues().get(0).x(), report.issues().get(0).y(), report.issues().get(0).z()));
 		}
+	}
+
+	// ---- the level pad round a street-level station ------------------------------------------------------------------------
+
+	private static SurveyReport padded(StationPlan plan, FakeProbe probe) {
+		final SurveyReport report = SiteSurvey.survey(plan, NORTH, probe, true);
+		final com.aureliatransit.architecture.earthworks.StationPad pad = com.aureliatransit.architecture.earthworks.StationPad.start(plan, NORTH);
+		assertTrue(pad.step(probe, Long.MAX_VALUE));
+		return pad.merge(report, probe);
+	}
+
+	private static WorldOp opAt(SurveyReport report, int x, int y, int z) {
+		return report.ops().stream().filter(op -> op.x() == x && op.y() == y && op.z() == z).findFirst().orElse(null);
+	}
+
+	/** Stone from y 64 up to {@code top} over every column with x in xMin..xMax: a hill rising on one side of the site. */
+	private static FakeProbe hill(FakeProbe probe, int xMin, int xMax, int top) {
+		for (int x = xMin; x <= xMax; x++) {
+			for (int z = wz(5); z <= wz(-2); z++) {
+				for (int y = 64; y <= top; y++) {
+					probe.put(x, y, z, CellKind.SOLID, true, "minecraft:stone");
+				}
+			}
+		}
+		return probe;
+	}
+
+	@Test
+	void hillsideIsCutAndDipIsFilledToALevelPad() {
+		// a hill 8 high over the track side and its margin (u 2..6), a chest and a rail node in it, a 10-deep dip in the margin
+		final FakeProbe probe = hill(flat(), wx(2), wx(6), 71).chest(wx(5), 66, wz(1)).node(wx(6), 64, wz(2))
+				.hole(wx(-2), 63, wz(1), 10).hole(wx(0), 63, wz(2), 7);
+		final SurveyReport report = padded(miniPlan(), probe);
+		assertTrue(report.buildable(), "counts " + report.counts());
+		assertEquals(0, report.count(SiteIssue.Kind.GAP_TOO_DEEP));
+		// the hill goes: above the track's envelope, above the station and in the margin
+		assertEquals(WorldOp.Kind.CLEAR, opAt(report, wx(3), 71, wz(1)).kind());
+		assertEquals(WorldOp.Kind.CLEAR, opAt(report, wx(4), 64, wz(-2)).kind(), "the margin beyond the end of the track");
+		assertEquals(WorldOp.Kind.CLEAR, opAt(report, wx(6), 70, wz(4)).kind());
+		// the dip in the margin is filled with earth under turf, up to the pad
+		assertEquals("minecraft:dirt", opAt(report, wx(-2), 54, wz(1)).blockId());
+		assertEquals("minecraft:grass_block", opAt(report, wx(-2), 63, wz(1)).blockId());
+		// under the platform the survey's foundation fills it, once
+		assertEquals(FOUNDATION, opAt(report, wx(0), 57, wz(2)).blockId());
+		assertEquals(1, report.ops().stream().filter(op -> op.x() == wx(0) && op.y() == 60 && op.z() == wz(2)).count());
+		// never touched: the chest, the rail node, anything in the track envelope that is not solid, the planned cells' own ops
+		assertNull(opAt(report, wx(5), 66, wz(1)));
+		assertNull(opAt(report, wx(6), 64, wz(2)));
+		assertEquals(WorldOp.Kind.PLACE, opAt(report, wx(3), 64, wz(0)).kind(), "the rail node is placed, not cleared");
+		final java.util.Set<Pos> cells = new java.util.HashSet<>();
+		for (final WorldOp op : report.ops()) {
+			assertTrue(cells.add(new Pos(op.x(), op.y(), op.z())), "two ops for " + op);
+		}
+		// clears top-down, then fills bottom-up, then the planned blocks
+		final List<WorldOp> ops = report.ops();
+		for (int i = 1; i < ops.size(); i++) {
+			final WorldOp before = ops.get(i - 1);
+			final WorldOp after = ops.get(i);
+			if (before.kind() != after.kind()) {
+				assertTrue(before.kind().ordinal() < after.kind().ordinal(), before + " then " + after);
+			} else if (after.kind() == WorldOp.Kind.CLEAR) {
+				assertTrue(after.y() <= before.y(), before + " then " + after);
+			} else if (after.kind() == WorldOp.Kind.FILL) {
+				assertTrue(after.y() >= before.y(), before + " then " + after);
+			}
+		}
+		// every hill cell counts as ground changed (5 x 8 columns, y 64..71) but the chest and the rail node, which stay
+		assertEquals(5 * 8 * 8 - 2, report.terrainChanges());
+	}
+
+	@Test
+	void padStaysInsideTheWorld() {
+		// the world tops out at y 70: the cut stops there and plans nothing out of the world
+		final FakeProbe probe = hill(flat(), wx(2), wx(6), 70).limits(-64, 70);
+		final SurveyReport report = padded(miniPlan(), probe);
+		assertTrue(report.ops().stream().allMatch(op -> op.y() <= 70));
+		assertEquals(WorldOp.Kind.CLEAR, opAt(report, wx(6), 70, wz(4)).kind());
+	}
+
+	@Test
+	void undergroundStationGetsNoPad() {
+		final StationPlan surface = miniPlan();
+		final StationPlan underground = new StationPlan(StationSpec.builder().options(StationOptions.DEFAULTS.withUnderground(true)).build(),
+				surface.layout(), surface.blocks(), surface.trackEnvelopes(), surface.headroom(), surface.supportAreas(), FOUNDATION);
+		final FakeProbe probe = hill(flat(), wx(2), wx(6), 71);
+		final SurveyReport plain = SiteSurvey.survey(underground, NORTH, probe, true);
+		assertEquals(plain.ops(), padded(underground, probe).ops());
 	}
 
 	@Test
