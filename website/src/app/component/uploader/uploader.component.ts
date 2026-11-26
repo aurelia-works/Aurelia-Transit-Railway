@@ -17,6 +17,8 @@ export class UploaderComponent {
 	@Input({required: true}) allowMultiple = false;
 	@Input({required: true}) endpoint = "";
 	@Input() validation: (fileNames: [string, string][]) => string | undefined = () => undefined;
+	/** Converts or renames the chosen files before they are sent; a thrown error is shown in place of the upload. */
+	@Input() prepare: (files: File[]) => Promise<File[]> = files => Promise.resolve(files);
 	@Output() uploaded = new EventEmitter<void>();
 	private fileNames?: string[];
 	private error?: string;
@@ -75,14 +77,16 @@ export class UploaderComponent {
 			});
 			this.fileNames.sort();
 
-			const formData = new FormData();
-			for (let i = 0; i < input.files.length; i++) {
-				formData.append("file", input.files[i]);
-			}
-
-			this.dataService.sendPostRequest(this.endpoint, formData, undefined, () => {
+			this.prepare(Array.from(input.files)).then(files => {
+				const formData = new FormData();
+				files.forEach(file => formData.append("file", file, file.name));
+				this.dataService.sendPostRequest(this.endpoint, formData, undefined, () => {
+					this.fileNames = undefined;
+					this.uploaded.emit();
+				});
+			}).catch(error => {
 				this.fileNames = undefined;
-				this.uploaded.emit();
+				this.error = error instanceof Error ? error.message : "These files could not be read!";
 			});
 		};
 		input.click();

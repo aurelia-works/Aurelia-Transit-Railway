@@ -62,6 +62,9 @@ Move each line up when its pull request merges, and delete what misses the relea
 - The map: unexplored squares filled from saved chunks (#163), and the dashboard map shows the whole explored world (#160).
 - The Resource Pack Creator page, with Blender and Blockbench model import (#184).
 
+### Fixed
+- The dashboard's Resource Pack Creator opens a working creator again: it was an empty page in every ATR jar. It also imports Blender models as glTF Binary (.glb), loads Blender's OBJ export with any texture file names, and shows its icons without internet (#184).
+
 ## 1.1.0 public beta (4.0.5+atr.1.1.0), Minecraft 1.20.1, Fabric
 
 Public beta. Back up your world before trying it. Drawn tracks and the station and airport editor screen (E1, E2) have not been tried in game yet.

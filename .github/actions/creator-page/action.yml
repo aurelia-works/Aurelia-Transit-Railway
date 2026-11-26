@@ -1,0 +1,17 @@
+name: Resource Pack Creator page
+description: Builds website/ (MTR's Resource Pack Creator) so that setupFiles embeds it in the jar (WebserverResources). Without it the dashboard's Resource Pack Creator button opens an empty page. Run after the Java and Gradle setup, before setupFiles.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: website/package-lock.json
+    # The page's TypeScript types are generated from the resource schema
+    - shell: bash
+      run: ./gradlew setupWebsiteFiles
+    - shell: bash
+      run: |
+        npm --prefix website ci --no-audit --no-fund
+        npm --prefix website run build

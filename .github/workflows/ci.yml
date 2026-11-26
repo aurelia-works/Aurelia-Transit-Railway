@@ -94,6 +94,7 @@ jobs:
       # it elsewhere: a job restores its own last entry first, so a job that never saved kept restoring a stale one and fetched
       # ATA's test jars from Maven Central cold (429 Too Many Requests). Saving costs 16 to 36 s a job, on master only.
       - uses: ./.github/actions/setup
+      - uses: ./.github/actions/creator-page
       # Pull requests and the merge queue: compile and ATR's unit tests (Fabric 1.20.1); ATA's suites run in the jobs below
       - name: Compile and unit tests
         if: github.event_name != 'push'
@@ -102,6 +103,9 @@ jobs:
       - name: Build the jar
         if: github.event_name == 'push'
         run: ./gradlew setupFiles build -x runGameTest -x ataTest
+      # The page was missing from every ATR jar until this check (AUDIT 4.1): an empty page compiles to a class under 1 KB
+      - name: Check the Resource Pack Creator page is in the build
+        run: test "$(stat -c %s fabric/build/classes/java/main/org/mtr/mod/generated/WebserverResources.class)" -gt 100000
       - name: Keep the jar
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v4

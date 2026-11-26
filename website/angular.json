@@ -24,6 +24,7 @@
 							"src/assets"
 						],
 						"styles": [
+							"src/generated/material-icons.css",
 							"src/theme.scss",
 							"src/styles.css"
 						],
@@ -83,6 +84,7 @@
 							"src/assets"
 						],
 						"styles": [
+							"src/generated/material-icons.css",
 							"src/theme.scss",
 							"src/styles.css"
 						],

@@ -5,8 +5,8 @@ html {
 	@include mat.theme((
 			color: mat.$azure-palette,
 			typography: (
-					plain-family: Roboto,
-					brand-family: Roboto,
+					plain-family: (Roboto, system-ui, sans-serif),
+					brand-family: (Roboto, system-ui, sans-serif),
 			),
 	));
 }
