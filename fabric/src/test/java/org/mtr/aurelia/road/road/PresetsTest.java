@@ -43,13 +43,9 @@ class PresetsTest {
     }
 
     @Test
-    void phaseTwoGroupsAreNotDefinedYet() {
-        for (RoadGroup group : RoadGroup.values()) {
-            if (group == RoadGroup.A_ROAD || group == RoadGroup.DUAL_CARRIAGEWAY || group == RoadGroup.MOTORWAY) {
-                IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> Presets.limits(group, Preset.GAME_SCALE));
-                assertTrue(e.getMessage().contains("G-4+"), e.getMessage());
-            }
-        }
+    void motorwayIsNotDefinedYet() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> Presets.limits(RoadGroup.MOTORWAY, Preset.GAME_SCALE));
+        assertTrue(e.getMessage().contains("G-4+"), e.getMessage());
     }
 
     @Test

@@ -86,7 +86,7 @@ class RoadProfileTest {
         assertEquals(List.of(new Lane(0, 0, Lane.Direction.BOTH)), alley.lanes(), "one shared lane on the centre line");
         assertEquals("gutter", Band.GUTTER.paletteRole());
 
-        assertEquals(List.of("city-17", "residential-15", "residential-17", "alley-7"),
+        assertEquals(List.of("city-17", "city-29", "residential-15", "residential-17", "alley-7", "a-road-21", "dual-33"),
                 RoadProfiles.all().stream().map(RoadProfile::id).collect(Collectors.toList()), "the hub's order");
         assertFalse(RoadProfiles.byId("residential-14").isPresent(), "ADR-0041");
         assertFalse(RoadProfiles.byId("residential-16").isPresent(), "ADR-0041");

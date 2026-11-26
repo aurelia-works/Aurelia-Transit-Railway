@@ -8,13 +8,13 @@ import java.util.Set;
 
 /**
  * The six road groups of Roads v1 (ADR-0012), with their id slugs, allowed widths in blocks and default track speeds.
- * City street is 17 wide (ADR-0039); residential 15 or 17 and alley 7 (ADR-0041). The A-road, dual carriageway and
+ * City street is 17 wide (ADR-0039), or 29 with bus lanes; residential 15 or 17 and alley 7 (ADR-0041). The A-road, dual carriageway and
  * motorway widths are proposals until the owner confirms each group's columns (Phase 2).
  */
 public enum RoadGroup {
     ALLEY("alley", Set.of(7), 20),
     RESIDENTIAL("residential", Set.of(15, 17), 40),
-    CITY_STREET("city", Set.of(17), 40),
+    CITY_STREET("city", Set.of(17, 29), 40),
     A_ROAD("a-road", Set.of(21), 60),
     DUAL_CARRIAGEWAY("dual", Set.of(33), 80),
     MOTORWAY("motorway", Set.of(51), 120);
