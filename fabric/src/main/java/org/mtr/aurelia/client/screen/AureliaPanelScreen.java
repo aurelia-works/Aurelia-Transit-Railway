@@ -61,9 +61,6 @@ import org.mtr.mod.packet.PacketUpdateRailBuilder;
 import org.mtr.mod.passenger.PassengerNetwork;
 import org.mtr.mod.passenger.PassengerService;
 import org.mtr.mod.render.BlockEntityCounter;
-import org.mtr.aurelia.client.BuildClient;
-import org.mtr.mod.building.BuildMath;
-import org.mtr.mod.building.BuildSettings;
 import org.mtr.mod.zip.ZipSettings;
 import org.mtr.mod.resource.PantographEnd;
 
@@ -85,7 +82,7 @@ import java.util.function.UnaryOperator;
  */
 public final class AureliaPanelScreen extends CompatScreen implements DashboardParentAccess {
 
-	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS, MAP, VEHICLES, ENGINE}
+	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, LOOK, DRIVING, PACKS, MAP, VEHICLES, ENGINE}
 
 	private static final int BUTTON_WIDTH = 200;
 	private static final int VALUE_WIDTH = 80;
@@ -114,7 +111,7 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 	private static final Tab[][] GROUPS = {
 			{Tab.RIDING, Tab.DRIVING, Tab.VEHICLES, Tab.PANTOGRAPH, Tab.TRAIN_SOUND, Tab.SOUND},
 			{Tab.ROUTES, Tab.TOOLS, Tab.PASSENGERS, Tab.ENGINE, Tab.ZIP, Tab.MAP},
-			{Tab.ARCHITECTURE, Tab.BUILD, Tab.BUILDER},
+			{Tab.ARCHITECTURE, Tab.BUILDER},
 			{Tab.RENDERING, Tab.LOOK, Tab.PACKS}
 	};
 	private int top = CONTENT_TOP;
@@ -199,8 +196,6 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 	private org.mtr.aurelia.client.voice.VoiceInstaller.Status voiceShownStatus;
 	private int voiceShownPercent = -1;
 	private static final int TRAIN_SOUND_ROWS = 15;
-	private int buildFirst;
-	private static final int BUILD_ROWS = 10;
 	/** The Architecture tab's rows: studio, the four wrench modes, give wrench, action bar, the four guide buttons, hologram switches and build pace (operators). */
 	private int architectureFirst;
 	private static final int ARCHITECTURE_ROWS = 16;
@@ -244,7 +239,6 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 			case TRAIN_SOUND -> initTrainSound();
 			case PASSENGERS -> initPassengers();
 			case ZIP -> initZip();
-			case BUILD -> initBuild();
 			case LOOK -> initLook();
 			case DRIVING -> initDriving();
 			case PACKS -> initPacks();
@@ -262,7 +256,6 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 		tab = target;
 		firstRow = 0;
 		lookFirst = 0;
-		buildFirst = 0;
 		architectureFirst = 0;
 		trainSoundFirst = 0;
 		packsFirst = 0;
@@ -792,95 +785,6 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 		return wrapped;
 	}
 
-	/** Building tools: station guide, rail stylus and the box tunnel. Operators and creative mode only; the dig is shared. */
-	private void initBuild() {
-		buildFirst = Math.max(0, Math.min(buildFirst, BUILD_ROWS - visibleRows()));
-		final int left = columnLeft();
-		final boolean operator = ClientOperators.isOperatorOrCreative(client);
-		final BuildSettings now = BuildClient.settings();
-		if (buildRow(0)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.station", ScreenTexts.onOrOff(now.stationEnabled())), b -> {
-				final BuildSettings current = BuildClient.settings();
-				sendBuild(new BuildSettings(!current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
-				b.setMessage(Text.translatable("gui.aurelia.build.station", ScreenTexts.onOrOff(BuildClient.settings().stationEnabled())));
-			}).dimensions(left, buildY(0), BUTTON_WIDTH, 20).build()).active = operator;
-		}
-		if (buildRow(1)) {
-			addDrawableChild(new RangeSlider(left, buildY(1), BuildSettings.SIDE_MIN, BuildSettings.SIDE_MAX, 8, () -> BuildClient.settings().stationSide(), side -> {
-				final BuildSettings current = BuildClient.settings();
-				sendBuild(new BuildSettings(current.stationEnabled(), (int) side, current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
-			}, side -> Text.translatable("gui.aurelia.build.side", side.intValue()))).active = operator;
-		}
-		if (buildRow(2)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.colour", Integer.toHexString(now.stationColour())), b -> {
-				final BuildSettings current = BuildClient.settings();
-				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.nextColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
-				b.setMessage(Text.translatable("gui.aurelia.build.colour", Integer.toHexString(BuildClient.settings().stationColour())));
-			}).dimensions(left, buildY(2), BUTTON_WIDTH, 20).build()).active = operator;
-		}
-		if (buildRow(3)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.rail", ScreenTexts.onOrOff(now.railEnabled())), b -> {
-				final BuildSettings current = BuildClient.settings();
-				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), !current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
-				b.setMessage(Text.translatable("gui.aurelia.build.rail", ScreenTexts.onOrOff(BuildClient.settings().railEnabled())));
-			}).dimensions(left, buildY(3), BUTTON_WIDTH, 20).build()).active = operator;
-		}
-		if (buildRow(4)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.snap", now.snapDegrees() == 0 ? Text.translatable("gui.aurelia.build.snap.off") : now.snapDegrees()), b -> {
-				final BuildSettings current = BuildClient.settings();
-				final int next = current.snapDegrees() == 0 ? 15 : current.snapDegrees() == 15 ? 45 : current.snapDegrees() == 45 ? 90 : 0;
-				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), next, current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
-				final int shown = BuildClient.settings().snapDegrees();
-				b.setMessage(Text.translatable("gui.aurelia.build.snap", shown == 0 ? Text.translatable("gui.aurelia.build.snap.off") : shown));
-			}).dimensions(left, buildY(4), BUTTON_WIDTH, 20).build()).active = operator;
-		}
-		if (buildRow(5)) {
-			addDrawableChild(new RangeSlider(left, buildY(5), BuildSettings.REACH_MIN, BuildSettings.REACH_MAX, 1, () -> BuildClient.settings().railReach(), reach -> {
-				final BuildSettings current = BuildClient.settings();
-				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), (int) reach, current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
-			}, reach -> Text.translatable("gui.aurelia.build.reach", reach.intValue()))).active = operator;
-		}
-		if (buildRow(6)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.tunnel", ScreenTexts.onOrOff(now.tunnelEnabled())), b -> {
-				final BuildSettings current = BuildClient.settings();
-				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), !current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), current.blocksPerTick()));
-				b.setMessage(Text.translatable("gui.aurelia.build.tunnel", ScreenTexts.onOrOff(BuildClient.settings().tunnelEnabled())));
-			}).dimensions(left, buildY(6), BUTTON_WIDTH, 20).build()).active = operator;
-		}
-		if (buildRow(7)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.build.mode", Text.translatable("gui.aurelia.build.mode." + now.tunnelMode().name().toLowerCase())), b -> {
-				final BuildSettings current = BuildClient.settings();
-				final BuildMath.Mode next = current.tunnelMode().next();
-				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), next, current.tunnelMaxBlocks(), current.blocksPerTick()));
-				b.setMessage(Text.translatable("gui.aurelia.build.mode", Text.translatable("gui.aurelia.build.mode." + BuildClient.settings().tunnelMode().name().toLowerCase())));
-			}).dimensions(left, buildY(7), BUTTON_WIDTH, 20).build()).active = operator;
-		}
-		if (buildRow(8)) {
-			addDrawableChild(new RangeSlider(left, buildY(8), BuildSettings.BLOCKS_MIN, BuildSettings.BLOCKS_MAX, 64, () -> BuildClient.settings().tunnelMaxBlocks(), max -> {
-				final BuildSettings current = BuildClient.settings();
-				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), (int) max, current.blocksPerTick()));
-			}, max -> Text.translatable("gui.aurelia.build.max", max.intValue()))).active = operator;
-		}
-		if (buildRow(9)) {
-			addDrawableChild(new RangeSlider(left, buildY(9), BuildSettings.TICK_MIN, BuildSettings.TICK_MAX, 1, () -> BuildClient.settings().blocksPerTick(), pace -> {
-				final BuildSettings current = BuildClient.settings();
-				sendBuild(new BuildSettings(current.stationEnabled(), current.stationSide(), current.stationColour(), current.railEnabled(), current.snapDegrees(), current.railReach(), current.tunnelEnabled(), current.tunnelMode(), current.tunnelMaxBlocks(), (int) pace));
-			}, pace -> Text.translatable("gui.aurelia.build.pace", pace.intValue()))).active = operator;
-		}
-	}
-
-	private boolean buildRow(int row) {
-		return row >= buildFirst && row < buildFirst + visibleRows();
-	}
-
-	private int buildY(int row) {
-		return top + (row - buildFirst) * ROW;
-	}
-
-	private void sendBuild(BuildSettings next) {
-		BuildClient.request(next);
-	}
-
 	/**
 	 * Passengers. The first five rows are the server caps (operators and creative mode only): on/off, how many arrive per platform per
 	 * minute, the most a platform and the whole dimension may hold, and seats per car. The rest are this client's
@@ -1286,14 +1190,6 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 			}
 			return true;
 		}
-		if (tab == Tab.BUILD) {
-			final int newFirstRow = Math.max(0, Math.min(BUILD_ROWS - visibleRows(), buildFirst - (int) Math.signum(amount)));
-			if (newFirstRow != buildFirst) {
-				buildFirst = newFirstRow;
-				clearAndInit();
-			}
-			return true;
-		}
 		if (tab == Tab.PASSENGERS) {
 			final int newFirstRow = Math.max(0, Math.min(PASSENGER_ROWS - passengerVisible(), passengerFirst - (int) Math.signum(amount)));
 			if (newFirstRow != passengerFirst) {
@@ -1382,8 +1278,6 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 			if (!ClientOperators.isOperatorOrCreative(client)) {
 				context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.passengers.operators"), centerX(), top - 12, 0xFF5555);
 			}
-		} else if (tab == Tab.BUILD && !ClientOperators.isOperatorOrCreative(client)) {
-			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.build.operators"), centerX(), top - 12, 0xFF5555);
 		} else if (tab == Tab.VEHICLES) {
 			renderVehicles(context);
 		} else if (tab == Tab.ZIP && !ClientOperators.isOperatorOrCreative(client)) {
@@ -1404,7 +1298,6 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 		switch (tab) {
 			case LOOK -> scrollLine(context, lookFirst, visibleRows(), LOOK_IDS.length);
 			case ARCHITECTURE -> scrollLine(context, architectureFirst, visibleRows(), architectureRows());
-			case BUILD -> scrollLine(context, buildFirst, visibleRows(), BUILD_ROWS);
 			case PASSENGERS -> scrollLine(context, passengerFirst, passengerVisible(), PASSENGER_ROWS);
 			case MAP -> scrollLine(context, mapFirst, visibleRows(), MAP_ROWS);
 			case ENGINE -> {
