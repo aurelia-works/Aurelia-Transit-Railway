@@ -13,7 +13,10 @@
 		"sources": "https://github.com/aurelia-works/Aurelia-Transit-Railway",
 		"issues": "https://github.com/aurelia-works/Aurelia-Transit-Railway/issues"
 	},
-	"license": "MIT",
+	"license": [
+		"MIT",
+		"LicenseRef-Stratos-All-Rights-Reserved"
+	],
 	"custom": {
 		"modmenu": {
 			"links": {

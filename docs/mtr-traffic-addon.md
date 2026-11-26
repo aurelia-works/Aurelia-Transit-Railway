@@ -12,7 +12,7 @@ and nothing from it is copied into ATR.
 Nothing found that should stop MTA loading on ATR. It still needs the in-game test below, because a static read
 cannot prove mixins apply or that the two simulations agree at run time.
 
-- **Dependency:** MTA asks for `mtr >= 4.0.4`. ATR's version `4.0.5+atr.1.1.0` satisfies it, because ATR keeps the
+- **Dependency:** MTA asks for `mtr >= 4.0.4`. ATR's version `4.0.5+atr.1.2.0` satisfies it, because ATR keeps the
   mod id `mtr`.
 - **Mixin targets:** all nine of MTA's mixins find their target in ATR, with the shapes MTA expects:
   - core (`libs/Transport-Simulation-Core-0.0.1.jar`): `Simulator.tick()`, `Vehicle.simulate`,

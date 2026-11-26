@@ -20,3 +20,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--------------------------------------------------------------------------------
+
+This licence covers ATR's own code and the code it inherits from MTR (whose original notices are in
+LICENSE-MTR.txt). It does not cover files marked "Derived from Stratos": those are Copyright (c) 2026 IndusGaming,
+All Rights Reserved, and are included in ATR with permission. Fonts keep their own licences. See NOTICE.md.
