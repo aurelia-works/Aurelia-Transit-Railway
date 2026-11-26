@@ -18,6 +18,7 @@ public final class SimpleListWidget<T> extends AlwaysSelectedEntryListWidget<Sim
 	public SimpleListWidget(MinecraftClient client, int x, int y, int width, int height, Consumer<T> onSelect) {
 		super(client, width, height, y, 12);
 		setX(x);
+		// 1.20.4 lists draw no top and bottom shadows, so there is nothing to turn off as 1.20.1 does
 		setRenderBackground(false);
 		this.onSelect = onSelect;
 	}

@@ -17,6 +17,7 @@ public final class Compat {
 	private Compat() {
 	}
 
+	/** No data fixer: Fabric API reads a state saved with none as it is, which is how 1.20.1 read ATR's states. */
 	public static <T extends PersistentState> T getOrCreate(PersistentStateManager manager, Function<NbtCompound, T> read, Supplier<T> create, String id) {
 		return manager.getOrCreate(new PersistentState.Type<>(create, read, null), id);
 	}
