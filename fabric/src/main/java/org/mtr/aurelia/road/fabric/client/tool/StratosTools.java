@@ -53,6 +53,7 @@ import org.mtr.aurelia.road.tool.Question;
 import org.mtr.aurelia.road.tool.Target;
 import org.mtr.aurelia.road.tool.Tool;
 import org.mtr.aurelia.road.tool.ToolInput;
+import org.mtr.aurelia.road.tool.PanelPlace;
 import org.mtr.aurelia.road.tool.ToolSession;
 import org.mtr.aurelia.road.tool.WorldTask;
 import org.mtr.aurelia.road.undo.SideEffect;
@@ -135,6 +136,7 @@ public final class StratosTools {
     /** The road choices and (UI-1c) the preview's settings last written to (or read from) {@link #choicesFile}. */
     private static RoadChoices savedChoices;
     private static PreviewChoices savedPreview;
+    private static PanelPlace savedPlace;
 
     /** How far the tools can reach, in blocks (only loaded chunks can be aimed at). */
     public static final double REACH = 256;
@@ -218,12 +220,14 @@ public final class StratosTools {
                 String text = Files.readString(file);
                 ROAD_SETTINGS.restore(RoadChoices.fromJson(text));
                 StratosPreview.restore(PreviewChoices.fromJson(text));
+                ToolHud.setPlace(PanelPlace.fromJson(text));
             } catch (IOException e) {
                 StratosMod.LOGGER.warn("[stratos] couldn't read the road choices in {}: {}", file, e.toString());
             }
         }
         savedChoices = ROAD_SETTINGS.choices();
         savedPreview = StratosPreview.choices();
+        savedPlace = ToolHud.place();
     }
 
     /**
@@ -233,17 +237,20 @@ public final class StratosTools {
     private static void saveChoices() {
         RoadChoices now = ROAD_SETTINGS.choices();
         PreviewChoices preview = StratosPreview.choices();
-        if (now.equals(savedChoices) && preview.equals(savedPreview)) {
+        PanelPlace place = ToolHud.place();
+        if (now.equals(savedChoices) && preview.equals(savedPreview) && place.equals(savedPlace)) {
             return;
         }
         savedChoices = now;
         savedPreview = preview;
+        savedPlace = place;
         Path file = choicesFile();
         try {
             Files.createDirectories(file.getParent());
             Path temp = file.resolveSibling(file.getFileName() + ".tmp");
             com.google.gson.JsonObject json = now.toJsonObject();
             preview.writeTo(json);
+            place.writeTo(json);
             Files.writeString(temp, org.mtr.aurelia.road.json.StrictJson.write(json));
             Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {

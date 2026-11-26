@@ -26,6 +26,7 @@ import org.mtr.aurelia.road.road.tool.EditRoadsTool;
 import org.mtr.aurelia.road.road.tool.RoadSettings;
 import org.mtr.aurelia.road.road.tool.StraightTool;
 import org.mtr.aurelia.road.tool.HudModel;
+import org.mtr.aurelia.road.tool.PanelPlace;
 import org.mtr.aurelia.road.tool.Tool;
 import org.mtr.aurelia.road.fabric.client.editor.StratosEditorClient;
 import org.mtr.aurelia.road.fabric.client.ui.RoadPicture;
@@ -60,7 +61,7 @@ import org.mtr.aurelia.road.fabric.client.ui.UiText;
 public final class ToolHud {
     /** The panel's width, in GUI pixels. */
     static final int WIDTH = 150;
-    private static final int MARGIN = 6;
+    static final int MARGIN = 6;
     private static final int PAD = 5;
     private static final int TOP_PAD = 3;
     private static final int HEADER = 16;
@@ -79,7 +80,7 @@ public final class ToolHud {
     /** Between the panel and its message strip, and between either and what is below them. */
     private static final int GAP = 2;
     /** The hotbar's height, which the panel keeps clear of. */
-    private static final int HOTBAR = 23;
+    static final int HOTBAR = 23;
     private static final int STEP_DOT = 4;
     /** A layout's picture beside its name. */
     private static final int PICTURE_WIDTH = 12;
@@ -152,6 +153,7 @@ public final class ToolHud {
     private static long framesDrawn;
     private static long panelFramesDrawn;
     private static Box panelBox;
+    private static PanelPlace place = PanelPlace.DEFAULT;
     private static Box messageBox;
 
     private ToolHud() {
@@ -165,6 +167,15 @@ public final class ToolHud {
     /** How many frames have drawn the node aids' panel (R-6; the harness checks it shows). */
     public static long panelFramesDrawn() {
         return panelFramesDrawn;
+    }
+
+    /** Where the player dragged the panel to ({@link PanelMoveScreen}); the top right until moved. */
+    public static PanelPlace place() {
+        return place;
+    }
+
+    public static void setPlace(PanelPlace place) {
+        ToolHud.place = place;
     }
 
     /** Where the last frame drew the panel, if it drew one. */
@@ -182,13 +193,15 @@ public final class ToolHud {
         messageBox = null;
         MinecraftClient minecraft = MinecraftClient.getInstance();
         boolean hub = minecraft.currentScreen instanceof HubScreen;
-        if (minecraft.options.hudHidden || minecraft.currentScreen != null && !hub || StratosTools.session() == null) {
+        boolean moving = minecraft.currentScreen instanceof PanelMoveScreen;
+        if (minecraft.options.hudHidden || minecraft.currentScreen != null && !hub && !moving || StratosTools.session() == null) {
             return;
         }
         // UI-1c: while Settings covers the panel's place (GUI scales 3 and 4), the panel and its messages hide.
-        Box place = new Box(graphics.getScaledWindowWidth() - MARGIN - WIDTH, MARGIN, WIDTH,
+        int x = place.moved() ? place.left(graphics.getScaledWindowWidth(), WIDTH, MARGIN) : graphics.getScaledWindowWidth() - MARGIN - WIDTH;
+        Box column = new Box(x, MARGIN, WIDTH,
                 StrictMath.max(0, HubScreen.top(graphics.getScaledWindowHeight()) - MARGIN));
-        if (minecraft.currentScreen instanceof HubScreen screen && screen.settingsArea().filter(place::overlaps).isPresent()) {
+        if (minecraft.currentScreen instanceof HubScreen screen && screen.settingsArea().filter(column::overlaps).isPresent()) {
             return;
         }
         Optional<Tool> tool = StratosTools.session().active();
@@ -203,7 +216,6 @@ public final class ToolHud {
             }
         }
         TextRenderer font = minecraft.textRenderer;
-        int x = graphics.getScaledWindowWidth() - MARGIN - WIDTH;
         // Clear of the hub's bar while it's open, else of the hotbar.
         int bottom = (hub ? HubScreen.top(graphics.getScaledWindowHeight()) : graphics.getScaledWindowHeight() - HOTBAR) - GAP;
         int y = MARGIN + effectRows(minecraft) * EFFECT_ROW;
@@ -218,12 +230,13 @@ public final class ToolHud {
             List<List<Group>> keyRows = KEY_ROWS.stream().filter(row -> row.stream().anyMatch(group -> group.actions().stream().anyMatch(keys::contains))).toList();
             List<OrderedText> state = font.wrapLines(UiText.of(text(hud.state()), RoadColours.TEXT_MAIN), WIDTH - 2 * PAD);
             int height = height(state.size(), rows(font, values), mouseRows.size(), keyRows.size());
-            y = Math.max(MARGIN, Math.min(y, bottom - height));
+            y = place.moved() ? place.top(graphics.getScaledWindowHeight(), height, MARGIN, bottom) : Math.max(MARGIN, Math.min(y, bottom - height));
             draw(graphics, minecraft, font, hud, tool, x, y, height, state, values, mouseRows, keyRows, keys);
             panelBox = new Box(x, y, WIDTH, height);
             stripY = y + height + GAP;
             if (strip.isPresent() && stripY + stripHeight(font, strip.get().text()) > bottom) {
-                stripX = x - WIDTH - 3;
+                // beside the panel, on the side with room (a panel dragged to the left edge has none on its left)
+                stripX = x - WIDTH - 3 >= 0 ? x - WIDTH - 3 : x + WIDTH + 3;
                 stripY = y;
             }
         } else if (strip.isPresent()) {
