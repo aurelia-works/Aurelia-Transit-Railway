@@ -39,7 +39,7 @@ never edits code. A reviewer that cannot reproduce a problem does not file it.
 These change how everything else builds or loads, so a mistake here is not a normal review finding:
 
 - `build.gradle`, `settings.gradle`, `gradle.properties`, `gradle/wrapper/**` — build, dependency and Gradle version.
-- `fabric/src/main/resources/fabric.mod.json` (version and dependency fields) and
+- `fabric/src/main/fabric.mod.template.json` (generates `fabric/src/main/resources/fabric.mod.json`; version and dependency fields) and
   `fabric/src/perfbench/resources/fabric.mod.json` — what the mod declares it needs and provides.
 - `fabric/src/main/resources/*.mixins.json` and `fabric/src/main/resources/mtr.accesswidener` — a bad entry crashes at
   launch, before any test runs.
@@ -47,7 +47,7 @@ These change how everything else builds or loads, so a mistake here is not a nor
 - `libs/*.jar` — the Transport Simulation Core the whole mod compiles against.
 - `buildSrc/**` — schema generators; a change there silently regenerates source.
 - `fabric/ata-test-times.properties` — the CI shard balance.
-- `LICENSE`, `LICENSE-MTR.txt`, `NOTICE.md` — licensing.
+- `LICENSE`, `NOTICE.md` — licensing.
 - Any secrets, tokens or `.env` files.
 
 ## BRIEF format
@@ -67,7 +67,7 @@ RETURN:      <exactly what comes back: PR link, test result lines, files changed
 | File | What it holds |
 |---|---|
 | `AGENTS.md` | build commands, compatibility invariants, test rules |
-| `CLAUDE.md` | only `@AGENTS.md`: imports it for Claude Code |
+| `CLAUDE.md` | pointer to `TEAM.md`, then `@AGENTS.md` import for Claude Code |
 | `PLAN.md` | the plan to V1, phase list and status |
 
 `HANDOFF.md` (current state only, replaced not appended) and `SPEC.md` (per-feature spec, written by the lead before
