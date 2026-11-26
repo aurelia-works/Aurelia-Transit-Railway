@@ -69,6 +69,7 @@ import org.mtr.aurelia.road.fabric.palette.GamePalettes;
  * screen is open:
  * <ul>
  *   <li>the game's use and attack clicks (right and left button by default) go to the tool;</li>
+ *   <li>except an attack the tool has no step for: that puts the tool away and breaks the block as usual;</li>
  *   <li>their "held" state is cleared every tick, so the game never mines, places or repeats a use;</li>
  *   <li>the tool sees the block aimed at, up to {@link #REACH} blocks away;</li>
  *   <li>{@link #UNDO_KEY} and {@link #REDO_KEY} undo and redo the player's Stratos edits (owner, 2026-10-06: R-2).</li>
@@ -354,7 +355,13 @@ public final class StratosTools {
             session.input(new ToolInput.Use(aim, yaw));
         }
         while (client.options.attackKey.wasPressed()) {
-            session.input(new ToolInput.Attack(aim, yaw));
+            if (!session.input(new ToolInput.Attack(aim, yaw))) {
+                // The tool had nothing to take back and is put away: give the press back so the game breaks the block
+                // this same tick, and leave the button held so it keeps mining.
+                KeyBinding.onKeyPressed(KeyBindingHelper.getBoundKeyOf(client.options.attackKey));
+                aim = Optional.empty();
+                return;
+            }
         }
         adjust(RAISE_KEY, ToolInput.Adjustment.RAISE, yaw);
         adjust(LOWER_KEY, ToolInput.Adjustment.LOWER, yaw);

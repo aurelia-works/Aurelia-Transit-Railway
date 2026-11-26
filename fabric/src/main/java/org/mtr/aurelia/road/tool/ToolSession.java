@@ -154,9 +154,17 @@ public final class ToolSession implements EditorClient.Listener {
         }
     }
 
-    /** Sends {@code input} to the tool in hand. Returns false when no tool is active, so the game keeps the input. */
+    /**
+     * Sends {@code input} to the tool in hand. Returns false when no tool is active, so the game keeps the input. An attack
+     * the tool has no step for (its HUD shows none) puts the tool away and also returns false, so the click breaks the
+     * block aimed at instead of doing nothing (2026-11-26).
+     */
     public boolean input(ToolInput input) {
         if (this.active == null) {
+            return false;
+        }
+        if (input instanceof ToolInput.Attack && this.active.hud().hint(HudModel.Action.ATTACK).isEmpty()) {
+            leave();
             return false;
         }
         this.active.input(input);
@@ -171,9 +179,18 @@ public final class ToolSession implements EditorClient.Listener {
         }
     }
 
-    /** The HUD of the tool in hand. */
+    /** The HUD of the tool in hand. Where the tool has no attack step, the attack row says it puts the tool away. */
     public Optional<HudModel> hud() {
-        return this.active == null ? Optional.empty() : Optional.of(this.active.hud());
+        if (this.active == null) {
+            return Optional.empty();
+        }
+        HudModel hud = this.active.hud();
+        if (hud.hint(HudModel.Action.ATTACK).isPresent()) {
+            return Optional.of(hud);
+        }
+        List<HudModel.Hint> hints = new ArrayList<>(hud.hints());
+        hints.add(new HudModel.Hint(HudModel.Action.ATTACK, "stratos.tool.hint.put_away"));
+        return Optional.of(new HudModel(hud.titleKey(), hud.step(), hud.steps(), hud.state(), hud.lines(), hud.notice(), hints));
     }
 
     /** The question the tool in hand asks now (R-7), for the platform's box. */

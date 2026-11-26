@@ -282,6 +282,31 @@ class ToolSessionTest {
     }
 
     @Test
+    void aLeftClickWithNothingToTakeBackPutsTheToolAwayAndTheGameGetsIt() {
+        // 2026-11-26: with the road tool out and nothing set, a left click has to break the block aimed at (a rail node).
+        this.session.select(StraightTool.ID);
+        assertFalse(this.session.input(new ToolInput.Attack(at(0, 64, 0))), "the game gets the click");
+        assertEquals(Optional.empty(), this.session.active());
+        assertEquals(Optional.of(this.straight), this.session.last(), "the tool key brings it back");
+    }
+
+    @Test
+    void aLeftClickThatTakesAStepBackStaysWithTheTool() {
+        this.session.select(StraightTool.ID);
+        this.session.input(new ToolInput.Use(at(0, 64, 0)));
+        assertTrue(this.session.input(new ToolInput.Attack(at(5, 64, 0))));
+        assertEquals(Optional.of(this.straight), this.session.active());
+        assertEquals(ToolState.IDLE, this.straight.state(), "the start was taken back");
+    }
+
+    @Test
+    void theHudSaysWhatALeftClickDoesWhenItPutsTheToolAway() {
+        this.session.select(StraightTool.ID);
+        assertEquals(Optional.of("stratos.tool.hint.put_away"),
+                this.session.hud().flatMap(hud -> hud.hint(HudModel.Action.ATTACK)).map(HudModel.Hint::textKey));
+    }
+
+    @Test
     void theToolKeyTogglesTheLastTool() {
         this.session.toggle();
         assertEquals(Optional.empty(), this.session.active(), "no tool used yet: nothing to bring back");
