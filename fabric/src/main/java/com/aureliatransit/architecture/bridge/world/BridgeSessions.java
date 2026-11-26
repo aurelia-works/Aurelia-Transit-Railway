@@ -13,9 +13,9 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Per-player bridge work and the one server tick that drives it: running build/undo tasks, template previews and the last
- * build's undo log. Server thread only. Previews go when a player leaves; a running task keeps going, as the station
- * builder's jobs do. The undo log is in memory, like the station builder's, so restarting the server loses undo.
+ * Per-player bridge work and the one server tick that drives it: running build/undo tasks and the last build's undo log.
+ * Server thread only. A running task keeps going when its player leaves, as the station builder's jobs do. The undo log
+ * is in memory, like the station builder's, so restarting the server loses undo.
  */
 final class BridgeSessions {
 
@@ -27,7 +27,6 @@ final class BridgeSessions {
 
 	private static final Map<UUID, BridgeTask> JOBS = new LinkedHashMap<>();
 	private static final Map<UUID, Undo> UNDO = new HashMap<>();
-	private static final Map<UUID, BridgePreview> PREVIEWS = new HashMap<>();
 
 	private BridgeSessions() {
 	}
@@ -50,7 +49,7 @@ final class BridgeSessions {
 	}
 
 	static void tick(MinecraftServer server) {
-		if (JOBS.isEmpty() && PREVIEWS.isEmpty()) {
+		if (JOBS.isEmpty()) {
 			return;
 		}
 		final long deadline = System.nanoTime() + NANOS_PER_TICK;
@@ -64,16 +63,6 @@ final class BridgeSessions {
 				break;
 			}
 		}
-		final Iterator<Map.Entry<UUID, BridgePreview>> previews = PREVIEWS.entrySet().iterator();
-		while (previews.hasNext()) {
-			if (!previews.next().getValue().tick(server)) {
-				previews.remove();
-			}
-		}
-	}
-
-	static void setPreview(BridgePreview preview) {
-		PREVIEWS.put(preview.player(), preview);
 	}
 
 	/** The dimension of the player's last build, or null when there is nothing to undo. */
@@ -105,14 +94,8 @@ final class BridgeSessions {
 		UNDO.remove(owner);
 	}
 
-	/** A player left: their preview goes; a running task and their undo log stay. */
-	static void forgetPlayer(UUID owner) {
-		PREVIEWS.remove(owner);
-	}
-
 	static void clear() {
 		JOBS.clear();
-		PREVIEWS.clear();
 		UNDO.clear();
 	}
 }

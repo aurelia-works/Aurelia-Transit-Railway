@@ -86,7 +86,7 @@ No Mojang art, fonts or textures are copied: the finish is CSS only.
 | Station Gen      | QUICK START              |                                   | CHECKS (warns + fold)   |
 | Airport Gen      |   Presets (32)           |           3D WebGL canvas         | LAYERS & CUTAWAY        |
 |                  |   Describe in words      |                                   | MATERIALS (fold)        |
-|                  |   From a photo           | [Planned in N ms · blocks]        | INSPECT (quiet folds)   |
+|                  |                          | [Planned in N ms · blocks]        | INSPECT (quiet folds)   |
 |                  | STATION (4-col cities)   | [Views | Jumps ............. Fit] | ----------------------- |
 | world link       | SHAPE & BUILDING         | [Lighting | Shaders Tex Num | M ] | [Plan in front][Build]  |
 |                  | ADVANCED (#more)         |                                   | [Download .schem]       |
@@ -133,5 +133,5 @@ Served from the same `index.html`, `studio.css`, and `studio.js` with `body[data
 
 ## Automated verification
 
-- Java JUnit suite: `./gradlew setupFiles :fabric:ataTest --offline --max-workers=2 --tests 'com.aureliatransit.architecture.station.studio.*'` (`StudioTest`, `StudioKeysTest`, `StudioLocksTest`, `StudioWordsTest`, `AirportStudioTest`, `ConnectionsTest`, `SchematicExportTest`, `BlockModelsTest`, `PhotoDescriberTest`).
+- Java JUnit suite: `./gradlew setupFiles :fabric:ataTest --offline --max-workers=2 --tests 'com.aureliatransit.architecture.station.studio.*'` (`StudioTest`, `StudioKeysTest`, `StudioLocksTest`, `StudioWordsTest`, `AirportStudioTest`, `ConnectionsTest`, `SchematicExportTest`, `BlockModelsTest`).
 - Playwright browser suites: `tools/studio_features.mjs`, `tools/studio_locks.mjs`, `tools/studio_stress.mjs`, `tools/studio_swaps.mjs`.

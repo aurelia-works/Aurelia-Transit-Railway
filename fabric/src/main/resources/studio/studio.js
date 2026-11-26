@@ -55,7 +55,7 @@
 		q.square = $("square").checked ? "1" : "0";
 		q.doorMarkers = $("doorMarkers").checked ? "1" : "0";
 		q.busStation = $("busStation").checked ? "1" : "0";
-		// fields from a station file this page has no control for (the game editor's drawn tracks) go along unchanged
+		// fields from a station file this page has no control for (drawn tracks and shapes) go along unchanged
 		for (const [k, v] of Object.entries(carried)) {
 			if (q[k] === undefined) {
 				q[k] = v;
@@ -444,7 +444,7 @@
 		}
 	}
 
-	/** A preset (or a photo's description) onto the controls. */
+	/** A preset onto the controls. */
 	function applyPreset(p) {
 		$("text").value = p.text;
 		$("look").value = p.look;
@@ -487,66 +487,6 @@
 		seeds.edited = true;
 		showSeed();
 		changed();
-	}
-
-	/**
-	 * From a photo: the page shrinks it (the server sends it on to Claude), and the description that comes back is applied like a
-	 * preset. Without an API key the server answers with the prompt to use in Claude by hand.
-	 */
-	function setupPhoto() {
-		const note = $("photoNote");
-		$("photoBtn").addEventListener("click", () => $("photoFile").click());
-		$("photoCopy").addEventListener("click", async () => {
-			try {
-				await navigator.clipboard.writeText($("photoPromptText").value);
-				note.textContent = "Prompt copied.";
-			} catch (e) {
-				$("photoPromptText").select();
-				note.textContent = "Select the prompt and copy it.";
-			}
-		});
-		$("photoFile").addEventListener("change", async () => {
-			const file = $("photoFile").files[0];
-			$("photoFile").value = "";
-			if (!file) {
-				return;
-			}
-			$("photoBtn").disabled = true;
-			note.textContent = "Reading the photo…";
-			try {
-				const r = await fetch("api/photo", { method: "POST", body: await shrink(file), headers: { "X-Studio-Token": TOKEN, "Content-Type": "image/jpeg" } });
-				if (!r.ok) {
-					throw new Error(await r.text());
-				}
-				const answer = await r.json();
-				if (!answer.key) {
-					$("photoPromptText").value = answer.prompt;
-					$("photoPrompt").hidden = false;
-					note.textContent = "";
-					return;
-				}
-				$("photoPrompt").hidden = true;
-				$("wordsAdvanced").open = true;
-				applyPreset(answer.preset);
-				note.textContent = "Read from photo — refine the words above if needed.";
-			} catch (e) {
-				note.textContent = e.message || "Could not read the photo.";
-			} finally {
-				$("photoBtn").disabled = false;
-			}
-		});
-	}
-
-	/** A photo as a JPEG no larger than the model reads well. */
-	async function shrink(file) {
-		const MAX_EDGE = 1568;
-		const bitmap = await createImageBitmap(file);
-		const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-		const canvas = document.createElement("canvas");
-		canvas.width = Math.round(bitmap.width * scale);
-		canvas.height = Math.round(bitmap.height * scale);
-		canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-		return new Promise((resolve, reject) => canvas.toBlob((b) => b ? resolve(b) : reject(new Error("Could not read that image.")), "image/jpeg", 0.85));
 	}
 
 	function syncButtons() {
@@ -1087,7 +1027,6 @@
 		$((PAGE === "airport" ? "navAirport" : "navStation")).setAttribute("aria-current", "page");
 		setupSeed();
 		setupLayers();
-		setupPhoto();
 		flip(seeds.value);
 		updateOutputs();
 		$("game").hidden = !IN_GAME;

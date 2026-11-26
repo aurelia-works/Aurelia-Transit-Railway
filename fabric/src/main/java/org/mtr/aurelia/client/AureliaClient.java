@@ -116,8 +116,6 @@ public final class AureliaClient implements ClientModInitializer {
 		ZipClient.register();
 		org.mtr.aurelia.client.map.MapClient.register();
 		ZipCableRenderer.register();
-		BuildClient.register();
-		BuildPreviewRenderer.register();
 		org.mtr.aurelia.driving.DriverClient.register();
 		org.mtr.aurelia.vehicle.client.RoadVehicleClient.register();
 		LOGGER.info("[ATR] Aurelia panel ready");

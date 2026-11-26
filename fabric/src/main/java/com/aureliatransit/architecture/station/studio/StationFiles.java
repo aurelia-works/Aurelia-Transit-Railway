@@ -15,9 +15,8 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 /**
- * Station files: one station per file, shared by the browser Station Studio and the in-game editor, so a station drawn in
- * one opens unchanged in the other. A file holds the Studio form (its field names and values, as the page sends them to
- * {@code /api/plan}), so either side plans it with {@link StudioApi#description(Map)}:
+ * Station files: one station per file, saved and opened by the browser Station Studio. A file holds the Studio form (its
+ * field names and values, as the page sends them to {@code /api/plan}), planned with {@link StudioApi#description(Map)}:
  * <pre>{"format":1,"name":"Leidsche Rijn","form":{"text":"...","tracks":"2","pinned":"tracks"}}</pre>
  * The file name is the station name as a slug ({@code leidsche-rijn.json}). Fields this version does not know are kept as
  * they are, so a newer Studio's file survives a save from an older editor. No Minecraft classes: the Studio server and the

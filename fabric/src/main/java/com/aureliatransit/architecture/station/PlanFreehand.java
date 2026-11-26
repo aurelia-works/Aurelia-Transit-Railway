@@ -9,7 +9,7 @@ import java.util.Set;
 import com.aureliatransit.architecture.station.StationPlanner.Cell;
 
 /**
- * The platforms and buildings drawn by hand in the station editor ({@link DrawnShape}), planned after everything else as a
+ * The platforms and buildings drawn by hand (kept in station files and descriptions) ({@link DrawnShape}), planned after everything else as a
  * layer of their own (Jah's pick A, 2026-11-10): a shape only fills cells the station left free, so the station's own rules
  * never see it and a station without shapes plans exactly as before. Track corridors are cut out of every shape.
  *

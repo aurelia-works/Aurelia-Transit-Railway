@@ -21,8 +21,8 @@ import java.util.Objects;
  * @param airport       the airport the words describe ({@link AirportSpec#NONE} for a railway station): the spec then plans an airport
  * @param openFareLine  "open fare line": the check-in poles stand without lanes, so anyone walks past them (an open station);
  *                      off, a lane between the poles stays shut until the passenger taps in (Jah 11-09)
- * @param drawn         tracks drawn by hand in the station editor ({@link DrawnTrack}), laid as MTR rails out from the track ends
- * @param shapes        platforms and buildings drawn by hand in the station editor ({@link DrawnShape}), planned by {@link PlanFreehand}
+ * @param drawn         tracks drawn by hand (kept in station files and descriptions) ({@link DrawnTrack}), laid as MTR rails out from the track ends
+ * @param shapes        platforms and buildings drawn by hand (kept in station files and descriptions) ({@link DrawnShape}), planned by {@link PlanFreehand}
  * @param busStation    "bus station": numbered bus bays with shelters and departure boards in front of the station's entrance
  * @param lookSheet     the {@code sheet} is only the look of a station of the player's own ("paris style"): its building's shape
  *                      is built whatever the station is called, where it fits (Jah, 11-24: more than four building shapes)
@@ -155,12 +155,12 @@ public record StationOptions(GateStyle gates, int entranceWidth, Map<String, Str
 	}
 
 
-	/** These options with the tracks drawn in the station editor. */
+	/** These options with the tracks drawn by hand. */
 	public StationOptions withDrawn(List<DrawnTrack> value) {
 		return new StationOptions(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, airport, openFareLine, value, shapes, busStation, lookSheet);
 	}
 
-	/** These options with the platforms and buildings drawn in the station editor. */
+	/** These options with the platforms and buildings drawn by hand. */
 	public StationOptions withShapes(List<DrawnShape> value) {
 		return new StationOptions(gates, entranceWidth, swaps, underground, tile, sheet, type, depth, airport, openFareLine, drawn, value, busStation);
 	}

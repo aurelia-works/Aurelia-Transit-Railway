@@ -1,5 +1,8 @@
 # B1 custom bridge generator
 
+> Removed 2026-11-26: capture, templates, preview and stamping are gone. Only `/atr_bridge undo` is left, for the
+> wrench's Bridge mode. This page is kept as history.
+
 Status: first slice implemented. Capture, store, preview, build and undo work from `/atr_bridge`. The simple
 `ItemBridgeCreator` items still build the old block deck and are unchanged.
 

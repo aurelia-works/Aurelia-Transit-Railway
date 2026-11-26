@@ -248,8 +248,6 @@ public final class VisualShots implements ClientModInitializer {
 			case "wrench" -> com.aureliatransit.architecture.client.StationWrenchScreen.open(net.minecraft.util.Hand.MAIN_HAND);
 			case "menu" -> client.setScreen(new org.mtr.aurelia.client.screen.AureliaPanelScreen(null,
 					org.mtr.aurelia.client.screen.AureliaPanelScreen.Tab.ARCHITECTURE));
-			case "editor" -> client.setScreen(new com.aureliatransit.architecture.client.StationEditorScreen(net.minecraft.util.Hand.MAIN_HAND,
-					arg.substring(words[0].length()).strip()));
 			case "close" -> client.setScreen(null);
 			default -> throw new IllegalArgumentException("unknown screen " + arg);
 		}

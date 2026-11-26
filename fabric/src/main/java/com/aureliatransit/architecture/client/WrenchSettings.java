@@ -18,7 +18,6 @@ public final class WrenchSettings {
 
 	private static boolean actionBar = true;
 	private static boolean menuLook = true;
-	private static boolean planRoof = true;
 	private static boolean curvePaint = true;
 	/** The curved taxiway lines' width, in percent of a painted cell. */
 	private static int paintWidth = 100;
@@ -60,10 +59,6 @@ public final class WrenchSettings {
 		if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean()) {
 			actionBar = element.getAsBoolean();
 		}
-		final JsonElement roof = json.get("planRoof");
-		if (roof != null && roof.isJsonPrimitive() && roof.getAsJsonPrimitive().isBoolean()) {
-			planRoof = roof.getAsBoolean();
-		}
 		final JsonElement look = json.get("menuLook");
 		if (look != null && look.isJsonPrimitive() && look.getAsJsonPrimitive().isBoolean()) {
 			menuLook = look.getAsBoolean();
@@ -85,7 +80,6 @@ public final class WrenchSettings {
 	private static void defaults() {
 		actionBar = true;
 		menuLook = true;
-		planRoof = true;
 		curvePaint = true;
 		paintWidth = 100;
 		towerLights = 2;
@@ -95,7 +89,6 @@ public final class WrenchSettings {
 		final JsonObject json = new JsonObject();
 		json.addProperty("actionBar", actionBar);
 		json.addProperty("menuLook", menuLook);
-		json.addProperty("planRoof", planRoof);
 		json.addProperty("curvePaint", curvePaint);
 		json.addProperty("paintWidth", paintWidth);
 		json.addProperty("towerLights", towerLights);
@@ -104,16 +97,6 @@ public final class WrenchSettings {
 
 	private static void save() {
 		AureliaSettings.put(AureliaSettings.WRENCH, toJson());
-	}
-
-	/** Whether the station editor's plan from above shows roofs as a light wash over what they cover. */
-	public static boolean planRoof() {
-		return planRoof;
-	}
-
-	public static void togglePlanRoof() {
-		planRoof = !planRoof;
-		save();
 	}
 
 	/** Whether the smooth yellow lines round a taxiway's curves are drawn. */

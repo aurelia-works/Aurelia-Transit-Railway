@@ -441,7 +441,6 @@ body[data-page="airport"] #wordsAdvanced > :not(summary) { margin: 0; }
 .extra-body { display: flex; flex-direction: column; gap: 0.875rem; padding-top: 0.25rem; }
 .extra-body > .group { margin: 0; }
 #words .help { margin-bottom: 0; }
-.photo-row { margin-top: 0; }
 
 /* block swapper */
 .swap-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.375rem; align-items: center; margin: 0.375rem 0; }
@@ -450,12 +449,6 @@ body[data-page="airport"] #wordsAdvanced > :not(summary) { margin: 0; }
 .swap-chips .chip { display: inline-flex; align-items: center; gap: 0.25rem; padding-right: 0.25rem; }
 .swap-chips .chip button { min-width: 1.5rem; min-height: 1.5rem; display: inline-grid; place-items: center; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; padding: 0; font-size: var(--t-md); line-height: 1; }
 .swap-chips .chip button:hover { background: rgba(255, 255, 255, .1); }
-.photo-row { display: flex; align-items: center; gap: 0.625rem; margin-top: 0.5rem; }
-.photo-row .help { margin: 0; }
-.photo-prompt { margin-top: 0.5rem; display: grid; gap: 0.375rem; }
-.photo-prompt[hidden] { display: none; }
-.photo-prompt textarea { font: var(--t-xs) var(--mono); }
-.photo-prompt .chip-btn { justify-self: start; }
 
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
