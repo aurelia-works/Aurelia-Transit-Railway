@@ -64,7 +64,11 @@ public final class DragListWidget extends ClickableWidget {
 		return row >= 0 && row < order.size() ? row : -1;
 	}
 
-	@Override
+	/** Minecraft 1.20.4's name for {@link #renderButton}; nothing calls it on 1.20.1. */
+	protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+		renderButton(context, mouseX, mouseY, delta);
+	}
+
 	protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
 		final MinecraftClient client = MinecraftClient.getInstance();
 		final int left = getX();
@@ -171,7 +175,11 @@ public final class DragListWidget extends ClickableWidget {
 		}
 	}
 
-	@Override
+	/** Minecraft 1.20.4's wheel turn, with a horizontal amount this list does not use; nothing calls it on 1.20.1. */
+	public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+		return mouseScrolled(mouseX, mouseY, verticalAmount);
+	}
+
 	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
 		if (!isMouseOver(mouseX, mouseY)) {
 			return false;

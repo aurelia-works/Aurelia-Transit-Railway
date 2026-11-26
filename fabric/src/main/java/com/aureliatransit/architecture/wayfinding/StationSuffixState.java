@@ -3,6 +3,7 @@ package com.aureliatransit.architecture.wayfinding;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.PersistentState;
+import org.mtr.atr.compat.Compat;
 
 /**
  * World-level (overworld) persistent holder of the {@link StationSuffixes}. No MTR or client types.
@@ -14,7 +15,7 @@ public final class StationSuffixState extends PersistentState {
 	private StationSuffixes suffixes = StationSuffixes.EMPTY;
 
 	public static StationSuffixState get(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(StationSuffixState::fromNbt, StationSuffixState::new, ID);
+		return Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), StationSuffixState::fromNbt, StationSuffixState::new, ID);
 	}
 
 	public static StationSuffixState fromNbt(NbtCompound nbt) {

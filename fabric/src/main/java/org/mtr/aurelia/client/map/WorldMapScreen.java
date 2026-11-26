@@ -1,13 +1,13 @@
 package org.mtr.aurelia.client.map;
 
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
+import org.mtr.atr.compat.CompatScreen;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.map.MapCamera;
 
@@ -20,7 +20,7 @@ import java.util.List;
  * coordinates bottom left, and a station list down the right side that a click on a name centres the map on, filtered by
  * the field above it. The world keeps running behind it.
  */
-public final class WorldMapScreen extends Screen {
+public final class WorldMapScreen extends CompatScreen {
 
 	private static final int MARGIN = 4;
 	private static final int BUTTON = 18;
@@ -179,7 +179,7 @@ public final class WorldMapScreen extends Screen {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+	protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
 		if (overList(mouseX, mouseY)) {
 			stations.scroll(amount, MARGIN, listHeight());
 			return true;

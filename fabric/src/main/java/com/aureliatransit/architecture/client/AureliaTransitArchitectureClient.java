@@ -24,10 +24,11 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.TexturedButtonWidget;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import org.mtr.atr.compat.ClientCompat;
 import org.mtr.aurelia.client.AureliaClient;
 import org.mtr.aurelia.client.screen.AureliaPanelScreen;
 import org.mtr.aurelia.dashboard.DashboardLayout;
@@ -85,7 +86,7 @@ public final class AureliaTransitArchitectureClient implements ClientModInitiali
 		final int size = DashboardLayout.ICON_BUTTON_SIZE;
 		ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
 			if (screen instanceof DashboardScreen) {
-				final TexturedButtonWidget button = new TexturedButtonWidget(DashboardLayout.ATR_MENU_BUTTON_X, y, size, size, 0, 0, size, texture,
+				final ButtonWidget button = ClientCompat.texturedButton(DashboardLayout.ATR_MENU_BUTTON_X, y, size, size, 0, 0, size, texture,
 						size, size * 2, pressed -> client.setScreen(new AureliaPanelScreen(screen, AureliaPanelScreen.Tab.ARCHITECTURE)),
 						Text.translatable("gui.aurelia.panel.tab.architecture"));
 				button.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.panel.tab.architecture")));

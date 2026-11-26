@@ -119,6 +119,9 @@ fabricApi {
 	}
 }
 
+// The game tests are written for Minecraft 1.20.1, the version CI runs them on; a 1.20.4 build leaves them out
+tasks.named("compileGametestJava") { enabled = minecraftVersion == "1.20.1" }
+
 // MTR keeps its stations in the game test world, so each run starts from a fresh one
 tasks.named("runGameTest") {
 	doFirst { delete layout.buildDirectory.dir("run/gameTest/world") }

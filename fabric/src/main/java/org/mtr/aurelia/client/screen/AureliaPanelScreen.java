@@ -21,6 +21,8 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Language;
+import org.mtr.atr.compat.ClientCompat;
+import org.mtr.atr.compat.CompatScreen;
 import org.mtr.aurelia.client.Announcer;
 import org.mtr.aurelia.client.AureliaExamplePack;
 import org.mtr.aurelia.client.ui.AureliaPalette;
@@ -81,7 +83,7 @@ import java.util.function.UnaryOperator;
  * config ({@code config/mtr.json}); Tools are ATU's hub; Sound holds the Announcer switches; Riding holds sitting while
  * riding; Builder sets the Rail Builder in the player's hand.
  */
-public final class AureliaPanelScreen extends Screen implements DashboardParentAccess {
+public final class AureliaPanelScreen extends CompatScreen implements DashboardParentAccess {
 
 	public enum Tab {RENDERING, TOOLS, ROUTES, SOUND, ARCHITECTURE, RIDING, BUILDER, PANTOGRAPH, TRAIN_SOUND, PASSENGERS, ZIP, BUILD, LOOK, DRIVING, PACKS, MAP, VEHICLES, ENGINE}
 
@@ -1259,7 +1261,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+	protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
 		if (tab == Tab.RENDERING) {
 			final int newFirstRow = Math.max(0, Math.min(renderingRows.size() - visibleRows(), firstRow - (int) Math.signum(amount)));
 			if (newFirstRow != firstRow) {
@@ -1340,7 +1342,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			}
 			return true;
 		}
-		return super.mouseScrolled(mouseX, mouseY, amount);
+		return super.onMouseScrolled(mouseX, mouseY, amount);
 	}
 
 	@Override
@@ -1355,7 +1357,7 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 				voiceAction.setMessage(voiceActionLabel());
 			}
 		}
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		renderChrome(context);
 		if (tab == Tab.RENDERING) {
 			renderBlockEntityCounter(context);
@@ -1763,7 +1765,11 @@ public final class AureliaPanelScreen extends Screen implements DashboardParentA
 			this.target = target;
 		}
 
-		@Override
+		/** Minecraft 1.20.4's name for {@link #renderButton}; nothing calls it on 1.20.1. */
+		protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+			renderButton(context, mouseX, mouseY, delta);
+		}
+
 		protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
 			final boolean open = target == tab;
 			if (open) {

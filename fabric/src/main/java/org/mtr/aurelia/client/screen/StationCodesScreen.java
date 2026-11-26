@@ -1,5 +1,6 @@
 package org.mtr.aurelia.client.screen;
 
+import org.mtr.atr.compat.ClientCompat;
 import org.mtr.aurelia.client.MtrBridge;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.codes.StationCodes;
@@ -181,7 +182,7 @@ public final class StationCodesScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		super.render(context, mouseX, mouseY, delta);
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, COLOR_TEXT);
 		final int leftWidth = Math.min(180, (width - MARGIN * 3) / 3);

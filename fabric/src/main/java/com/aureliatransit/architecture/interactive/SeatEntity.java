@@ -4,6 +4,7 @@ import com.aureliatransit.architecture.block.SeatBlock;
 import com.google.common.collect.ImmutableList;
 import net.minecraft.entity.Dismounting;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -16,6 +17,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,7 +101,11 @@ public class SeatEntity extends Entity {
 		}
 	}
 
-	@Override
+	/** Minecraft 1.20.4's form of {@link #getMountedHeightOffset}; nothing calls it on 1.20.1. */
+	protected Vector3f getPassengerAttachmentPos(Entity passenger, EntityDimensions dimensions, float scaleFactor) {
+		return new Vector3f(0, (float) getMountedHeightOffset(), 0);
+	}
+
 	public double getMountedHeightOffset() {
 		return 0;
 	}

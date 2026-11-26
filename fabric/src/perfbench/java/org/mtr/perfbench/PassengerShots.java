@@ -6,6 +6,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import org.mtr.atr.compat.ClientCompat;
 import org.mtr.aurelia.client.PassengerClient;
 import org.mtr.aurelia.client.PassengerDrawSettings;
 import org.mtr.aurelia.client.PassengerRenderer;
@@ -168,7 +169,7 @@ public final class PassengerShots implements ClientModInitializer {
 					final org.mtr.aurelia.client.screen.AureliaPanelScreen panel = new org.mtr.aurelia.client.screen.AureliaPanelScreen(null, org.mtr.aurelia.client.screen.AureliaPanelScreen.Tab.PASSENGERS);
 					client.setScreen(panel);
 					for (int i = 0; i < 20; i++) {
-						panel.mouseScrolled(0, 0, -1);
+						ClientCompat.mouseScrolled(panel, 0, 0, -1);
 					}
 					waitUntil = ticks + 20;
 					stage = 10;

@@ -1,5 +1,6 @@
 package org.mtr.mod.zip;
 
+import org.mtr.atr.compat.Compat;
 import org.mtr.aurelia.Operators;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -457,7 +458,7 @@ public final class ZipLines {
 	}
 
 	private static State state(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(State::fromNbt, State::new, FILE);
+		return Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), State::fromNbt, State::new, FILE);
 	}
 
 	private static final class Pending {

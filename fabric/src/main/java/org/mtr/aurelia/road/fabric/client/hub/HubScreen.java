@@ -6,13 +6,13 @@ package org.mtr.aurelia.road.fabric.client.hub;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
+import org.mtr.atr.compat.CompatScreen;
 import org.mtr.aurelia.client.ui.AureliaChrome;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 import org.mtr.aurelia.road.fabric.client.StratosClient;
@@ -55,7 +55,7 @@ import java.util.Optional;
  * Drawn straight with fills each frame, so it costs no texture and no UI library; what can be clicked is collected while
  * drawing. Sizes are GUI pixels; {@link Toolbar} places the sections. A click outside an open pop-up closes it.
  */
-public final class HubScreen extends Screen {
+public final class HubScreen extends CompatScreen {
     private static final int TAB_HEIGHT = 14;
     private static final int PANEL_HEIGHT = 60;
     private static final int LABEL_Y = 3;
@@ -688,13 +688,13 @@ public final class HubScreen extends Screen {
 
     /** The mouse wheel over a paging layout strip moves it a tile. */
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+    protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
         Box box = this.stripBox;
         if (this.popUp == null && this.strip != null && this.strip.pages() && box != null && box.contains(mouseX, mouseY)) {
             scroll(amount > 0 ? -1 : 1);
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, amount);
+        return super.onMouseScrolled(mouseX, mouseY, amount);
     }
 
     /** What the mouse is over: the topmost thing drawn there, the open pop-up's own parts only when it is over the pop-up. */

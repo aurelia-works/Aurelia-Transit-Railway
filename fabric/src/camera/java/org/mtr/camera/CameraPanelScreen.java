@@ -7,6 +7,8 @@ import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
+import org.mtr.atr.compat.ClientCompat;
+import org.mtr.atr.compat.CompatScreen;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -18,7 +20,7 @@ import java.util.List;
  * playback speed slider and the hide-HUD toggle. Right: the saved paths in
  * {@code <run dir>/camera-paths/}; clicking one loads it.
  */
-public final class CameraPanelScreen extends Screen {
+public final class CameraPanelScreen extends CompatScreen {
 
 	private static final int BUTTON_WIDTH = 200;
 	private static final int ROW = 24;
@@ -107,7 +109,7 @@ public final class CameraPanelScreen extends Screen {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+	protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
 		final int newFirst = Math.max(0, Math.min(Math.max(0, saved.size() - visibleRows()), listFirst - (int) Math.signum(amount)));
 		if (newFirst != listFirst) {
 			listFirst = newFirst;
@@ -118,7 +120,7 @@ public final class CameraPanelScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
 		context.drawTextWithShadow(textRenderer, Text.translatable("gui.atr_camera.panel.frames", CameraRecorderMod.frameCount()), width / 2 - 210, TOP + 6, 0xFFFFFF);
 		context.drawTextWithShadow(textRenderer, Text.translatable("gui.atr_camera.panel.saved"), width / 2 + 10, TOP + 6, 0xFFFFFF);

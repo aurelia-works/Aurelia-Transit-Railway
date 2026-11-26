@@ -10,7 +10,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.render.DiffuseLighting;
 import net.minecraft.client.render.LightmapTextureManager;
@@ -26,6 +25,8 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
 import org.lwjgl.glfw.GLFW;
+import org.mtr.atr.compat.ClientCompat;
+import org.mtr.atr.compat.CompatScreen;
 import org.mtr.aurelia.client.ui.AureliaChrome;
 import org.mtr.aurelia.client.ui.AureliaMotion;
 
@@ -37,7 +38,7 @@ import java.util.List;
  * right edge, a search box above, turning block showcases, and lines that run a command, put one in the chat box or turn to a
  * page. It reopens on the spread it was left on until the game closes. Nothing here runs while the screen is shut.
  */
-public final class CodexScreen extends Screen {
+public final class CodexScreen extends CompatScreen {
 
 	private static final int PAGE_WIDTH = 132;
 	private static final int PAGE_HEIGHT = 160;
@@ -153,7 +154,7 @@ public final class CodexScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		hits.clear();
 		final long now = AureliaMotion.now();
 		final float frameMillis = Math.min(100, now - lastFrame);
@@ -512,7 +513,7 @@ public final class CodexScreen extends Screen {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+	protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
 		turn(amount > 0 ? -2 : 2);
 		return true;
 	}

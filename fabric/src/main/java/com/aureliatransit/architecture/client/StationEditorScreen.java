@@ -14,7 +14,6 @@ import com.aureliatransit.architecture.station.world.StationWrenchItem;
 import com.aureliatransit.architecture.station.world.WrenchMode;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -24,6 +23,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
+import org.mtr.atr.compat.ClientCompat;
+import org.mtr.atr.compat.CompatScreen;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.io.IOException;
@@ -39,7 +40,7 @@ import java.util.TreeMap;
  * ({@link StationFiles}, {@code config/aurelia/stations}). It edits the same form the Studio page sends, so a station saved
  * here opens there unchanged and back: fields this screen has no control for are carried along as they are.
  */
-public final class StationEditorScreen extends Screen {
+public final class StationEditorScreen extends CompatScreen {
 
 	private static final String KEY = "screen.aurelia_transit_architecture.station_editor.";
 	private static final Identifier PLAN_TEXTURE = new Identifier(AureliaTransitArchitecture.MOD_ID, "dynamic/station_editor_plan");
@@ -412,7 +413,7 @@ public final class StationEditorScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		final int[][] boxes = boxes();
 		drawPlan(context, boxes[0]);
 		preview.render(context, boxes[1][0], boxes[1][1], boxes[1][2], boxes[1][3]);
@@ -516,12 +517,12 @@ public final class StationEditorScreen extends Screen {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+	protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
 		if (inPreview(mouseX, mouseY)) {
 			preview.zoom(amount);
 			return true;
 		}
-		return super.mouseScrolled(mouseX, mouseY, amount);
+		return super.onMouseScrolled(mouseX, mouseY, amount);
 	}
 
 	@Override

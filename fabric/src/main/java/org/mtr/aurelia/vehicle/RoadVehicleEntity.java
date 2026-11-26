@@ -25,6 +25,7 @@ import net.minecraft.world.GameRules;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
+import org.mtr.atr.compat.Compat;
 
 /**
  * A free-driving road vehicle with real steering: the heading turns by {@code speed * tan(steer) / wheelbase}, like a
@@ -238,7 +239,11 @@ public class RoadVehicleEntity extends Entity {
 		}
 	}
 
-	@Override
+	/** Minecraft 1.20.4's form of the method below, without the interpolate flag; nothing calls it on 1.20.1. */
+	public void updateTrackedPositionAndAngles(double x, double y, double z, float yaw, float pitch, int interpolationSteps) {
+		updateTrackedPositionAndAngles(x, y, z, yaw, pitch, interpolationSteps, true);
+	}
+
 	public void updateTrackedPositionAndAngles(double x, double y, double z, float yaw, float pitch, int interpolationSteps, boolean interpolate) {
 		lerpX = x;
 		lerpY = y;
@@ -290,7 +295,7 @@ public class RoadVehicleEntity extends Entity {
 		}
 		final double[] seat = kind().seats[Math.max(0, getPassengerList().indexOf(passenger))];
 		final Vec3d offset = new Vec3d(seat[0], 0, seat[2]).multiply(scale()).rotateY((float) -Math.toRadians(getYaw()));
-		positionUpdater.accept(passenger, getX() + offset.x, getY() + seat[1] * scale() + passenger.getHeightOffset(), getZ() + offset.z);
+		positionUpdater.accept(passenger, getX() + offset.x, getY() + seat[1] * scale() + Compat.ridingOffset(passenger, this), getZ() + offset.z);
 		passenger.setYaw(passenger.getYaw() + yawStep);
 		passenger.setHeadYaw(passenger.getHeadYaw() + yawStep);
 		clampPassengerYaw(passenger);

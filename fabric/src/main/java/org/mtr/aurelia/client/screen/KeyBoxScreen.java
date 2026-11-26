@@ -2,13 +2,14 @@ package org.mtr.aurelia.client.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
+import org.mtr.atr.compat.ClientCompat;
+import org.mtr.atr.compat.CompatScreen;
 import org.mtr.aurelia.client.ui.AureliaChrome;
 import org.mtr.aurelia.keybox.KeysOut;
 import org.mtr.aurelia.client.ui.AureliaMotion;
@@ -27,7 +28,7 @@ import org.mtr.mod.packet.PacketUpdateKeyDispenserConfig;
  * how long the keys work. Saves the same values as MTR's own screen when it closes, so a box set here reads the same
  * with the switch off.
  */
-public final class KeyBoxScreen extends Screen {
+public final class KeyBoxScreen extends CompatScreen {
 
 	/** The upright key every hook shows, tinted with the key's own colour. Also drawn inside the block. */
 	public static final Identifier KEY_SPRITE = new Identifier("aurelia", "textures/gui/key_box_key.png");
@@ -168,7 +169,7 @@ public final class KeyBoxScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		final float open = AureliaMotion.easeOut(AureliaMotion.progress(opened, OPEN_MILLIS));
 		final float scale = 0.94F + 0.06F * open;
 		context.getMatrices().push();
@@ -379,12 +380,12 @@ public final class KeyBoxScreen extends Screen {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+	protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
 		if (mouseY >= stepY() - 4 && mouseY < stepY() + STEP_BUTTON + 4) {
 			nudge(amount > 0 ? 1 : -1);
 			return true;
 		}
-		return super.mouseScrolled(mouseX, mouseY, amount);
+		return super.onMouseScrolled(mouseX, mouseY, amount);
 	}
 
 	@Override

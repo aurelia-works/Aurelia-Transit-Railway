@@ -10,6 +10,7 @@ import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.PersistentState;
+import org.mtr.atr.compat.Compat;
 
 /**
  * One dimension's road paint ({@link PaintLines}): the painted cells, by block position, saved in the dimension's own
@@ -28,7 +29,7 @@ public final class PaintStore extends PersistentState {
 
     /** The paint of {@code world}, read from its save the first time. */
     public static PaintStore of(ServerWorld world) {
-        return world.getPersistentStateManager().getOrCreate(PaintStore::load, PaintStore::new, NAME);
+        return Compat.getOrCreate(world.getPersistentStateManager(), PaintStore::load, PaintStore::new, NAME);
     }
 
     private static PaintStore load(NbtCompound tag) {

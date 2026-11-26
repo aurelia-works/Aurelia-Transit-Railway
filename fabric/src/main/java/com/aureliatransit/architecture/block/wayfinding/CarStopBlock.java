@@ -6,7 +6,6 @@ import com.aureliatransit.architecture.util.Shapes;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.HorizontalFacingBlock;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
@@ -29,6 +28,7 @@ import net.minecraft.world.WorldView;
 
 import java.util.Collections;
 import java.util.Map;
+import org.mtr.atr.compat.CompatFacingBlock;
 
 /**
  * A board at the platform end that tells the driver where to stop a train of N cars. No block entity and no ticking: the
@@ -37,7 +37,7 @@ import java.util.Map;
  * Aiming at the side of a block mounts the board on that wall; anywhere else it stands on its own thin post and faces the
  * player. A freestanding board is a {@code pole_mounts} sign: a sign pole joins it from above and below.
  */
-public abstract class CarStopBlock extends HorizontalFacingBlock {
+public abstract class CarStopBlock extends CompatFacingBlock {
 
 	public static final BooleanProperty WALL = BooleanProperty.of("wall");
 	private static final int DEFAULT_CARS = 4;

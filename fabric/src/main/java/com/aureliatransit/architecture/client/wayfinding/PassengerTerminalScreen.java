@@ -23,7 +23,6 @@ import com.aureliatransit.architecture.wayfinding.ServiceMessages;
 import com.aureliatransit.architecture.wayfinding.Wayfinding;
 import com.aureliatransit.architecture.wayfinding.WayfindingData;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
@@ -31,6 +30,8 @@ import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.mtr.atr.compat.ClientCompat;
+import org.mtr.atr.compat.CompatScreen;
 
 /**
  * The passenger information terminal UI: a dark "information OS" with large tabs (home, departures, system map,
@@ -39,7 +40,7 @@ import java.util.List;
  * most once a second while open; map and station information are fetched on open and then at most every 10 seconds.
  * Drawing replays cached rows; nothing runs when the screen is closed and nothing is registered globally.
  */
-public class PassengerTerminalScreen extends Screen {
+public class PassengerTerminalScreen extends CompatScreen {
 
 	/** The terminal's own colours (charcoal, white text, a teal accent). */
 	private static final int BACKGROUND = 0xFF16191D;
@@ -321,7 +322,7 @@ public class PassengerTerminalScreen extends Screen {
 		if (dirty) {
 			rebuild();
 		}
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		context.fill(left - 1, top - 1, left + panelW + 1, top + panelH + 1, 0xFF000000);
 		context.fill(left, top, left + panelW, top + panelH, BACKGROUND);
 		context.fill(left, top, left + panelW, top + 22, HEADER);
@@ -464,12 +465,12 @@ public class PassengerTerminalScreen extends Screen {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+	protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
 		if (pageCount > 1) {
 			turn(amount < 0 ? 1 : -1);
 			return true;
 		}
-		return super.mouseScrolled(mouseX, mouseY, amount);
+		return super.onMouseScrolled(mouseX, mouseY, amount);
 	}
 
 	/** A large dark tab button. */
@@ -482,7 +483,11 @@ public class PassengerTerminalScreen extends Screen {
 			this.tab = tab;
 		}
 
-		@Override
+		/** Minecraft 1.20.4's name for {@link #renderButton}; nothing calls it on 1.20.1. */
+		public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+			renderButton(context, mouseX, mouseY, delta);
+		}
+
 		public void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
 			final boolean selected = page == tab;
 			final int fill = selected ? ACCENT : isHovered() ? CHIP : ROW_BAND;

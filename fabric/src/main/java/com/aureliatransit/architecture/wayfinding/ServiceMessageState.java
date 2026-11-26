@@ -8,6 +8,7 @@ import net.minecraft.world.PersistentState;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.mtr.atr.compat.Compat;
 
 /**
  * World-level (overworld) persistent holder of the {@link ServiceMessages}. No MTR or client types.
@@ -20,7 +21,7 @@ public final class ServiceMessageState extends PersistentState {
 	private List<RouteHold> holds = List.of();
 
 	public static ServiceMessageState get(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(ServiceMessageState::fromNbt, ServiceMessageState::new, ID);
+		return Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), ServiceMessageState::fromNbt, ServiceMessageState::new, ID);
 	}
 
 	public static ServiceMessageState fromNbt(NbtCompound nbt) {

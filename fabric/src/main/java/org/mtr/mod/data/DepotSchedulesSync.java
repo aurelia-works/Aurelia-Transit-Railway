@@ -11,6 +11,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.PersistentState;
+import org.mtr.atr.compat.Compat;
 import org.mtr.core.data.Depot;
 import org.mtr.core.data.Platform;
 import org.mtr.core.data.Route;
@@ -284,7 +285,7 @@ public final class DepotSchedulesSync {
 	}
 
 	private static State state(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(nbt -> new State(DepotSchedules.fromNbt(nbt)), () -> new State(new DepotSchedules()), FILE);
+		return Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), nbt -> new State(DepotSchedules.fromNbt(nbt)), () -> new State(new DepotSchedules()), FILE);
 	}
 
 	private static final class State extends PersistentState {

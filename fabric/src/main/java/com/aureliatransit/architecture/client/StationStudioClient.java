@@ -19,6 +19,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.InvalidIdentifierException;
 import net.minecraft.util.Util;
+import org.mtr.atr.compat.ClientCompat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,9 +102,8 @@ public final class StationStudioClient {
 						"jump", options.jumpKey.getBoundKeyTranslationKey(), "sneak", options.sneakKey.getBoundKeyTranslationKey(),
 						"sprint", options.sprintKey.getBoundKeyTranslationKey());
 			});
-			final net.minecraft.client.util.Session session = MinecraftClient.getInstance().getSession();
 			server = StudioServer.start(StationStudioClient::asset, StationStudioClient::send,
-					new StudioServer.Player(session.getUsername(), session.getUuid()));
+					new StudioServer.Player(ClientCompat.playerName(), ClientCompat.playerUuid()));
 			server.stations(files());
 			AureliaTransitArchitecture.LOGGER.info("Station Studio at {}", server.url());
 		}

@@ -8,6 +8,7 @@ import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.mtr.atr.compat.CompatScreen;
 import org.mtr.aurelia.client.ui.AureliaChrome;
 import org.mtr.aurelia.client.ui.AureliaMotion;
 import org.mtr.aurelia.client.ui.AureliaPalette;
@@ -38,7 +39,7 @@ import java.util.Set;
  * matches the pack's other tags (country, type, doors, brand). Saves the same siding data as MTR's selector, which
  * comes back when the "Train picker" Look switch is off.
  */
-public final class TrainPickerScreen extends Screen {
+public final class TrainPickerScreen extends CompatScreen {
 
 	private static final int MARGIN = 12;
 	private static final int ROW_HEIGHT = 24;
@@ -396,12 +397,12 @@ public final class TrainPickerScreen extends Screen {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+	protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
 		if (mouseX < MARGIN + listWidth() + 6) {
 			listScroll = Math.max(0, Math.min(maxScroll(), listScroll - amount * ROW_HEIGHT * 1.5));
 			return true;
 		}
-		return super.mouseScrolled(mouseX, mouseY, amount);
+		return super.onMouseScrolled(mouseX, mouseY, amount);
 	}
 
 	@Override

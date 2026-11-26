@@ -1,5 +1,6 @@
 package org.mtr.mod.engine;
 
+import org.mtr.atr.compat.Compat;
 import org.mtr.aurelia.Operators;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -193,7 +194,7 @@ public final class EngineSettings {
 	}
 
 	private static State state(net.minecraft.server.world.ServerWorld overworld) {
-		return overworld.getPersistentStateManager().getOrCreate(State::fromNbt, () -> new State(defaults(), new java.util.HashSet<>()), FILE);
+		return Compat.getOrCreate(overworld.getPersistentStateManager(), State::fromNbt, () -> new State(defaults(), new java.util.HashSet<>()), FILE);
 	}
 
 	private static final class State extends PersistentState {

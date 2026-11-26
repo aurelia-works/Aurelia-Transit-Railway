@@ -10,6 +10,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.PersistentState;
+import org.mtr.atr.compat.Compat;
 
 /**
  * Saves {@link DepotOptions} in the overworld's data folder ({@code atr_depot_options.dat}), sends them to every player
@@ -62,7 +63,7 @@ public final class DepotOptionsSync {
 	}
 
 	private static State state(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(nbt -> new State(DepotOptions.fromNbt(nbt)), () -> new State(new DepotOptions()), FILE);
+		return Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), nbt -> new State(DepotOptions.fromNbt(nbt)), () -> new State(new DepotOptions()), FILE);
 	}
 
 	private static final class State extends PersistentState {
