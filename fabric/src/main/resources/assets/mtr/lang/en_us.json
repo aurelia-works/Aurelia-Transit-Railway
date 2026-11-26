@@ -775,7 +775,7 @@
 	"item.mtr.rail_builder": "Rail Builder",
 	"tooltip.mtr.rail_builder_parts": "Deck: %s, Dig: %s, Walls: %s",
 	"tooltip.mtr.rail_builder_smart": "Walls where there is ground, a deck where there is none",
-	"tooltip.mtr.rail_builder_panel": "Width, height and parts: Aurelia panel, Builder tab",
+	"tooltip.mtr.rail_builder_panel": "Width, height and parts: Aurelia panel, Build, Builder",
 	"block.mtr.zip_pole": "Zip Pole",
 	"item.mtr.zip_pole": "Zip Pole",
 	"item.mtr.zip_handle": "Zip Handle",
