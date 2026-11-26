@@ -17,7 +17,7 @@
 <div class="shell">
 	<nav class="side" aria-label="Aurelia tools">
 		<a class="wordmark" href="./" title="Aurelia Transit Architecture">
-			<svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2b66f6"/><rect x="6" y="9" width="20" height="4" rx="1" fill="#fff"/><rect x="6" y="19" width="20" height="4" rx="1" fill="#fff"/><rect x="10" y="13" width="2" height="6" fill="#fff"/><rect x="20" y="13" width="2" height="6" fill="#fff"/></svg>
+			<svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="4" fill="#2b66f6"/><rect x="6" y="9" width="20" height="4" rx="1" fill="#fff"/><rect x="6" y="19" width="20" height="4" rx="1" fill="#fff"/><rect x="10" y="13" width="2" height="6" fill="#fff"/><rect x="20" y="13" width="2" height="6" fill="#fff"/></svg>
 			<span class="wm"><b>Station</b> <i>Generator</i></span>
 		</a>
 
@@ -75,7 +75,7 @@
 					</div>
 					<p class="help" id="seedNote"></p>
 					<div class="lock-block st-only">
-						<span class="sub-label" id="keepLabel">Lock on roll</span>
+						<span class="sub-label" id="keepLabel">Keep when you roll</span>
 						<div class="locks" role="group" aria-labelledby="keepLabel">
 							<button type="button" class="lock" data-lock="look" aria-pressed="false" title="Keep the city and mix, the hall and platform style, and the seed's canopy, floor and roof-deck choices">Look</button>
 							<button type="button" class="lock" data-lock="shape" aria-pressed="false" title="Keep the type, tracks, length and platforms">Shape</button>
@@ -85,7 +85,7 @@
 				</section>
 
 				<section class="group" aria-labelledby="g-words">
-					<h2 class="label" id="g-words">Quick start &amp; prompt</h2>
+					<h2 class="label" id="g-words">Quick start</h2>
 					<div id="words">
 						<details class="adv st-only" id="presetsFold">
 							<summary>Presets <span class="pill-count" id="presetCount"></span></summary>
@@ -372,7 +372,7 @@
 						<table id="reqTable"></table>
 					</details>
 					<details class="fold">
-						<summary>What the planner read</summary>
+						<summary>How your words were read</summary>
 						<div id="fromText"></div>
 					</details>
 					<details class="fold">
@@ -380,7 +380,7 @@
 						<p class="note">Download the <code>.schem</code>, stand at your paste spot, run <code>//paste</code>, then run <code>/ata_station verify paste</code> in game. Blocks are verified cell-for-cell; live sign text, screens and MTR station links are created when built with the generator.</p>
 					</details>
 					<details class="fold">
-						<summary>Blueprint data</summary>
+						<summary>Raw plan data</summary>
 						<pre id="raw"></pre>
 					</details>
 				</section>
