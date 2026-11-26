@@ -27,7 +27,8 @@ public final class PanelDrawer {
 
 	private static final Identifier FILL_TEXTURE = AureliaTransitArchitecture.id("textures/block/panel_fill.png");
 	private static final float SURFACE_OFFSET = 0.004F;
-	private static final float TEXT_LIFT = 0.0015F;
+	/** Text sits this far (in blocks) in front of the panel rectangles: 0.074 model px, so it never flickers against them. */
+	private static final float TEXT_LIFT = 0.0015F + 0.05F / 16;
 	/** Vertical offset (font units) from a glyph row's top to its visual centre. */
 	private static final float GLYPH_CENTER = 4.0F;
 
