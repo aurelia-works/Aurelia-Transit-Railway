@@ -1,5 +1,6 @@
 package org.mtr.mod.passenger;
 
+import org.mtr.atr.compat.Compat;
 import org.mtr.aurelia.Operators;
 import org.mtr.mod.engine.EngineFeature;
 import org.mtr.mod.engine.EngineSettings;
@@ -461,7 +462,7 @@ public final class PassengerService {
 	}
 
 	private static State state(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(State::fromNbt, () -> {
+		return Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), State::fromNbt, () -> {
 			// saved straight away, so the choice made on first load sticks when the world is older next time
 			final State state = new State(PassengerNetwork.Settings.forFirstLoad(server.getOverworld().getTime()));
 			state.markDirty();

@@ -18,7 +18,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
@@ -28,6 +27,8 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
+import org.mtr.atr.compat.ClientCompat;
+import org.mtr.atr.compat.CompatScreen;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.function.Supplier;
@@ -40,7 +41,7 @@ import java.util.function.Supplier;
  * visible. Closing without an action saves changed choices. The server re-checks the operator level and bounds everything it
  * reads. Where the window has room, a live 3D preview of the station stands beside the controls ({@link StationPreview}).
  */
-public class StationWrenchScreen extends Screen {
+public class StationWrenchScreen extends CompatScreen {
 
 	/** The control column on a wide screen; narrower ones shrink it (down to {@link #MIN_COLUMN}) to keep the 3D preview. */
 	private static final int WIDTH = 320;
@@ -306,7 +307,7 @@ public class StationWrenchScreen extends Screen {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+	protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
 		if (client != null && client.player != null && client.player.isSneaking()) {
 			cycleMode(amount > 0 ? 1 : -1);
 			return true;
@@ -315,7 +316,7 @@ public class StationWrenchScreen extends Screen {
 			preview.zoom(amount);
 			return true;
 		}
-		return super.mouseScrolled(mouseX, mouseY, amount);
+		return super.onMouseScrolled(mouseX, mouseY, amount);
 	}
 
 	@Override
@@ -940,7 +941,7 @@ public class StationWrenchScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		if (mode == WrenchMode.STATION && previewWidth() > 0) {
 			final int[] box = previewBox();
 			preview.render(context, box[0], box[1], box[2], box[3]);

@@ -1,5 +1,6 @@
 package org.mtr.mod.building;
 
+import org.mtr.atr.compat.Compat;
 import org.mtr.aurelia.Operators;
 import com.aureliatransit.architecture.station.world.BuildStationHook;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -430,7 +431,7 @@ public final class BuildTools {
 	}
 
 	private static State state(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(State::fromNbt, State::new, FILE);
+		return Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), State::fromNbt, State::new, FILE);
 	}
 
 	private static String worldKey(ServerWorld world) {

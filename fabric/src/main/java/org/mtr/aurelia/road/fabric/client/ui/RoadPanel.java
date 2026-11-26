@@ -66,7 +66,11 @@ public final class RoadPanel {
             this.onPress.run();
         }
 
-        @Override
+        /** Minecraft 1.20.4's name for {@link #renderButton}; nothing calls it on 1.20.1. */
+        protected void renderWidget(DrawContext graphics, int mouseX, int mouseY, float delta) {
+            renderButton(graphics, mouseX, mouseY, delta);
+        }
+
         protected void renderButton(DrawContext graphics, int mouseX, int mouseY, float delta) {
             int x = getX();
             int y = getY();

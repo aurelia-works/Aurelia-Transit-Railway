@@ -14,6 +14,7 @@ import net.minecraft.world.PersistentState;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.mtr.atr.compat.Compat;
 
 /**
  * The player's per-cell edits of built stations, saved in the world's own data file ({@code ata_station_overrides.dat}) under
@@ -78,7 +79,7 @@ public final class StationOverrides {
 	}
 
 	private static State state(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(State::fromNbt, State::new, FILE);
+		return Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), State::fromNbt, State::new, FILE);
 	}
 
 	/** A station by its local frame: origin and facing (the dimension is part of it too). */

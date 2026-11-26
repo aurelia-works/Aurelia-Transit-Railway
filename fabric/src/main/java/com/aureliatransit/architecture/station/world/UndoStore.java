@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import org.mtr.atr.compat.Compat;
 
 /**
  * One undo journal per build, under {@code <world>/data/ata_station_undo/<owner>/<start>-<build>.undo}. The path is new, so an
@@ -135,7 +136,7 @@ final class UndoStore {
 		try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))) {
 			try {
 				while (true) {
-					final NbtCompound record = NbtIo.read(in);
+					final NbtCompound record = Compat.readNbt(in);
 					if (record == null) {
 						break;
 					}

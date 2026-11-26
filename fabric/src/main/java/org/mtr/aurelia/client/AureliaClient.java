@@ -9,11 +9,12 @@ import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.TexturedButtonWidget;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import org.mtr.atr.compat.ClientCompat;
 import org.mtr.aurelia.client.screen.AureliaPanelScreen;
 import org.mtr.aurelia.dashboard.DashboardLayout;
 import org.mtr.mod.screen.DashboardScreen;
@@ -46,7 +47,7 @@ public final class AureliaClient implements ClientModInitializer {
 		// top-right and its own buttons along the bottom.
 		ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
 			if (screen instanceof DashboardScreen) {
-				final TexturedButtonWidget button = new TexturedButtonWidget(
+				final ButtonWidget button = ClientCompat.texturedButton(
 						DashboardLayout.ATU_BUTTON_X,
 						DASHBOARD_BUTTON_Y,
 						DashboardLayout.ICON_BUTTON_SIZE,

@@ -9,6 +9,7 @@ import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
+import org.mtr.atr.compat.ClientCompat;
 
 /** Asks the name of a new landmark, then goes back to the map it was opened from. */
 public final class PinNameScreen extends Screen {
@@ -42,7 +43,7 @@ public final class PinNameScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, height / 2 - 36, 0xFFFFFF);
 		super.render(context, mouseX, mouseY, delta);
 	}

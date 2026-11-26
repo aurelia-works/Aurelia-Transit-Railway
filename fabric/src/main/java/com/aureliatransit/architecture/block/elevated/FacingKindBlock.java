@@ -5,7 +5,6 @@ import com.aureliatransit.architecture.block.Placement;
 import com.aureliatransit.architecture.util.Shapes;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.HorizontalFacingBlock;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
@@ -28,6 +27,7 @@ import net.minecraft.world.World;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Function;
+import org.mtr.atr.compat.CompatFacingBlock;
 
 /**
  * A horizontally rotating block with a selectable style ("kind"): wall panels, braces, fascias, tactile junctions. The
@@ -38,7 +38,7 @@ import java.util.function.Function;
  * ({@link #MIRRORED}). Its shapes are mirror images of themselves across a diagonal, so the left-hand piece facing F is the
  * right-hand piece turned to face one quarter anticlockwise of F; the blockstate file turns the same model the same way.
  */
-public abstract class FacingKindBlock<K extends Enum<K> & StringIdentifiable> extends HorizontalFacingBlock {
+public abstract class FacingKindBlock<K extends Enum<K> & StringIdentifiable> extends CompatFacingBlock {
 
 	/** The left-hand piece: the mirror image of the north-authored (right-hand) shape. Only on {@link #handed()} blocks. */
 	public static final BooleanProperty MIRRORED = BooleanProperty.of("mirrored");

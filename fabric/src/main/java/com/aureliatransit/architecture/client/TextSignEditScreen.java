@@ -30,6 +30,7 @@ import net.minecraft.util.math.BlockPos;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.mtr.atr.compat.ClientCompat;
 
 /**
  * Editor for every sign kind. Which controls appear depends on the sign's {@link SignStyle}; a live preview uses the
@@ -227,7 +228,7 @@ public class TextSignEditScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		super.render(context, mouseX, mouseY, delta);
 		if (previewDirty) {
 			previewDirty = false;

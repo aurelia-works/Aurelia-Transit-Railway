@@ -36,6 +36,7 @@ import net.minecraft.util.math.BlockPos;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import org.mtr.atr.compat.ClientCompat;
 
 /**
  * Editor of the shared {@link WayfindingData}, used by every wayfinding block. Only the fields the block's
@@ -397,7 +398,7 @@ public class WayfindingEditScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		super.render(context, mouseX, mouseY, delta);
 		if (previewDirty) {
 			previewDirty = false;

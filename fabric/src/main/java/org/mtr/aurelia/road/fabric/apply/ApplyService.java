@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
+import org.mtr.atr.compat.Compat;
 import org.mtr.aurelia.road.CoreInfo;
 import org.mtr.aurelia.road.journal.Recovery;
 import org.mtr.aurelia.road.ops.BlockPlan;
@@ -187,7 +188,7 @@ public final class ApplyService {
                 SideEffects.writer(server), Instant::now, SharedConstants.getGameVersion().getSaveVersion().getId(),
                 "stratos " + StratosMod.version(), helper);
         WorldData loaded = WorldData.load(FabricStorage.of(server), settings, Migrations.ALL, line -> StratosMod.LOGGER.warn(line));
-        saved = server.getOverworld().getPersistentStateManager().getOrCreate(StratosSavedData::load, StratosSavedData::create, StratosSavedData.NAME);
+        saved = Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), StratosSavedData::load, StratosSavedData::create, StratosSavedData.NAME);
         if (saved.formatVersion() > CoreInfo.FORMAT_VERSION) {
             loaded.makeReadOnly(WorldData.ReadOnly.NEWER_FORMAT, "its aurelia_roads_meta record has formatVersion " + saved.formatVersion()
                     + "; this Stratos reads " + CoreInfo.FORMAT_VERSION);

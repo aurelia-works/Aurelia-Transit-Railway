@@ -3,10 +3,11 @@ package com.aureliatransit.architecture.client.fare;
 import com.aureliatransit.architecture.AureliaTransitArchitecture;
 import com.aureliatransit.architecture.fare.CardHistory;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.RotationAxis;
+import org.mtr.atr.compat.ClientCompat;
+import org.mtr.atr.compat.CompatScreen;
 import org.mtr.aurelia.client.ui.AureliaChrome;
 import org.mtr.aurelia.client.ui.AureliaMotion;
 import org.mtr.aurelia.client.ui.AureliaPalette;
@@ -18,7 +19,7 @@ import java.util.List;
  * The transit card in your hand, how much it spent today, and its journeys newest first: each tap in paired with the tap
  * out after it. The card slides in and catches the light; the journeys follow one after another. Scroll for older ones.
  */
-public final class CardHistoryScreen extends Screen {
+public final class CardHistoryScreen extends CompatScreen {
 
 	private static final String KEY = "screen." + AureliaTransitArchitecture.MOD_ID + ".card_history";
 	private static final int WIDTH = 300;
@@ -91,7 +92,7 @@ public final class CardHistoryScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		final List<CardHistory.Tap> taps = CardHistory.read(stack);
 		final List<Journey> journeys = journeys(taps);
 		final long now = System.currentTimeMillis();
@@ -316,7 +317,7 @@ public final class CardHistoryScreen extends Screen {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+	protected boolean onMouseScrolled(double mouseX, double mouseY, double amount) {
 		scroll -= (float) amount * (ROW + GAP);
 		return true;
 	}

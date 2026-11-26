@@ -15,6 +15,7 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import org.mtr.atr.compat.ClientCompat;
 import org.mtr.aurelia.client.ui.AureliaPalette;
 
 import java.util.ArrayList;
@@ -201,7 +202,7 @@ abstract class LiveConfigScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, Math.max(6, topY() - 16), AureliaPalette.TEXT);
 		super.render(context, mouseX, mouseY, delta);
 		if (mode == StationAssociationMode.AUTO) {

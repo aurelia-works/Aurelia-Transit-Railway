@@ -7,6 +7,23 @@ plugins {
 	id "fabric-loom" version "1.10-SNAPSHOT"
 }
 
+// Minecraft 1.20.1 is the default target, pinned in gradle.properties. -PminecraftVersion=1.20.4 builds for 1.20.4: the pins in
+// versions/1.20.4.properties replace gradle.properties' ones, and src/mc1.20.4/java replaces src/mc1.20.1/java, which holds the
+// few classes whose Minecraft API differs between the two.
+final Properties versionPins = new Properties()
+if (minecraftVersion != "1.20.1") {
+	final File versionPinsFile = rootProject.file("versions/${minecraftVersion}.properties")
+	if (!versionPinsFile.exists()) {
+		throw new GradleException("ATR builds for Minecraft 1.20.1 and 1.20.4, not ${minecraftVersion}")
+	}
+	versionPinsFile.withInputStream { versionPins.load(it) }
+}
+final Closure<String> pin = { String key -> versionPins.getProperty(key, project.property(key).toString()) }
+final File mappingsJar = rootProject.file("libs/Minecraft-Mappings-fabric-${minecraftVersion}-0.0.1-dev.jar")
+if (!mappingsJar.exists()) {
+	throw new GradleException("Minecraft ${minecraftVersion} needs ${rootProject.relativePath(mappingsJar)}, which is not checked in: git show 2d1e8fabc:${rootProject.relativePath(mappingsJar)} > ${rootProject.relativePath(mappingsJar)}")
+}
+
 final BuildTools buildTools = new BuildTools(minecraftVersion, project)
 
 // Dev-only perf bench mod (src/perfbench): never part of the release jar. `./gradlew :fabric:runPerfbench` boots into
@@ -14,6 +31,9 @@ final BuildTools buildTools = new BuildTools(minecraftVersion, project)
 // Dev-only trailer camera recorder (src/camera): keyframes, Catmull-Rom playback and its panel. Never part of the
 // release jar; `./gradlew :fabric:runTrailer` loads it next to the main mod. `verifyNoCameraInReleaseJar` proves the jar is clean.
 sourceSets {
+	main {
+		java { srcDir "src/mc${minecraftVersion}/java" }
+	}
 	perfbench {
 		compileClasspath += main.compileClasspath + main.output
 		runtimeClasspath += main.runtimeClasspath + main.output
@@ -99,6 +119,9 @@ fabricApi {
 	}
 }
 
+// The game tests are written for Minecraft 1.20.1, the version CI runs them on; a 1.20.4 build leaves them out
+tasks.named("compileGametestJava") { enabled = minecraftVersion == "1.20.1" }
+
 // MTR keeps its stations in the game test world, so each run starts from a fresh one
 tasks.named("runGameTest") {
 	doFirst { delete layout.buildDirectory.dir("run/gameTest/world") }
@@ -112,10 +135,16 @@ configurations {
 dependencies {
 	mtrBaseline "maven.modrinth:minecraft-transit-railway:FABRIC-4.0.5+1.20.1"
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
-	mappings "net.fabricmc:yarn:${yarnVersion}:v2"
+	mappings "net.fabricmc:yarn:${pin("yarnVersion")}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${fabricLoaderVersion}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
-	modApi("com.terraformersmc:modmenu:${modMenuVersion}") { exclude group: "net.fabricmc", module: "fabric-loader" }
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${pin("fabricApiVersion")}"
+	modApi("com.terraformersmc:modmenu:${pin("modMenuVersion")}") {
+		exclude group: "net.fabricmc", module: "fabric-loader"
+		// Mod Menu 9 (Minecraft 1.20.4) names Placeholder API, which no repository here has; it is not needed to compile
+		if (minecraftVersion != "1.20.1") {
+			exclude group: "eu.pb4"
+		}
+	}
 	shadowImplementation "org.mtr:Minecraft-Mappings-fabric-${minecraftVersion}:0.0.1-dev"
 	testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
 	testImplementation "org.junit.platform:junit-platform-launcher:${junitPlatformVersion}"
@@ -127,8 +156,8 @@ dependencies {
 	ataTestRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
 	ataTestRuntimeOnly "org.junit.platform:junit-platform-launcher:${junitPlatformVersion}"
 	ataTestImplementation "net.fabricmc:fabric-loader-junit:${fabricLoaderVersion}"
-	modCompileOnly "maven.modrinth:jade:${jadeVersion}"
-	modCompileOnly "mcp.mobius.waila:wthit-api:${wthitVersion}"
+	modCompileOnly "maven.modrinth:jade:${pin("jadeVersion")}"
+	modCompileOnly "mcp.mobius.waila:wthit-api:${pin("wthitVersion")}"
 }
 
 repositories {

@@ -1,5 +1,6 @@
 package org.mtr.aurelia.client.screen;
 
+import org.mtr.atr.compat.ClientCompat;
 import org.mtr.aurelia.client.ClientOperators;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -105,7 +106,7 @@ public final class SignallerScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		super.render(context, mouseX, mouseY, delta);
 		context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, AureliaPalette.TEXT);
 		context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gui.aurelia.signaller.hint"), width / 2, height - 46, AureliaPalette.TEXT_DIM);

@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.mtr.atr.compat.Compat;
 
 /**
  * What the wrench's bridge builder last built on each rail, per dimension: every cell it changed with the block it held before.
@@ -26,7 +27,7 @@ final class RailBridgeStore extends PersistentState {
 	private final Map<String, List<BridgeBuildJob.Entry>> rails = new LinkedHashMap<>();
 
 	static RailBridgeStore of(ServerWorld world) {
-		return world.getPersistentStateManager().getOrCreate(RailBridgeStore::fromNbt, RailBridgeStore::new, FILE);
+		return Compat.getOrCreate(world.getPersistentStateManager(), RailBridgeStore::fromNbt, RailBridgeStore::new, FILE);
 	}
 
 	List<BridgeBuildJob.Entry> get(String rail) {

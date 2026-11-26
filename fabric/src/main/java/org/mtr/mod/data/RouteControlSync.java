@@ -12,6 +12,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.PersistentState;
+import org.mtr.atr.compat.Compat;
 import org.mtr.aurelia.route.RouteControl;
 
 /**
@@ -115,7 +116,7 @@ public final class RouteControlSync {
 	}
 
 	private static State state(MinecraftServer server) {
-		final State state = server.getOverworld().getPersistentStateManager().getOrCreate(nbt -> new State(RouteControlOptions.fromNbt(nbt)), () -> new State(new RouteControlOptions()), FILE);
+		final State state = Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), nbt -> new State(RouteControlOptions.fromNbt(nbt)), () -> new State(new RouteControlOptions()), FILE);
 		// Called on join, after an edit and at server start, so the simulator thread always sees the saved data.
 		RouteControlOptions.publishServer(state.options);
 		return state;

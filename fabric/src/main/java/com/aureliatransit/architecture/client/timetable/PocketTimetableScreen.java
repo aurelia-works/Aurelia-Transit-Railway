@@ -7,6 +7,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
+import org.mtr.atr.compat.ClientCompat;
 
 /**
  * The printed sheet. Lines are drawn with the same text renderer the passenger terminal uses for its rows, on a paper
@@ -27,7 +28,7 @@ public final class PocketTimetableScreen extends Screen {
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		renderBackground(context);
+		ClientCompat.renderBackground(this, context, mouseX, mouseY, delta);
 		final int width = 220;
 		final int height = 16 + (sheet.lines().size() + 2) * 12;
 		final int left = (this.width - width) / 2;

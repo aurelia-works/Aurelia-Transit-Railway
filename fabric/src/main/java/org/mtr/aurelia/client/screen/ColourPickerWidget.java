@@ -57,7 +57,11 @@ public final class ColourPickerWidget extends ClickableWidget {
 		return width - HUE_WIDTH - GAP;
 	}
 
-	@Override
+	/** Minecraft 1.20.4's name for {@link #renderButton}; nothing calls it on 1.20.1. */
+	protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+		renderButton(context, mouseX, mouseY, delta);
+	}
+
 	protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
 		final int x = getX();
 		final int y = getY();

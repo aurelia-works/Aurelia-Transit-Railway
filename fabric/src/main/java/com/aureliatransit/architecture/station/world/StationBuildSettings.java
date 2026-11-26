@@ -3,6 +3,7 @@ package com.aureliatransit.architecture.station.world;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.PersistentState;
+import org.mtr.atr.compat.Compat;
 
 /**
  * How many station cells one build or undo may change in a server tick. The dev panel's build-pace slider and
@@ -55,7 +56,7 @@ public final class StationBuildSettings extends PersistentState {
 	}
 
 	private static StationBuildSettings state(MinecraftServer server) {
-		return server.getOverworld().getPersistentStateManager().getOrCreate(StationBuildSettings::fromNbt, StationBuildSettings::new, ID);
+		return Compat.getOrCreate(server.getOverworld().getPersistentStateManager(), StationBuildSettings::fromNbt, StationBuildSettings::new, ID);
 	}
 
 	private static StationBuildSettings fromNbt(NbtCompound nbt) {

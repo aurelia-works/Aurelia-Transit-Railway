@@ -96,7 +96,7 @@ public class TicketVendingMachineBlock extends FacingShapedBlock {
 	}
 
 	@Override
-	public void onBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
+	protected void beforeBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
 		if (!world.isClient && player.isCreative() && state.get(HALF) == DoubleBlockHalf.UPPER) {
 			// creative: take the lower half without a drop (the loot table drops only from the lower half)
 			final BlockPos below = pos.down();
@@ -106,7 +106,6 @@ public class TicketVendingMachineBlock extends FacingShapedBlock {
 				world.syncWorldEvent(player, WorldEvents.BLOCK_BROKEN, below, Block.getRawIdFromState(belowState));
 			}
 		}
-		super.onBreak(world, pos, state, player);
 	}
 
 	@Override

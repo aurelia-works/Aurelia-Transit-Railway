@@ -362,7 +362,11 @@ public final class UnifiedDashboardClient {
 			return super.mouseClicked(mouseX, mouseY, button);
 		}
 
-		@Override
+		/** Minecraft 1.20.4's name for {@link #renderButton}; nothing calls it on 1.20.1. */
+		protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
+			renderButton(context, mouseX, mouseY, delta);
+		}
+
 		protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
 			if (!visible || width <= 0 || height <= 0) {
 				return;

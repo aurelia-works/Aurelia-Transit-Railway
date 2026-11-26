@@ -28,6 +28,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
+import org.mtr.atr.compat.Compat;
 
 /**
  * Draws one {@link MapRegion} from the chunks a world has saved, the way the client's explored map draws loaded chunks:
@@ -130,7 +131,7 @@ public final class SavedChunkMap {
 		}
 		// the GZIP stream reads its header as it is made, so it is made inside the try too
 		try (DataInputStream stream = new DataInputStream(new BufferedInputStream(compression == 1 ? new GZIPInputStream(raw) : compression == 2 ? new InflaterInputStream(raw) : raw))) {
-			return NbtIo.read(stream);
+			return Compat.readNbt(stream);
 		} catch (IOException | RuntimeException e) {
 			// written while being read, or damaged: the map leaves the chunk out
 			return null;
