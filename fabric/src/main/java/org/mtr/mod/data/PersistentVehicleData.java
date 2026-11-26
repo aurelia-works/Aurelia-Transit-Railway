@@ -4,6 +4,9 @@ import org.mtr.aurelia.sound.ProfileSounds;
 import org.mtr.aurelia.sound.SoundProfile;
 import org.mtr.aurelia.sound.SoundProfileRegistry;
 import org.mtr.aurelia.sound.SoundProfileStore;
+import org.mtr.core.data.Data;
+import org.mtr.core.data.PathData;
+import org.mtr.core.data.Rail;
 import org.mtr.core.data.TransportMode;
 import org.mtr.core.data.Vehicle;
 import org.mtr.core.data.VehicleCar;
@@ -13,6 +16,7 @@ import org.mtr.libraries.it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import org.mtr.mapping.holder.BlockPos;
+import org.mtr.mod.client.MinecraftClientData;
 import org.mtr.mod.client.Oscillation;
 import org.mtr.mod.client.ScrollingText;
 import org.mtr.mod.resource.DoorAnimationType;
@@ -45,6 +49,12 @@ public final class PersistentVehicleData {
 	private ProfileSounds appliedProfileSounds;
 	private final ObjectArrayList<ObjectArrayList<ScrollingText>> scrollingTexts = new ObjectArrayList<>();
 	private final ObjectArrayList<Oscillation> oscillations = new ObjectArrayList<>();
+	private final ObjectArrayList<VehicleSoundBase.RunSoundInfo> runSoundStates = new ObjectArrayList<>();
+	private double runSoundRailProgress;
+	@Nullable
+	private VehicleExtraData runSoundVehicleExtraData;
+	private boolean runSoundReversed;
+	private boolean runSoundStatesStale;
 	private final Object2ObjectOpenHashMap<String, DoorMovementInterpolation> doorMovementInterpolations = new Object2ObjectOpenHashMap<>();
 
 	public PersistentVehicleData(ObjectImmutableList<VehicleCar> immutableVehicleCars, TransportMode transportMode) {
@@ -102,6 +112,13 @@ public final class PersistentVehicleData {
 	}
 
 	public void tick(double railProgress, long millisElapsed, VehicleExtraData vehicleExtraData) {
+		tick(railProgress, millisElapsed, vehicleExtraData, false);
+	}
+
+	/**
+	 * @param reversed whether the train runs with its last car leading, so the car at the head of the path is the last car
+	 */
+	public void tick(double railProgress, long millisElapsed, VehicleExtraData vehicleExtraData, boolean reversed) {
 		oldDoorValue = doorValue;
 		doorValue = Utilities.clamp(doorValue + (double) (millisElapsed * getAdjustedDoorMultiplier(vehicleExtraData)) / Vehicle.DOOR_MOVE_TIME, 0, 1);
 		if (checkCanOpenDoors()) {
@@ -114,6 +131,51 @@ public final class PersistentVehicleData {
 			nextAnnouncementRailProgress = railProgress + vehicleExtraData.getTotalVehicleLength() * 1.5;
 		}
 		oscillations.forEach(oscillation -> oscillation.tick(millisElapsed));
+
+		// Which rail each car is on is worked out only when a car plays its motor sound (see playMotorSound), so trains
+		// that are out of earshot or have no sound cost nothing here
+		runSoundRailProgress = railProgress;
+		runSoundVehicleExtraData = vehicleExtraData;
+		runSoundReversed = reversed;
+		runSoundStatesStale = true;
+	}
+
+	/** Which rail each car is on, so its run sound can change with the rail under it. */
+	private void updateRunSoundStates() {
+		runSoundStatesStale = false;
+		runSoundStates.clear();
+		final VehicleExtraData vehicleExtraData = runSoundVehicleExtraData;
+		if (vehicleExtraData != null && !vehicleExtraData.immutablePath.isEmpty()) {
+			final int carCount = vehicleExtraData.immutableVehicleCars.size();
+			// Filled by car number, which is what playMotorSound looks up; a reversed train has its last car at the head
+			runSoundStates.size(carCount);
+			double headRailProgress = runSoundRailProgress;
+			for (int i = 0; i < carCount; i++) {
+				final int carNumber = runSoundReversed ? carCount - i - 1 : i;
+				final VehicleCar vehicleCar = vehicleExtraData.immutableVehicleCars.get(carNumber);
+				final double carLength = vehicleCar.getLength();
+				final double tailRailProgress = headRailProgress - carLength;
+
+				// getElement wraps a negative index to the last rail, so a progress before the path must not stay negative
+				final int thisPathIndex = Math.max(0, Utilities.getIndexFromConditionalList(vehicleExtraData.immutablePath, headRailProgress));
+				final int lastPathIndex = Math.max(0, Utilities.getIndexFromConditionalList(vehicleExtraData.immutablePath, tailRailProgress));
+				final PathData thisPathData = Utilities.getElement(vehicleExtraData.immutablePath, thisPathIndex);
+				final PathData lastPathData = thisPathIndex == lastPathIndex ? thisPathData : Utilities.getElement(vehicleExtraData.immutablePath, lastPathIndex);
+				final float pathDelta = thisPathIndex == lastPathIndex ? 1 : (float) Math.min(1, (headRailProgress - lastPathData.getEndDistance()) / carLength);
+				runSoundStates.set(carNumber, VehicleSoundBase.RunSoundInfo.create(styledRail(lastPathData), styledRail(thisPathData), pathDelta));
+				headRailProgress -= carLength;
+			}
+		}
+	}
+
+	/**
+	 * The rail a path step runs on, with its styles. On the client a vehicle's path is cached against empty data (see
+	 * {@code PacketUpdateVehiclesLifts}), so the path's own rail is a bare stand-in with no styles; the client's rail
+	 * between the same two nodes has them.
+	 */
+	private static Rail styledRail(PathData pathData) {
+		final Rail rail = Data.tryGet(MinecraftClientData.getInstance().positionsToRail, pathData.getOrderedPosition1(), pathData.getOrderedPosition2());
+		return rail == null ? pathData.getRail() : rail;
 	}
 
 	public double getDoorValue() {
@@ -162,7 +224,11 @@ public final class PersistentVehicleData {
 	}
 
 	public void playMotorSound(VehicleResource vehicleResource, int carNumber, BlockPos bogiePosition, float speed, float speedChange, float acceleration, boolean isOnRoute) {
-		getVehicleSoundBase(vehicleResource, carNumber).playMotorSound(bogiePosition, speed, speedChange, acceleration, isOnRoute);
+		if (runSoundStatesStale) {
+			updateRunSoundStates();
+		}
+		final VehicleSoundBase.RunSoundInfo runSound = carNumber >= 0 && carNumber < runSoundStates.size() ? runSoundStates.get(carNumber) : null;
+		getVehicleSoundBase(vehicleResource, carNumber).playVehicleSound(new VehicleSoundBase.VehicleSoundParameters(runSound, bogiePosition, speed, speedChange, acceleration, isOnRoute));
 	}
 
 	public void playDoorSound(VehicleResource vehicleResource, int carNumber, BlockPos vehiclePosition) {

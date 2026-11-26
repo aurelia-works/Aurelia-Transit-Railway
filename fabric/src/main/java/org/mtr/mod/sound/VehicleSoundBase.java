@@ -1,19 +1,30 @@
 package org.mtr.mod.sound;
 
 import org.mtr.aurelia.sound.ProfileSounds;
+import org.mtr.core.data.Rail;
 import org.mtr.mapping.holder.BlockPos;
 import org.mtr.mapping.holder.Identifier;
 import org.mtr.mapping.holder.SoundEvent;
 import org.mtr.mapping.mapper.SoundHelper;
 import org.mtr.mod.Init;
+import org.mtr.mod.client.CustomResourceLoader;
 import org.mtr.mod.config.Client;
 import org.mtr.mod.config.Config;
+import org.mtr.mod.resource.RailResource;
 
 import javax.annotation.Nullable;
 
 public abstract class VehicleSoundBase {
 
 	public abstract void playMotorSound(BlockPos blockPos, float speed, float speedChange, float acceleration, boolean isOnRoute);
+
+	/**
+	 * MTR 4.1 entry point: the same motor sound, plus which rail run sound this car is over. The base class has nothing
+	 * to do with the rail, so any sound class that has not been updated (add-ons included) keeps working unchanged.
+	 */
+	public void playVehicleSound(VehicleSoundParameters vehicleSoundParameters) {
+		playMotorSound(vehicleSoundParameters.blockPos(), vehicleSoundParameters.speed(), vehicleSoundParameters.speedChange(), vehicleSoundParameters.acceleration(), vehicleSoundParameters.isOnRoute());
+	}
 
 	public final void playDoorSound(BlockPos blockPos, double doorValue, double oldDoorValue) {
 		if (doorValue > 0 && oldDoorValue == 0) {
@@ -70,6 +81,43 @@ public abstract class VehicleSoundBase {
 			final float volume = Config.getClient().getDoorChime() == 0 ? 0 : getProfileDoorChimeVolume();
 			if (volume > 0) {
 				ScheduledSound.schedule(blockPos, profileChime, volume, 1);
+			}
+		}
+	}
+
+	public record VehicleSoundParameters(@Nullable RunSoundInfo runSound, BlockPos blockPos, float speed, float speedChange, float acceleration, boolean isOnRoute) {
+	}
+
+	/**
+	 * Which rail run sound indices this car is between, and how far it has moved from one to the other.
+	 *
+	 * @param index      the rail the tail of the car is on
+	 * @param nextIndex  the rail the head of the car is on (the same as {@code index} when the car is on one rail)
+	 * @param blendLevel 0 fully on the tail's rail, 1 fully on the head's rail
+	 */
+	public record RunSoundInfo(int index, int nextIndex, float blendLevel) {
+
+		public static RunSoundInfo create(Rail railTail, Rail railHead, float blendLevel) {
+			final int tailIndex = getSoundIndex(railTail);
+			// a car of length 0 or a progress behind the tail's rail gives NaN or a value outside 0 to 1, which would turn
+			// into a negative volume; NaN counts as fully on the tail's rail
+			final float clampedBlendLevel = blendLevel > 0 ? Math.min(1, blendLevel) : 0;
+			// a car on one rail gets the same rail object twice; otherwise read both, which is cheaper than a full Rail.equals
+			if (railHead == railTail) {
+				return new RunSoundInfo(tailIndex, tailIndex, clampedBlendLevel);
+			} else {
+				return new RunSoundInfo(tailIndex, getSoundIndex(railHead), clampedBlendLevel);
+			}
+		}
+
+		private static int getSoundIndex(Rail rail) {
+			final String style = rail.getStyles().isEmpty() ? null : rail.getStyles().get(0);
+			if (style == null) {
+				return 0;
+			} else {
+				// a selected style is saved as the rail resource id plus a direction suffix (_1 or _2), as RenderRails reads it
+				final RailResource railResource = CustomResourceLoader.getRailById(RailResource.getIdWithoutDirection(style));
+				return railResource == null ? 0 : railResource.getSoundIndex();
 			}
 		}
 	}

@@ -1,6 +1,8 @@
 package org.mtr.mod.sound;
 
 import org.mtr.aurelia.sound.ProfileSounds;
+import org.mtr.libraries.it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import org.mtr.libraries.it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.mtr.mapping.holder.BlockPos;
 import org.mtr.mapping.holder.MinecraftClient;
 import org.mtr.mapping.holder.SoundEvent;
@@ -28,6 +30,16 @@ public class BveVehicleSound extends VehicleSoundBase {
 	private boolean isCompressorActive;
 	private boolean isCompressorActiveLastElapsed;
 
+	/** The run sound to fall back to when a rail has no sound index or no matching run sound: the lowest one defined. */
+	private final int defaultRunSoundIndex;
+	/** The rail run sound of the call now going through {@link #playMotorSound}, set only for the length of {@link #playVehicleSound}. */
+	@Nullable
+	private VehicleSoundBase.RunSoundInfo pendingRunSound;
+
+	/** The run sounds given a volume on the last frame, so one that leaves the blend can be silenced once; -1 is none. */
+	private int playingRunIndexOld = -1;
+	private int playingRunIndexNew = -1;
+
 	private final VehicleLoopingSoundHolder vehicleLoopingSoundHolder;
 	private boolean hasBogieSample;
 	private double lastBogieX;
@@ -53,9 +65,16 @@ public class BveVehicleSound extends VehicleSoundBase {
 				soundLoopFlange[i] = new VehicleLoopingSoundInstance(config.config.flange[i]);
 			}
 		}
+		final Int2ObjectOpenHashMap<VehicleLoopingSoundInstance> soundLoopRun = new Int2ObjectOpenHashMap<>();
+		int lowestRunSoundIndex = -1;
+		for (final Int2ObjectMap.Entry<SoundEvent> entry : config.config.runByIndex.int2ObjectEntrySet()) {
+			soundLoopRun.put(entry.getIntKey(), new VehicleLoopingSoundInstance(entry.getValue()));
+			lowestRunSoundIndex = lowestRunSoundIndex == -1 ? entry.getIntKey() : Math.min(lowestRunSoundIndex, entry.getIntKey());
+		}
+		defaultRunSoundIndex = lowestRunSoundIndex;
 		vehicleLoopingSoundHolder = new VehicleLoopingSoundHolder(
 				soundLoopMotor,
-				config.config.run[0] == null ? null : new VehicleLoopingSoundInstance(config.config.run[0]),
+				soundLoopRun,
 				soundLoopFlange,
 				config.config.noise == null ? null : new VehicleLoopingSoundInstance(config.config.noise),
 				config.config.shoe == null ? null : new VehicleLoopingSoundInstance(config.config.shoe),
@@ -63,8 +82,34 @@ public class BveVehicleSound extends VehicleSoundBase {
 		);
 	}
 
+	/**
+	 * MTR 4.0.5 shape, kept for add-ons: no rail information, so the train's default run sound plays.
+	 */
 	@Override
 	public void playMotorSound(BlockPos blockPos, float speed, float speedChange, float acceleration, boolean isOnRoute) {
+		final VehicleSoundBase.RunSoundInfo runSound = pendingRunSound;
+		pendingRunSound = null;
+		sound(new VehicleSoundParameters(runSound, blockPos, speed, speedChange, acceleration, isOnRoute));
+	}
+
+	@Override
+	public void playVehicleSound(VehicleSoundParameters parameters) {
+		// Every train goes through playMotorSound, on a path or not, so an add-on that subclassed this class in MTR 4.0.5
+		// and overrode playMotorSound still runs. The rail's run sound rides along in a field for this class's own
+		// playMotorSound to pick up; playMotorSound must never call back here.
+		pendingRunSound = parameters.runSound();
+		try {
+			playMotorSound(parameters.blockPos(), parameters.speed(), parameters.speedChange(), parameters.acceleration(), parameters.isOnRoute());
+		} finally {
+			pendingRunSound = null;
+		}
+	}
+
+	private void sound(VehicleSoundParameters parameters) {
+		final BlockPos blockPos = parameters.blockPos();
+		final float speed = parameters.speed();
+		final float speedChange = parameters.speedChange();
+		final boolean isOnRoute = parameters.isOnRoute();
 		final float secondsElapsed = MinecraftClient.getInstance().getLastFrameDuration() / 20;
 		final float speedKilometersPerHour = speed * 3600;
 		final float speedMetersPerSecond = speed * 1000;
@@ -72,10 +117,28 @@ public class BveVehicleSound extends VehicleSoundBase {
 		final float motorVolumeMultiply = profile == null ? config.config.motorVolumeMultiply : config.config.motorVolumeMultiply * profile.motorVolume;
 		final float motorPitchMultiply = profile == null ? 1 : profile.pitchAt(speedKilometersPerHour);
 
-		// Rolling noise
-		if (vehicleLoopingSoundHolder.soundLoopRun != null) {
-			vehicleLoopingSoundHolder.soundLoopRun.setData(Math.min(1, speedMetersPerSecond * 0.04F), speedMetersPerSecond * 0.04F, blockPos);
+		// Rolling noise, blended between the two rails a car can be on at a joint
+		final VehicleSoundBase.RunSoundInfo runSound = parameters.runSound();
+		final int runIndexOld = resolveRunSoundIndex(runSound == null ? defaultRunSoundIndex : runSound.index());
+		final int runIndexNew = resolveRunSoundIndex(runSound == null ? defaultRunSoundIndex : runSound.nextIndex());
+		final float runSoundBlendRatio = runSound == null ? 1 : runSound.blendLevel();
+		final float runVolume = Math.min(1, speedMetersPerSecond * 0.04F);
+		final float runPitch = speedMetersPerSecond * 0.04F;
+		// Only the two run sounds in the blend are updated each frame; one that just left the blend is silenced once
+		if (playingRunIndexOld != runIndexOld && playingRunIndexOld != runIndexNew) {
+			setRunSoundData(playingRunIndexOld, 0, 1, blockPos);
 		}
+		if (playingRunIndexNew != playingRunIndexOld && playingRunIndexNew != runIndexOld && playingRunIndexNew != runIndexNew) {
+			setRunSoundData(playingRunIndexNew, 0, 1, blockPos);
+		}
+		if (runIndexOld == runIndexNew) {
+			setRunSoundData(runIndexOld, runVolume, runPitch, blockPos);
+		} else {
+			setRunSoundData(runIndexOld, runVolume * (1 - runSoundBlendRatio), runPitch, blockPos);
+			setRunSoundData(runIndexNew, runVolume * runSoundBlendRatio, runPitch, blockPos);
+		}
+		playingRunIndexOld = runIndexOld;
+		playingRunIndexNew = runIndexNew;
 
 		// Simulation of circuit breaker in traction controller
 		float motorTarget = Math.signum(speedChange);
@@ -355,11 +418,24 @@ public class BveVehicleSound extends VehicleSoundBase {
 		return new Random().nextInt(maxExclusive - minInclusive) + minInclusive;
 	}
 
+	private void setRunSoundData(int index, float volume, float pitch, BlockPos blockPos) {
+		final VehicleLoopingSoundInstance instance = vehicleLoopingSoundHolder.soundLoopRun.get(index);
+		if (instance != null) {
+			instance.setData(volume, pitch, blockPos);
+		}
+	}
+
+	/**
+	 * A rail's sound index when the train defines that run sound, otherwise the train's own default.
+	 */
+	private int resolveRunSoundIndex(int index) {
+		return vehicleLoopingSoundHolder.soundLoopRun.containsKey(index) ? index : defaultRunSoundIndex;
+	}
+
 	private static class VehicleLoopingSoundHolder {
 
 		private final VehicleLoopingSoundInstance[] soundLoopMotor;
-		@Nullable
-		private final VehicleLoopingSoundInstance soundLoopRun;
+		private final Int2ObjectOpenHashMap<VehicleLoopingSoundInstance> soundLoopRun;
 		private VehicleLoopingSoundInstance[] soundLoopFlange;
 		@Nullable
 		private final VehicleLoopingSoundInstance soundLoopNoise;
@@ -378,12 +454,20 @@ public class BveVehicleSound extends VehicleSoundBase {
 				@Nullable VehicleLoopingSoundInstance soundLoopShoe,
 				@Nullable VehicleLoopingSoundInstance soundLoopCompressor
 		) {
-			this(soundLoopMotor, soundLoopRun, soundLoopFlange == null ? new VehicleLoopingSoundInstance[0] : new VehicleLoopingSoundInstance[]{soundLoopFlange}, soundLoopNoise, soundLoopShoe, soundLoopCompressor);
+			this(soundLoopMotor, runSoundMap(soundLoopRun), soundLoopFlange == null ? new VehicleLoopingSoundInstance[0] : new VehicleLoopingSoundInstance[]{soundLoopFlange}, soundLoopNoise, soundLoopShoe, soundLoopCompressor);
+		}
+
+		private static Int2ObjectOpenHashMap<VehicleLoopingSoundInstance> runSoundMap(@Nullable VehicleLoopingSoundInstance soundLoopRun) {
+			final Int2ObjectOpenHashMap<VehicleLoopingSoundInstance> map = new Int2ObjectOpenHashMap<>();
+			if (soundLoopRun != null) {
+				map.put(0, soundLoopRun);
+			}
+			return map;
 		}
 
 		private VehicleLoopingSoundHolder(
 				VehicleLoopingSoundInstance[] soundLoopMotor,
-				@Nullable VehicleLoopingSoundInstance soundLoopRun,
+				Int2ObjectOpenHashMap<VehicleLoopingSoundInstance> soundLoopRun,
 				VehicleLoopingSoundInstance[] soundLoopFlange,
 				@Nullable VehicleLoopingSoundInstance soundLoopNoise,
 				@Nullable VehicleLoopingSoundInstance soundLoopShoe,
@@ -403,8 +487,8 @@ public class BveVehicleSound extends VehicleSoundBase {
 					instance.dispose();
 				}
 			}
-			if (soundLoopRun != null) {
-				soundLoopRun.dispose();
+			for (final VehicleLoopingSoundInstance instance : soundLoopRun.values()) {
+				instance.dispose();
 			}
 			for (final VehicleLoopingSoundInstance flange : soundLoopFlange) {
 				if (flange != null) {
