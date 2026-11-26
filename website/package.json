@@ -9,6 +9,7 @@
 		"build": "ng build --base-href a",
 		"prewatch": "node scripts/inline-icons.mjs",
 		"watch": "ng build --watch --configuration development",
+		"pretest": "node scripts/inline-icons.mjs",
 		"test": "ng test",
 		"update-all": "ng update @angular/core @angular/cli --allow-dirty && ng update @angular/material --allow-dirty && npm update --all --save --force && npm install --force"
 	},

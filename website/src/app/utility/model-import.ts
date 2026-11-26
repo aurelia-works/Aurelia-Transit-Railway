@@ -3,8 +3,8 @@
  *
  * - Blender's glTF export (.glb, or .gltf with everything embedded) becomes an OBJ, its MTL and one PNG per texture, the
  *   formats the game's model loader reads. Each glTF node with a mesh becomes one OBJ group, so it is one model part.
- * - Every file name is made into a valid resource path (lower case, a-z 0-9 . _ - only), the way the game formats the
- *   names it reads, so "Train Body.png" no longer fails to load.
+ * - Every file name is made into a valid resource path (lower case, a-z 0-9 _ - only, one dot before the extension), the
+ *   way the game reads the names, so "Train Body.png" and "Image.001.png" no longer fail to load.
  * - An MTL's texture paths and an OBJ's mtllib are cut to the file name: the creator keeps every file in one folder, and
  *   Blender can write absolute or "../" paths there.
  */
@@ -39,9 +39,12 @@ export async function prepareModelFiles(files: File[]): Promise<File[]> {
 	return prepared;
 }
 
-/** The same rule as the game's {@code CustomResourceTools.formatIdentifierString}, without the slash: no folders here. */
+/**
+ * The game's {@code CustomResourceTools.formatIdentifierString}, without the slash (no folders here) and without the dot:
+ * the game cuts a resource path at its first dot, so Blender's "Image.001" would be looked up as "image".
+ */
 export function formatName(name: string) {
-	return name.toLowerCase().replace(/[^a-z0-9._-]/g, "_");
+	return name.toLowerCase().replace(/[^a-z0-9_-]/g, "_");
 }
 
 function splitName(fileName: string): [string, string] {
@@ -116,6 +119,10 @@ async function convertGltf(name: string, gltf: Gltf): Promise<File[]> {
 	if (unsupported.length > 0) {
 		throw new Error(`Export the glTF again without ${unsupported.join(", ")} (in Blender, turn off compression).`);
 	}
+	// Blender writes this for a Mapping node; OBJ has no texture transform, so the texture would come out stretched or moved
+	if (((json.extensionsUsed ?? []) as string[]).includes("KHR_texture_transform")) {
+		throw new Error("This model moves or scales its texture (a Mapping node in Blender). Bake the texture without it, then export again.");
+	}
 
 	const buffers = await Promise.all((json.buffers ?? []).map((buffer: any, index: number) => loadBuffer(buffer, index, gltf.bin)));
 	const bufferView = (index: number) => {
@@ -137,7 +144,8 @@ async function convertGltf(name: string, gltf: Gltf): Promise<File[]> {
 		if (textureIndex !== undefined && json.textures?.[textureIndex]?.source !== undefined) {
 			const imageIndex: number = json.textures[textureIndex].source;
 			if (!textureFiles.has(imageIndex)) {
-				const fileName = `${name}_${textureFiles.size}.png`;
+				// "_gltf_" so the generated names don't replace textures the user uploaded as name_0.png and so on
+				const fileName = `${name}_gltf_${textureFiles.size}.png`;
 				outputFiles.push(new File([await toPng(await loadImage(json.images[imageIndex], bufferView))], fileName, {type: "image/png"}));
 				textureFiles.set(imageIndex, fileName);
 			}
@@ -159,7 +167,7 @@ async function convertGltf(name: string, gltf: Gltf): Promise<File[]> {
 		const matrix = multiply(parentMatrix, nodeMatrix(node));
 		if (node.mesh !== undefined) {
 			const mesh = json.meshes[node.mesh];
-			const baseName = formatName(node.name ?? mesh.name ?? "part").replace(/\./g, "_") || "part";
+			const baseName = formatName(node.name ?? mesh.name ?? "part") || "part";
 			const count = usedNames.get(baseName) ?? 0;
 			usedNames.set(baseName, count + 1);
 			obj.push(`g ${count === 0 ? baseName : `${baseName}_${count + 1}`}`);
