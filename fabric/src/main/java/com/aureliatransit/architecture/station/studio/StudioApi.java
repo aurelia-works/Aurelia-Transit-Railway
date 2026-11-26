@@ -569,13 +569,6 @@ public final class StudioApi {
 				+ ",\"layout\":" + Json.quote(spec.platformLayout().name()) + ",\"look\":" + Json.quote((spec.real() == RealStation.NONE ? look(preset.building()) : StationRecipe.Look.AUTO).name())
 				+ ",\"name\":" + Json.quote(spec.name()) + "}";
 	}
-
-	/** A description read from a photo, as a preset the page applies the same way. */
-	static String photoPreset(String description) {
-		final StationSpec spec = StationDescriptionParser.parse(description).spec();
-		return preset(new StationPresets.Preset("photo", spec.building(), description));
-	}
-
 	/** The wrench's city button for a building look. */
 	static StationRecipe.Look look(BuildingStyle building) {
 		return switch (building) {
