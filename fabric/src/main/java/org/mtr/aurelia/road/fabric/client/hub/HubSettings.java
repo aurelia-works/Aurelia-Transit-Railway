@@ -4,9 +4,12 @@
  */
 package org.mtr.aurelia.road.fabric.client.hub;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import org.mtr.aurelia.road.fabric.client.compat.IrisCompat;
 import org.mtr.aurelia.road.fabric.client.preview.StratosPreview;
+import org.mtr.aurelia.road.fabric.client.tool.PanelMoveScreen;
+import org.mtr.aurelia.road.fabric.client.tool.ToolHud;
 import org.mtr.aurelia.road.fabric.client.ui.HubIcon;
 import org.mtr.aurelia.road.preview.PreviewChoices.ShaderFaces;
 
@@ -50,7 +53,7 @@ public final class HubSettings {
     public record Note(String id, Text text) implements Row {
     }
 
-    /** A label, what was measured ({@code status}, read every frame) and a button that measures again. */
+    /** A label, a status read every frame (what was measured, say) and a button (that measures again, say). */
     public record Measure(String id, Text label, Text tip, Supplier<Text> status, Text button, Runnable press) implements Row {
     }
 
@@ -108,6 +111,11 @@ public final class HubSettings {
         rows.add(new Note("shaderFacesNote", Text.translatable("stratos.hub.settings.shader_faces_note")));
         rows.add(new Measure("drawTime", Text.translatable("stratos.hub.settings.draw_time"), Text.translatable("stratos.hub.settings.draw_time_tip"),
                 HubSettings::drawTime, Text.translatable("stratos.hub.settings.measure"), StratosPreview::measure));
+        // 2026-11-26: the tool panel moves, so it can keep clear of other mods' HUDs.
+        rows.add(new Measure("panelPlace", Text.translatable("stratos.hub.settings.panel_place"), Text.translatable("stratos.hub.settings.panel_place_tip"),
+                () -> Text.translatable(ToolHud.place().moved() ? "stratos.hub.settings.panel_place.moved" : "stratos.hub.settings.panel_place.top_right"),
+                Text.translatable("stratos.hub.settings.panel_place.move"),
+                () -> MinecraftClient.getInstance().setScreen(new PanelMoveScreen(MinecraftClient.getInstance().currentScreen))));
         return rows;
     }
 
