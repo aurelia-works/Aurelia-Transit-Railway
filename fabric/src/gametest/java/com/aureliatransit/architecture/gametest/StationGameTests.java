@@ -1486,22 +1486,26 @@ public class StationGameTests implements FabricGameTest {
 		context.complete();
 	}
 
+	/** A shaft deeper than the old 4-cell fill limit no longer refuses the site: the foundation fills it to the ground. */
 	@GameTest(templateName = SITE_Z)
-	public void deepGapIsRefusedEvenWithApproval(TestContext context) {
+	public void deepGapIsFilled(TestContext context) {
 		final ServerWorld world = context.getWorld();
 		final BlockPos feet = context.getAbsolutePos(FEET_Z);
 		final StationSessions.Pending probe = StationCommand.prepare(world, SMALL, feet, Heading.SOUTH);
 		final PlannedBlock target = firstOf(probe, Role.PLATFORM_SURFACE);
 		final BlockPos cell = cellPos(probe, target);
-		// dig a shaft deeper than the fill limit under one platform cell
-		for (int y = 1; y <= SiteSurvey.MAX_FILL_DEPTH + 1; y++) {
+		// dig a 5-deep shaft under one platform cell (refused as a deep gap before)
+		for (int y = 1; y <= 5; y++) {
 			world.setBlockState(cell.down(y), Blocks.AIR.getDefaultState());
 		}
 		final StationSessions.Pending pending = StationCommand.prepare(world, SMALL, feet, Heading.SOUTH);
-		final SurveyReport approved = SiteSurvey.survey(pending.plan(), pending.frame(), new WorldSiteProbe(world), true);
-		check(approved.count(SiteIssue.Kind.GAP_TOO_DEEP) == 1 && !approved.buildable(), "deep gap: " + approved.counts());
-		check(StationCommand.startBuild(world, new UUID(0, 7), pending, true, text -> {
-		}) == null, "built over a deep gap");
+		final SurveyReport report = pending.report();
+		check(report.count(SiteIssue.Kind.GAP_TOO_DEEP) == 0 && report.buildable(), "deep gap: " + report.counts());
+		for (int y = 1; y <= 5; y++) {
+			final BlockPos shaft = cell.down(y);
+			check(report.ops().stream().anyMatch(op -> op.kind() == WorldOp.Kind.FILL && op.x() == shaft.getX() && op.y() == shaft.getY()
+					&& op.z() == shaft.getZ()), "the shaft is not filled at " + shaft.toShortString());
+		}
 		context.complete();
 	}
 
