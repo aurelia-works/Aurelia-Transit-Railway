@@ -569,6 +569,7 @@ public final class StudioApi {
 				+ ",\"layout\":" + Json.quote(spec.platformLayout().name()) + ",\"look\":" + Json.quote((spec.real() == RealStation.NONE ? look(preset.building()) : StationRecipe.Look.AUTO).name())
 				+ ",\"name\":" + Json.quote(spec.name()) + "}";
 	}
+
 	/** The wrench's city button for a building look. */
 	static StationRecipe.Look look(BuildingStyle building) {
 		return switch (building) {

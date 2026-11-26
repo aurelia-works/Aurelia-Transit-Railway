@@ -99,7 +99,6 @@ public final class WrenchSettings {
 		AureliaSettings.put(AureliaSettings.WRENCH, toJson());
 	}
 
-
 	/** Whether the smooth yellow lines round a taxiway's curves are drawn. */
 	public static boolean curvePaint() {
 		return curvePaint;
