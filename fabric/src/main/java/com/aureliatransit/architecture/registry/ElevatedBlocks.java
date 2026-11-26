@@ -100,9 +100,9 @@ public final class ElevatedBlocks {
 			new CardReaderBlock(ModBlocks.metal().nonOpaque().luminance(state -> 4)), TIP_STYLE, TIP + "card_reader");
 	public static final Block CHECK_IN_LANE = ModBlocks.register("check_in_lane", BlockFamily.STATION_EQUIPMENT, RenderKind.CUTOUT,
 			new CheckInLaneBlock(ModBlocks.metal().nonOpaque()), TIP + "check_in_lane");
-	public static final Block BOOTH_WINDOW = ModBlocks.register("booth_window", BlockFamily.STATION_EQUIPMENT, RenderKind.TRANSLUCENT,
+	public static final Block BOOTH_WINDOW = ModBlocks.register("booth_window", BlockFamily.STATION_EQUIPMENT, RenderKind.CUTOUT,
 			new FacingShapedBlock(ModBlocks.glass().sounds(net.minecraft.sound.BlockSoundGroup.METAL), Placement.TOWARD_PLAYER,
-					union(box(0, 0, 12, 16, 16, 16), box(0, 6, 8, 16, 7, 12))), TIP + "prop_only");
+					union(box(0, 0, 8, 16, 6, 16), box(0, 6, 6, 16, 7, 12.5), box(0, 6, 12.5, 16, 16, 14.5))), TIP + "prop_only");
 	public static final Block CCTV_CAMERA = ModBlocks.register("cctv_camera", BlockFamily.STATION_EQUIPMENT, RenderKind.CUTOUT,
 			new CctvCameraBlock(ModBlocks.metal().nonOpaque().noCollision()), TIP_STYLE, TIP + "prop_only");
 	public static final Block LIFT_STATUS_PANEL = ModBlocks.register("lift_status_panel", BlockFamily.ACCESSIBILITY, RenderKind.CUTOUT,

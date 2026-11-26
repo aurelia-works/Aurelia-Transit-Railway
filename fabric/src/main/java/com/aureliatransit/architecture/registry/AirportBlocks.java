@@ -39,7 +39,7 @@ public final class AirportBlocks {
 	/** The retracted cab: a block at the end of the walkway, facing the aircraft. */
 	private static final VoxelShape CAB = box(2, 0, 0, 14, 16, 16);
 	/** A windsock on top of its post: the post's head, the swivel and the cone blowing north. */
-	private static final VoxelShape SOCK = union(box(7, 0, 7, 9, 12, 9), box(5, 9, 0, 11, 15, 9));
+	private static final VoxelShape SOCK = union(box(7, 0, 12, 9, 15, 14.5), box(4.5, 8, 0, 11.5, 15.5, 12.5));
 	private static final VoxelShape FLOODLIGHT = union(box(7, 0, 7, 9, 8, 9), box(2, 8, 2, 14, 16, 14));
 	/** A walk-through arch, two blocks high: its posts block, the way through between them is open. */
 	private static final VoxelShape ARCH = union(box(0, 0, 5, 3, 16, 11), box(13, 0, 5, 16, 16, 11));

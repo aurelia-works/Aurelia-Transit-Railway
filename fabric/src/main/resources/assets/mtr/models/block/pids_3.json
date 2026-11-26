@@ -39,8 +39,8 @@
 			}
 		},
 		{   "__comment": "Pole",
-			"from": [ 7.5, 9.5, 12.5 ],
-			"to": [ 8.5, 16, 13.5 ],
+			"from": [ 7, 9.5, 12 ],
+			"to": [ 9, 16, 14 ],
 			"faces": {
 				"up": { "texture": "#particle", "cullface": "up" },
 				"north": { "texture": "#particle" },

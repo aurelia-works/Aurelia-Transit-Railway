@@ -16,7 +16,7 @@ public class BlockPIDSPole extends BlockPoleCheckBase {
 	@Nonnull
 	@Override
 	public VoxelShape getOutlineShape2(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-		return IBlock.getVoxelShapeByDirection(7.5, 0, 12.5, 8.5, 16, 13.5, IBlock.getStatePropertySafe(state, FACING));
+		return IBlock.getVoxelShapeByDirection(7, 0, 12, 9, 16, 14, IBlock.getStatePropertySafe(state, FACING));
 	}
 
 	@Override

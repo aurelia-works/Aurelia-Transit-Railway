@@ -30,16 +30,6 @@
           "texture": "#pole",
           "cullface": "down"
         },
-        "up": {
-          "uv": [
-            7,
-            7,
-            9,
-            9
-          ],
-          "texture": "#pole",
-          "cullface": "up"
-        },
         "north": {
           "uv": [
             7,

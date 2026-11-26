@@ -169,15 +169,6 @@
           "texture": "#body",
           "cullface": "down"
         },
-        "up": {
-          "uv": [
-            15,
-            6.0,
-            16.0,
-            10.0
-          ],
-          "texture": "#body"
-        },
         "north": {
           "uv": [
             0.0,
