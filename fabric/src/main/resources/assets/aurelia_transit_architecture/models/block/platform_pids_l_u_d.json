@@ -120,16 +120,6 @@
           ],
           "texture": "#body"
         },
-        "south": {
-          "uv": [
-            0.0,
-            0.0,
-            1,
-            16.0
-          ],
-          "texture": "#body",
-          "cullface": "south"
-        },
         "west": {
           "uv": [
             12.0,
