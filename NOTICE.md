@@ -26,7 +26,9 @@ Those parts are included with the copyright holder's permission, recorded by Jah
 limited to use inside ATR. It does not relicense the derived files, and ATR's MIT grant does not extend to them: you
 may not copy, modify or redistribute them outside ATR without IndusGaming's written permission.
 
-Every file that is Stratos's own work carries this header:
+The list under "What is included" below is what decides: every file in those packages and folders is Stratos's own
+work under this permission, whether or not it carries a header (apart from the MTR port files that list names), and so are the road assets (models, textures, names,
+loot tables, palettes). Stratos's Java files carry this header:
 
 ```
 Derived from Stratos, (c) 2026 IndusGaming. All Rights Reserved.
@@ -41,8 +43,9 @@ What is included:
   renamed. In `geom.mtr`, `Angle`, `Position`, `Rail`, `RailMath`, `Utilities` and `Vector` are a literal port of
   Transport-Simulation-Core's MIT code: they keep its notice and MIT governs them. `MtrRails` sits in the same package
   but is Stratos's own code, not a port, so it is under the permission above, like the rest of `geom`.
-- **Road engine** (PR #162): `org.mtr.aurelia.road` and its sub-packages `bake`, `forest`, `journal`, `json`, `ops`,
-  `preview`, `proto`, `road`, `schem`, `spi`, `terrain`, `tool`, `undo` and `world`, plus the road palettes and
+- **Road engine** (PR #162): `org.mtr.aurelia.road` and its sub-packages `bake`, `journal`, `json`, `ops`, `preview`,
+  `proto`, `road` (with `road.line`, `.nodes`, `.palette`, `.raster`, `.solve` and `.tool`), `spi`, `tool`, `undo` and
+  `world`, plus the road palettes and
   `core.properties` under `fabric/src/main/resources/org/mtr/aurelia/road/`. Copied from Stratos 0.1.0's core with the
   package renamed.
 - **Server side** (PR #166): `org.mtr.aurelia.road.fabric` and its sub-packages `apply`, `net` and `palette`.

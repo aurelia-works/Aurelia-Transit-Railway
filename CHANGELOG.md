@@ -11,6 +11,17 @@
 - The train picker shows the hovered train in 3D on a piece of track (#132).
 - Stations on the map show quiet, busy or packed from the people waiting there (#134).
 - The Engine tab shows how long the train simulation takes each tick (#138).
+- Stratos road building, with permission from its owner: road geometry (#147), the road engine (#162), server side (#166), road blocks with paint drawn from road data (#174), road tools, preview and HUD (#176) and the road hub (#179).
+- Each road lane gets hidden MTR track along it, so a train can follow the road. Going back to a version without road track leaves the track already built in the world's MTR data; remove it with MTR's tools (#180, #190).
+- Roads keep left or right: a world driving-side switch (#188), and operators can switch a whole world's roads from the hub (#195).
+- A road can be edited where other roads join it (#189), and junction templates snap onto road ends, mirrored for right-hand traffic (#191).
+- Gullies and crossings on roads. With Distant Horizons installed, its far view shows road edits within seconds; it stays optional (#193).
+- The hub has its own icons for junctions, crossings and zip lines, and clearer tooltips (#196).
+- The map shows homes, landmarks and a station list (#165).
+- Station class words halt, local, hub and terminal; a halt gets a ticket machine (#153).
+- Airside shops in airport terminals, in walking order (#156).
+- A city style builds its city's real station shape on through stations (#187).
+- MTR 4.1's train picker tiers and tag search (#159).
 
 ### Changed
 - Timetabled trains leave at the same minutes each hour and catch up at the end of the line (#140).
@@ -20,32 +31,36 @@
 - New worlds start with passengers on and people drawn on the platforms. With no platform blocks, people wait behind the platform screen doors (#133).
 - The old ATR menu is gone. Its buttons are in the Aurelia panel's Architecture tab, and the menu key opens the panel (#145).
 - ATR runs on a simulation engine built from its own fork of MTR's engine, from the same source as before. Saves load unchanged (#128).
+- One versioned client settings file, with the ten old ones migrated (#146).
+- One colour and control system for every ATR screen (#157), and a fully dark train picker (#151).
+- Building, zip lines and the dashboard work for operators and the single-player host (#169). The panel's Tools tab is for operators only (#173).
+- Wing waiting rooms open into the paid hall only (#168).
+- Zip lines get a seat with ropes and a thick shaded cable (#178).
+- The neural announcer voice is English only (#155).
+- Performance: no per-tick reflection, idle simulator tasks, per-second cargo writes or per-row list sorts (#164).
+
+### Removed
+- The minimap (#154).
+- Road cars and the Bus & Road dashboard; hire bikes stay (#172).
+- Crew roles and the driver extras; AWS and TPWS stay (#171).
+- The `/aurelia_live_stress` developer command (#170).
 
 ### Fixed
 - MTR 4.0.6's fixes: vehicles no longer snap or jump while syncing, and the Class 345 and Class 377 have their new sounds (#143).
 - A reverse escalator runs down, and board text fits its window (#129).
 - Pressing Esc twice on the dashboard no longer crashes the game (#130).
 - Players who aren't operators see why the Engine tab is locked (#138).
+- MTR 4.1 leftovers: no double riding, one door toggle, and multi-node bridge and tunnel tools (#167).
+- A city or grand station building gets its class's platform length, not 48 (#185).
+- Hill slowdown works together with MAGIC's speed-limit redirect (#194).
+- The smallest GUI scale shows the hub's layout between the strip's arrows (#192).
 
 ### Pending: open pull requests, not merged yet
 Move each line up when its pull request merges, and delete what misses the release.
-- Stratos road building, with permission from its owner: road geometry (#147), the road engine (#162), server side (#166), road blocks (#174), road tools, preview and HUD (#176) and the road hub (#179).
-- Building, zip lines and the dashboard work for operators and the single-player host (#169). The panel's Tools tab is for operators only (#173).
-- MTR 4.1's per-train rail sounds and dyeable PIDS (#148), and its train picker tiers and tag search (#159).
-- One versioned client settings file, with the ten old ones migrated (#146).
-- One colour and control system for every ATR screen (#157), and a fully dark train picker (#151).
-- Station class words halt, local, hub and terminal; a halt gets a ticket machine (#153). Wing waiting rooms open into the paid hall only (#168).
+- MTR 4.1's per-train rail sounds and dyeable PIDS (#148).
 - Escalators get glass balustrades above a thin steel skirt (#152).
-- Airside shops in airport terminals (#156).
-- Zip lines get a seat with ropes and a thick shaded cable (#178).
-- The map: homes, landmarks and a station list (#165), unexplored squares filled from saved chunks (#163), and the dashboard map shows the whole explored world (#160). The minimap is removed (#154).
-- The neural announcer voice is English only (#155).
-- MTR 4.1 leftovers: no double riding, one door toggle, and multi-node bridge and tunnel tools (#167).
-- Road cars and the Bus & Road dashboard are cut; hire bikes stay (#172). Crew roles and driver extras are removed; AWS and TPWS stay (#171).
-- Performance: no per-tick reflection, idle simulator tasks, per-second cargo writes or per-row list sorts (#164).
-
-### Added
-- Each road lane gets hidden MTR track along it, so a train can follow the road. Going back to a version without road track leaves the track already built in the world's MTR data; remove it with MTR's tools (#180).
+- The map: unexplored squares filled from saved chunks (#163), and the dashboard map shows the whole explored world (#160).
+- The Resource Pack Creator page, with Blender and Blockbench model import (#184).
 
 ## 1.1.0 public beta (4.0.5+atr.1.1.0), Minecraft 1.20.1, Fabric
 
