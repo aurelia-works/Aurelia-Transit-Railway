@@ -10,7 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * A platform or building outline drawn by hand in the station editor: a closed line of points in the plan (u across the
+ * A platform or building outline drawn by hand (kept in station files and descriptions): a closed line of points in the plan (u across the
  * tracks, v along them). In words it reads {@code platform shape 2/4 12/4 12/40 2/40} (with {@code open} for no canopy) or
  * {@code building shape 20/0 34/0 34/16 20/16 height 8}; the parser takes it out of the description and keeps it in
  * {@link StationOptions#shapes()}. An airport's shapes are an apron, a taxiway, a runway or a terminal

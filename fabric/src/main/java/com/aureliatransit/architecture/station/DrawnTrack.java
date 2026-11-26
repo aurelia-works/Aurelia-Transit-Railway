@@ -6,7 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * A track drawn by hand in the station editor: a line of points in the plan (u across the tracks, v along them) that starts
+ * A track drawn by hand (kept in station files and descriptions): a line of points in the plan (u across the tracks, v along them) that starts
  * at one of the station's track ends and runs out from it, laid as real MTR rails between the points when the station is
  * built. In words it reads {@code track path 4/-2 4/-12 10/-40}; the parser takes it out of the description and keeps it in
  * {@link StationOptions#drawn()}.

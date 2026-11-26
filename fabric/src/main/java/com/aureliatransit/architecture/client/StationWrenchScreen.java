@@ -17,7 +17,6 @@ import com.aureliatransit.architecture.station.world.WrenchMode;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
@@ -560,7 +559,7 @@ public class StationWrenchScreen extends CompatScreen {
 
 	/** The rail bridge builder's choices (style, sizes, masts, towers, portals) and undo; the saved-bridge tools under More. */
 	private int bridgeHeight() {
-		return 12 + 5 * ROW + (more ? 4 * ROW + 4 : 0) + 24;
+		return 12 + 5 * ROW + (more ? ROW + 4 : 0) + 24;
 	}
 
 	private static final int[] BRIDGE_PIERS = {12, 16, 20, 24, 30, 40};
@@ -607,15 +606,6 @@ public class StationWrenchScreen extends CompatScreen {
 		runButton(left, y, column, "bridge.undo", "atr_bridge undo");
 		if (more) {
 			y += ROW + 4;
-			commandButton(left, y, half, "bridge.capture", "atr_bridge capture ");
-			commandButton(left + half + 4, y, half, "bridge.build", "atr_bridge build ");
-			y += ROW;
-			commandButton(left, y, half, "bridge.preview", "atr_bridge preview ");
-			runButton(left + half + 4, y, half, "bridge.list", "atr_bridge list");
-			y += ROW;
-			commandButton(left, y, half, "bridge.delete", "atr_bridge delete ");
-			runButton(left + half + 4, y, half, "bridge.help", "atr_bridge help");
-			y += ROW;
 			addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "bridge.lights." + WrenchSettings.towerLights()), b -> {
 				WrenchSettings.cycleTowerLights();
 				clearAndInit();
@@ -651,15 +641,6 @@ public class StationWrenchScreen extends CompatScreen {
 			}
 		}
 		return values[0];
-	}
-
-	/** Puts a command in the chat box so the player can fill in its arguments. */
-	private void commandButton(int x, int y, int w, String key, String command) {
-		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + key), b -> {
-			sent = true;
-			close();
-			client.setScreen(new ChatScreen("/" + command));
-		}).dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + key + ".tip"))).build());
 	}
 
 	/** Runs a command with no arguments. */
@@ -897,16 +878,10 @@ public class StationWrenchScreen extends CompatScreen {
 		setInitialFocus(field);
 	}
 
-	/**
-	 * Opens the station editor on this station ({@link StationEditorScreen}: plan from above, 3D view, station files shared with
-	 * Station Studio, which it opens in the browser).
-	 */
+	/** Opens Station Studio in the browser. */
 	private ButtonWidget studioButton(int x, int y, int w) {
-		return ButtonWidget.builder(Text.translatable(KEY + "editor"), b -> {
-			if (client != null) {
-				client.setScreen(new StationEditorScreen(hand, description()));
-			}
-		}).dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + "editor.tip"))).build();
+		return ButtonWidget.builder(Text.translatable(KEY + "studio"), b -> StationStudioClient.open())
+				.dimensions(x, y, w, 20).tooltip(Tooltip.of(Text.translatable(KEY + "studio.tip"))).build();
 	}
 
 	// ---- shared ---------------------------------------------------------------------------------------------------
