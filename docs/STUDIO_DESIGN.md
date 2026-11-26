@@ -5,7 +5,7 @@ The browser UI served by `StudioServer` (`fabric/src/main/resources/studio/`). S
 ## Product intent & taste baseline
 
 - **Who & what:** Minecraft transit builders and modders designing, validating, and placing multi-platform railway stations (`/`) and ICAO-proportioned airports (`/airport`) in-game or offline (`.schem` / command export).
-- **Character:** An architectural CAD instrument and railway signalling control room — quiet, dense, exact, high-trust. One moving thing at a time.
+- **Character:** An architectural CAD instrument and railway signalling control room — quiet, dense, exact, high-trust. One moving thing at a time. Dressed in a Minecraft finish so it reads as part of the game (see below).
 - **Earned ornament:** The mechanical split-flap departure board (`#flaps`) flipping on **R** / dice roll, LED-dot viewport toggles, and a subtle steel-blue background shader (`silk.js`) behind opaque dark-slate chrome. Zero glassmorphic blur over scrolling text, zero competing neon CTAs, zero decorative bounce.
 
 ## Concept card
@@ -51,7 +51,22 @@ Every token below was tested against `/` and `/airport` across `1440×900`, `120
 | Panel / raised | `--panel` / `--panel-2` / `--panel-3` | `#0f131b` / `#151a24` / `#1c2330` | Cool neutral slate steps with crisp 1 px hairline separation (`--line: rgba(255,255,255,.085)`). |
 | Ink / muted / faint | `--fg` / `--muted` / `--faint` | `#f4f5f7` / `#a3aab8` / `#7d8596` | Raised `--faint` from low-contrast zinc so unit counters, axis ticks, and hints pass WCAG AA on `--panel` (`/` `#words` char count & `#more` hints). |
 | Accent (selection) | `--accent` / `--accent-text` | `#2b66f6` / `#7aa7ff` | Calibrated ATA signalling blue (`#2b66f6` achieves `4.85:1` AA contrast with `#ffffff` ink on active segment/view pills; `--accent-text` achieves `7.4:1` on dark cards). |
-| Go (primary build CTA) | `--go` / `--go-ink` | `#22c55e` / `#04240f` | Reserved exclusively for `#sendBuild` (`Build it`), eliminating the competing blue + green dual-CTA clash in `.dock` on `/` and `/airport`. |
+| Go (primary build CTA) | `--go` / `--go-hi` / `--go-edge` / `--go-ink` | `#3c8527` / `#347522` (hover) / `#1d4d13` / `#ffffff` | Reserved for the `Build it` button (`[data-send="build"]`). Minecraft's own menu green with a dark bottom edge, so the one button that changes the world looks like the game's. White ink is about `4.6:1` at rest and darker on hover, so it stays AA. |
+| Live | `--live` | `#22c55e` | The in-game status dot in the sidebar, kept bright so a live connection still reads at a glance. |
+| Corners | `--r-panel` / `--r` / `--r-sm` | `6px` / `4px` / `3px` | Blocky, like the game's menus (*were `12px` / `8px` / `6px`, which read as a generic web app*). Overlay pills over the 3D view stay round. |
+| Bevel | `--bevel` / `--bevel-down` | inset dark bottom edge + faint top highlight | Every enabled button, preset chip, lock, layer toggle and city card sits on a 2 px dark bottom edge and drops 1 px when pressed, the way Minecraft's buttons do. |
+
+### Minecraft finish
+
+Added so the Studio feels like part of Minecraft rather than a generic dark web app, without giving up the control-room calm:
+
+- **Blocky corners** (tokens above) on panels, buttons, chips and the seed's split-flap cells.
+- **Bevelled buttons** (`--bevel`, on buttons, preset chips, locks, layer toggles and city cards; disabled buttons stay flat): a dark bottom edge and a faint top highlight; pressing moves the button down 1 px and thins the edge. `Build it` gets a thicker 4 px edge in Minecraft green.
+- **Square slider thumbs and toggles**, like the game's own sliders.
+- **Block bullets:** each section heading (`.label`) starts with a small ATA-blue square.
+- **Plain wording:** `Keep when you roll` (was `Lock on roll`), `Quick start` (was `Quick start & prompt`), `How your words were read` (was `What the planner read`), `Raw plan data` (was `Blueprint data`).
+
+No Mojang art, fonts or textures are copied: the finish is CSS only.
 
 ### `rem` type scale & 200% text zoom
 
@@ -68,7 +83,7 @@ Every token below was tested against `/` and `/airport` across `1440×900`, `120
 | .side (13.5rem)  | #settings (21.5rem)      | .stage-col (1fr)                  | #report (21.5rem)       |
 | wordmark         | top bar: title · version · seed & station summary                                      |
 | live/design card | SEED + flaps + locks     | [compass]            [orbit hint] | BUILD (2x2 facts)       |
-| Station Gen      | QUICK START & PROMPT     |                                   | CHECKS (warns + fold)   |
+| Station Gen      | QUICK START              |                                   | CHECKS (warns + fold)   |
 | Airport Gen      |   Presets (32)           |           3D WebGL canvas         | LAYERS & CUTAWAY        |
 |                  |   Describe in words      |                                   | MATERIALS (fold)        |
 |                  |   From a photo           | [Planned in N ms · blocks]        | INSPECT (quiet folds)   |
