@@ -51,16 +51,17 @@ Every token below was tested against `/` and `/airport` across `1440×900`, `120
 | Panel / raised | `--panel` / `--panel-2` / `--panel-3` | `#0f131b` / `#151a24` / `#1c2330` | Cool neutral slate steps with crisp 1 px hairline separation (`--line: rgba(255,255,255,.085)`). |
 | Ink / muted / faint | `--fg` / `--muted` / `--faint` | `#f4f5f7` / `#a3aab8` / `#7d8596` | Raised `--faint` from low-contrast zinc so unit counters, axis ticks, and hints pass WCAG AA on `--panel` (`/` `#words` char count & `#more` hints). |
 | Accent (selection) | `--accent` / `--accent-text` | `#2b66f6` / `#7aa7ff` | Calibrated ATA signalling blue (`#2b66f6` achieves `4.85:1` AA contrast with `#ffffff` ink on active segment/view pills; `--accent-text` achieves `7.4:1` on dark cards). |
-| Go (primary build CTA) | `--go` / `--go-hi` / `--go-edge` / `--go-ink` | `#3c8527` / `#4a9b33` / `#1d4d13` / `#ffffff` | Reserved for the `Build it` button (`[data-send="build"]`). Minecraft's own menu green with a dark bottom edge, so the one button that changes the world looks like the game's. White ink on `#3c8527` is about `4.6:1` (AA). |
+| Go (primary build CTA) | `--go` / `--go-hi` / `--go-edge` / `--go-ink` | `#3c8527` / `#347522` (hover) / `#1d4d13` / `#ffffff` | Reserved for the `Build it` button (`[data-send="build"]`). Minecraft's own menu green with a dark bottom edge, so the one button that changes the world looks like the game's. White ink is about `4.6:1` at rest and darker on hover, so it stays AA. |
+| Live | `--live` | `#22c55e` | The in-game status dot in the sidebar, kept bright so a live connection still reads at a glance. |
 | Corners | `--r-panel` / `--r` / `--r-sm` | `6px` / `4px` / `3px` | Blocky, like the game's menus (*were `12px` / `8px` / `6px`, which read as a generic web app*). Overlay pills over the 3D view stay round. |
-| Bevel | `--bevel` / `--bevel-down` | inset dark bottom edge + faint top highlight | Every button, chip, lock, layer toggle and city card sits on a 2 px dark bottom edge and drops 1 px when pressed, the way Minecraft's buttons do. |
+| Bevel | `--bevel` / `--bevel-down` | inset dark bottom edge + faint top highlight | Every enabled button, preset chip, lock, layer toggle and city card sits on a 2 px dark bottom edge and drops 1 px when pressed, the way Minecraft's buttons do. |
 
 ### Minecraft finish
 
 Added so the Studio feels like part of Minecraft rather than a generic dark web app, without giving up the control-room calm:
 
 - **Blocky corners** (tokens above) on panels, buttons, chips and the seed's split-flap cells.
-- **Bevelled buttons** (`--bevel`): a dark bottom edge and a faint top highlight; pressing moves the button down 1 px and thins the edge. `Build it` gets a thicker 4 px edge in Minecraft green.
+- **Bevelled buttons** (`--bevel`, on buttons, preset chips, locks, layer toggles and city cards; disabled buttons stay flat): a dark bottom edge and a faint top highlight; pressing moves the button down 1 px and thins the edge. `Build it` gets a thicker 4 px edge in Minecraft green.
 - **Square slider thumbs and toggles**, like the game's own sliders.
 - **Block bullets:** each section heading (`.label`) starts with a small ATA-blue square.
 - **Plain wording:** `Keep when you roll` (was `Lock on roll`), `Quick start` (was `Quick start & prompt`), `How your words were read` (was `What the planner read`), `Raw plan data` (was `Blueprint data`).

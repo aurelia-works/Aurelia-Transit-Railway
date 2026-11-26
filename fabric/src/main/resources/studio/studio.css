@@ -22,7 +22,8 @@
 	--accent-soft: rgba(43, 102, 246, .16);
 	--accent-ink: #ffffff;
 	--go: #3c8527;
-	--go-hi: #4a9b33;
+	--go-hi: #347522;
+	--live: #22c55e;
 	--go-edge: #1d4d13;
 	--go-ink: #ffffff;
 	--face: #2b66f6;
@@ -93,7 +94,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 0.375rem; padding-top: 0.75rem; border-top: 1px solid var(--line); }
 .where { margin: 0; display: flex; align-items: center; gap: 0.5rem; font-size: var(--t-sm); color: var(--muted); }
 .where::before { content: ""; width: 0.5rem; height: 0.5rem; flex: none; border-radius: 50%; background: var(--faint); }
-.where.live::before { background: var(--go); box-shadow: 0 0 0 3px rgba(34, 197, 94, .2); }
+.where.live::before { background: var(--live); box-shadow: 0 0 0 3px rgba(34, 197, 94, .2); }
 .where b { color: var(--fg); font-weight: 600; }
 .mod { margin: 0; font-size: var(--t-xs); color: var(--faint); }
 
@@ -193,7 +194,7 @@ input[type="range"]:disabled { opacity: .35; cursor: default; }
 .seed input:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
 .seed input::selection { background: var(--accent-soft); color: transparent; }
 .flaps { position: absolute; inset: 0; display: flex; gap: 0; align-items: center; padding: 0 0 0 0.3125rem; border-radius: var(--r); background: var(--panel-2); pointer-events: none; }
-.flap { position: relative; width: 1.625rem; height: 2rem; margin-right: 0.125rem; display: grid; place-items: center; border-radius: 4px; background: linear-gradient(#212734 0 50%, #191e28 50% 100%); font: 600 1.25rem/1 var(--mono); color: #f7f3e8; text-transform: lowercase; box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .55); overflow: hidden; }
+.flap { position: relative; width: 1.625rem; height: 2rem; margin-right: 0.125rem; display: grid; place-items: center; border-radius: var(--r-sm); background: linear-gradient(#212734 0 50%, #191e28 50% 100%); font: 600 1.25rem/1 var(--mono); color: #f7f3e8; text-transform: lowercase; box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .55); overflow: hidden; }
 .flap::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(0, 0, 0, .65); }
 .flap.empty { color: var(--faint); }
 .flap.turn { animation: flap .07s linear; }
@@ -369,6 +370,7 @@ code { font: var(--t-sm) var(--mono); color: var(--accent-text); }
 .dock button.primary:hover:not(:disabled) { background: var(--accent-hi); border-color: var(--accent-hi); }
 .dock button.go { background: var(--go); color: var(--go-ink); border-color: var(--go-edge); font-weight: 600; letter-spacing: .01em; text-shadow: 0 1px 0 rgba(0, 0, 0, .35); box-shadow: inset 0 -4px 0 var(--go-edge), inset 0 2px 0 rgba(255, 255, 255, .22); padding-bottom: calc(0.4375rem + 2px); }
 .dock button.go:hover:not(:disabled) { background: var(--go-hi); border-color: var(--go-edge); }
+.dock button.primary:active:not(:disabled) { box-shadow: inset 0 -1px 0 #1b47b8, inset 0 1px 0 rgba(255, 255, 255, .14); }
 .dock button.go:active:not(:disabled) { translate: 0 2px; scale: 1; box-shadow: inset 0 -1px 0 var(--go-edge), inset 0 1px 0 rgba(255, 255, 255, .16); }
 .dock button.wide { width: 100%; padding: 0.5625rem 0.625rem; font-size: var(--t-base); font-weight: 600; }
 .dock .quiet button { min-height: 1.875rem; background: transparent; border-color: transparent; color: var(--muted); padding: 0.25rem 0.375rem; font-size: var(--t-xs); }
@@ -458,8 +460,9 @@ body[data-page="airport"] #wordsAdvanced > :not(summary) { margin: 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* ---- Minecraft finish: blocky, bevelled controls in the spirit of the game's own menus (see docs/STUDIO_DESIGN.md) ---- */
-.icon-btn, .chip-btn, .lock, .layers button, .menu summary, .menu-body button, button.round, .dock button, .dock-row.export button, .mini-switch, .look, .plat .num { box-shadow: var(--bevel); }
-.icon-btn:active, .chip-btn:active, .lock:active, .layers button:active, .menu-body button:active, button.round:active:not(:disabled), .dock button:active:not(:disabled), .dock-row.export button:active:not(:disabled), .mini-switch:active, .look:active { box-shadow: var(--bevel-down); translate: 0 1px; }
+.icon-btn, .chip-btn, .lock, .layers button, .menu summary, .menu-body button, button.round, .dock button, .dock-row.export button, .mini-switch, .look, .presets .chip, .airports .chip { box-shadow: var(--bevel); }
+.icon-btn:active:not(:disabled), .chip-btn:active:not(:disabled), .lock:active:not(:disabled), .layers button:active:not(:disabled), .menu-body button:active:not(:disabled), button.round:active:not(:disabled), .dock button:active:not(:disabled), .dock-row.export button:active:not(:disabled), .mini-switch:active, .look:active, .presets .chip:active, .airports .chip:active { box-shadow: var(--bevel-down); translate: 0 1px; }
+.dock button:disabled, .dock-row.export button:disabled, .layers button:disabled, button.round:disabled { box-shadow: none; }
 .dock .quiet button, .dock .quiet button:active:not(:disabled), .adv.extra, body[data-page="airport"] #wordsAdvanced { box-shadow: none; }
 .seg button[aria-pressed="true"] { box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .32), inset 0 1px 0 rgba(255, 255, 255, .18); }
 .card, .profile, .nav-item, .adv { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035); }
