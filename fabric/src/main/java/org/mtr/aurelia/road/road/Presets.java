@@ -33,7 +33,13 @@ public final class Presets {
         // below 180 at 50 km/h) with the game-scale grade; alley 8 and 1:6, with no DMRB values at all.
         put(RoadGroup.RESIDENTIAL, new Limits(15, Grade.oneIn(10)), new Limits(90, Grade.oneIn(10)));
         put(RoadGroup.ALLEY, new Limits(8, Grade.oneIn(6)), new Limits(8, Grade.oneIn(6)));
-        // The others come with their profiles in Phase 2 (G-4+).
+        // Rural road (A-road, 60 km/h track): game-scale 45 and 1:14; UK-faithful 360 (DMRB one step below 510 at 100 km/h)
+        // and 6 %, DMRB's desirable maximum on a single carriageway.
+        put(RoadGroup.A_ROAD, new Limits(45, Grade.oneIn(14)), new Limits(360, Grade.percent(6)));
+        // Highway (dual carriageway, 80 km/h track): game-scale 70 and 1:16; UK-faithful 510 (DMRB one step below 720 at
+        // 120 km/h) and 4 %, DMRB's desirable maximum on a dual carriageway.
+        put(RoadGroup.DUAL_CARRIAGEWAY, new Limits(70, Grade.oneIn(16)), new Limits(510, Grade.percent(4)));
+        // Motorway comes with its profile (G-4+).
     }
 
     private Presets() {

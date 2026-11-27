@@ -47,11 +47,63 @@ public final class RoadProfiles {
             Section.of(Band.LANE, 5),
             Section.of(Band.GUTTER, 1)));
 
+    /**
+     * City street with bus lanes, 29 wide: footway 3 · bus lane 5 · solid white line 1 · lane 5 · centre line 1 · lane 5 ·
+     * solid white line 1 · bus lane 5 · footway 3. The bus lanes run along the kerbs, kept apart from the general lanes by
+     * an unbroken white line (UK bus lane boundary). Its centre line is City street's.
+     */
+    public static final RoadProfile CITY_BUS_29 = new RoadProfile("city-29", RoadGroup.CITY_STREET, List.of(
+            Section.of(Band.FOOTWAY, 2),
+            Section.of(Band.KERB, 1),
+            Section.of(Band.LANE, 5),
+            Section.marked(Band.EDGE, 1, LineMarking.solid(LineMarking.Colour.WHITE)),
+            Section.of(Band.LANE, 5),
+            Section.marked(Band.CENTRE_LINE, 1, LineMarking.dashed(LineMarking.Colour.WHITE, 2, 4)),
+            Section.of(Band.LANE, 5),
+            Section.marked(Band.EDGE, 1, LineMarking.solid(LineMarking.Colour.WHITE)),
+            Section.of(Band.LANE, 5),
+            Section.of(Band.KERB, 1),
+            Section.of(Band.FOOTWAY, 2)));
+
+    /**
+     * Rural road, 21 wide (the A-road group): gutter 2 · hard strip 3 · lane 5 · centre line 1 · lane 5 · hard strip 3 ·
+     * gutter 2, with no kerbs or footways. The centre line is dashed longer than in town, 4 on / 8 off, as on UK roads
+     * above 40 mph. Edge lines wait for edge-line markings outside the lanes (RoadPiece doesn't draw them yet).
+     */
+    public static final RoadProfile RURAL_21 = new RoadProfile("a-road-21", RoadGroup.A_ROAD, List.of(
+            Section.of(Band.GUTTER, 2),
+            Section.of(Band.HARD_SHOULDER, 3),
+            Section.of(Band.LANE, 5),
+            Section.marked(Band.CENTRE_LINE, 1, LineMarking.dashed(LineMarking.Colour.WHITE, 4, 8)),
+            Section.of(Band.LANE, 5),
+            Section.of(Band.HARD_SHOULDER, 3),
+            Section.of(Band.GUTTER, 2)));
+
+    /**
+     * Highway, 33 wide (the dual carriageway group): two lanes each way. Gutter 1 · hard shoulder 3 · lane 5 · lane line 1 ·
+     * lane 5 · solid white line 1 · central strip 1 · solid white line 1 · lane 5 · lane line 1 · lane 5 · hard shoulder 3 ·
+     * gutter 1. The lane lines are dashed 3 on / 9 off, as on UK high-speed roads.
+     */
+    public static final RoadProfile HIGHWAY_33 = new RoadProfile("dual-33", RoadGroup.DUAL_CARRIAGEWAY, List.of(
+            Section.of(Band.GUTTER, 1),
+            Section.of(Band.HARD_SHOULDER, 3),
+            Section.of(Band.LANE, 5),
+            Section.marked(Band.EDGE, 1, LineMarking.dashed(LineMarking.Colour.WHITE, 3, 9)),
+            Section.of(Band.LANE, 5),
+            Section.marked(Band.EDGE, 1, LineMarking.solid(LineMarking.Colour.WHITE)),
+            Section.of(Band.GUTTER, 1),
+            Section.marked(Band.EDGE, 1, LineMarking.solid(LineMarking.Colour.WHITE)),
+            Section.of(Band.LANE, 5),
+            Section.marked(Band.EDGE, 1, LineMarking.dashed(LineMarking.Colour.WHITE, 3, 9)),
+            Section.of(Band.LANE, 5),
+            Section.of(Band.HARD_SHOULDER, 3),
+            Section.of(Band.GUTTER, 1)));
+
     private static final Map<String, RoadProfile> BY_ID = new LinkedHashMap<>();
 
     static {
         // Registration order is the order the hub lists them in.
-        for (RoadProfile profile : List.of(CITY_17, RESIDENTIAL_15, RESIDENTIAL_17, ALLEY_7)) {
+        for (RoadProfile profile : List.of(CITY_17, CITY_BUS_29, RESIDENTIAL_15, RESIDENTIAL_17, ALLEY_7, RURAL_21, HIGHWAY_33)) {
             List<ProfileValidator.Problem> problems = ProfileValidator.validate(profile);
             if (!problems.isEmpty()) {
                 throw new IllegalStateException("Built-in road profile " + profile.id() + " is invalid: " + problems);
