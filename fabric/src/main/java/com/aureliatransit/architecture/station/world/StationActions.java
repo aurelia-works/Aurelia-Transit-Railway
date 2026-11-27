@@ -60,6 +60,8 @@ public final class StationActions {
 	private static final Map<UUID, Long> REQUESTS = new ConcurrentHashMap<>();
 	/** Players whose big plan is on the planner thread. Server thread only. */
 	private static final Set<UUID> PLANNING = new HashSet<>();
+	/** The words each player's pending plan was made from, so Station Studio builds only the station it shows. */
+	private static final Map<UUID, String> PLANNED_WORDS = new ConcurrentHashMap<>();
 
 	private StationActions() {
 	}
@@ -101,7 +103,7 @@ public final class StationActions {
 			} catch (RuntimeException e) {
 				failure = e;
 			}
-			return finishPlan(player.getServer(), id, request, world, place, design, failure);
+			return finishPlan(player.getServer(), id, request, world, place, design, failure, description);
 		}
 		// a big station takes a good part of a second to plan: do that on the planner thread, so the server keeps ticking,
 		// then place and survey it back on the server thread
@@ -117,7 +119,7 @@ public final class StationActions {
 			}
 			final StationCommand.Design done = design;
 			final RuntimeException failed = failure;
-			server.execute(() -> finishPlan(server, id, request, world, place, done, failed));
+			server.execute(() -> finishPlan(server, id, request, world, place, done, failed, description));
 		});
 		player.sendMessage(Text.literal("Planning a big station...").formatted(Formatting.GRAY), true);
 		return true;
@@ -128,7 +130,7 @@ public final class StationActions {
 	 * none. False when nothing was planned.
 	 */
 	private static boolean finishPlan(MinecraftServer server, UUID id, long request, ServerWorld world, Function<TrackLayout, LocalFrame> place,
-			@Nullable StationCommand.Design design, @Nullable RuntimeException failure) {
+			@Nullable StationCommand.Design design, @Nullable RuntimeException failure, String description) {
 		if (REQUESTS.getOrDefault(id, 0L) != request) {
 			// a newer plan request replaced this one while it was being worked out
 			return false;
@@ -158,6 +160,7 @@ public final class StationActions {
 				}
 				StationSessions.discard(id);
 				StationSessions.setPending(id, pending);
+				PLANNED_WORDS.put(id, description);
 				StationText.shortSummary(pending, design.check(), out);
 				if (StationSessions.particlePreview(id)) {
 					StationSessions.startPreview(new StationPreview(id, pending.dimension(), pending.plan(), pending.frame(), pending.report()));
@@ -249,6 +252,27 @@ public final class StationActions {
 			out.accept(Text.literal("Surveying a big site before building; cancel stops it.").formatted(Formatting.GRAY));
 		}
 		return !failed[0];
+	}
+
+	/**
+	 * Station Studio's Build button: builds the pending plan only when it was made from {@code description}, the design the page
+	 * shows. With no plan, or one made from other words (an earlier design, the wrench, a command), it plans the page's design in
+	 * front of the player instead and asks them to check it and press Build again, so the game never builds a station the page
+	 * did not show.
+	 */
+	public static boolean confirmFromStudio(ServerPlayerEntity player, String description) {
+		if (stillPlanning(player)) {
+			return false;
+		}
+		final UUID id = player.getUuid();
+		if (StationSessions.pending(id) != null && description.equals(PLANNED_WORDS.get(id))) {
+			return confirm(player, false);
+		}
+		player.sendMessage(Text.literal(StationSessions.pending(id) == null
+				? "Nothing is planned yet, so Studio's station is planned in front of you first. Check it, then press Build it again."
+				: "The plan in the world is not the station Studio shows now, so Studio's is planned in front of you instead. Check it, then press Build it again.")
+				.formatted(Formatting.YELLOW), false);
+		return plan(player, description, null);
 	}
 
 	/**
