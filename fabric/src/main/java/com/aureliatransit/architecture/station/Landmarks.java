@@ -13,6 +13,7 @@ import com.aureliatransit.architecture.station.Landmark.Skin;
 import com.aureliatransit.architecture.station.Landmark.Window;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * The sheets of the real stations the presets copy (Jah, 10-21), each from photos and published sizes. The original
@@ -666,7 +667,7 @@ public final class Landmarks {
 	 * Fronts a city card does not lend a through station: a sweep of 72 card settings (11-27) found St Pancras's pinnacles floating
 	 * and Hua Lamphong's arch hanging too low over the concourse on most of them.
 	 */
-	private static final java.util.Set<Landmark> NOT_BORROWED = java.util.Set.of(ST_PANCRAS, BANGKOK);
+	private static final Set<Landmark> NOT_BORROWED = Set.of(ST_PANCRAS, BANGKOK);
 
 	/** True when the station can take the landmark's sheet by a city word. */
 	private static boolean carries(Landmark landmark, StationSpec spec) {

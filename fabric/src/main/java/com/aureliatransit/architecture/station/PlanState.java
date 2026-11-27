@@ -124,7 +124,7 @@ abstract class PlanState {
 		// a front too long for the wings keeps its middle, so the city still shows (Amsterdam Centraal's long front is all of a piece)
 		final boolean shortWings = named != null && named.anchor() == Landmark.Anchor.SIDE && named.usesEnd()
 				&& (scale != StationScale.GRAND || wingBays < Landmarks.MIN_SIDE_WINGS);
-		final Landmark fitted = shortWings && scale == StationScale.GRAND && !named.compactOnly() && !named.key().equals("amsterdam") ? named.centre() : null;
+		final Landmark fitted = shortWings && scale == StationScale.GRAND && !named.compactOnly() && !named.key().equals(Landmarks.AMSTERDAM.key()) ? named.centre() : null;
 		this.landmark = fitted != null ? fitted : named != null && named.anchor() == Landmark.Anchor.SIDE
 				&& (named.compactOnly() && scale != StationScale.COMPACT || shortWings) ? null : named;
 		for (final TrackLayout.PlatformBand band : layout.platforms()) {
