@@ -64,7 +64,7 @@
 - A city or grand station building gets its class's platform length, not 48 (#185).
 - Hill slowdown works together with MAGIC's speed-limit redirect (#194).
 - The smallest GUI scale shows the hub's layout between the strip's arrows (#192).
-- MTR Rail Works and MAGIC load on ATR again; both crashed at launch (#206).
+- The two clashes that crashed MTR Rail Works 0.2.3 and MAGIC 1.5.1 at launch are fixed. Neither has been launched with the fix yet (#206).
 - Taxiway curve lines draw as one joined line instead of a chain of squares (#208).
 - Station Studio's Build it builds the station the page shows, not an older pending plan, and the airport page leaves the wrench on its airport page (#209).
 - The dashboard's Resource Pack Creator opens a working creator again: it was an empty page in every ATR jar (#184).
