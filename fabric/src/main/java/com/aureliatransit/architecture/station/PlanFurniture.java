@@ -420,7 +420,7 @@ abstract class PlanFurniture extends PlanRoofs {
 		}
 		if (spec.building() == BuildingStyle.MODERN) {
 			treeColumns(hall, uGate);
-		} else if (spec.building() == BuildingStyle.AMSTERDAM) {
+		} else if (spec.building() == BuildingStyle.AMSTERDAM && amsterdamCentraal()) {
 			delftTiles(hall, uGate);
 		}
 		// no single benches on the ground floor: one seat by the lift or the gates looked dropped there (Jah, 10-22);
@@ -468,6 +468,14 @@ abstract class PlanFurniture extends PlanRoofs {
 				}
 			}
 		}
+	}
+
+	/**
+	 * True for Amsterdam Centraal or a station in its look (by its name or the "amsterdam" word), not any brick station: plain
+	 * "brick" and the 69th Street preset share its building style.
+	 */
+	private boolean amsterdamCentraal() {
+		return Landmarks.AMSTERDAM.named(spec.name()) || !spec.options().sheet().isEmpty() && Landmarks.AMSTERDAM.named(spec.options().sheet());
 	}
 
 	/** Amsterdam Centraal's Delft tiles: cobalt-painted tiles between plain white ones, as in the Cuyperspassage's tile wall. */
