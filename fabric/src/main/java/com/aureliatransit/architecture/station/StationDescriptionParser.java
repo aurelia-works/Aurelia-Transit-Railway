@@ -1900,8 +1900,7 @@ public final class StationDescriptionParser {
 			}
 			if (looks.isEmpty() && cityStationName == null && lookStationName == null) {
 				// the first city's own station lends a station of the player's own its building's shape (Jah, 11-24: more than four
-				// shapes); London's is St Pancras. Beijing's look is Beijing South's, not the 1959 station's, and Hua Lamphong's great
-				// window drops below headroom on a building beside the tracks (a sweep, 11-24), so both keep their own
+				// shapes); London's is St Pancras. Beijing's look is Beijing South's, not the 1959 station's, so it keeps its own
 				lookStationName = word.equals("london") ? "St Pancras" : word.equals("beijing") ? null : cityStation(word);
 			}
 			if (looks.isEmpty() && word.equals("amsterdam") && scale == null) {
