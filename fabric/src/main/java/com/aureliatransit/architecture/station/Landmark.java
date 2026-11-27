@@ -245,11 +245,13 @@ public final class Landmark {
 	/**
 	 * The sheet's middle alone, without its wings' end pavilions: a through station's building too short for the whole front still
 	 * gets the city's centrepiece (Gare du Nord's arches, Milano Centrale's portico), not the generic building. Null when nothing is
-	 * left.
+	 * left, or when no building is left for the centrepiece to stand on (St Pancras's hotel is one block from end to end, so its
+	 * gable and pinnacles would float).
 	 */
 	public Landmark centre() {
 		final List<Mass> middle = masses.stream().filter(m -> !atEnd(m)).toList();
-		return middle.isEmpty() || middle.size() == masses.size() ? null : new Landmark(key, anchor, names, middle, shed, compactOnly);
+		final boolean standsOnSomething = middle.stream().anyMatch(m -> m instanceof Volume);
+		return !standsOnSomething || middle.size() == masses.size() ? null : new Landmark(key, anchor, names, middle, shed, compactOnly);
 	}
 
 	/** True when a mass stands at the building's ends (see {@link #END}) rather than in its middle. */
