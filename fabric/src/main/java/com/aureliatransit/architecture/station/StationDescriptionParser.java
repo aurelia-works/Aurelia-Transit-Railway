@@ -1744,7 +1744,8 @@ public final class StationDescriptionParser {
 
 		/** Landmarks, city looks, building and footbridge words; true if the token was used here. */
 		private boolean buildingWord(int i, String token) {
-			if (token.equals("real") && (CITY_BUILDINGS.containsKey(at(i + 1)) || at(i + 1).equals("st") || at(i + 1).equals("new") || at(i + 1).equals("kuala"))) {
+			if (token.equals("real") && (CITY_BUILDINGS.containsKey(at(i + 1)) || at(i + 1).equals("st") || at(i + 1).equals("new") || at(i + 1).equals("kuala")
+					|| at(i + 1).equals("hong"))) {
 				// "real frankfurt": the city's own station, not only its look (see cityStationName)
 				use(i, i);
 				return true;
