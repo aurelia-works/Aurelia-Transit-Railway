@@ -98,10 +98,10 @@ Its own notices and bundled libraries are listed in `aureliamap/LICENSE` and `au
 
 The Sound tab's announcer voices are downloaded on the player's request into `config/aurelia/voice/`. None of these is
 in ATR's jar:
-- sherpa-onnx (the speech engine) and the Kokoro voice: Apache-2.0.
-- Piper voices Ronnie, Thorsten and Davefx: CC0.
-- The SIWIS voice: CC BY 4.0, credited in the voice button's tooltip.
-- espeak-ng, which both engines use: GPL-3.0. It arrives inside the download as a separate program.
+- sherpa-onnx (the speech engine): Apache-2.0.
+- The Kokoro voice model (`kokoro-int8-multi-lang-v1_0`) and its English speakers Isabella, Lewis and Michael:
+  Apache-2.0.
+- espeak-ng, which Kokoro uses: GPL-3.0. It arrives inside the download as a separate program.
 
 ## Dependencies looked at but never shipped
 

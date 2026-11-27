@@ -5,14 +5,14 @@
 ### Added
 - Express trains go first where lines meet. A train on a line set to MTR's "High Speed" route type holds the junction ahead of it, and a slower train from another line waits at its signal until it is through, for at most a minute. The Engine tab's signaller lets other lines go first too. Switch: "Express trains go first at junctions", on by default (#141).
 - Passengers travel to any station the network reaches and change trains on the way, with up to two changes. They board only a train or bus that stops where they need to go. Switch: "Passengers change trains", on by default (#136).
-- Announcements can speak with ATR's own downloadable voices, picked by the game's language, from the Sound tab. Nothing is added to the jar; the computer's voice is the fallback (#142).
-- A driver key box with keys hanging inside the cabinet. A key handed to a driver leaves its hook empty until it runs out (#131).
-- Tapping at a gate or card reader shows a small card pop-up. The transit card screen shows the balance, today's spend and journeys, and the Station Codex has a leather cover, sliding tabs and a page turn (#131).
+- Announcements can speak with ATR's own downloadable voices, Isabella, Lewis and Michael, from the Sound tab. They are English only; in another language the computer's voice reads. Nothing is added to the jar (#142).
+- Tapping at a gate or card reader shows a small card pop-up. The transit card screen shows the balance, today's spend and journeys (#131).
 - The train picker shows the hovered train in 3D on a piece of track (#132).
 - Stations on the map show quiet, busy or packed from the people waiting there (#134).
 - The Engine tab shows how long the train simulation takes each tick (#138).
 - Stratos road building, with permission from its owner: road geometry (#147), the road engine (#162), server side (#166), road blocks with paint drawn from road data (#174), road tools, preview and HUD (#176) and the road hub (#179).
 - Each road lane gets hidden MTR track along it, so a train can follow the road. Going back to a version without road track leaves the track already built in the world's MTR data; remove it with MTR's tools (#180, #190).
+- Bus lane, rural road and highway layouts in the road tools (#207).
 - Roads keep left or right: a world driving-side switch (#188), and operators can switch a whole world's roads from the hub (#195).
 - A road can be edited where other roads join it (#189), and junction templates snap onto road ends, mirrored for right-hand traffic (#191).
 - Gullies and crossings on roads. With Distant Horizons installed, its far view shows road edits within seconds; it stays optional (#193).
@@ -20,9 +20,12 @@
 - The map shows homes, landmarks and a station list (#165).
 - Station class words halt, local, hub and terminal; a halt gets a ticket machine (#153).
 - Airside shops in airport terminals, in walking order (#156).
-- A city style builds its city's real station shape on through stations (#187).
-- Hong Kong stations get West Kowloon's sweeping glass roof. St Pancras and Bangkok build their real fronts on through stations. The Utrecht, Amsterdam and Hamburg halls get their own ceilings, and Utrecht's hall its white tree columns. Amsterdam's hall is lined with Delft blue tiles and Hamburg's has steel trusses under its ceiling.
+- A city style builds its city's real station shape on through stations (#187). City cards do too: Munich, Frankfurt, Antwerp, New York and Zurich build their own fronts (#210).
+- Hong Kong stations get West Kowloon's sweeping glass roof. St Pancras and Bangkok build their real fronts on through stations. The Utrecht, Amsterdam and Hamburg halls get their own ceilings, and Utrecht's hall its white tree columns (#211). Amsterdam's hall is lined with Delft blue tiles and Hamburg's has steel trusses under its ceiling (#212).
 - MTR 4.1's train picker tiers and tag search (#159).
+- MTR 4.1's per-train rail sounds and dyeable PIDS (#148).
+- The map fills unexplored squares from saved chunks (#163), and the dashboard map shows the whole explored world (#160).
+- The Resource Pack Creator page, with Blender (glTF Binary and OBJ) and Blockbench model import; it works offline (#184).
 
 ### Changed
 - Timetabled trains leave at the same minutes each hour and catch up at the end of the line (#140).
@@ -38,13 +41,19 @@
 - Wing waiting rooms open into the paid hall only (#168).
 - Zip lines get a seat with ropes and a thick shaded cable (#178).
 - The neural announcer voice is English only (#155).
-- Performance: no per-tick reflection, idle simulator tasks, per-second cargo writes or per-row list sorts (#164).
+- Performance: no per-tick reflection, idle simulator tasks or per-row list sorts (#164).
+- A station on a hillside or over a deep dip levels its ground instead of being refused, and one undo puts back both the ground and the station. Chests, signs and other blocks with contents are built over, and undo returns them with their contents (#201).
+- The Aurelia panel lists seven groups (Trains, Sound, Look, Build, Passengers, Map, Tools) instead of seventeen tabs (#205).
+- Booth windows, airport desks, baggage belts, the windsock, apron floodlights and CCTV cameras get real shapes. Operator station signs carry generic marks instead of real logos (#203).
 
 ### Removed
 - The minimap (#154).
 - Road cars and the Bus & Road dashboard; hire bikes stay (#172).
 - Crew roles and the driver extras; AWS and TPWS stay (#171).
 - The `/aurelia_live_stress` developer command (#170).
+- Station Studio's "From a photo" button, the in-game station editor screen (drawn tracks and shapes still build), `/atr_bridge` bridge templates (only its undo stays, for the wrench's Bridge mode), and the Station Guide, Rail Stylus and Box Tunnel tools, which stay as retired items so old worlds load (#202).
+- At airports, the concrete-block fire engines, the blank stand number boards and the taxi rank sign (#208).
+- Freight loading at cargo loaders and unloaders, ATR's driver key box (MTR's own is back), and the Station Codex, which stays as a retired item. Freight already held in trains is lost (#213).
 
 ### Fixed
 - MTR 4.0.6's fixes: vehicles no longer snap or jump while syncing, and the Class 345 and Class 377 have their new sounds (#143).
@@ -55,16 +64,10 @@
 - A city or grand station building gets its class's platform length, not 48 (#185).
 - Hill slowdown works together with MAGIC's speed-limit redirect (#194).
 - The smallest GUI scale shows the hub's layout between the strip's arrows (#192).
-
-### Pending: open pull requests, not merged yet
-Move each line up when its pull request merges, and delete what misses the release.
-- MTR 4.1's per-train rail sounds and dyeable PIDS (#148).
-- Escalators get glass balustrades above a thin steel skirt (#152).
-- The map: unexplored squares filled from saved chunks (#163), and the dashboard map shows the whole explored world (#160).
-- The Resource Pack Creator page, with Blender and Blockbench model import (#184).
-
-### Fixed
-- The dashboard's Resource Pack Creator opens a working creator again: it was an empty page in every ATR jar. It also imports Blender models as glTF Binary (.glb), loads Blender's OBJ export with any texture file names, and shows its icons without internet (#184).
+- MTR Rail Works and MAGIC load on ATR again; both crashed at launch (#206).
+- Taxiway curve lines draw as one joined line instead of a chain of squares (#208).
+- Station Studio's Build it builds the station the page shows, not an older pending plan, and the airport page leaves the wrench on its airport page (#209).
+- The dashboard's Resource Pack Creator opens a working creator again: it was an empty page in every ATR jar (#184).
 
 ## 1.1.0 public beta (4.0.5+atr.1.1.0), Minecraft 1.20.1, Fabric
 
