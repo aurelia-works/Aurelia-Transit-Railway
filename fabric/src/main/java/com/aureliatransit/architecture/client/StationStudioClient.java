@@ -168,7 +168,7 @@ public final class StationStudioClient {
 	private static String sentAnswer(StationWrenchItem.Action wanted) {
 		return switch (wanted) {
 			case PLAN -> "Sent. The plan appears in front of you, facing the way you look; chat has the details.";
-			case CONFIRM -> "Sent. Building starts if the plan passed its checks; see chat.";
+			case CONFIRM -> "Sent. Building starts if the plan in front of you is this design and passed its checks; if not, this design is planned first. See chat.";
 			case UNDO -> "Sent. Undoing your last build.";
 			case CANCEL -> "Sent. The pending plan is cancelled.";
 			default -> "Saved on your station wrench.";

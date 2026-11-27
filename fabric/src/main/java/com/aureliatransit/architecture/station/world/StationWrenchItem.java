@@ -205,15 +205,16 @@ public class StationWrenchItem extends Item {
 			if (stack.getItem() instanceof StationWrenchItem) {
 				setDescription(stack, text);
 				setRecipe(stack, recipe);
-				setMode(stack, WrenchMode.STATION);
+				// the airport page's design opens on the wrench's airport page
+				setMode(stack, StationDescriptionParser.parse(text).spec().isAirport() ? WrenchMode.AIRPORT : WrenchMode.STATION);
 			}
 		}
 		switch (action) {
 			case SAVE -> player.sendMessage(Text.literal("Station Studio design saved on the wrench.").formatted(Formatting.GRAY), true);
 			case PLAN -> StationActions.plan(player, text, null);
 			case PREVIEW -> StationActions.preview(player);
-			case CONFIRM -> StationActions.confirm(player, false);
-			case CONFIRM_REPLACE_TERRAIN -> StationActions.confirm(player, true);
+			case CONFIRM -> StationActions.confirmFromStudio(player, text, false);
+			case CONFIRM_REPLACE_TERRAIN -> StationActions.confirmFromStudio(player, text, true);
 			case CANCEL -> StationActions.cancel(player);
 			case UNDO -> StationActions.undo(player);
 		}

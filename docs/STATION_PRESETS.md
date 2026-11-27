@@ -75,8 +75,6 @@ These are reference material only; no third-party images are shipped in the mod.
   curved roof needs a shed shape the generator does not have.
 - No client screenshots were taken for this pass. The evidence is measured plans plus the audit, realism and passenger
   walk tests.
-- The Studio "Build it" button still confirms the previous pending plan instead of binding to the previewed plan; that
-  is a separate Studio UX bug and is not fixed here.
 
 ## Tests run
 
