@@ -8,8 +8,8 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 
 /**
- * Common/server init of the station generator: the {@code /ata_station} actions and {@code /ata_guide} commands, the guide
- * book on an operator's first join, one server tick listener (idle unless a build or preview is running), the wrench's
+ * Common/server init of the station generator: the {@code /ata_station} actions, the build pace sent on join, one server
+ * tick listener (idle unless a build or preview is running), the wrench's
  * left-click and cleanup when players leave or the server stops. The word command is registered only for the scripted visual
  * shots ({@code -Datr.visualshots=...}) and the game tests ({@code -Dfabric-api.gametest}); players plan from the wrench and
  * the ATR menu. The wrench item is registered in
