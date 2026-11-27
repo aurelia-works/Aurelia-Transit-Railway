@@ -1,28 +1,24 @@
 package com.aureliatransit.architecture.station.world;
 
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.client.item.TooltipContext;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 
-/** The Station Codex ({@link StationGuide}): right-click to open it. Opening is client only; the server does nothing. */
+import java.util.List;
+
+/** The retired Station Codex: kept registered so old inventories keep the stack. It does nothing and says so. */
 public class StationCodexItem extends Item {
-
-	/** Client only: opens the Codex screen. Set by the client initializer. */
-	public static Runnable openScreen = () -> {
-	};
 
 	public StationCodexItem(Settings settings) {
 		super(settings);
 	}
 
 	@Override
-	public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
-		if (world.isClient) {
-			openScreen.run();
-		}
-		return TypedActionResult.success(player.getStackInHand(hand), world.isClient);
+	public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
+		tooltip.add(Text.translatable("tooltip.aurelia_transit_architecture.station_codex.retired").formatted(Formatting.GRAY));
 	}
 }

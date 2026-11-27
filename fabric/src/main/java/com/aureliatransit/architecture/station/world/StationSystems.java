@@ -28,13 +28,9 @@ public final class StationSystems {
 	public static void init() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			StationCommand.register(dispatcher, wordPlans());
-			StationGuide.register(dispatcher);
 			com.aureliatransit.architecture.earthworks.world.EarthworksCommand.register(dispatcher);
 		});
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			StationGuide.welcome(handler.getPlayer());
-			ModPackets.sendStationPace(handler.getPlayer());
-		});
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> ModPackets.sendStationPace(handler.getPlayer()));
 		ServerTickEvents.END_SERVER_TICK.register(StationSessions::tick);
 		AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> StationWrenchItem.attack(player, world, hand));
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {

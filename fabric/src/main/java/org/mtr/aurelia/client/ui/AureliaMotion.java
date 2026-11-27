@@ -35,10 +35,4 @@ public final class AureliaMotion {
 		final float u = t - 1;
 		return 1 + (c + 1) * u * u * u + c * u * u;
 	}
-
-	/** A swing that dies away: {@code degrees} at its widest, {@code hertz} swings a second, gone in about a second. */
-	public static float swing(long start, float degrees, float hertz) {
-		final float seconds = Math.max(0, now() - start) / 1000F;
-		return (float) (degrees * Math.exp(-seconds / 0.45) * Math.sin(seconds * 2 * Math.PI * hertz));
-	}
 }

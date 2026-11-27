@@ -26,8 +26,6 @@ import org.mtr.mapping.registry.CommandBuilder;
 import org.mtr.mapping.registry.Registry;
 import org.mtr.mapping.tool.DummyClass;
 import org.mtr.mixin.PlayerTeleportationStateAccessor;
-import org.mtr.mod.cargo.CargoPackets;
-import org.mtr.mod.cargo.CargoService;
 import org.mtr.mod.config.Config;
 import org.mtr.mod.coupling.CouplingService;
 import org.mtr.mod.data.ArrivalsCacheServer;
@@ -128,7 +126,6 @@ public final class Init implements Utilities {
 		REGISTRY.registerPacket(PacketUpdateVehiclesLifts.class, PacketUpdateVehiclesLifts::new);
 		REGISTRY.registerPacket(PacketUpdateVehicleRidingEntities.class, PacketUpdateVehicleRidingEntities::new);
 		REGISTRY.registerPacket(PacketFetchNetworkData.class, PacketFetchNetworkData::new);
-		CargoPackets.register();
 
 		// Register command
 		REGISTRY.registerCommand("mtr", commandBuilderMtr -> {
@@ -193,7 +190,6 @@ public final class Init implements Utilities {
 			serverPort = defaultPort <= 0 ? -1 : findFreePort(defaultPort);
 			final Path mtrDirectory = minecraftServer.getSavePath(WorldSavePath.getRootMapped()).resolve("mtr");
 			main = new Main(mtrDirectory, serverPort, Config.getServer().getUseThreadedSimulation(), Config.getServer().getUseThreadedFileLoading(), Init::setupWebserver, WORLD_ID_LIST.toArray(new String[0]));
-			CargoService.attach(main, mtrDirectory);
 			CouplingService.attach(main, mtrDirectory);
 
 			serverTick = 0;
@@ -232,7 +228,6 @@ public final class Init implements Utilities {
 		});
 
 		REGISTRY.eventRegistry.registerServerStopping(minecraftServer -> {
-			CargoService.stop();
 			CouplingService.stop();
 			if (main != null) {
 				main.stop();
@@ -258,7 +253,6 @@ public final class Init implements Utilities {
 				if (currentMillis - lastSavedMillis > AUTOSAVE_INTERVAL) {
 					CouplingService.onAutosave();
 					main.save();
-					CargoService.onAutosave();
 					lastSavedMillis = currentMillis;
 				}
 			}
@@ -275,15 +269,11 @@ public final class Init implements Utilities {
 			if (main != null) {
 				final String dimension = getWorldId(new World(serverWorld.data));
 				main.processMessagesS2C(WORLD_ID_LIST.indexOf(dimension), queueObject -> MinecraftOperationProcessor.process(queueObject, serverWorld, dimension));
-				CargoService.onWorldEnd(serverWorld.data, dimension);
 				CouplingService.onWorldEnd(dimension);
 			}
 		});
 
-		REGISTRY.eventRegistry.registerPlayerJoin((minecraftServer, serverPlayerEntity) -> {
-			updatePlayer(serverPlayerEntity, false);
-			CargoService.onPlayerJoin(serverPlayerEntity);
-		});
+		REGISTRY.eventRegistry.registerPlayerJoin((minecraftServer, serverPlayerEntity) -> updatePlayer(serverPlayerEntity, false));
 		REGISTRY.eventRegistry.registerPlayerDisconnect((minecraftServer, serverPlayerEntity) -> RIDING_PLAYERS.remove(serverPlayerEntity.getUuid()));
 
 		// Finish registration

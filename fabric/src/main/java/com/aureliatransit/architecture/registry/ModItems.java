@@ -28,7 +28,7 @@ public final class ModItems {
 	/** Old airport wrench id: kept registered so old worlds load; it is the same wrench, opening in Airport mode. */
 	public static final Item AIRPORT_WRENCH = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("airport_wrench"),
 			new AirportWrenchItem(new Item.Settings().maxCount(1)));
-	/** The station generator's guide; opens the Codex screen. */
+	/** The retired Station Codex: kept registered so old worlds load; it does nothing. */
 	public static final Item STATION_CODEX = Registry.register(Registries.ITEM, AureliaTransitArchitecture.id("station_codex"),
 			new StationCodexItem(new Item.Settings().maxCount(1)));
 

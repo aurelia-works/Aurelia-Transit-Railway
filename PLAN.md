@@ -1,6 +1,6 @@
 # ATR plan to V1
 
-Phase statuses are as of 2026-11-26. Jah's scope decisions of 2026-11-24 are applied below. The brief for the run to V1 is Jah's `ATR-GOAL.md`, which is not in the repo. Old handoffs are in `docs/handoffs/`; the long per-phase notes of finished phases are in this file's git history.
+Phase statuses are as of 2026-11-26. Jah's scope decisions of 2026-11-24 are applied below. The brief for the run to V1 is Jah's `ATR-GOAL.md`, which is not in the repo. Old handoffs and agent notes are in `dev/`; the long per-phase notes of finished phases are in this file's git history.
 
 ## What ATR is
 - A drop-in replacement for MTR 4.0.5 on Minecraft 1.20.1 Fabric: mod id `mtr`, block and item ids, the save format and the 4.0.5 methods add-ons hook (`DropInSignaturesTest`) never change. 1.20.1 only.

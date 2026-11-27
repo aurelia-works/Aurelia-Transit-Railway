@@ -125,7 +125,7 @@ from MTR issue #1287: four rails take 100 fps to 40. These are the shapes to rep
 
 Measured with the dev perf bench (`JAVA_TOOL_OPTIONS=-Xmx3000m ./gradlew :fabric:runPerfbench -Patr.world="ATR Bench"`)
 on Jah's M1 MacBook Air (8 GB), on master plus the #60 branch just before it merged. Raw output:
-`docs/handoffs/perfbench-2026-11-09.txt`.
+`dev/handoffs/perfbench-2026-11-09.txt`.
 
 - World: "ATR Bench", a copy of ATR Visual. One parked 2-car NS Civity; the camera stands 40, 100 and 170 m from it.
 - Sodium 0.5.13, Iris 1.7.6, Complementary Reimagined r5.9.3, vsync off, frame cap 260, render distance 10 chunks.

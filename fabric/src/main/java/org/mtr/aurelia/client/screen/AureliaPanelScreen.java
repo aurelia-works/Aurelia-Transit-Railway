@@ -1,6 +1,5 @@
 package org.mtr.aurelia.client.screen;
 
-import com.aureliatransit.architecture.client.CodexScreen;
 import com.aureliatransit.architecture.client.HologramSettings;
 import com.aureliatransit.architecture.client.StationHologramRenderer;
 import com.aureliatransit.architecture.client.StationPaceSlider;
@@ -222,9 +221,9 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 	private org.mtr.aurelia.client.voice.VoiceInstaller.Status voiceShownStatus;
 	private int voiceShownPercent = -1;
 	private static final int TRAIN_SOUND_ROWS = 15;
-	/** The Architecture tab's rows: studio, the four wrench modes, give wrench, action bar, the four guide buttons, hologram switches and build pace (operators). */
+	/** The Architecture tab's rows: studio, the four wrench modes, give wrench, action bar, hologram switches and build pace (operators). */
 	private int architectureFirst;
-	private static final int ARCHITECTURE_ROWS = 16;
+	private static final int ARCHITECTURE_ROWS = 12;
 	private boolean hologramMore;
 	private int drivingFirst;
 	private int engineFirst;
@@ -1025,7 +1024,7 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 		return itemStack.getItem() == Items.RAIL_BUILDER.get().data;
 	}
 
-	/** ATA's tools: Station Studio opens in the browser; each wrench mode button opens the wrench in the player's hand; guide buttons open the Station Codex. */
+	/** ATA's tools: Station Studio opens in the browser; each wrench mode button opens the wrench in the player's hand. */
 	private void initArchitecture() {
 		final int left = columnLeft();
 		architectureFirst = Math.max(0, Math.min(architectureFirst, architectureRows() - visibleRows()));
@@ -1063,64 +1062,37 @@ public final class AureliaPanelScreen extends CompatScreen implements DashboardP
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.action_bar.tooltip")));
 		}
 		if (architectureRow(7)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.codex"), b -> {
-				close();
-				CodexScreen.open();
-			}).dimensions(left, architectureY(7), BUTTON_WIDTH, 20).build());
-		}
-		if (architectureRow(8)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.guide.start"), b -> {
-				close();
-				CodexScreen.openChapter("Getting started");
-			}).dimensions(left, architectureY(8), BUTTON_WIDTH, 20).build());
-		}
-		if (architectureRow(9)) {
-			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.guide.wayfinding"), b -> {
-				close();
-				CodexScreen.openChapter("Finding your way");
-			}).dimensions(left, architectureY(9), BUTTON_WIDTH, 20).build())
-					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.guide.wayfinding.tooltip")));
-		}
-		if (architectureRow(10)) {
-			final ButtonWidget item = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.guide.item"), b -> {
-				if (client != null && client.player != null) {
-					client.player.networkHandler.sendChatCommand("ata_guide");
-				}
-			}).dimensions(left, architectureY(10), BUTTON_WIDTH, 20).build());
-			item.active = operator();
-		}
-		if (architectureRow(11)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram", ScreenTexts.onOrOff(HologramSettings.enabled())), b -> {
 				HologramSettings.setEnabled(!HologramSettings.enabled());
 				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram", ScreenTexts.onOrOff(HologramSettings.enabled())));
-			}).dimensions(left, architectureY(11), BUTTON_WIDTH, 20).build())
+			}).dimensions(left, architectureY(7), BUTTON_WIDTH, 20).build())
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.tooltip")));
 		}
-		if (architectureRow(12)) {
+		if (architectureRow(8)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram.fallback", ScreenTexts.onOrOff(HologramSettings.particles())), b -> {
 				HologramSettings.setParticles(!HologramSettings.particles());
 				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram.fallback", ScreenTexts.onOrOff(HologramSettings.particles())));
-			}).dimensions(left, architectureY(12), BUTTON_WIDTH, 20).build())
+			}).dimensions(left, architectureY(8), BUTTON_WIDTH, 20).build())
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.fallback.tooltip")));
 		}
-		if (architectureRow(13)) {
+		if (architectureRow(9)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram." + (hologramMore ? "less" : "more")), b -> {
 				hologramMore = !hologramMore;
 				clearAndInit();
-			}).dimensions(left, architectureY(13), BUTTON_WIDTH, 20).build())
+			}).dimensions(left, architectureY(9), BUTTON_WIDTH, 20).build())
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.more.tooltip")));
 		}
-		if (hologramMore && architectureRow(14)) {
+		if (hologramMore && architectureRow(10)) {
 			addDrawableChild(ButtonWidget.builder(Text.translatable("gui.aurelia.architecture.hologram.tint", ScreenTexts.onOrOff(HologramSettings.tint())), b -> {
 				HologramSettings.setTint(!HologramSettings.tint());
 				b.setMessage(Text.translatable("gui.aurelia.architecture.hologram.tint", ScreenTexts.onOrOff(HologramSettings.tint())));
-			}).dimensions(left, architectureY(14), BUTTON_WIDTH, 20).build())
+			}).dimensions(left, architectureY(10), BUTTON_WIDTH, 20).build())
 					.setTooltip(Tooltip.of(Text.translatable("gui.aurelia.architecture.hologram.tint.tooltip")));
 		}
-		if (hologramMore && architectureRow(15)) {
+		if (hologramMore && architectureRow(11)) {
 			final int all = StationHologramRenderer.minLayer() - 1;
 			final int highest = Math.max(all + 1, StationHologramRenderer.maxLayer());
-			addDrawableChild(new RangeSlider(left, architectureY(15), all, highest, 1,
+			addDrawableChild(new RangeSlider(left, architectureY(11), all, highest, 1,
 					() -> HologramSettings.layer() == HologramSettings.ALL_LAYERS ? all : HologramSettings.layer(),
 					value -> HologramSettings.setLayer(value <= all ? HologramSettings.ALL_LAYERS : (int) Math.round(value)),
 					value -> value <= all ? Text.translatable("gui.aurelia.architecture.hologram.layer.all")
