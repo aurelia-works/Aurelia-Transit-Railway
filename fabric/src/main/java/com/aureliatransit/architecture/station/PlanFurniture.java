@@ -420,6 +420,8 @@ abstract class PlanFurniture extends PlanRoofs {
 		}
 		if (spec.building() == BuildingStyle.MODERN) {
 			treeColumns(hall, uGate);
+		} else if (spec.building() == BuildingStyle.AMSTERDAM) {
+			delftTiles(hall, uGate);
 		}
 		// no single benches on the ground floor: one seat by the lift or the gates looked dropped there (Jah, 10-22);
 		// upstairs, seats only in the waiting area (Enviro, 10-20)
@@ -432,6 +434,9 @@ abstract class PlanFurniture extends PlanRoofs {
 		}
 		if (spec.furniture()) {
 			hallDressing(uS, uP, vS, vE, vEntr, uGate, b);
+			if (spec.building() == BuildingStyle.CLINKER) {
+				hallTrusses(hall, uGate);
+			}
 		}
 		// clock above the entrance, facing into the hall
 		put(Role.FIXTURE, uS + 1, 4, vEntr, LocalDir.PLUS_U, "aurelia_transit_architecture:wall_digital_clock");
@@ -461,6 +466,77 @@ abstract class PlanFurniture extends PlanRoofs {
 					put(y == StationGeometry.UPPER_FLOOR_Y - 1 ? Role.COLUMN_CAP : Role.COLUMN, u, y, v, LocalDir.PLUS_V,
 							"aurelia_transit_architecture:utrecht_tree_column_white");
 				}
+			}
+		}
+	}
+
+	/** Amsterdam Centraal's Delft tiles: cobalt-painted tiles between plain white ones, as in the Cuyperspassage's tile wall. */
+	static final String DELFT_BLUE = "minecraft:blue_glazed_terracotta";
+	static final String DELFT_WHITE = "minecraft:smooth_quartz";
+
+	/**
+	 * Amsterdam Centraal's tiled walls (the Cuyperspassage's blue and white tableau): the hall's walls lined from the floor to the
+	 * ceiling in Delft tiles, a painted tile beside each white one, wherever a stretch of wall is left free by the shops, the
+	 * doorways and the gate line.
+	 */
+	void delftTiles(HallZones.Hall hall, int uGate) {
+		final Set<ConcourseFit.Spot> keep = HallZones.keptClear(hall, uGate);
+		// each wall: its cells (wall u, wall v) and the hall cell in front of them, and the way the tiles face
+		for (int u = hall.uS() + 1; u < hall.uP(); u++) {
+			delftColumn(hall, keep, uGate, u, hall.vS(), u, hall.vS() + 1, LocalDir.PLUS_V);
+			delftColumn(hall, keep, uGate, u, hall.vE(), u, hall.vE() - 1, LocalDir.MINUS_V);
+		}
+		for (int v = hall.vS() + 1; v < hall.vE(); v++) {
+			delftColumn(hall, keep, uGate, hall.uS(), v, hall.uS() + 1, v, LocalDir.PLUS_U);
+			delftColumn(hall, keep, uGate, hall.uP(), v, hall.uP() - 1, v, LocalDir.MINUS_U);
+		}
+	}
+
+	/** One column of tiles at (u, v) against the wall at (wu, wv), if the wall is solid behind all of it and the column free. */
+	private void delftColumn(HallZones.Hall hall, Set<ConcourseFit.Spot> keep, int uGate, int wu, int wv, int u, int v, LocalDir face) {
+		if (Math.abs(u - uGate) < 2 || keep.contains(new ConcourseFit.Spot(u, v)) || nearOpening(hall, u, v)) {
+			return;
+		}
+		for (int y = StationGeometry.WALK_Y; y < StationGeometry.UPPER_FLOOR_Y - 1; y++) {
+			final PlannedBlock behind = at(wu, y, wv);
+			if (behind == null || behind.role() != Role.WALL || taken(u, y, v)) {
+				return;
+			}
+		}
+		for (int y = StationGeometry.WALK_Y; y < StationGeometry.UPPER_FLOOR_Y - 1; y++) {
+			put(Role.WALL, u, y, v, face, Math.floorMod(u + v + y, 2) == 0 ? DELFT_BLUE : DELFT_WHITE);
+		}
+	}
+
+	/** True when a doorway in the hall's walls is within {@link HallZones#APRON} cells of (u, v). */
+	private static boolean nearOpening(HallZones.Hall hall, int u, int v) {
+		for (final ConcourseFit.Spot o : hall.openings()) {
+			if (Math.abs(o.u() - u) <= HallZones.APRON && Math.abs(o.v() - v) <= HallZones.APRON) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Cells between Hamburg Hbf's trusses across its hall. */
+	static final int HALL_TRUSS_PITCH = 4;
+
+	/**
+	 * Hamburg Hbf's riveted steel: a truss hung under the hall's ceiling across it, from the street wall to the platform wall,
+	 * every {@link #HALL_TRUSS_PITCH} cells, only under ceiling (not under the double height by the door) and over nothing
+	 * that reaches up to it.
+	 */
+	void hallTrusses(HallZones.Hall hall, int uGate) {
+		final int y = StationGeometry.UPPER_FLOOR_Y - 2;
+		final int open = Math.min(hall.uS() + HALL_OPEN_DEPTH, uGate - 2);
+		for (int v = hall.vS() + 2; v < hall.vE() - 1; v += HALL_TRUSS_PITCH) {
+			for (int u = Math.max(hall.uS() + 1, open + 2); u < hall.uP(); u++) {
+				final PlannedBlock above = at(u, y + 1, v);
+				if (above == null || above.role() != Role.BUILDING_ROOF && above.role() != Role.LIGHT_PANEL || taken(u, y, v) || taken(u, y - 1, v)
+						|| !clearOfFlights(u, v, y)) {
+					continue;
+				}
+				put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_U, "aurelia_transit_architecture:hamburg_hall_truss");
 			}
 		}
 	}
