@@ -13,7 +13,7 @@ Thanks for trying Aurelia Transit Railway before it goes public. This is a beta:
 MAGIC, MTR Rail Works and MTR France Addon were checked against this build but not launched with it. Tell us if any MTR add-on does not work.
 
 ## What to try
-Take the **ATR Wrench** from the creative tab. Press **V**, or sneak and scroll, to change its mode. The Aurelia panel has every switch; set its key under Controls, in the Aurelia Transit Railway section.
+Take the **ATR Wrench** from the creative tab. Press **V**, or sneak and scroll, to change its mode. Press **M** for the Aurelia panel, which has every switch.
 - **Station**: open Station Studio from the wrench, plan a station in your browser, press Build it, then undo it. Try a big one (up to 32 tracks), a small one, and one on a hillside.
 - **Airport**: plan an airport, and walk from a gate through a jet bridge onto a parked plane.
 - **Bridge**: click a rail's two nodes and build a viaduct, a truss, an arch viaduct, a suspension span or a tunnel portal.
