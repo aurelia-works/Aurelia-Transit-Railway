@@ -121,8 +121,12 @@ abstract class PlanState {
 		// building is the entrance block under its tower, not a wing along the full shed (10-24)
 		this.wingBays = site.building() && !spec.real().trainShed() ? wingBays(scale.wingSpan(length, named != null), length, site.vStart(), site.vEnd()) : 0;
 		// a side sheet that runs the length of the building needs a grand one with room for its end pavilions; else the generic one stays
-		this.landmark = named != null && named.anchor() == Landmark.Anchor.SIDE
-				&& (named.compactOnly() && scale != StationScale.COMPACT || named.usesEnd() && (scale != StationScale.GRAND || wingBays < Landmarks.MIN_SIDE_WINGS)) ? null : named;
+		// a front too long for the wings keeps its middle, so the city still shows (Amsterdam Centraal's long front is all of a piece)
+		final boolean shortWings = named != null && named.anchor() == Landmark.Anchor.SIDE && named.usesEnd()
+				&& (scale != StationScale.GRAND || wingBays < Landmarks.MIN_SIDE_WINGS);
+		final Landmark fitted = shortWings && scale == StationScale.GRAND && !named.compactOnly() && !named.key().equals("amsterdam") ? named.centre() : null;
+		this.landmark = fitted != null ? fitted : named != null && named.anchor() == Landmark.Anchor.SIDE
+				&& (named.compactOnly() && scale != StationScale.COMPACT || shortWings) ? null : named;
 		for (final TrackLayout.PlatformBand band : layout.platforms()) {
 			canopySpans.put(band, canopySpan(spec, layout, site, band));
 		}

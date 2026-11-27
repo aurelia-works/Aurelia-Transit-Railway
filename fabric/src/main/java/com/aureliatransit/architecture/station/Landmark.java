@@ -239,7 +239,22 @@ public final class Landmark {
 
 	/** True when the sheet's wings and end pavilions follow the building's length (see {@link #END}). */
 	public boolean usesEnd() {
-		return masses.stream().anyMatch(m -> m instanceof Volume v && (Math.abs(v.x0()) >= END / 2 || Math.abs(v.x1()) >= END / 2)
+		return masses.stream().anyMatch(Landmark::atEnd);
+	}
+
+	/**
+	 * The sheet's middle alone, without its wings' end pavilions: a through station's building too short for the whole front still
+	 * gets the city's centrepiece (Gare du Nord's arches, Milano Centrale's portico), not the generic building. Null when nothing is
+	 * left.
+	 */
+	public Landmark centre() {
+		final List<Mass> middle = masses.stream().filter(m -> !atEnd(m)).toList();
+		return middle.isEmpty() || middle.size() == masses.size() ? null : new Landmark(key, anchor, names, middle, shed, compactOnly);
+	}
+
+	/** True when a mass stands at the building's ends (see {@link #END}) rather than in its middle. */
+	private static boolean atEnd(Mass m) {
+		return m instanceof Volume v && (Math.abs(v.x0()) >= END / 2 || Math.abs(v.x1()) >= END / 2)
 				|| m instanceof Tower t && Math.abs(t.x()) >= END / 2
 				|| m instanceof Dome d && Math.abs(d.x()) >= END / 2
 				|| m instanceof Gable g && Math.abs(g.x()) >= END / 2
@@ -248,7 +263,7 @@ public final class Landmark {
 				|| m instanceof Colonnade c && (Math.abs(c.x0()) >= END / 2 || Math.abs(c.x1()) >= END / 2)
 				|| m instanceof Pinnacles p && (Math.abs(p.x0()) >= END / 2 || Math.abs(p.x1()) >= END / 2)
 				|| m instanceof Ceiling c && (Math.abs(c.x0()) >= END / 2 || Math.abs(c.x1()) >= END / 2)
-				|| m instanceof Clock c && Math.abs(c.x()) >= END / 2);
+				|| m instanceof Clock c && Math.abs(c.x()) >= END / 2;
 	}
 
 	/** True for a small station's sheet, drawn on a compact building only (a bigger one's rooms outgrow its roofs' lights). */

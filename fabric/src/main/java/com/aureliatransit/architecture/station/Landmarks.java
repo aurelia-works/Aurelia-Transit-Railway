@@ -645,16 +645,28 @@ public final class Landmarks {
 	 */
 	public static Landmark shapeOf(StationSpec spec) {
 		final Landmark real = of(spec);
-		if (real != null || !spec.options().lookSheet() || spec.terminus() || spec.buildingScale() == StationScale.COMPACT) {
+		// a city card names its real station ("real paris"); on a through station a terminus front can't be that station, so the
+		// card borrows its front the way "paris style" does, at the real station's size (Jah 11-27: not a recolour of one building)
+		final boolean borrowed = spec.options().lookSheet() || spec.name().isEmpty() && !spec.options().sheet().isEmpty();
+		if (real != null || !borrowed || spec.terminus() || spec.buildingScale() == StationScale.COMPACT) {
 			return real;
 		}
 		for (final Landmark landmark : ALL) {
 			if (landmark.named(spec.options().sheet())) {
+				if (!spec.options().lookSheet() && NOT_BORROWED.contains(landmark)) {
+					return null;
+				}
 				return carries(landmark, spec) ? landmark : carries(landmark.twin(), spec) ? landmark.twin() : null;
 			}
 		}
 		return null;
 	}
+
+	/**
+	 * Fronts a city card does not lend a through station: a sweep of 72 card settings (11-27) found St Pancras's pinnacles floating
+	 * and Hua Lamphong's arch hanging too low over the concourse on most of them.
+	 */
+	private static final java.util.Set<Landmark> NOT_BORROWED = java.util.Set.of(ST_PANCRAS, BANGKOK);
 
 	/** True when the station can take the landmark's sheet by a city word. */
 	private static boolean carries(Landmark landmark, StationSpec spec) {
