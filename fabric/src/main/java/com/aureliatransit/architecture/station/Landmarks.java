@@ -13,7 +13,6 @@ import com.aureliatransit.architecture.station.Landmark.Skin;
 import com.aureliatransit.architecture.station.Landmark.Window;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * The sheets of the real stations the presets copy (Jah, 10-21), each from photos and published sizes. The original
@@ -373,7 +372,7 @@ public final class Landmarks {
 			.arch(0, 0, 18, 10, 11, false)
 			.skin(BANGKOK_STUCCO.withRoof("minecraft:smooth_stone", "minecraft:brick_stairs"))
 			.colonnade(-18, 18, -1, 9, 3, "minecraft:smooth_quartz")
-			.volume(-20, 20, 0, 12, 10, Roof.FLAT, 1, true, false)
+			.volume(-20, 20, 0, 12, StationGeometry.BUILDING_ROOF_Y, Roof.FLAT, 1, true, false)
 			// the pedimented end pavilions and two-storey arcaded portico wings across the full head
 			.gable(-END + 5, 0, 5, 18, 4, false)
 			.gable(END - 5, 0, 5, 18, 4, false)
@@ -386,6 +385,28 @@ public final class Landmarks {
 			.volume(21, END - 11, 0, 12, 13, Roof.GABLE_X, 1, true, false)
 			.skin(BANGKOK_STUCCO.withRoof("minecraft:smooth_stone", "minecraft:brick_stairs"))
 			.hall(-END, END, 13, 60, 12)
+			.build();
+
+	/** West Kowloon's white steel and glass: fritted roof glazing between white ribs, planted slopes, clear curtain glass. */
+	static final Skin WEST_KOWLOON = new Skin("minecraft:white_concrete", "minecraft:smooth_quartz", "minecraft:polished_andesite",
+			"aurelia_transit_architecture:clear_float_glass_pane", "aurelia_transit_architecture:fritted_glass", "minecraft:smooth_quartz_stairs",
+			"minecraft:smooth_quartz_stairs", "minecraft:moss_block");
+
+	/**
+	 * Hong Kong West Kowloon (Andrew Bromberg / Aedas, 2018): one vast curved roof of glass and white steel over the departure hall,
+	 * low at its edges and rising to a tall middle, its lower slopes planted as a public green walk; under the high middle a great
+	 * glazed opening faces the city, with a deep canopy over the forecourt. The platforms lie below the hall.
+	 */
+	static final Landmark HONG_KONG = Landmark.head("hong_kong", "West Kowloon", "Hong Kong West Kowloon", "Hong Kong West Kowloon Station")
+			.skin(WEST_KOWLOON)
+			.facade(new Facade(Window.CURTAIN, 4, 3, 6, 1, 4, 1, 0, false))
+			// the glazed opening under the roof's high middle, and the forecourt canopy on round steel columns
+			.skin(glazing(WEST_KOWLOON).withTrim("minecraft:smooth_quartz"))
+			.arch(0, 0, 9, 1, 12, false)
+			.skin(WEST_KOWLOON)
+			.colonnade(-12, 12, -2, 5, 4, "aurelia_transit_architecture:steel_column_round")
+			// the roof: from the eaves at both ends of the building up to the middle
+			.volume(-SPAN, SPAN, 0, 40, StationGeometry.BUILDING_ROOF_Y, Roof.SWEEP, 16)
 			.build();
 
 	/** The shortest wings (in bays) a side sheet needs: its end pavilions stand where the wings end. */
@@ -590,7 +611,7 @@ public final class Landmarks {
 			.build();
 
 	static final List<Landmark> ALL = List.of(ST_PANCRAS, ANTWERP, GRAND_CENTRAL, FRANKFURT, ZURICH, PARIS, MILAN, MUMBAI, BANGKOK, MUNICH, BERLIN,
-			COVENTRY, TOKYO, AMSTERDAM, BEIJING, KUALA_LUMPUR, SURBITON);
+			COVENTRY, TOKYO, AMSTERDAM, BEIJING, KUALA_LUMPUR, SURBITON, HONG_KONG);
 
 	/**
 	 * The town stations among the landmarks, whose real buildings are city-sized blocks: Surbiton's runs 61 m (Coventry has no
@@ -654,20 +675,11 @@ public final class Landmarks {
 		}
 		for (final Landmark landmark : ALL) {
 			if (landmark.named(spec.options().sheet())) {
-				if (!spec.options().lookSheet() && NOT_BORROWED.contains(landmark)) {
-					return null;
-				}
 				return carries(landmark, spec) ? landmark : carries(landmark.twin(), spec) ? landmark.twin() : null;
 			}
 		}
 		return null;
 	}
-
-	/**
-	 * Fronts a city card does not lend a through station: a sweep of 72 card settings (11-27) found St Pancras's pinnacles floating
-	 * and Hua Lamphong's arch hanging too low over the concourse on most of them.
-	 */
-	private static final Set<Landmark> NOT_BORROWED = Set.of(ST_PANCRAS, BANGKOK);
 
 	/** True when the station can take the landmark's sheet by a city word. */
 	private static boolean carries(Landmark landmark, StationSpec spec) {

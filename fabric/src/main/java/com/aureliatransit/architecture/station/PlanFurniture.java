@@ -418,6 +418,9 @@ abstract class PlanFurniture extends PlanRoofs {
 				}
 			}
 		}
+		if (spec.building() == BuildingStyle.MODERN) {
+			treeColumns(hall, uGate);
+		}
 		// no single benches on the ground floor: one seat by the lift or the gates looked dropped there (Jah, 10-22);
 		// upstairs, seats only in the waiting area (Enviro, 10-20)
 		// upstairs, the concourse fit-out seats a big floor on its own (islands, shops, boards); the wall benches of the old
@@ -436,6 +439,53 @@ abstract class PlanFurniture extends PlanRoofs {
 		// to anyone near it (Jah, 10-22)
 		put(Role.FIXTURE, (uS + uP) / 2, StationGeometry.UPPER_WALK_Y + 1, vS + 1, LocalDir.PLUS_V,
 				"aurelia_transit_architecture:concourse_board");
+	}
+
+	/** Cells between Utrecht Centraal's white tree columns in its hall. */
+	static final int TREE_COLUMN_PITCH = 6;
+
+	/**
+	 * Utrecht Centraal's hall stands on slender white tree columns: a grid of them from the floor to the hung ceiling, each in a
+	 * cell with nothing round it, off the walk from the door to the gates, the gate line and the double height by the door.
+	 */
+	void treeColumns(HallZones.Hall hall, int uGate) {
+		final Set<ConcourseFit.Spot> keep = HallZones.keptClear(hall, uGate);
+		final int open = hall.uS() + HALL_OPEN_DEPTH;
+		for (int u = hall.uS() + 3; u < hall.uP() - 1; u += TREE_COLUMN_PITCH) {
+			for (int v = hall.vS() + 3; v < hall.vE() - 1; v += TREE_COLUMN_PITCH) {
+				if (u <= open + 1 || Math.abs(u - uGate) < 2 || !clearAround(hall, keep, u, v)) {
+					continue;
+				}
+				for (int y = StationGeometry.WALK_Y; y < StationGeometry.UPPER_FLOOR_Y; y++) {
+					// its branching head under the ceiling is the column's cap
+					put(y == StationGeometry.UPPER_FLOOR_Y - 1 ? Role.COLUMN_CAP : Role.COLUMN, u, y, v, LocalDir.PLUS_V,
+							"aurelia_transit_architecture:utrecht_tree_column_white");
+				}
+			}
+		}
+	}
+
+	/** True when the cell and the eight round it are inside the hall, off the kept walk and free to head height. */
+	private boolean clearAround(HallZones.Hall hall, Set<ConcourseFit.Spot> keep, int u, int v) {
+		for (int du = -1; du <= 1; du++) {
+			for (int dv = -1; dv <= 1; dv++) {
+				final int cu = u + du;
+				final int cv = v + dv;
+				if (!hall.inside(cu, cv) || keep.contains(new ConcourseFit.Spot(cu, cv))) {
+					return false;
+				}
+				for (int y = StationGeometry.WALK_Y; y < StationGeometry.UPPER_FLOOR_Y; y++) {
+					if (taken(cu, y, cv)) {
+						return false;
+					}
+				}
+				final PlannedBlock floor = at(cu, StationGeometry.PLATFORM_Y, cv);
+				if (floor == null || !floor.role().flatFloor()) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	static final String CONCOURSE_BOARD = "aurelia_transit_architecture:concourse_board";
@@ -499,9 +549,6 @@ abstract class PlanFurniture extends PlanRoofs {
 		}
 	}
 
-	/** A hall's hung ceiling, Rotterdam Centraal's timber slats; swap it in Studio's block swaps for a plain one. */
-	static final String HALL_CEILING = "aurelia_transit_architecture:rotterdam_timber_slat_ceiling";
-
 	/**
 	 * A ceiling hung a cell under the upper slab over {@code u0..u1, v0..v1}, its lights in lines ({@link #ceilingLight},
 	 * counted from {@code uOrigin, vOrigin}). Left out over a stair, a lift, a board or anything else reaching that high.
@@ -518,7 +565,7 @@ abstract class PlanFurniture extends PlanRoofs {
 				if (PlanBuilding.ceilingLight(u - uOrigin, v - vOrigin)) {
 					put(Role.LIGHT_PANEL, u, y, v, LocalDir.PLUS_V, light);
 				} else {
-					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, HALL_CEILING);
+					put(Role.BUILDING_ROOF, u, y, v, LocalDir.PLUS_V, palette.hallCeiling());
 				}
 			}
 		}

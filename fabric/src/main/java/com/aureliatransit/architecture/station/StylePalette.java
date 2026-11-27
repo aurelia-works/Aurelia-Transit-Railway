@@ -63,7 +63,7 @@ public final class StylePalette {
 						ata("clear_float_glass"), ata("canopy_flat"), ata("canopy_light"), ata("steel_column_square"), ata("steel_bench"),
 						ata("uk_white_render"));
 				case AMSTERDAM -> new Building(ata("amsterdam_red_brick"), ata("amsterdam_brick_sandstone_band"), ata("amsterdam_brick_sandstone_band"),
-						ata("amsterdam_stone_cornice"), ata("amsterdam_arched_window"), ata("utrecht_light_grey_floor_tile"),
+						ata("amsterdam_stone_cornice"), ata("amsterdam_arched_window"), ata("rotterdam_black_stone_floor"),
 						ata("rotterdam_black_stone_floor"), ata("amsterdam_red_brick"), ata("metro_recessed_light"), ata("station_stair"),
 						ata("rotterdam_black_stone_floor"), ata("curtain_wall_glass"), ata("canopy_flat"), ata("canopy_light"), ata("steel_column_round"),
 						ata("wooden_bench"), ata("amsterdam_red_brick"));
@@ -242,6 +242,18 @@ public final class StylePalette {
 		return new StylePalette(ata("uk_platform_tarmac"), ata(tactile ? "uk_platform_coping_tactile" : "uk_platform_coping"), ata(canopy[2]),
 				ata(canopy[2]), hall ? base.roof : ata(canopy[0]), hall ? base.roofEdge : ata(canopy[1]), base.roofLight, base.lamp, ata(canopy[3]),
 				base.sign);
+	}
+
+	/**
+	 * The ceiling hung in the station building's hall, from its look's real station: Utrecht Centraal's white acoustic panels, Amsterdam
+	 * Centraal's timber-lined passages, Hamburg Hbf's grey coffers; the timber slats elsewhere.
+	 */
+	public String hallCeiling() {
+		return switch (buildingStyle) {
+			case MODERN -> ata("metro_acoustic_ceiling");
+			case CLINKER -> ata("metro_coffer_ceiling");
+			default -> ata("rotterdam_timber_slat_ceiling");
+		};
 	}
 
 	/** The {@code kind} state of the station girders: the colour of the roof steel, from the building look or the platform style. */

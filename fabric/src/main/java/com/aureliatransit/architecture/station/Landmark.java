@@ -53,7 +53,12 @@ public final class Landmark {
 		/** Ridge along z: slopes face the sides, a gable wall on the front. */
 		GABLE_Z,
 		/** A steep lower slope with dormers, then a flat top with cresting. */
-		MANSARD
+		MANSARD,
+		/**
+		 * A curved roof (West Kowloon's): across x it rises from the walls' top at both ends to {@code rise} rows higher in the
+		 * middle, glazed between steel ribs, its low slopes planted.
+		 */
+		SWEEP
 	}
 
 	/** A tower's top. */
