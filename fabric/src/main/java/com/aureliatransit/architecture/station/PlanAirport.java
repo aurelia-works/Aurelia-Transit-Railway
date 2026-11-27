@@ -965,23 +965,12 @@ abstract class PlanAirport extends PlanFitOut {
 	}
 
 	/**
-	 * The taxilane's stand furniture: a white number board on two poles at each stand's nose, and a white-lined ground-equipment box
-	 * with two carts between each pair of stands. Kept clear of the lead-ins and the equipment restraint line, so nothing covers an
-	 * aircraft's path.
+	 * The taxilane's stand furniture: a white-lined ground-equipment box with two carts between each pair of stands, kept clear of
+	 * the lead-ins and the equipment restraint line, so nothing covers an aircraft's path.
 	 */
 	void apronLaneDetails() {
 		final int pitch = air.dims().standPitch();
 		final int first = air.standV().get(0) - pitch / 2;
-		for (int i = 0; i < air.standV().size(); i++) {
-			final int c = air.standV().get(i);
-			final int v = c - pitch / 4;
-			final int u = stopU() - 3;
-			for (int du = 0; du <= 1; du++) {
-				put(Role.FIXTURE, u + du, StationGeometry.WALK_Y, v, LocalDir.PLUS_U, LAMP_POLE);
-				put(Role.FIXTURE, u + du, StationGeometry.WALK_Y + 1, v, LocalDir.PLUS_U, PAINT_WHITE);
-				put(Role.FIXTURE, u + du, StationGeometry.WALK_Y + 2, v, LocalDir.PLUS_U, PAINT_WHITE);
-			}
-		}
 		for (int i = 0; i <= spec.airport().gates(); i++) {
 			final int v = first + i * pitch + 3;
 			final int u = air.apronU0() + 12;
@@ -1130,7 +1119,7 @@ abstract class PlanAirport extends PlanFitOut {
 
 	/**
 	 * The three support buildings the study asks for: a fire station on the apron's north edge with its doors facing the taxiway and
-	 * two tenders ready in the open bays, a hangar with its own apron link, and a bunded fuel farm on the service road. Each stands
+	 * its engine bays open, a hangar with its own apron link, and a bunded fuel farm on the service road. Each stands
 	 * on an apron or service-road area, so nothing floats and every one is reached on foot or by road.
 	 */
 	void supportBuildings() {
@@ -1212,25 +1201,7 @@ abstract class PlanAirport extends PlanFitOut {
 		}
 		put(Role.FIXTURE, u0 + 1, top + 8, v0 + 1, LocalDir.PLUS_V, LAMP_POLE);
 		put(Role.LAMP, u0 + 1, top + 9, v0 + 1, LocalDir.PLUS_V, TOWER_BEACON);
-		// two tenders in the open bays, one red body each, a white cab and black wheels
-		for (int b = 1; b < bays.length; b++) {
-			final int v = bays[b][0];
-			final int centre = (bays[b][0] + bays[b][1]) / 2;
-			for (int u = u1 - 6; u <= u1 - 2; u++) {
-				for (int dv = 0; dv <= 1; dv++) {
-					final int vv = Math.min(centre + dv, bays[b][1]);
-					put(Role.FIXTURE, u, StationGeometry.WALK_Y, vv, LocalDir.PLUS_U, "minecraft:black_concrete");
-					put(Role.FIXTURE, u, StationGeometry.WALK_Y + 1, vv, LocalDir.PLUS_U, PAINT_RED);
-					put(Role.FIXTURE, u, StationGeometry.WALK_Y + 2, vv, LocalDir.PLUS_U, PAINT_RED);
-				}
-			}
-			for (int dv = 0; dv <= 1; dv++) {
-				final int vv = Math.min(centre + dv, bays[b][1]);
-				put(Role.FIXTURE, u1 - 7, StationGeometry.WALK_Y + 1, vv, LocalDir.MINUS_U, PAINT_WHITE);
-				put(Role.FIXTURE, u1 - 7, StationGeometry.WALK_Y + 2, vv, LocalDir.MINUS_U, PAINT_WHITE);
-			}
-			put(Role.FIXTURE, u1 - 4, StationGeometry.WALK_Y + 3, v, LocalDir.PLUS_U, PAINT_WHITE);
-		}
+		// the bays stand open and empty: tenders made of concrete blocks read as placeholders, not engines
 	}
 
 	private static boolean inBay(int[][] bays, int v) {
@@ -1858,8 +1829,8 @@ abstract class PlanAirport extends PlanFitOut {
 
 	/**
 	 * The forecourt's transit frontage: a taxi rank on the arrivals side and three bus bays on the departures side, both in the outer
-	 * lane clear of the drop-off islands, with painted bay lines, the words TAXI and BUS on the ground, a bus shelter on the footway
-	 * and a rank sign. The footpath already runs from the car park to the terminal door across the zebra crossing.
+	 * lane clear of the drop-off islands, with painted bay lines, the words TAXI and BUS on the ground and a bus shelter on the
+	 * footway. The footpath already runs from the car park to the terminal door across the zebra crossing.
 	 */
 	void landTransit() {
 		final int u0 = air.roadU0();
@@ -1900,11 +1871,6 @@ abstract class PlanAirport extends PlanFitOut {
 				put(Role.FIXTURE, u0 + 1, y, v, LocalDir.MINUS_U, LAMP_POLE);
 			}
 		}
-		// the rank sign by the outer kerb
-		for (int y = StationGeometry.WALK_Y; y <= StationGeometry.WALK_Y + 2; y++) {
-			put(Role.FIXTURE, u0 + 1, y, taxiFrom, LocalDir.PLUS_U, LAMP_POLE);
-		}
-		put(Role.FIXTURE, u0 + 1, StationGeometry.WALK_Y + 3, taxiFrom, LocalDir.PLUS_U, PAINT_WHITE);
 	}
 
 	// ---- the landside car park and access road -----------------------------------------------------------------------------

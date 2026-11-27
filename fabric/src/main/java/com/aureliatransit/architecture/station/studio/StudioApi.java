@@ -902,21 +902,35 @@ public final class StudioApi {
 
 	private static final String MEMBER_BLOCK = "aurelia_transit_architecture:bridge_member";
 
+	/** The game's seam cover at a free end of a paint strip ({@code BridgeMemberRenderer}). */
+	private static final float PAINT_OVERLAP = 0.03f;
+
 	/**
-	 * A bridge member block's paint strips, as the game draws them: x0, z0, x1, z1, top y and width, in the page's block
-	 * coordinates. The block faces the plan's +v; +u is to its right.
+	 * A bridge member block's paint strips, joined as the game draws them ({@link BridgeMember#paintCorners}): per strip the top y,
+	 * then its four corners as x and z, in the page's block coordinates. The block faces the plan's +v; +u is to its right.
 	 */
 	private static void paintDecals(StringBuilder decals, PlannedBlock block, LocalFrame frame, Heading forward) {
 		final Heading right = forward.right();
 		final int x = frame.x(block.u(), block.v());
 		final int z = frame.z(block.u(), block.v());
+		final List<BridgeMember> paint = new ArrayList<>();
 		for (final BridgeMember local : BridgeMember.unpack(block.text())) {
-			if (local.material() != BridgeMember.Material.PAINT) {
+			if (local.material() == BridgeMember.Material.PAINT) {
+				paint.add(local.placed(right.dx(), right.dz(), forward.dx(), forward.dz()));
+			}
+		}
+		if (paint.isEmpty()) {
+			return;
+		}
+		final float[] c = BridgeMember.paintCorners(paint, paint.get(0).thickness() / 2, PAINT_OVERLAP);
+		for (int i = 0; i < paint.size(); i++) {
+			if (Float.isNaN(c[i * 8])) {
 				continue;
 			}
-			final BridgeMember m = local.placed(right.dx(), right.dz(), forward.dx(), forward.dz());
-			decals.append(decals.length() == 0 ? "" : ",").append(x + m.x0()).append(',').append(z + m.z0()).append(',').append(x + m.x1())
-					.append(',').append(z + m.z1()).append(',').append(block.y() + m.y0()).append(',').append(m.thickness());
+			decals.append(decals.length() == 0 ? "" : ",").append(block.y() + paint.get(i).y0());
+			for (int k = 0; k < 8; k++) {
+				decals.append(',').append((k % 2 == 0 ? x : z) + c[i * 8 + k]);
+			}
 		}
 	}
 

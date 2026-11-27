@@ -25,8 +25,11 @@ import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * Draws a bridge member block: the block it stands in for, then each member as a straight square beam between its two ends,
@@ -88,6 +91,10 @@ public final class BridgeMemberRenderer implements BlockEntityRenderer<BridgeMem
 			if (material == BridgeMember.Material.PAINT && !WrenchSettings.curvePaint() || material == BridgeMember.Material.LIGHT) {
 				continue;
 			}
+			if (material == BridgeMember.Material.PAINT) {
+				paint(entity, world, origin, matrices, vertexConsumers);
+				continue;
+			}
 			VertexConsumer buffer = null;
 			for (final BridgeMember member : entity.members()) {
 				if (member.material() != material) {
@@ -98,11 +105,7 @@ public final class BridgeMemberRenderer implements BlockEntityRenderer<BridgeMem
 				}
 				final int lit = world == null ? LightmapTextureManager.MAX_LIGHT_COORDINATE : brightest(world, BlockPos.ofFloored(
 						origin.getX() + (member.x0() + member.x1()) / 2, origin.getY() + (member.y0() + member.y1()) / 2, origin.getZ() + (member.z0() + member.z1()) / 2));
-				if (material == BridgeMember.Material.PAINT) {
-					strip(matrices, buffer, member, member.thickness() * WrenchSettings.paintWidth() / 100f, lit);
-				} else {
-					beam(matrices, buffer, member, visible(member, origin, eye, pixel), lit, PLAIN);
-				}
+				beam(matrices, buffer, member, visible(member, origin, eye, pixel), lit, PLAIN);
 			}
 		}
 		lights(entity, world, tickDelta, matrices, vertexConsumers, light, origin, eye, pixel);
@@ -206,28 +209,50 @@ public final class BridgeMemberRenderer implements BlockEntityRenderer<BridgeMem
 		return skinState;
 	}
 
-	/** Seam cover at each end of a paint strip, so the outside of a bend has no gap between pieces. */
+	/** Seam cover at a free end of a paint strip, where it meets painted cells. */
 	private static final float STRIP_OVERLAP = 0.03f;
 
-	/** A flat strip lying level from one end to the other, {@code width} across, facing up. */
-	private static void strip(MatrixStack matrices, VertexConsumer buffer, BridgeMember m, float width, int light) {
-		final float dx = m.x1() - m.x0();
-		final float dz = m.z1() - m.z0();
-		final float length = (float) Math.sqrt(dx * dx + dz * dz);
-		if (length < 1e-4f) {
+	/** Each anchor's joined paint corners, worked out again only when its members or the wrench's line width change. */
+	private final Map<BridgeMemberBlockEntity, PaintCache> paintCache = new WeakHashMap<>();
+
+	private record PaintCache(int members, float width, List<BridgeMember> paint, float[] corners) {
+	}
+
+	/**
+	 * The anchor's paint as one joined line per curve ({@link BridgeMember#paintCorners}), flat on the ground and facing up.
+	 */
+	private void paint(BridgeMemberBlockEntity entity, World world, BlockPos origin, MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
+		final float scale = WrenchSettings.paintWidth() / 100f;
+		final int hash = entity.members().hashCode();
+		PaintCache cache = paintCache.get(entity);
+		if (cache == null || cache.members() != hash || cache.width() != scale) {
+			final List<BridgeMember> paint = new ArrayList<>();
+			for (final BridgeMember member : entity.members()) {
+				if (member.material() == BridgeMember.Material.PAINT) {
+					paint.add(member);
+				}
+			}
+			final float half = paint.isEmpty() ? 0 : paint.get(0).thickness() * scale / 2;
+			cache = new PaintCache(hash, scale, paint, BridgeMember.paintCorners(paint, half, STRIP_OVERLAP));
+			paintCache.put(entity, cache);
+		}
+		if (cache.paint().isEmpty()) {
 			return;
 		}
-		final float ux = dx / length;
-		final float uz = dz / length;
-		final float ax = -uz * width / 2;
-		final float az = ux * width / 2;
-		final float sx = m.x0() - ux * STRIP_OVERLAP;
-		final float sz = m.z0() - uz * STRIP_OVERLAP;
-		final float ex = m.x1() + ux * STRIP_OVERLAP;
-		final float ez = m.z1() + uz * STRIP_OVERLAP;
-		final float y = m.y0();
-		quad(buffer, matrices.peek().getPositionMatrix(), matrices.peek().getNormalMatrix(), new float[]{sx - ax, y, sz - az}, new float[]{sx + ax, y, sz + az},
-				new float[]{ex + ax, y, ez + az}, new float[]{ex - ax, y, ez - az}, 0, 1, 0, 1, light, PLAIN);
+		final VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayer.getEntitySolid(TEXTURES.get(BridgeMember.Material.PAINT)));
+		final float[] c = cache.corners();
+		for (int i = 0; i < cache.paint().size(); i++) {
+			final int k = i * 8;
+			if (Float.isNaN(c[k])) {
+				continue;
+			}
+			final BridgeMember m = cache.paint().get(i);
+			final int lit = world == null ? LightmapTextureManager.MAX_LIGHT_COORDINATE : brightest(world, BlockPos.ofFloored(
+					origin.getX() + (m.x0() + m.x1()) / 2, origin.getY() + m.y0(), origin.getZ() + (m.z0() + m.z1()) / 2));
+			final float y = m.y0();
+			quad(buffer, matrices.peek().getPositionMatrix(), matrices.peek().getNormalMatrix(), new float[]{c[k], y, c[k + 1]},
+					new float[]{c[k + 2], y, c[k + 3]}, new float[]{c[k + 4], y, c[k + 5]}, new float[]{c[k + 6], y, c[k + 7]}, 0, 1, 0, 1, lit, PLAIN);
+		}
 	}
 
 	/** Under this many blocks thick a member is a wire or a stay, which a screen pixel can be wider than. */
