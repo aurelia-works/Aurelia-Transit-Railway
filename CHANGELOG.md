@@ -21,6 +21,7 @@
 - Station class words halt, local, hub and terminal; a halt gets a ticket machine (#153).
 - Airside shops in airport terminals, in walking order (#156).
 - A city style builds its city's real station shape on through stations (#187).
+- Hong Kong stations get West Kowloon's sweeping glass roof. St Pancras and Bangkok build their real fronts on through stations. The Utrecht, Amsterdam and Hamburg halls get their own ceilings, and Utrecht's hall its white tree columns.
 - MTR 4.1's train picker tiers and tag search (#159).
 
 ### Changed

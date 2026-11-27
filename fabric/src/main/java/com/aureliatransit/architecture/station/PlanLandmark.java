@@ -281,6 +281,7 @@ abstract class PlanLandmark extends PlanDeep {
 		switch (m.roof()) {
 			case FLAT -> flatRoof(f, m);
 			case HIPPED, GABLE_X, GABLE_Z, MANSARD -> pitched(f, m);
+			case SWEEP -> sweep(f, m);
 		}
 	}
 
@@ -524,6 +525,49 @@ abstract class PlanLandmark extends PlanDeep {
 				if (end) {
 					for (int y = base; y < topY - rise + 1; y++) {
 						at(f, Role.WALL, x, y, z, Dir.OUT, s.wall());
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * A curved roof on a volume ({@link Roof#SWEEP}): each column across x tops out on a sine from the walls' top at the ends to
+	 * {@code rise} rows over it in the middle, filled down to its lower neighbour so the steps join by a face. A steel rib of trim
+	 * every fourth column and along the eaves, glazing (the skin's roof) between the ribs, and the lowest third of the rise
+	 * planted (the skin's accent: West Kowloon's green slopes); the front and back walls are glazed up under the curve.
+	 */
+	void sweep(Front f, Volume m) {
+		final Skin s = m.skin();
+		final int top = m.height();
+		final int span = Math.max(1, m.x1() - m.x0());
+		final int[] crest = new int[span + 1];
+		for (int i = 0; i <= span; i++) {
+			crest[i] = top + 1 + (int) Math.round(m.rise() * Math.sin(Math.PI * i / span));
+		}
+		for (int i = 0; i <= span; i++) {
+			final int x = m.x0() + i;
+			final int y0 = crest[i];
+			final int below = Math.min(i > 0 ? crest[i - 1] : top, i < span ? crest[i + 1] : top);
+			final Dir up = i < span && crest[i + 1] > y0 ? Dir.RIGHT : i > 0 && crest[i - 1] > y0 ? Dir.LEFT : null;
+			final boolean rib = Math.floorMod(i, 4) == 0;
+			final boolean planted = y0 - top <= m.rise() / 3 && s.accent() != null;
+			for (int z = m.z0(); z <= m.z1(); z++) {
+				final boolean eaves = z == m.z0() || z == m.z1();
+				final String cover = rib || eaves ? s.trim() : planted ? s.accent() : s.roof();
+				for (int y = Math.max(top + 1, below + 1); y < y0; y++) {
+					at(f, Role.BUILDING_ROOF, x, y, z, Dir.OUT, cover);
+				}
+				if (up != null && (rib || eaves)) {
+					at(f, Role.BUILDING_ROOF, x, y0, z, up, s.roofStair(), BOTTOM);
+				} else {
+					at(f, Role.BUILDING_ROOF, x, y0, z, Dir.OUT, cover);
+				}
+				// the glazed front and back under the curve, a mullion every third column
+				if (eaves) {
+					for (int y = top + 1; y <= below && y < y0; y++) {
+						final boolean mullion = Math.floorMod(i, 3) == 0;
+						at(f, mullion ? Role.WALL : Role.WINDOW, x, y, z, z == m.z0() ? Dir.OUT : Dir.IN, mullion ? s.trim() : s.glass());
 					}
 				}
 			}

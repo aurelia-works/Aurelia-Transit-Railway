@@ -1885,6 +1885,7 @@ public final class StationDescriptionParser {
 				case "mumbai" -> "Mumbai CSMT";
 				case "bangkok" -> "Hua Lamphong";
 				case "amsterdam" -> "Amsterdam Centraal";
+				case "hong kong", "hongkong", "hk", "kowloon" -> "West Kowloon";
 				default -> null;
 			};
 		}
@@ -1901,7 +1902,7 @@ public final class StationDescriptionParser {
 				// the first city's own station lends a station of the player's own its building's shape (Jah, 11-24: more than four
 				// shapes); London's is St Pancras. Beijing's look is Beijing South's, not the 1959 station's, and Hua Lamphong's great
 				// window drops below headroom on a building beside the tracks (a sweep, 11-24), so both keep their own
-				lookStationName = word.equals("london") ? "St Pancras" : word.equals("beijing") || word.equals("bangkok") ? null : cityStation(word);
+				lookStationName = word.equals("london") ? "St Pancras" : word.equals("beijing") ? null : cityStation(word);
 			}
 			if (looks.isEmpty() && word.equals("amsterdam") && scale == null) {
 				// Amsterdam Centraal's long brick front, with a tower each side of its entrance, is a grand building
