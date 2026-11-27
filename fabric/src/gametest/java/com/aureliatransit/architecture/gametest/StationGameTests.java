@@ -11,7 +11,6 @@ import com.aureliatransit.architecture.block.entity.TextSignBlockEntity;
 import com.aureliatransit.architecture.registry.ModItems;
 import com.aureliatransit.architecture.station.world.MtrLiftContract;
 import com.aureliatransit.architecture.station.world.StationActions;
-import com.aureliatransit.architecture.station.world.StationGuide;
 import com.aureliatransit.architecture.station.world.StationWrenchItem;
 import com.aureliatransit.architecture.station.CellKind;
 import com.aureliatransit.architecture.station.Heading;
@@ -1545,33 +1544,6 @@ public class StationGameTests implements FabricGameTest {
 					&& op.z() == shaft.getZ()), "the shaft is not filled at " + shaft.toShortString());
 		}
 		context.complete();
-	}
-
-	// ---- guide book -------------------------------------------------------------------------------------------------
-
-	/** The guide is the Station Codex item; an operator gets it once on joining, a non-operator never. */
-	@GameTest(templateName = FabricGameTest.EMPTY_STRUCTURE)
-	public void guideBookIsGivenOnceToOperators(TestContext context) {
-		final ItemStack codex = StationGuide.codex();
-		check(codex.isOf(ModItems.STATION_CODEX) && codex.getCount() == 1, "the guide is not the Station Codex: " + codex);
-
-		final ServerPlayerEntity player = context.createMockCreativeServerPlayerInWorld();
-		check(!player.hasPermissionLevel(StationActions.PERMISSION_LEVEL), "the mock player is already an operator; this test needs one that is not");
-		check(!StationGuide.welcome(player) && books(player) == 0, "a non-operator got the guide");
-		context.getWorld().getServer().getPlayerManager().getOpList().add(new OperatorEntry(player.getGameProfile(), 4, false));
-		check(StationGuide.welcome(player) && books(player) == 1, "an operator's first join gave " + books(player) + " guides");
-		check(!StationGuide.welcome(player) && books(player) == 1, "a second join gave another guide");
-		context.complete();
-	}
-
-	private static int books(ServerPlayerEntity player) {
-		int count = 0;
-		for (int slot = 0; slot < player.getInventory().size(); slot++) {
-			if (player.getInventory().getStack(slot).isOf(ModItems.STATION_CODEX)) {
-				count += player.getInventory().getStack(slot).getCount();
-			}
-		}
-		return count;
 	}
 
 	// ---- palettes --------------------------------------------------------------------------------------------------

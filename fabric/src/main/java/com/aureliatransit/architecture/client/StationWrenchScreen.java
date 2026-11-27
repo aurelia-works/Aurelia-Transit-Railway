@@ -701,10 +701,6 @@ public class StationWrenchScreen extends CompatScreen {
 		runButton(left + half + 4, y, half, "earthworks.undo", "atr_earthworks undo");
 		y += ROW;
 		runButton(left, y, half, "earthworks.clear", "atr_earthworks clear");
-		addDrawableChild(ButtonWidget.builder(Text.translatable(KEY + "earthworks.guide"), b -> {
-			close();
-			CodexScreen.openChapter("Getting started");
-		}).dimensions(left + half + 4, y, half, 20).build());
 	}
 
 	/** The sizes the earthworks buttons show and send: the tool's own until the player changes them, kept in range. */

@@ -1,7 +1,6 @@
 package org.mtr.perfbench;
 
 import com.aureliatransit.architecture.client.AirportWrenchScreen;
-import com.aureliatransit.architecture.client.CodexScreen;
 import com.aureliatransit.architecture.client.StationStudioClient;
 import com.aureliatransit.architecture.client.StationWrenchScreen;
 import com.aureliatransit.architecture.station.StationRecipe;
@@ -31,7 +30,7 @@ import java.util.regex.Pattern;
  * containing {@code nohud} hides the HUD and chat for that shot, and {@code fov=<degrees>} sets the field of view for it.
  * Both are restored afterwards. {@code open=menu} opens the one ATR menu, {@code open=wrench} opens the wrench screen for the
  * wrench in the main hand, and
- * {@code open=book page=<n>} the written book in the main hand at that page, {@code open=codex} the Station Codex, {@code open=card slot=<n>} the history of the transit card in that inventory slot, {@code open=airport_wrench} the airport wrench; the screen is
+ * {@code open=book page=<n>} the written book in the main hand at that page, {@code open=card slot=<n>} the history of the transit card in that inventory slot, {@code open=airport_wrench} the airport wrench; the screen is
  * closed after the shot. Without a
  * wrench in hand, {@code open=wrench} opens the screen anyway with {@code recipe=<encoded choices>} (or the defaults), for its
  * live preview; its actions then do nothing. {@code wait=<ticks>} waits longer before the shot (the preview plans and meshes in
@@ -195,8 +194,6 @@ public final class DevScreenshots implements ClientModInitializer {
 				client.setScreen(new StationWrenchScreen(Hand.MAIN_HAND, "",
 						recipe.find() ? StationRecipe.decode(recipe.group(1)) : StationRecipe.defaults()));
 			}
-		} else if (content.contains("open=codex")) {
-			CodexScreen.open();
 		} else if (content.contains("open=card")) {
 			final Matcher slot = SLOT.matcher(content);
 			final ItemStack card = client.player.getInventory().getStack(slot.find() ? Integer.parseInt(slot.group(1)) : client.player.getInventory().selectedSlot);

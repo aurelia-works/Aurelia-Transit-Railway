@@ -15,8 +15,8 @@ import java.lang.reflect.Field;
  * been published. This is the server side of the editor's save: without it the first regeneration after an edit could
  * still use the cached paths built from the previous control data.
  *
- * <p>Reaches {@code Init.main} and {@code Main.simulators} reflectively, the same way the coupling and cargo services
- * do; MTR exposes no public accessor for either.
+ * <p>Reaches {@code Init.main} and {@code Main.simulators} reflectively, the same way the coupling service
+ * does; MTR exposes no public accessor for either.
  */
 public final class RouteControlRegen {
 

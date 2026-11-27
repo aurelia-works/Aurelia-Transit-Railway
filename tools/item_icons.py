@@ -2,7 +2,7 @@
 outline, and a light sweep that passes over the icon every few seconds (an animated strip plus its .mcmeta).
 
 Run from the repo root:  python3 tools/item_icons.py
-Writes the transit card and Station Codex icons, and the driver key box's block textures, into fabric/src/main/resources/assets.
+Writes the transit card and Station Codex icons into fabric/src/main/resources/assets.
 """
 import json
 import math
@@ -206,96 +206,6 @@ def write(directory, name, image):
 	print("wrote", os.path.relpath(path))
 
 
-MTR_BLOCKS = os.path.join(ROOT, "mtr", "textures", "block")
-STEEL_LIGHT = hexc("C9CED4")
-STEEL = hexc("9EA5AD")
-STEEL_DARK = hexc("6B727A")
-
-
-def brushed(seed, top, bottom, rim_light, rim_dark):
-	"""16 px brushed steel: a vertical gradient with faint horizontal grain, lit top-left and shaded bottom-right."""
-	import random
-	rng = random.Random(seed)
-	img = Image.new("RGBA", (16, 16))
-	grain = [rng.uniform(-6, 6) for _ in range(16)]
-	for y in range(16):
-		base = lerp(top, bottom, y / 15)
-		for x in range(16):
-			v = grain[y] + rng.uniform(-2, 2)
-			img.putpixel((x, y), tuple(max(0, min(255, round(c + v))) for c in base) + (255,))
-	for i in range(16):
-		img.putpixel((i, 0), rim_light + (255,))
-		img.putpixel((0, i), rim_light + (255,))
-		img.putpixel((i, 15), rim_dark + (255,))
-		img.putpixel((15, i), rim_dark + (255,))
-	return img
-
-
-def key_box_door():
-	"""The glass door: a steel frame with a yellow label plate, clear glass with two light streaks, and a lock."""
-	img = brushed(7, STEEL_LIGHT, STEEL, hexc("E2E6EA"), STEEL_DARK)
-	for y in range(3, 14):
-		for x in range(2, 14):
-			img.putpixel((x, y), (0, 0, 0, 0))
-	# inner lip of the frame: dark on top and left (in shadow), light on the bottom and right
-	for i in range(2, 14):
-		img.putpixel((i, 2), STEEL_DARK + (255,))
-		img.putpixel((1, i), STEEL_DARK + (255,))
-		img.putpixel((i, 14), STEEL_LIGHT + (255,))
-		img.putpixel((14, i), STEEL_LIGHT + (255,))
-	# the label plate on the top rail
-	for x in range(5, 11):
-		img.putpixel((x, 1), hexc("F2C230") + (255,))
-	# light streaks across the glass
-	# the glass's own top edge catches the light; the pane itself stays clear
-	for x in range(2, 14):
-		img.putpixel((x, 3), (196, 220, 236, 255))
-	return img
-
-
-def key_box_back():
-	"""The cabinet's back wall, seen through the glass: darker steel with a hook rail and three hooks."""
-	img = brushed(11, hexc("5E656D"), hexc("3E444B"), hexc("6F767E"), hexc("30353A"))
-	for x in range(2, 15):
-		img.putpixel((x, 4), STEEL_LIGHT + (255,))
-		img.putpixel((x, 5), STEEL_DARK + (255,))
-	for x in (4, 8, 12):
-		img.putpixel((x, 6), STEEL_LIGHT + (255,))
-	return img
-
-
-def hanging_key():
-	"""An upright key for the key box, ring at the top so it hangs from a hook. Pale, so the key's colour tints it."""
-	w, h = 16, 24
-	big_w, big_h = w * SS, h * SS
-	canvas = Image.new("RGBA", (big_w, big_h), (0, 0, 0, 0))
-
-	def m(fn):
-		mask = Image.new("L", (big_w, big_h), 0)
-		fn(ImageDraw.Draw(mask))
-		return mask
-
-	cx = big_w / 2
-	ring = m(lambda d: d.ellipse((cx - 5.5 * SS, 0.5 * SS, cx + 5.5 * SS, 11.5 * SS), fill=255))
-	hole = m(lambda d: d.ellipse((cx - 2 * SS, 3 * SS, cx + 2 * SS, 7 * SS), fill=255))
-	shank = m(lambda d: d.rectangle((cx - 1.5 * SS, 10 * SS, cx + 1.5 * SS, 23 * SS), fill=255))
-	collar = m(lambda d: d.rectangle((cx - 3 * SS, 10.5 * SS, cx + 3 * SS, 12.5 * SS), fill=255))
-	teeth = m(lambda d: [d.rectangle((cx + 1 * SS, y * SS, cx + x * SS, (y + 1.6) * SS), fill=255) for y, x in ((15, 4), (18, 4.6), (20.6, 3.6))])
-	shape = ImageChops.subtract(ImageChops.lighter(ImageChops.lighter(ImageChops.lighter(ring, shank), collar), teeth), hole)
-	canvas.paste(gradient((big_w, big_h), (250, 250, 250), (168, 168, 168), 60).convert("RGBA"), (0, 0), shape)
-	# a bright line down the shank's left side, a darker rim all round
-	canvas.paste((255, 255, 255, 255), (0, 0), ImageChops.multiply(m(lambda d: d.rectangle((cx - 1.5 * SS, 12 * SS, cx - 0.6 * SS, 22 * SS), fill=255)), shape))
-	edge = ImageChops.subtract(shape, shape.filter(ImageFilter.MinFilter(SS + 1)))
-	canvas.paste((128, 128, 128, 255), (0, 0), edge)
-	small = canvas.resize((w, h), Image.LANCZOS)
-	px = small.load()
-	for y in range(h):
-		for x in range(w):
-			r, g, b, a = px[x, y]
-			px[x, y] = (r, g, b, 255) if a >= 110 else (0, 0, 0, 0)
-	return small
-
-
 def main():
 	preview = "--preview" in sys.argv
 	for name, draw in (("transit_card", transit_card), ("station_codex", station_codex)):
@@ -305,17 +215,6 @@ def main():
 			strip.resize((SIZE * 8, SIZE * 8 * (SWEEP_FRAMES + 1)), Image.NEAREST).save(name + "_preview.png")
 		else:
 			write(ATA_ITEMS, name, strip)
-	if not preview:
-		os.makedirs(MTR_BLOCKS, exist_ok=True)
-		for name, img in (("key_box_steel", brushed(3, STEEL_LIGHT, STEEL, hexc("DDE1E5"), STEEL_DARK)),
-				("key_box_inside", brushed(5, hexc("737A82"), hexc("4C535A"), hexc("80878F"), hexc("3A4046"))),
-				("key_box_door", key_box_door()), ("key_box_back", key_box_back())):
-			img.save(os.path.join(MTR_BLOCKS, name + ".png"))
-			print("wrote", name)
-		gui = os.path.join(ROOT, "aurelia", "textures", "gui")
-		os.makedirs(gui, exist_ok=True)
-		hanging_key().save(os.path.join(gui, "key_box_key.png"))
-		print("wrote key_box_key")
 
 
 if __name__ == "__main__":

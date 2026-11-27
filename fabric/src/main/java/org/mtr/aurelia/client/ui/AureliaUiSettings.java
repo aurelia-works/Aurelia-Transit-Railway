@@ -26,7 +26,6 @@ public final class AureliaUiSettings {
 		SIDING("siding"),
 		OPTIONS("options"),
 		PANEL("panel"),
-		KEY_BOX("key_box"),
 		TAP_POPUP("tap_popup"),
 		TRAIN_PICKER("train_picker"),
 		/** Every ATR screen without a switch of its own. */

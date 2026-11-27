@@ -53,7 +53,6 @@ public final class ModItemGroups {
 								entries.add(ModItems.TRANSIT_CARD);
 								entries.add(ModItems.POCKET_TIMETABLE);
 								entries.add(ModItems.WRENCH);
-								entries.add(ModItems.STATION_CODEX);
 								entries.add(org.mtr.mod.zip.ZipContent.POLE_ITEM);
 								entries.add(org.mtr.mod.zip.ZipContent.HANDLE);
 								entries.add(org.mtr.mod.zip.ZipContent.SEAT);
