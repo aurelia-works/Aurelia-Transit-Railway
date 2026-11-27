@@ -213,7 +213,8 @@ public class StationWrenchItem extends Item {
 			case SAVE -> player.sendMessage(Text.literal("Station Studio design saved on the wrench.").formatted(Formatting.GRAY), true);
 			case PLAN -> StationActions.plan(player, text, null);
 			case PREVIEW -> StationActions.preview(player);
-			case CONFIRM, CONFIRM_REPLACE_TERRAIN -> StationActions.confirmFromStudio(player, text);
+			case CONFIRM -> StationActions.confirmFromStudio(player, text, false);
+			case CONFIRM_REPLACE_TERRAIN -> StationActions.confirmFromStudio(player, text, true);
 			case CANCEL -> StationActions.cancel(player);
 			case UNDO -> StationActions.undo(player);
 		}

@@ -260,13 +260,13 @@ public final class StationActions {
 	 * front of the player instead and asks them to check it and press Build again, so the game never builds a station the page
 	 * did not show.
 	 */
-	public static boolean confirmFromStudio(ServerPlayerEntity player, String description) {
+	public static boolean confirmFromStudio(ServerPlayerEntity player, String description, boolean replaceTerrain) {
 		if (stillPlanning(player)) {
 			return false;
 		}
 		final UUID id = player.getUuid();
 		if (StationSessions.pending(id) != null && description.equals(PLANNED_WORDS.get(id))) {
-			return confirm(player, false);
+			return confirm(player, replaceTerrain);
 		}
 		player.sendMessage(Text.literal(StationSessions.pending(id) == null
 				? "Nothing is planned yet, so Studio's station is planned in front of you first. Check it, then press Build it again."
