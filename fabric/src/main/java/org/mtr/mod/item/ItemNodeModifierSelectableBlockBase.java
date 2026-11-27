@@ -20,6 +20,11 @@ public abstract class ItemNodeModifierSelectableBlockBase extends ItemNodeModifi
 	private final boolean canSaveBlock;
 	private final int height;
 	private final int width;
+	/**
+	 * MTR 4.0.5's half-width. Add-ons read it by name (MTR Rail Works' accessor crashes the game at launch without it).
+	 * It matches {@link #getWidth(ItemStack)} / 2 for every item that keeps the default width.
+	 */
+	private final int radius;
 
 	private static final String TAG_BLOCK_ID = "block_id";
 
@@ -28,6 +33,7 @@ public abstract class ItemNodeModifierSelectableBlockBase extends ItemNodeModifi
 		this.canSaveBlock = canSaveBlock;
 		this.height = height;
 		this.width = width;
+		radius = width / 2;
 	}
 
 	@Nonnull

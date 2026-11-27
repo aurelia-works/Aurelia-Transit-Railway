@@ -1,5 +1,7 @@
 package org.mtr.atr.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import org.mtr.core.data.Data;
 import org.mtr.core.data.Depot;
 import org.mtr.core.simulation.Simulator;
@@ -9,9 +11,7 @@ import org.mtr.mod.engine.EngineFeature;
 import org.mtr.mod.engine.EngineSettings;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -22,10 +22,14 @@ import java.util.List;
 @Mixin(value = Depot.class, remap = false)
 public abstract class ClockFaceTimetableMixin {
 
-	/** The second {@code Collections.sort} in the method sorts the departures (the first sorts the sidings). */
-	@Redirect(method = "generatePlatformDirectionsAndWriteDeparturesToSidings", at = @At(value = "INVOKE", target = "Ljava/util/Collections;sort(Ljava/util/List;)V", ordinal = 1))
+	/**
+	 * The second {@code Collections.sort} in the method sorts the departures (the first sorts the sidings).
+	 * A wrap, not a redirect: MAGIC (jme) changes the argument of the same call, which fails at launch once a redirect has
+	 * replaced the call. A wrap runs after MAGIC's change and gets its list.
+	 */
+	@WrapOperation(method = "generatePlatformDirectionsAndWriteDeparturesToSidings", at = @At(value = "INVOKE", target = "Ljava/util/Collections;sort(Ljava/util/List;)V", ordinal = 1))
 	@SuppressWarnings({"unchecked", "rawtypes"})
-	private void atr$clockFace(List list) {
+	private void atr$clockFace(List list, Operation<Void> original) {
 		final Depot depot = (Depot) (Object) this;
 		final Data data = ((NameColorDataBaseSchemaAccessor) (Object) depot).atr$data();
 		if (list instanceof LongArrayList departures && data instanceof Simulator simulator && simulator.getGameMillisPerDay() > 0
@@ -38,6 +42,6 @@ public abstract class ClockFaceTimetableMixin {
 			departures.clear();
 			departures.addAll(LongArrayList.wrap(ClockFace.departures(frequencies, simulator.getMillisOfGameMidnight(), simulator.getGameMillisPerDay())));
 		}
-		Collections.sort(list);
+		original.call(list);
 	}
 }

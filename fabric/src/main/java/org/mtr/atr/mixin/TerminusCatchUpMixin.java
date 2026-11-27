@@ -1,5 +1,7 @@
 package org.mtr.atr.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import org.mtr.core.data.PathData;
 import org.mtr.core.data.Vehicle;
 import org.mtr.libraries.it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -9,7 +11,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
@@ -37,14 +38,18 @@ public abstract class TerminusCatchUpMixin {
 		atr$doorCloseTime = Math.max(totalDwell / 2, totalDwell - DOOR_MOVE_TIME - DOOR_DELAY);
 	}
 
-	/** The first {@code Math.min(long, long)} in {@code simulateStopped}: how much of a late train's delay this stop takes back. */
-	@Redirect(method = "simulateStopped", at = @At(value = "INVOKE", target = "Ljava/lang/Math;min(JJ)J", ordinal = 0))
-	private long atr$catchUpAtTerminus(long deviation, long allowed) {
+	/**
+	 * The first {@code Math.min(long, long)} in {@code simulateStopped}: how much of a late train's delay this stop takes back.
+	 * A wrap, not a redirect: MAGIC (jme) redirects the same call, and two redirects on one call crash the game at launch.
+	 * A wrap runs around another mod's redirect, so both apply.
+	 */
+	@WrapOperation(method = "simulateStopped", at = @At(value = "INVOKE", target = "Ljava/lang/Math;min(JJ)J", ordinal = 0))
+	private long atr$catchUpAtTerminus(long deviation, long allowed, Operation<Long> original) {
 		final Vehicle vehicle = (Vehicle) (Object) this;
 		if (EngineSettings.enabled(EngineFeature.TIMETABLE) && vehicle.vehicleExtraData.getIsTerminating()) {
 			final long elapsed = ((VehicleSchemaAccessor) vehicle).atr$elapsedDwellTime();
-			return Math.min(deviation, Math.max(allowed, atr$doorCloseTime - elapsed));
+			return original.call(deviation, Math.max(allowed, atr$doorCloseTime - elapsed));
 		}
-		return Math.min(deviation, allowed);
+		return original.call(deviation, allowed);
 	}
 }
